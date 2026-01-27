@@ -1,0 +1,49 @@
+{
+    "app_name": "دفاتر",
+    "sidebar": {
+        "dashboard": "لوحة التحكم",
+        "sales": "المبيعات",
+        "inventory": "المخزون",
+        "purchases": "المشتريات",
+        "finance": "المالية",
+        "accounting": "المحاسبة",
+        "reports": "التقارير",
+        "users": "المستخدمين",
+        "branches": "الفروع",
+        "templates": "القوالب",
+        "settings": "الإعدادات",
+        "support": "الدعم الفني"
+    },
+    "topbar": {
+        "add": "إضافة",
+        "view": "عرض",
+        "main_branch": "الفرع الرئيسي",
+        "subscribe_now": "اشترك الآن",
+        "trial_message": "متبقي {{days}} يومًا على انتهاء فترتك المجانية."
+    },
+    "dashboard": {
+        "invoice_templates": "قوالب الفواتير",
+        "invoice_templates_desc": "يمكنك تخصيص قوالب الفواتير الخاصة بك من خلال القوالب -> قوالب الفواتير. لتناسب عملك، ويمكنك التواصل مع الدعم الفني لمساعدتك في ذلك.",
+        "last_30_days": "آخر 30 يومًا",
+        "last_update": "آخر تحديث",
+        "sales": "المبيعات",
+        "client_payments": "مدفوعات العملاء",
+        "profit": "الربح",
+        "live": "مباشر",
+        "latest_invoices": "أحدث الفواتير",
+        "no_invoices": "لا توجد فواتير حتى الآن.",
+        "latest_clients": "عملاء جدد",
+        "no_clients": "لا يوجد عملاء حتى الآن.",
+        "latest_client_payments": "أحدث مدفوعات العملاء",
+        "no_client_payments": "لا توجد مدفوعات حتى الآن.",
+        "low_inventory": "منتجات منخفضة المخزون",
+        "no_low_inventory": "لا توجد منتجات منخفضة المخزون الان."
+    },
+    "purchases_page": {
+        "purchases": "المشتريات",
+        "supplier_payments": "مدفوعات الموردين",
+        "search_placeholder": "البحث والتصفية",
+        "no_supplier_payments": "لا يوجد مدفوعات موردين",
+        "start_creating": "ابدأ بإنشاء مدفوعات موردين"
+    }
+}
