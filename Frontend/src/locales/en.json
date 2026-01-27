@@ -1,0 +1,49 @@
+{
+    "app_name": "Dafater",
+    "sidebar": {
+        "dashboard": "Dashboard",
+        "sales": "Sales",
+        "inventory": "Inventory",
+        "purchases": "Purchases",
+        "finance": "Finance",
+        "accounting": "Accounting",
+        "reports": "Reports",
+        "users": "Users",
+        "branches": "Branches",
+        "templates": "Templates",
+        "settings": "Settings",
+        "support": "Technical Support"
+    },
+    "topbar": {
+        "add": "Add",
+        "view": "View",
+        "main_branch": "Main Branch",
+        "subscribe_now": "Subscribe Now",
+        "trial_message": "{{days}} days left until your free trial ends."
+    },
+    "dashboard": {
+        "invoice_templates": "Invoice Templates",
+        "invoice_templates_desc": "You can customize your invoice templates through Templates -> Invoice Templates. To suit your business, and you can contact support to assist you with that.",
+        "last_30_days": "Last 30 days",
+        "last_update": "Last update",
+        "sales": "Sales",
+        "client_payments": "Client payments",
+        "profit": "Profit",
+        "live": "Live",
+        "latest_invoices": "Latest Invoices",
+        "no_invoices": "No invoices found yet.",
+        "latest_clients": "Latest Clients",
+        "no_clients": "No clients found yet.",
+        "latest_client_payments": "Latest Client Payments",
+        "no_client_payments": "No payments found yet.",
+        "low_inventory": "Low Inventory Products",
+        "no_low_inventory": "No low inventory products found."
+    },
+    "purchases_page": {
+        "purchases": "Purchases",
+        "supplier_payments": "Supplier Payments",
+        "search_placeholder": "Search and Filter",
+        "no_supplier_payments": "No supplier payments found",
+        "start_creating": "Start creating supplier payments"
+    }
+}
