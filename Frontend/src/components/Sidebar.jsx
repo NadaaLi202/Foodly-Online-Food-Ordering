@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
 import {
@@ -21,11 +21,32 @@ import logo from '../assets/SidebarLogo.jpg';
 
 const Sidebar = ({ isMobile, isOpen, onClose }) => {
     const { t } = useTranslation();
+    const [openMenu, setOpenMenu] = useState(null);
 
     const navItems = [
         { key: 'dashboard', icon: Home, path: '/' },
-        { key: 'sales', icon: ShoppingCart, path: '/sales', hasSub: true },
-        { key: 'inventory', icon: Package, path: '/inventory', hasSub: true },
+        {
+            key: 'sales',
+            icon: ShoppingCart,
+            hasSub: true,
+            children: [
+                { key: 'invoices', path: '/sales/invoices' },
+                { key: 'returns', path: '/sales/returns' },
+                { key: 'quotations', path: '/sales/quotations' },
+                { key: 'customers', path: '/sales/customers' },
+                { key: 'payments', path: '/sales/payments' },
+            ]
+        },
+        {
+            key: 'inventory', icon: Package, hasSub: true, children: [
+                { key: 'products', path: '/inventory/products' },
+                { key: 'categories', path: '/inventory/categories' },
+                { key: 'operations', path: '/inventory/operations' },
+                { key: 'permissions', path: '/inventory/permissions' },
+                { key: 'warehouses', path: '/inventory/warehouses' },
+                { key: 'inventories', path: '/inventory/inventories' },
+            ]
+        },
         { key: 'purchases', icon: Truck, path: '/purchases', hasSub: true },
         { key: 'finance', icon: Banknote, path: '/finance', hasSub: true },
         { key: 'accounting', icon: Scale, path: '/accounting', hasSub: true },
@@ -67,27 +88,59 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                     }
 
                     return (
-                        <NavLink
-                            key={item.key}
-                            to={item.path}
-                            className={({ isActive }) =>
-                                `group w-full flex items-center ps-2 pe-1 py-1.5 text-start text-sm font-semibold rounded-md transition-colors ${isActive
-                                    ? 'bg-indigo-800 text-white'
-                                    : 'text-indigo-100 hover:bg-indigo-600 hover:bg-opacity-75'
-                                }`
-                            }
-                        >
-                            <item.icon className="me-3 flex-shrink-0 h-5 w-5" strokeWidth={1.5} />
-                            <span className="flex-1">{t(`sidebar.${item.key}`)}</span>
-                            {item.hasSub && (
-                                <Play
-                                    className="rtl:rotate-180 ms-3 h-4 w-4 flex-shrink-0 transition-transform duration-150 ease-in-out text-current"
-                                    size={16}
-                                    fill="currentColor"
-                                />
+                        <div key={item.key}>
+                            {/* لو ليه children → زرار بس */}
+                            {item.hasSub ? (
+                                <button
+                                    onClick={() => setOpenMenu(openMenu === item.key ? null : item.key)}
+                                    className="group w-full flex items-center ps-2 pe-1 py-1.5 text-start text-sm font-semibold rounded-md text-indigo-100 hover:bg-indigo-600 hover:bg-opacity-75 transition-colors"
+                                >
+                                    <item.icon className="me-3 flex-shrink-0 h-5 w-5" strokeWidth={1.5} />
+                                    <span className="flex-1">{t(`sidebar.${item.key}`)}</span>
+
+                                    <Play
+                                        className={`rtl:rotate-180 ms-3 h-4 w-4 flex-shrink-0 transition-transform duration-150 ease-in-out text-current ${openMenu === item.key ? 'rotate-90' : ''
+                                            }`}
+                                        size={16}
+                                        fill="currentColor"
+                                    />
+                                </button>
+                            ) : (
+                                /* لو مفيش children → NavLink زي ما هو */
+                                <NavLink
+                                    to={item.path}
+                                    className={({ isActive }) =>
+                                        `group w-full flex items-center ps-2 pe-1 py-1.5 text-start text-sm font-semibold rounded-md transition-colors ${isActive
+                                            ? 'bg-indigo-800 text-white'
+                                            : 'text-indigo-100 hover:bg-indigo-600 hover:bg-opacity-75'
+                                        }`
+                                    }
+                                >
+                                    <item.icon className="me-3 flex-shrink-0 h-5 w-5" strokeWidth={1.5} />
+                                    <span className="flex-1">{t(`sidebar.${item.key}`)}</span>
+                                </NavLink>
                             )}
-                        </NavLink>
+
+                            {/* children */}
+                            {item.children && openMenu === item.key && (
+                                <div className="ms-9 mt-1 flex flex-col space-y-0.5">
+                                    {item.children.map((child) => (
+                                        <NavLink
+                                            key={child.key}
+                                            to={child.path}
+                                            className={({ isActive }) =>
+                                                `text-xs font-medium rounded px-2 py-1 ${isActive ? 'text-white bg-indigo-800' : 'text-indigo-200'
+                                                } hover:text-white hover:bg-indigo-600 transition-colors`
+                                            }
+                                        >
+                                            {t(`sidebar.${child.key}`)}
+                                        </NavLink>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     );
+
                 })}
             </nav>
 
