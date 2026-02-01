@@ -24,7 +24,15 @@
         "settings": "Settings",
         "support": "Technical Support",
         "warehouses": "Warehouses",
-        "inventories": "Stock Taking"
+        "inventories": "Stock Taking",
+        "credit_notes": "Credit Notes",
+        "purchase_requests": "Purchase Requests",
+        "suppliers": "Suppliers",
+        "expenses": "Expenses",
+        "transactions": "Transactions",
+        "requisitions": "Requisitions",
+        "safes": "Safes",
+        "bank_accounts": "Bank Accounts"
     },
     "topbar": {
         "add": "Add",
@@ -56,7 +64,51 @@
         "supplier_payments": "Supplier Payments",
         "search_placeholder": "Search and Filter",
         "no_supplier_payments": "No supplier payments found",
-        "start_creating": "Start creating supplier payments"
+        "start_creating": "Start creating supplier payments",
+        "invoices": "Purchase Invoices",
+        "no_invoices": "No Purchase Invoices",
+        "start_invoices": "Get started by creating a new Purchase Invoices",
+        "credit_notes": "Purchase Credit Notes",
+        "no_credit_notes": "No Purchase Credit Notes",
+        "start_credit_notes": "Get started by creating a new Purchase Credit Notes",
+        "requests": "Purchase Requests",
+        "no_requests": "No Purchase Requests",
+        "start_requests": "Get started by creating a new Purchase Requests",
+        "suppliers": "Suppliers",
+        "no_suppliers": "No Suppliers",
+        "start_suppliers": "Get started by creating a new Suppliers"
+    },
+    "finance_page": {
+        "expenses": "Expenses",
+        "transactions": "Money Transactions",
+        "requisitions": "Money Requisitions",
+        "safes": "Safes",
+        "bank_accounts": "Bank Accounts",
+        "no_expenses": "No Outgoing Money Movements",
+        "start_expenses": "Get started by creating a new Outgoing Money Movements",
+        "no_transactions": "No Transactions",
+        "no_transactions_desc": "There are no transactions yet.",
+        "no_requisitions": "No Requisitions",
+        "no_requisitions_desc": "There are no requisitions yet."
+    },
+    "safes_page": {
+        "name": "Name",
+        "branches": "Branches",
+        "users": "Users",
+        "requisitions": "Requisitions",
+        "custodians": "Custodians",
+        "balance": "Balance",
+        "general_ledger": "General Ledger"
+    },
+    "bank_accounts_page": {
+        "name": "Name",
+        "branches": "Branches",
+        "users": "Users",
+        "requisitions": "Requisitions",
+        "custodians": "Custodians",
+        "balance": "Balance",
+        "general_ledger": "General Ledger",
+        "main_account": "Main Bank Account"
     },
     "sales": {
         "common": {
@@ -118,7 +170,24 @@
             "saudi_arabia": "Saudi Arabia",
             "egypt_country": "Egypt",
             "uae": "UAE",
-            "kuwait": "Kuwait"
+            "kuwait": "Kuwait",
+            "unspecified": "Unspecified",
+            "supplier": "Supplier",
+            "payment_status": "Payment Status",
+            "stock_movement_status": "Stock Movement Status",
+            "start_issue_date": "Start Issue Date",
+            "end_issue_date": "End Issue Date",
+            "line_item_description": "Line Item Description",
+            "reset": "Reset",
+            "apply": "Apply",
+            "draft": "Draft",
+            "issued": "Issued",
+            "unpaid": "Unpaid",
+            "partially_paid_settled": "Partially Paid or Settled",
+            "paid_settled": "Paid or Settled",
+            "receipt_pending": "Receipt Pending",
+            "partially_received": "Partially Received",
+            "received": "Received"
         },
         "invoices": {
             "title": "Invoices",
@@ -307,6 +376,14 @@
             "description": "Description",
             "no_inventories": "No stock-takes found",
             "start_creating": "Start by creating stock-takes"
+        }
+    },
+    "purchases": {
+        "invoices": {
+            "add_title": "Add Purchase Invoice"
+        },
+        "credit_notes": {
+            "add_title": "Add Purchase Credit Note"
         }
     }
 }
