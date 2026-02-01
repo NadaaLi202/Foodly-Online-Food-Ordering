@@ -24,7 +24,15 @@
         "settings": "الإعدادات",
         "support": "الدعم الفني",
         "warehouses": "المستودعات",
-        "inventories": "عمليات الجرد"
+        "inventories": "عمليات الجرد",
+        "credit_notes": "إشعارات دائنة",
+        "purchase_requests": "طلبات شراء",
+        "suppliers": "الموردين",
+        "expenses": "المصروفات",
+        "transactions": "المعاملات",
+        "requisitions": "الطلبات",
+        "safes": "الخزائن",
+        "bank_accounts": "الحسابات البنكية"
     },
     "topbar": {
         "add": "إضافة",
@@ -56,7 +64,51 @@
         "supplier_payments": "مدفوعات الموردين",
         "search_placeholder": "البحث والتصفية",
         "no_supplier_payments": "لا يوجد مدفوعات موردين",
-        "start_creating": "ابدأ بإنشاء مدفوعات موردين"
+        "start_creating": "ابدأ بإنشاء مدفوعات موردين",
+        "invoices": "فواتير المشتريات",
+        "no_invoices": "لا توجد فواتير مشتريات",
+        "start_invoices": "ابدأ بإنشاء فواتير مشتريات جديدة",
+        "credit_notes": "إشعارات دائنة للمشتريات",
+        "no_credit_notes": "لا توجد إشعارات دائنة",
+        "start_credit_notes": "ابدأ بإنشاء إشعارات دائنة جديدة",
+        "requests": "طلبات شراء",
+        "no_requests": "لا توجد طلبات شراء",
+        "start_requests": "ابدأ بإنشاء طلبات شراء جديدة",
+        "suppliers": "الموردين",
+        "no_suppliers": "لا يوجد موردين",
+        "start_suppliers": "ابدأ بإضافة موردين جدد"
+    },
+    "finance_page": {
+        "expenses": "مصروفات",
+        "transactions": "معاملات مالية",
+        "requisitions": "طلبات مالية",
+        "safes": "خزائن",
+        "bank_accounts": "حسابات بنكية",
+        "no_expenses": "لا توجد حركات أموال صادرة",
+        "start_expenses": "ابدأ بإنشاء حركات أموال صادرة جديدة",
+        "no_transactions": "لا توجد معاملات",
+        "no_transactions_desc": "لا توجد معاملات حتى الآن.",
+        "no_requisitions": "لا توجد طلبات",
+        "no_requisitions_desc": "لا توجد طلبات حتى الآن."
+    },
+    "safes_page": {
+        "name": "الاسم",
+        "branches": "الفروع",
+        "users": "المستخدمون",
+        "requisitions": "الطلبات",
+        "custodians": "الامناء",
+        "balance": "الرصيد",
+        "general_ledger": "دفتر الاستاذ العام"
+    },
+    "bank_accounts_page": {
+        "name": "الاسم",
+        "branches": "الفروع",
+        "users": "المستخدمون",
+        "requisitions": "الطلبات",
+        "custodians": "الامناء",
+        "balance": "الرصيد",
+        "general_ledger": "دفتر الاستاذ العام",
+        "main_account": "الحساب البنكي الرئيسي"
     },
     "sales": {
         "common": {
@@ -123,7 +175,23 @@
             "egypt_country": "مصر",
             "uae": "الإمارات",
             "kuwait": "الكويت",
-            "confirm_delete": "هل أنت متأكد من حذف هذه الفاتورة؟"
+            "unspecified": "غير محدد",
+            "supplier": "المورد",
+            "payment_status": "حالة الدفع",
+            "stock_movement_status": "حالة حركة المخزون",
+            "start_issue_date": "تاريخ الحق الافتتاحي",
+            "end_issue_date": "تاريخ الحق النهائي",
+            "line_item_description": "وصف البند",
+            "reset": "إعادة تعيين",
+            "apply": "تطبيق",
+            "draft": "مسودة",
+            "issued": "مصدرة",
+            "unpaid": "غير مدفوع",
+            "partially_paid_settled": "مدفوع جزئياً أو مسوى",
+            "paid_settled": "مدفوع أو مسوى",
+            "receipt_pending": "بانتظار الاستلام",
+            "partially_received": "مستلم جزئياً",
+            "received": "مستلم"
         },
         "invoices": {
             "title": "الفواتير",
@@ -319,6 +387,14 @@
             "description": "الوصف",
             "no_inventories": "لا توجد عمليات جرد",
             "start_creating": "ابدأ بإنشاء عمليات جرد"
+        }
+    },
+    "purchases": {
+        "invoices": {
+            "add_title": "إضافة فاتورة مشتريات"
+        },
+        "credit_notes": {
+            "add_title": "إضافة إشعار دائن مشتريات"
         }
     }
 }
