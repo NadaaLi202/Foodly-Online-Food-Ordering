@@ -7,6 +7,8 @@ const Categories = () => {
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingCategory, setEditingCategory] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
     const [errors, setErrors] = useState({});
 
     const [formData, setFormData] = useState({
@@ -16,10 +18,13 @@ const Categories = () => {
     });
 
     // Fetch categories from API
-    const fetchCategories = async () => {
+    const fetchCategories = async (search = '') => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/categories');
+            const url = search
+                ? `http://localhost:5000/api/v1/category?search=${search}`
+                : 'http://localhost:5000/api/v1/category';
+            const response = await fetch(url);
             const data = await response.json();
             setCategories(data.categories || []);
         } catch (error) {
@@ -70,28 +75,78 @@ const Categories = () => {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:4000/api/v1/categories', {
-                method: 'POST',
+            const url = editingCategory
+                ? `http://localhost:5000/api/v1/category/${editingCategory._id}`
+                : 'http://localhost:5000/api/v1/category';
+
+            const method = editingCategory ? 'PUT' : 'POST';
+
+            const payload = {
+                name: formData.name,
+                description: formData.description,
+                parentCategory: formData.parentCategory || null
+            };
+
+            const response = await fetch(url, {
+                method,
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(payload),
             });
 
             if (response.ok) {
-                alert(i18n.language === 'ar' ? 'تم إضافة التصنيف بنجاح!' : 'Category added successfully!');
+                alert(i18n.language === 'ar'
+                    ? (editingCategory ? 'تم تحديث التصنيف بنجاح!' : 'تم إضافة التصنيف بنجاح!')
+                    : (editingCategory ? 'Category updated successfully!' : 'Category added successfully!'));
                 setIsModalOpen(false);
+                setEditingCategory(null);
                 fetchCategories();
                 resetForm();
             } else {
                 const error = await response.json();
-                alert(error.message || (i18n.language === 'ar' ? 'حدث خطأ في إضافة التصنيف' : 'Error adding category'));
+                alert(error.message || (i18n.language === 'ar' ? 'حدث خطأ' : 'Error occurred'));
             }
         } catch (error) {
-            console.error('Error creating category:', error);
+            console.error('Error saving category:', error);
             alert(i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error');
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Handle Edit
+    const handleEdit = (category) => {
+        setEditingCategory(category);
+        setFormData({
+            name: category.name || '',
+            description: category.description || '',
+            parentCategory: category.parentCategory?._id || category.parentCategory || ''
+        });
+        setIsModalOpen(true);
+    };
+
+    // Handle Delete
+    const handleDelete = async (id) => {
+        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد من حذف هذا التصنيف؟' : 'Are you sure you want to delete this category?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/v1/category/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                alert(i18n.language === 'ar' ? 'تم حذف التصنيف بنجاح!' : 'Category deleted successfully!');
+                fetchCategories();
+            } else {
+                const error = await response.json();
+                alert(error.message || (i18n.language === 'ar' ? 'حدث خطأ في الحذف' : 'Error deleting category'));
+            }
+        } catch (error) {
+            console.error('Error deleting category:', error);
+            alert(i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error');
         }
     };
 
@@ -102,6 +157,7 @@ const Categories = () => {
             description: '',
             parentCategory: ''
         });
+        setEditingCategory(null);
         setErrors({});
     };
 
@@ -110,30 +166,28 @@ const Categories = () => {
             {/* Header */}
             <div className="bg-white shadow-sm border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
-                    >
-                        <Plus size={20} />
-                        <span>{t('sales.common.add')}</span>
-                    </button>
-
-                    <button
-                        onClick={fetchCategories}
-                        className="flex items-center gap-2 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                        <Search size={18} />
-                        <span>{t('sales.common.search_filter')}</span>
-                    </button>
+                    <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 bg-white flex-1 max-w-md">
+                        <Search size={18} className="text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder={t('sales.common.search_filter')}
+                            value={searchTerm}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                fetchCategories(e.target.value);
+                            }}
+                            className={`w-full focus:outline-none text-sm text-${i18n.language === 'ar' ? 'right' : 'left'}`}
+                        />
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white">
                     <FolderTree size={18} className="text-gray-500" />
-                    <span className="text-gray-700">{t('stocked.categories.title')}</span>
+                    <span className="text-gray-700 font-medium">{t('stocked.categories.title')}</span>
                     <RefreshCw
                         size={16}
-                        className="text-gray-400 cursor-pointer hover:text-gray-600"
-                        onClick={fetchCategories}
+                        className={`text-gray-400 cursor-pointer hover:text-indigo-600 transition-colors ${loading ? 'animate-spin text-indigo-600' : ''}`}
+                        onClick={() => fetchCategories(searchTerm)}
                     />
                 </div>
             </div>
@@ -157,17 +211,17 @@ const Categories = () => {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('stocked.categories.category_name')}</th>
-                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('stocked.categories.description')}</th>
-                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('stocked.categories.parent_category')}</th>
-                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('stocked.categories.products_count')}</th>
+                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase tracking-wider`}>{t('stocked.categories.category_name')}</th>
+                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase tracking-wider`}>{t('stocked.categories.description')}</th>
+                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase tracking-wider`}>{t('stocked.categories.parent_category')}</th>
+                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase tracking-wider`}>{t('sales.common.actions')}</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {categories.map((category) => (
-                                    <tr key={category._id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            {category.name}
+                                    <tr key={category._id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm font-medium text-gray-900">{category.name}</div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {category.description || '-'}
@@ -175,10 +229,21 @@ const Categories = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {category.parentCategory?.name || t('stocked.categories.no_parent')}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800">
-                                                {category.productsCount || 0}
-                                            </span>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div className="flex items-center gap-3">
+                                                <button
+                                                    onClick={() => handleEdit(category)}
+                                                    className="text-indigo-600 hover:text-indigo-900 transition-colors"
+                                                >
+                                                    {i18n.language === 'ar' ? 'تعديل' : 'Edit'}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(category._id)}
+                                                    className="text-red-600 hover:text-red-900 transition-colors"
+                                                >
+                                                    {i18n.language === 'ar' ? 'حذف' : 'Delete'}
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -194,9 +259,14 @@ const Categories = () => {
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
                         {/* Modal Header */}
                         <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-                            <h2 className="text-lg sm:text-xl font-bold text-gray-800">{t('stocked.categories.add_category')}</h2>
+                            <h2 className="text-lg sm:text-xl font-bold text-gray-800">
+                                {editingCategory ? (i18n.language === 'ar' ? 'تعديل التصنيف' : 'Edit Category') : t('stocked.categories.add_category')}
+                            </h2>
                             <button
-                                onClick={() => setIsModalOpen(false)}
+                                onClick={() => {
+                                    setIsModalOpen(false);
+                                    setEditingCategory(null);
+                                }}
                                 className="text-gray-400 hover:text-gray-600 transition-colors"
                             >
                                 <X size={24} />
@@ -253,11 +323,13 @@ const Categories = () => {
                                         className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500 bg-white`}
                                     >
                                         <option value="">{t('stocked.categories.no_parent')}</option>
-                                        {categories.map((category) => (
-                                            <option key={category._id} value={category._id}>
-                                                {category.name}
-                                            </option>
-                                        ))}
+                                        {categories
+                                            .filter(c => !editingCategory || c._id !== editingCategory._id) // Prevent self-parenting
+                                            .map((category) => (
+                                                <option key={category._id} value={category._id}>
+                                                    {category.name}
+                                                </option>
+                                            ))}
                                     </select>
                                 </div>
                             </form>
