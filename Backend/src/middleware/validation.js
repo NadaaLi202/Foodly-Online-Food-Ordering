@@ -1,14 +1,30 @@
 
-export  const validation = (schema) => {
+// export const validation = (schema) => {
 
-    return (req,res,next) => {
-        let inputs = {...req.body,...req.params,...req.query}
-        let {error} = schema.validate(inputs,{abortEarly : false})
-        console.log(error);
-        if(!error){
-            next()
-        }else{
-            res.status(400).json({message : error.details.map((err) => err.message)})
+//     return (req, res, next) => {
+//         let inputs = { ...req.body, ...req.params, ...req.query }
+//         let { error } = schema.validate(inputs, { abortEarly: false })
+//         console.log(error);
+//         if (!error) {
+//             next()
+//         } else {
+//             res.status(400).json({ message: error.details.map((err) => err.message) })
+//         }
+//     }
+// }
+
+
+
+
+
+export const validation = (schema) => {
+    return async (req, res, next) => {
+        try {
+            let inputs = { ...req.body, ...req.params, ...req.query };
+            await schema.validateAsync(inputs, { abortEarly: false });
+            next();
+        } catch (error) {
+            res.status(400).json({ message: error.details ? error.details.map(err => err.message) : error.message });
         }
     }
 }

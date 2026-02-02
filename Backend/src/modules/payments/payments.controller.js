@@ -1,54 +1,102 @@
-import { paymentModel } from "./payments.model.js";
-import { AppError } from "../../utils/AppError.js";
+import Payment from "./payments.model.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { AppError } from "../../utils/AppError.js";
 
-const addPayment = catchAsyncError(async (req, res, next) => {
-    const payment = new paymentModel(req.body);
-    await payment.save();
+// ========== ADD ==========
+const addPayment = (module) =>
+    catchAsyncError(async (req, res) => {
+        const payment = await Payment.create({
+            ...req.body,
+            module,
+            createdBy: req.user?._id
+        });
 
-    if (!payment) {
-        return next(new AppError('Payment not added', 400));
-    }
+        await payment.populate('contact', 'name email phone');
+        await payment.populate('invoice', 'transactionNumber totalAmount');
 
-    res.status(201).json({ message: 'Payment added successfully', payment });
-});
+        res.status(201).json({
+            message: "تم الإنشاء بنجاح",
+            payment
+        });
+    });
 
-const getAllPayments = catchAsyncError(async (req, res, next) => {
-    const payments = await paymentModel.find().populate('invoice'); // Ensure Invoice ref is correct
-    res.status(200).json({ message: 'Payments fetched successfully', payments });
-});
+// ========== GET ALL ==========
+const getAllPayments = (module) =>
+    catchAsyncError(async (req, res) => {
+        const payments = await Payment.find({
+            module,
+            deletedAt: null
+        })
+            .populate('contact', 'name email phone')
+            .populate('invoice', 'transactionNumber totalAmount')
+            .sort({ date: -1 });
 
+        res.json({
+            message: "تم جلب البيانات بنجاح",
+            count: payments.length,
+            payments
+        });
+    });
+
+// ========== GET ONE ==========
 const getPaymentById = catchAsyncError(async (req, res, next) => {
-    const { id } = req.params;
-    const payment = await paymentModel.findById(id).populate('invoice');
+    const payment = await Payment.findById(req.params.id)
+        .populate('contact', 'name email phone')
+        .populate('invoice', 'transactionNumber totalAmount');
 
-    if (!payment) {
-        return next(new AppError('Payment not found', 404));
+    if (!payment || payment.deletedAt) {
+        return next(new AppError("غير موجود", 404));
     }
 
-    res.status(200).json({ message: 'Payment fetched successfully', payment });
+    res.json({
+        message: "تم جلب البيانات بنجاح",
+        payment
+    });
 });
 
+// ========== UPDATE ==========
 const updatePayment = catchAsyncError(async (req, res, next) => {
-    const { id } = req.params;
-    const payment = await paymentModel.findByIdAndUpdate(id, req.body, { new: true });
+    const payment = await Payment.findById(req.params.id);
 
-    if (!payment) {
-        return next(new AppError('Payment not updated', 400));
+    if (!payment || payment.deletedAt) {
+        return next(new AppError("غير موجود", 404));
     }
 
-    res.status(200).json({ message: 'Payment updated successfully', payment });
+    Object.assign(payment, req.body);
+    payment.lastModifiedBy = req.user?._id;
+
+    await payment.save();
+    await payment.populate('contact', 'name email phone');
+    await payment.populate('invoice', 'transactionNumber totalAmount');
+
+    res.json({
+        message: "تم التعديل بنجاح",
+        payment
+    });
 });
 
+// ========== DELETE ==========
 const deletePayment = catchAsyncError(async (req, res, next) => {
-    const { id } = req.params;
-    const payment = await paymentModel.findByIdAndDelete(id);
+    const payment = await Payment.findByIdAndDelete(req.params.id);
 
     if (!payment) {
-        return next(new AppError('Payment not deleted', 400));
+        return next(new AppError("غير موجود", 404));
     }
 
-    res.status(200).json({ message: 'Payment deleted successfully', payment });
+    // payment.deletedAt = new Date();
+    // payment.deletedBy = req.user?._id;
+    // await payment.save();
+
+    res.json({
+        message: "تم الحذف بنجاح",
+        payment
+    });
 });
 
-export { addPayment, getAllPayments, getPaymentById, updatePayment, deletePayment };
+export {
+    addPayment,
+    getAllPayments,
+    getPaymentById,
+    updatePayment,
+    deletePayment
+};
