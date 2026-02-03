@@ -74,7 +74,13 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
         { key: 'accounting', icon: Scale, path: '/accounting', hasSub: true },
         { key: 'reports', icon: BarChart3, path: '/reports', hasSub: true },
         { key: 'users', icon: Users, path: '/users', hasSub: true },
-        { key: 'branches', icon: Building2, path: '/branches', hasSub: true },
+        {
+            key: 'branches', icon: Building2, hasSub: true, children: [
+                { key: 'branches_list', path: '/branches' },
+                { key: 'partners_lists', path: '/branches/partner-lists' },
+                { key: 'activities', path: '/branches/businesses' },
+            ]
+        },
         { key: 'templates', icon: FileText, path: '/templates', hasSub: true },
         { key: 'settings', icon: Settings, path: '/settings', hasSub: true },
         { key: 'support', icon: Headphones, path: '/support' },
