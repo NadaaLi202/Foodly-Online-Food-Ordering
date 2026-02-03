@@ -6,108 +6,118 @@ const DashboardPage = () => {
     const { t } = useTranslation();
 
     const SummaryCard = ({ title, amount }) => (
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 flex flex-col justify-between h-32">
-            <h3 className="text-gray-600 font-medium text-sm">{title}</h3>
-            <div className="text-2xl font-bold text-indigo-700 dir-ltr text-right rtl:text-left">
-                {amount}
+        <div className="bg-white px-4 py-5 sm:p-6 rounded-lg shadow border border-gray-200 flex flex-col justify-between">
+            <h3 className="text-base font-normal text-gray-900">{title}</h3>
+            <div className="mt-1 flex items-baseline justify-between md:block lg:flex">
+                <div className="text-2xl font-semibold text-indigo-600">
+                    {amount}
+                </div>
             </div>
         </div>
     );
 
     const ActivityCard = ({ title, emptyText }) => (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 flex flex-col h-64">
-            <div className="p-4 border-b border-gray-50 flex justify-between items-center">
-                <h3 className="font-bold text-gray-800 text-sm">{title}</h3>
-                <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                    <Circle size={6} fill="currentColor" /> {t('dashboard.live')}
+        <div className="overflow-hidden rounded-lg bg-white border border-gray-200 shadow">
+            <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-4 sm:px-6">
+                <h3 className="text-base font-semibold leading-6 text-gray-900">{title}</h3>
+                <span className="inline-flex items-center gap-x-1.5 rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-700">
+                    <Circle size={6} className="fill-green-500" /> {t('dashboard.live')}
                 </span>
             </div>
-            <div className="flex-1 flex items-center justify-center p-4 text-center">
-                <p className="text-gray-400 text-sm">{emptyText}</p>
+            <div className="text-sm text-center p-5">
+                {emptyText}
             </div>
         </div>
     );
 
     return (
-        <div className="space-y-6">
-            {/* Header Section */}
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">{t('sidebar.dashboard')}</h1>
-                {/* Simple TopBar replacement for context */}
-                <div className="flex gap-4">
-                    {/* Language toggle Placeholder if needed, but relying on browser/default for now */}
+        <div className="py-6 px-4 sm:px-6 lg:px-8">
+            <div className="space-y-6">
+                {/* Header Section */}
+                <div className="flex justify-between items-center">
+                    {/* Breadcrumbs or Title could go here based on HTML but HTML shows breadcrumbs. 
+                       For now keeping minimal or empty if not in HTML body provided fully (HTML had breadcrumbs). 
+                       User provided body has breadcrumbs. I will omit breadcrumbs implementation for now as it's complex 
+                       and focus on the main content structure as requested. */}
                 </div>
-            </div>
 
-            {/* Info Banner */}
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 relative">
-                <button className="absolute top-4 right-4 rtl:right-auto rtl:left-4 text-blue-400 hover:text-blue-600">
-                    <X size={16} />
-                </button>
-                <div className="flex gap-4">
-                    <div className="p-2 bg-blue-100 rounded-lg h-fit text-blue-600">
-                        <FileText size={24} />
+                {/* Info Banner - Invoice Templates */}
+                <div className="relative rounded-md bg-blue-50 p-4 shadow">
+                    <div className="flex">
+                        <div className="flex-shrink-0">
+                            <FileText className="h-7 w-7 text-blue-400" />
+                        </div>
+                        <div className="ms-3">
+                            <h3 className="text-sm font-medium text-blue-800">{t('dashboard.invoice_templates')}</h3>
+                            <div className="mt-2 text-sm text-blue-700">
+                                <p>
+                                    {t('dashboard.invoice_templates_desc')}
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="font-bold text-blue-800 mb-1">{t('dashboard.invoice_templates')}</h3>
-                        <p className="text-sm text-blue-600 leading-relaxed max-w-3xl">
-                            {t('dashboard.invoice_templates_desc')}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Time Filter & Update Info */}
-            <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2 text-gray-500 text-sm font-medium">
-                    <span>{t('dashboard.last_30_days')}</span>
-                    <span className="text-gray-300">|</span>
-                    <span>{t('dashboard.last_update')} {new Date().toLocaleDateString()} {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                    <button className="p-1 hover:bg-gray-200 rounded-full transition-colors">
-                        <RefreshCw size={14} />
+                    <button type="button" className="absolute end-2 top-2 rounded-md bg-blue-50 p-1.5 text-blue-500 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:ring-offset-blue-50">
+                        <X size={20} />
                     </button>
                 </div>
-            </div>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <SummaryCard
-                    title={t('dashboard.sales')}
-                    amount="0.00 EGP" // Simplified for static view, can be dynamic
-                />
-                <SummaryCard
-                    title={t('dashboard.client_payments')}
-                    amount="0.00 EGP"
-                />
-                <SummaryCard
-                    title={t('dashboard.profit')}
-                    amount="0.00 EGP"
-                />
-            </div>
+                {/* Time Filter & Update Info */}
+                <div>
+                    <div className="flex items-end">
+                        <div className="text-base font-semibold leading-6 text-gray-900">{t('dashboard.last_30_days')}</div>
+                        <div className="ms-2 text-xs text-gray-600">{t('dashboard.last_update')} {new Date().toLocaleDateString()} {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        <button type="button" className="ms-1">
+                            <RefreshCw size={16} className="text-gray-500" />
+                        </button>
+                    </div>
 
-            {/* Recent Activity Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <ActivityCard
-                    title={t('dashboard.latest_invoices')}
-                    emptyText={t('dashboard.no_invoices')}
-                />
-                <ActivityCard
-                    title={t('dashboard.latest_clients')}
-                    emptyText={t('dashboard.no_clients')}
-                />
-                <ActivityCard
-                    title={t('dashboard.latest_client_payments')}
-                    emptyText={t('dashboard.no_client_payments')}
-                />
-            </div>
-
-            {/* Low Stock Section */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100">
-                <div className="p-4 border-b border-gray-50">
-                    <h3 className="font-bold text-gray-800 text-sm">{t('dashboard.low_inventory')}</h3>
+                    {/* Summary Cards Grid */}
+                    <dl className="mt-3 grid grid-cols-1 divide-y divide-gray-300 overflow-hidden rounded-lg bg-white border border-gray-200 shadow md:grid-cols-3 md:divide-x rtl:md:divide-x-reverse md:divide-y-0">
+                        <div className="px-4 py-5 sm:p-6">
+                            <dt className="text-base font-normal text-gray-900">{t('dashboard.sales')}</dt>
+                            <dd className="mt-1 flex items-baseline justify-between md:block lg:flex">
+                                <div className="flex items-baseline text-2xl font-semibold text-indigo-600">0.00 EGP</div>
+                            </dd>
+                        </div>
+                        <div className="px-4 py-5 sm:p-6">
+                            <dt className="text-base font-normal text-gray-900">{t('dashboard.client_payments')}</dt>
+                            <dd className="mt-1 flex items-baseline justify-between md:block lg:flex">
+                                <div className="flex items-baseline text-2xl font-semibold text-indigo-600">0.00 EGP</div>
+                            </dd>
+                        </div>
+                        <div className="px-4 py-5 sm:p-6">
+                            <dt className="text-base font-normal text-gray-900">{t('dashboard.profit')}</dt>
+                            <dd className="mt-1 flex items-baseline justify-between md:block lg:flex">
+                                <div className="flex items-baseline text-2xl font-semibold text-indigo-600">0.00 EGP</div>
+                            </dd>
+                        </div>
+                    </dl>
                 </div>
-                <div className="p-8 text-center bg-gray-50/50">
-                    <p className="text-gray-500 text-sm">{t('dashboard.no_low_inventory')}</p>
+
+                {/* Combined Grid for Activity & Low Stock */}
+                <div className="grid gap-5 lg:grid-cols-3">
+                    <ActivityCard
+                        title={t('dashboard.latest_invoices')}
+                        emptyText={t('dashboard.no_invoices')}
+                    />
+                    <ActivityCard
+                        title={t('dashboard.latest_clients')}
+                        emptyText={t('dashboard.no_clients')}
+                    />
+                    <ActivityCard
+                        title={t('dashboard.latest_client_payments')}
+                        emptyText={t('dashboard.no_client_payments')}
+                    />
+
+                    {/* Low Stock Section - Spans 2 cols */}
+                    <div className="overflow-hidden rounded-lg bg-white border border-gray-200 shadow lg:col-span-2">
+                        <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-4 sm:px-6">
+                            <h3 className="text-base font-semibold leading-6 text-gray-900">{t('dashboard.low_inventory')}</h3>
+                        </div>
+                        <div className="text-sm text-center p-5">
+                            {t('dashboard.no_low_inventory')}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

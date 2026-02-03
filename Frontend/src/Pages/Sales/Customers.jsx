@@ -7,11 +7,14 @@ export default function Customers() {
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentCustomerId, setCurrentCustomerId] = useState(null);
+    const [loadingCustomer, setLoadingCustomer] = useState(false);
 
     const [formData, setFormData] = useState({
         name: '',
-        type: 'individual',
-        code: '1-000001',
+        type: 'customer', // قيمة افتراضية صحيحة
+        code: '',
         mobile: '',
         email: '',
         notes: '',
@@ -19,6 +22,7 @@ export default function Customers() {
         address2: '',
         city: '',
         neighborhood: '',
+        province: '',
         zipCode: '',
         country: ''
     });
@@ -37,9 +41,9 @@ export default function Customers() {
     const fetchCustomers = async () => {
         setLoading(true);
         try {
-            const response = await fetch('https://t10550.alostaz.io/api/clients');
+            const response = await fetch('http://localhost:4000/api/v1/contacts');
             const data = await response.json();
-            setCustomers(data.customers || []);
+            setCustomers(data.contacts || []);
         } catch (error) {
             console.error('Error fetching customers:', error);
         } finally {
@@ -51,26 +55,71 @@ export default function Customers() {
         fetchCustomers();
     }, []);
 
+    const getCustomerById = async (id) => {
+        setLoadingCustomer(true);
+        try {
+            const res = await fetch(`http://localhost:4000/api/v1/contacts/${id}`);
+            const data = await res.json();
+            
+            if (data.contact) {
+                // Fill form with customer data
+                setFormData({
+                    name: data.contact.name || '',
+                    type: data.contact.type || 'customer', // تأكد من استخدام القيم الصحيحة
+                    code: data.contact.code || '',
+                    mobile: data.contact.mobile || '',
+                    email: data.contact.email || '',
+                    notes: data.contact.notes || '',
+                    address1: data.contact.address1 || '',
+                    address2: data.contact.address2 || '',
+                    city: data.contact.city || '',
+                    neighborhood: data.contact.neighborhood || '',
+                    province: data.contact.province || '',
+                    zipCode: data.contact.zipCode || '',
+                    country: data.contact.country || ''
+                });
+                
+                // Set contact methods from API data
+                if (data.contact.contactMethods) {
+                    setContactMethods({
+                        mobile: data.contact.contactMethods.mobile || true,
+                        email: data.contact.contactMethods.email || true,
+                        phone: data.contact.contactMethods.phone || true
+                    });
+                } else {
+                    // Default contact methods if not provided
+                    setContactMethods({
+                        mobile: true,
+                        email: true,
+                        phone: true
+                    });
+                }
+                
+                setCurrentCustomerId(id);
+                setIsEditing(true);
+                setIsModalOpen(true);
+            }
+        } catch (error) {
+            console.error('Error fetching customer:', error);
+        } finally {
+            setLoadingCustomer(false);
+        }
+    };
+
     const validateForm = () => {
         const newErrors = {};
 
-        // Name validation (required)
+        // Name validation (required فقط)
         if (!formData.name.trim()) {
             newErrors.name = t('sales.customers.customer_name') + ' ' + t('sales.common.required');
         }
 
-        // Mobile validation (required, must be valid format)
+        // Mobile validation (required فقط)
         if (!formData.mobile.trim()) {
             newErrors.mobile = t('sales.customers.mobile') + ' ' + t('sales.common.required');
-        } else if (!/^[0-9]{10,15}$/.test(formData.mobile.replace(/[\s-]/g, ''))) {
-            newErrors.mobile = t('sales.customers.mobile') + ' ' + t('sales.common.invalid');
         }
 
-        // Email validation (if provided)
-        if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            newErrors.email = t('sales.customers.email') + ' ' + t('sales.common.invalid');
-        }
-
+        // إزالة كل التحقق الآخر
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -105,19 +154,39 @@ export default function Customers() {
         setResponseMessage({ type: '', text: '' });
 
         try {
-            // Replace with your actual API endpoint
-            const response = await fetch('https://t10550.alostaz.io/api/clients', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    ...formData,
-                    contactMethods
-                })
-            });
+            let response;
+            let result;
 
-            const result = await response.json();
+            // Prepare data to send - تأكد من أن type دائمًا من القيم الصحيحة
+            const dataToSend = {
+                ...formData,
+                type: formData.type || 'customer', // تأكد من وجود قيمة افتراضية
+                contactMethods
+            };
+
+            console.log('Data being sent:', dataToSend);
+
+            if (isEditing && currentCustomerId) {
+                // Update existing customer - PUT request
+                response = await fetch(`http://localhost:4000/api/v1/contacts/${currentCustomerId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(dataToSend)
+                });
+                result = await response.json();
+            } else {
+                // Create new customer - POST request
+                response = await fetch('http://localhost:4000/api/v1/contacts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(dataToSend)
+                });
+                result = await response.json();
+            }
 
             if (!response.ok) {
                 throw new Error(result.message || t('sales.common.error_message'));
@@ -137,21 +206,7 @@ export default function Customers() {
             // Close modal and reset form after short delay
             setTimeout(() => {
                 setIsModalOpen(false);
-                setFormData({
-                    name: '',
-                    type: 'individual',
-                    code: '1-000001',
-                    mobile: '',
-                    email: '',
-                    notes: '',
-                    address1: '',
-                    address2: '',
-                    city: '',
-                    neighborhood: '',
-                    zipCode: '',
-                    country: ''
-                });
-                setResponseMessage({ type: '', text: '' });
+                resetForm();
             }, 1500);
 
         } catch (error) {
@@ -165,9 +220,70 @@ export default function Customers() {
         }
     };
 
+    const resetForm = () => {
+        setFormData({
+            name: '',
+            type: 'customer', // قيمة افتراضية صحيحة
+            code: '',
+            mobile: '',
+            email: '',
+            notes: '',
+            address1: '',
+            address2: '',
+            city: '',
+            neighborhood: '',
+            province: '',
+            zipCode: '',
+            country: ''
+        });
+        setContactMethods({
+            mobile: true,
+            email: true,
+            phone: true
+        });
+        setCurrentCustomerId(null);
+        setIsEditing(false);
+        setResponseMessage({ type: '', text: '' });
+        setErrors({});
+    };
+
     const handleCancel = () => {
         setIsModalOpen(false);
-        setResponseMessage({ type: '', text: '' });
+        resetForm();
+    };
+
+    const openAddModal = () => {
+        resetForm();
+        setIsModalOpen(true);
+    };
+
+    // دالة للحصول على نص النوع للعرض
+    const getTypeText = (type) => {
+        if (i18n.language === 'ar') {
+            switch (type) {
+                case 'customer': return 'عميل';
+                case 'supplier': return 'مورد';
+                case 'both': return 'كلاهما';
+                default: return type;
+            }
+        } else {
+            switch (type) {
+                case 'customer': return 'Customer';
+                case 'supplier': return 'Supplier';
+                case 'both': return 'Both';
+                default: return type;
+            }
+        }
+    };
+
+    // دالة للحصول على لون النوع للعرض
+    const getTypeColor = (type) => {
+        switch (type) {
+            case 'customer': return 'bg-blue-100 text-blue-800';
+            case 'supplier': return 'bg-green-100 text-green-800';
+            case 'both': return 'bg-purple-100 text-purple-800';
+            default: return 'bg-gray-100 text-gray-800';
+        }
     };
 
     return (
@@ -176,7 +292,7 @@ export default function Customers() {
             <div className="bg-white shadow-sm border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <button
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={openAddModal}
                         className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
                     >
                         <Plus size={20} />
@@ -221,7 +337,11 @@ export default function Customers() {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {customers.map((customer) => (
-                                    <tr key={customer._id} className="hover:bg-gray-50">
+                                    <tr
+                                        key={customer._id}
+                                        onClick={() => getCustomerById(customer._id)}
+                                        className="hover:bg-gray-50 cursor-pointer"
+                                    >
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                             {customer.code}
                                         </td>
@@ -235,11 +355,8 @@ export default function Customers() {
                                             {customer.email || '-'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${customer.type === 'commercial'
-                                                ? 'bg-blue-100 text-blue-800'
-                                                : 'bg-green-100 text-green-800'
-                                                }`}>
-                                                {customer.type === 'commercial' ? t('sales.customers.commercial') : t('sales.customers.individual')}
+                                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(customer.type)}`}>
+                                                {getTypeText(customer.type)}
                                             </span>
                                         </td>
                                     </tr>
@@ -256,7 +373,9 @@ export default function Customers() {
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                         {/* Modal Header */}
                         <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-                            <h2 className={`text-xl font-bold text-gray-800 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.customers.add_customer')}</h2>
+                            <h2 className={`text-xl font-bold text-gray-800 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                {isEditing ? t('sales.customers.edit_customer') : t('sales.customers.add_customer')}
+                            </h2>
                             <button
                                 onClick={handleCancel}
                                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -322,28 +441,39 @@ export default function Customers() {
                                             <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
                                                 {t('sales.customers.type')}
                                             </label>
-                                            <div className="flex gap-4">
+                                            <div className="flex gap-2 flex-wrap">
                                                 <label className="flex items-center gap-2 cursor-pointer">
                                                     <input
                                                         type="radio"
                                                         name="type"
-                                                        value="individual"
-                                                        checked={formData.type === 'individual'}
+                                                        value="customer"
+                                                        checked={formData.type === 'customer'}
                                                         onChange={handleInputChange}
                                                         className="w-4 h-4 text-blue-600 focus:ring-blue-500"
                                                     />
-                                                    <span className="text-sm">{t('sales.customers.individual')}</span>
+                                                    <span className="text-sm">{i18n.language === 'ar' ? 'عميل' : 'Customer'}</span>
                                                 </label>
                                                 <label className="flex items-center gap-2 cursor-pointer">
                                                     <input
                                                         type="radio"
                                                         name="type"
-                                                        value="commercial"
-                                                        checked={formData.type === 'commercial'}
+                                                        value="supplier"
+                                                        checked={formData.type === 'supplier'}
                                                         onChange={handleInputChange}
                                                         className="w-4 h-4 text-blue-600 focus:ring-blue-500"
                                                     />
-                                                    <span className="text-sm">{t('sales.customers.commercial')}</span>
+                                                    <span className="text-sm">{i18n.language === 'ar' ? 'مورد' : 'Supplier'}</span>
+                                                </label>
+                                                <label className="flex items-center gap-2 cursor-pointer">
+                                                    <input
+                                                        type="radio"
+                                                        name="type"
+                                                        value="both"
+                                                        checked={formData.type === 'both'}
+                                                        onChange={handleInputChange}
+                                                        className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                                                    />
+                                                    <span className="text-sm">{i18n.language === 'ar' ? 'كلاهما' : 'Both'}</span>
                                                 </label>
                                             </div>
                                         </div>
@@ -357,7 +487,7 @@ export default function Customers() {
                                                 value={formData.code}
                                                 onChange={handleInputChange}
                                                 className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:border-indigo-500 text-sm"
-                                                readOnly
+                                                readOnly={isEditing}
                                             />
                                         </div>
                                     </div>
@@ -462,7 +592,7 @@ export default function Customers() {
                                     </div>
                                 </div>
 
-                                {/* City, Neighborhood, Zip, Province */}
+                                {/* City, Neighborhood, Province, ZipCode */}
                                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                                     <div>
                                         <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
@@ -494,8 +624,8 @@ export default function Customers() {
                                         </label>
                                         <input
                                             type="text"
-                                            name="zipCode"
-                                            value={formData.zipCode}
+                                            name="province"
+                                            value={formData.province}
                                             onChange={handleInputChange}
                                             className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500"
                                         />
@@ -506,8 +636,8 @@ export default function Customers() {
                                         </label>
                                         <input
                                             type="text"
-                                            name="country"
-                                            value={formData.country}
+                                            name="zipCode"
+                                            value={formData.zipCode}
                                             onChange={handleInputChange}
                                             className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500"
                                         />
@@ -562,7 +692,7 @@ export default function Customers() {
                                 disabled={isSubmitting}
                                 className="bg-teal-500 text-white px-6 py-2.5 rounded-lg hover:bg-teal-600 transition-colors font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
                             >
-                                {isSubmitting ? t('sales.common.saving') : t('sales.common.save')}
+                                {isSubmitting ? t('sales.common.saving') : (isEditing ? t('sales.common.update') : t('sales.common.save'))}
                             </button>
                         </div>
                     </div>

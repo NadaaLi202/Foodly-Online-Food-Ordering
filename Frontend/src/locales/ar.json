@@ -39,6 +39,14 @@
         "inventory_reports": "تقارير المخزون",
         "users_reports": "تقارير المستخدمين",
         "general_ledger": "حساب الأستاذ"
+        "credit_notes": "إشعارات دائنة",
+        "purchase_requests": "طلبات شراء",
+        "suppliers": "الموردين",
+        "expenses": "المصروفات",
+        "transactions": "المعاملات",
+        "requisitions": "الطلبات",
+        "safes": "الخزائن",
+        "bank_accounts": "الحسابات البنكية"
     },
     "topbar": {
         "add": "إضافة",
@@ -70,7 +78,51 @@
         "supplier_payments": "مدفوعات الموردين",
         "search_placeholder": "البحث والتصفية",
         "no_supplier_payments": "لا يوجد مدفوعات موردين",
-        "start_creating": "ابدأ بإنشاء مدفوعات موردين"
+        "start_creating": "ابدأ بإنشاء مدفوعات موردين",
+        "invoices": "فواتير المشتريات",
+        "no_invoices": "لا توجد فواتير مشتريات",
+        "start_invoices": "ابدأ بإنشاء فواتير مشتريات جديدة",
+        "credit_notes": "إشعارات دائنة للمشتريات",
+        "no_credit_notes": "لا توجد إشعارات دائنة",
+        "start_credit_notes": "ابدأ بإنشاء إشعارات دائنة جديدة",
+        "requests": "طلبات شراء",
+        "no_requests": "لا توجد طلبات شراء",
+        "start_requests": "ابدأ بإنشاء طلبات شراء جديدة",
+        "suppliers": "الموردين",
+        "no_suppliers": "لا يوجد موردين",
+        "start_suppliers": "ابدأ بإضافة موردين جدد"
+    },
+    "finance_page": {
+        "expenses": "مصروفات",
+        "transactions": "معاملات مالية",
+        "requisitions": "طلبات مالية",
+        "safes": "خزائن",
+        "bank_accounts": "حسابات بنكية",
+        "no_expenses": "لا توجد حركات أموال صادرة",
+        "start_expenses": "ابدأ بإنشاء حركات أموال صادرة جديدة",
+        "no_transactions": "لا توجد معاملات",
+        "no_transactions_desc": "لا توجد معاملات حتى الآن.",
+        "no_requisitions": "لا توجد طلبات",
+        "no_requisitions_desc": "لا توجد طلبات حتى الآن."
+    },
+    "safes_page": {
+        "name": "الاسم",
+        "branches": "الفروع",
+        "users": "المستخدمون",
+        "requisitions": "الطلبات",
+        "custodians": "الامناء",
+        "balance": "الرصيد",
+        "general_ledger": "دفتر الاستاذ العام"
+    },
+    "bank_accounts_page": {
+        "name": "الاسم",
+        "branches": "الفروع",
+        "users": "المستخدمون",
+        "requisitions": "الطلبات",
+        "custodians": "الامناء",
+        "balance": "الرصيد",
+        "general_ledger": "دفتر الاستاذ العام",
+        "main_account": "الحساب البنكي الرئيسي"
     },
     "sales": {
         "common": {
@@ -128,11 +180,32 @@
             "enter_new_client": "أدخل اسم العميل الجديد:",
             "fill_required": "الرجاء ملء جميع الحقول المطلوبة",
             "invalid": "غير صحيح",
+            "add_client": "إضافة عميل",
+            "payment_details": "تفاصيل الدفع",
+            "unpaid": "غير مدفوع",
+            "partial": "مدفوع جزئياً",
             "save_draft": "حفظ كمسودة",
             "saudi_arabia": "السعودية",
             "egypt_country": "مصر",
             "uae": "الإمارات",
-            "kuwait": "الكويت"
+            "kuwait": "الكويت",
+            "unspecified": "غير محدد",
+            "supplier": "المورد",
+            "payment_status": "حالة الدفع",
+            "stock_movement_status": "حالة حركة المخزون",
+            "start_issue_date": "تاريخ الحق الافتتاحي",
+            "end_issue_date": "تاريخ الحق النهائي",
+            "line_item_description": "وصف البند",
+            "reset": "إعادة تعيين",
+            "apply": "تطبيق",
+            "draft": "مسودة",
+            "issued": "مصدرة",
+            "unpaid": "غير مدفوع",
+            "partially_paid_settled": "مدفوع جزئياً أو مسوى",
+            "paid_settled": "مدفوع أو مسوى",
+            "receipt_pending": "بانتظار الاستلام",
+            "partially_received": "مستلم جزئياً",
+            "received": "مستلم"
         },
         "invoices": {
             "title": "الفواتير",
@@ -148,8 +221,12 @@
             "warehouse_tab": "المستودع",
             "paid_amount": "المبلغ المدفوع",
             "main_method": "الطريقة الرئيسية",
-            "invoice_discount": "الخصم على مستوى الفاتورة",
-            "invoice_number_placeholder": "INV-26-1-000001"
+            "invoice_discount": "خصم الفاتورة",
+            "invoice_number_placeholder": "رقم الفاتورة",
+            "no_invoices": "لا توجد فواتير حتى الآن.",
+            "start_creating": "ابدأ بإنشاء أول فاتورة لك الآن.",
+            "save_invoice": "حفظ الفاتورة",
+            "view_invoice": "عرض فاتورة"
         },
         "returns": {
             "title": "فواتير مرتجعات",
@@ -173,24 +250,27 @@
             "update": "تحديث",
             "add_customer": "إضافة عميل",
             "customer_code": "كود العميل",
-            "customer_name": "اسم العميل",
-            "mobile": "جوال",
-            "email": "بريد إلكتروني",
+            "customer_name": "الاسم",
             "type": "النوع",
             "individual": "فردي",
             "commercial": "تجاري",
-            "contact_methods": "وسائل الاتصال",
-            "address": "عنوان",
+            "opening_balance": "الرصيد الافتتاحي",
+            "contact_methods": "بيانات الاتصال",
             "phone": "الهاتف",
-            "address1": "عنوان1",
-            "address2": "عنوان2",
+            "mobile": "جوال",
+            "email": "بريد إلكتروني",
+            "address": "العنوان",
+            "address1": "العنوان 1",
+            "address2": "العنوان 2",
             "city": "مدينة",
             "neighborhood": "حي",
             "province": "محافظة",
             "zip_code": "رمز بريدي",
             "country": "دولة",
-            "add_new_contact": "+ إضافة جهة اتصال جديدة",
+            "add_new_contact": "إضافة جهة اتصال جديدة",
             "additional_contacts": "جهات اتصال إضافية",
+            "contact_name": "اسم جهة الاتصال",
+            "job_title": "المسمى الوظيفي",
             "no_customers": "لا يوجد عملاء",
             "start_customers": "ابدأ بإضافة عملاء جدد"
         },
@@ -441,6 +521,12 @@
         "main_activity": "النشاط التجاري الرئيسي",
         "validation": {
             "name_required": "الرجاء إدخال الاسم"
+    "purchases": {
+        "invoices": {
+            "add_title": "إضافة فاتورة مشتريات"
+        },
+        "credit_notes": {
+            "add_title": "إضافة إشعار دائن مشتريات"
         }
     }
 }

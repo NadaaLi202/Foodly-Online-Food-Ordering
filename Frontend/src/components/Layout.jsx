@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
+import Breadcrumbs from './Breadcrumbs';
 import { useTranslation } from 'react-i18next';
 
 const Layout = () => {
@@ -42,11 +43,12 @@ const Layout = () => {
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden">
                 <TopBar onToggleSidebar={toggleSidebar} isMobile={isMobile} />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto">
-                    <div className="container mx-auto px-6 py-8">
+                <div className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50/50">
+                    <Breadcrumbs />
+                    <main className="w-full">
                         <Outlet />
-                    </div>
-                </main>
+                    </main>
+                </div>
             </div>
         </div>
     );

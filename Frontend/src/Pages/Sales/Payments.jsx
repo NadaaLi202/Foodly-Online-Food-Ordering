@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 export default function Payments() {
     const { t, i18n } = useTranslation();
     const [payments, setPayments] = useState([]);
+    const [clients, setClients] = useState([]);
+    const [invoices, setInvoices] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -13,7 +15,9 @@ export default function Payments() {
         treasury: '',
         operationType: 'cash',
         client: '',
-        amount: ''
+        invoice: '',
+        amount: '',
+        notes: ''
     });
 
     const [errors, setErrors] = useState({});
@@ -24,7 +28,7 @@ export default function Payments() {
     const fetchPayments = async () => {
         setLoading(true);
         try {
-            const response = await fetch('https://t10550.alostaz.io/api/payments');
+            const response = await fetch('http://localhost:4000/api/v1/payments');
             const data = await response.json();
             setPayments(data.payments || []);
         } catch (error) {
@@ -34,8 +38,47 @@ export default function Payments() {
         }
     };
 
+    // Fetch clients from API
+    const fetchClients = async () => {
+        try {
+            const response = await fetch('http://localhost:4000/api/v1/contacts');
+            const data = await response.json();
+            setClients(data.contacts || []);
+        } catch (error) {
+            console.error('Error fetching clients:', error);
+        }
+    };
+
+    // Fetch invoices from API
+    const fetchInvoices = async () => {
+        try {
+            const response = await fetch('http://localhost:4000/api/v1/invoices');
+            const data = await response.json();
+            setInvoices(data.invoices || []);
+        } catch (error) {
+            console.error('Error fetching invoices:', error);
+        }
+    };
+
+    // Fetch client-specific invoices
+    const fetchClientInvoices = async (clientId) => {
+        if (!clientId) {
+            setInvoices([]);
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:4000/api/v1/invoices?clientId=${clientId}`);
+            const data = await response.json();
+            setInvoices(data.invoices || []);
+        } catch (error) {
+            console.error('Error fetching client invoices:', error);
+        }
+    };
+
     useEffect(() => {
         fetchPayments();
+        fetchClients();
     }, []);
 
     const validateForm = () => {
@@ -63,6 +106,13 @@ export default function Payments() {
             ...prev,
             [name]: value
         }));
+
+        // إذا تغير العميل، جلب فواتيره
+        if (name === 'client') {
+            fetchClientInvoices(value);
+            setFormData(prev => ({ ...prev, invoice: '' })); // مسح الفاتورة المختارة
+        }
+
         // Clear error for this field when user starts typing
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: '' }));
@@ -80,12 +130,20 @@ export default function Payments() {
         setResponseMessage({ type: '', text: '' });
 
         try {
-            const response = await fetch('https://t10550.alostaz.io/api/payments', {
+            // تحضير البيانات للإرسال
+            const submitData = {
+                ...formData,
+                client: formData.client || undefined, // إرسال undefined بدلاً من string فارغ
+                invoice: formData.invoice || undefined,
+                amount: parseFloat(formData.amount)
+            };
+
+            const response = await fetch('http://localhost:4000/api/v1/payments', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(submitData)
             });
 
             const result = await response.json();
@@ -113,9 +171,12 @@ export default function Payments() {
                     treasury: '',
                     operationType: 'cash',
                     client: '',
-                    amount: ''
+                    invoice: '',
+                    amount: '',
+                    notes: ''
                 });
                 setResponseMessage({ type: '', text: '' });
+                setInvoices([]);
             }, 1500);
 
         } catch (error) {
@@ -131,7 +192,23 @@ export default function Payments() {
 
     const handleCancel = () => {
         setIsModalOpen(false);
+        setFormData({
+            date: new Date().toISOString().split('T')[0],
+            treasury: '',
+            operationType: 'cash',
+            client: '',
+            invoice: '',
+            amount: '',
+            notes: ''
+        });
         setResponseMessage({ type: '', text: '' });
+        setInvoices([]);
+    };
+
+    // Helper function to get client name
+    const getClientName = (clientId) => {
+        const client = clients.find(c => c._id === clientId);
+        return client ? client.name : '-';
     };
 
     return (
@@ -183,6 +260,7 @@ export default function Payments() {
                                     <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('sales.payments.operation_type')}</th>
                                     <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('sales.common.client')}</th>
                                     <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('sales.common.amount')}</th>
+                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('sales.payments.notes')}</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -192,16 +270,26 @@ export default function Payments() {
                                             {new Date(payment.date).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US')}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {payment.treasury}
+                                            {payment.treasury === 'main' ? t('sales.common.main_treasury') :
+                                                payment.treasury === 'secondary' ? t('sales.payments.secondary_treasury') :
+                                                    t('sales.payments.cash_treasury')}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${payment.operationType === 'cash'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-blue-100 text-blue-800'
+                                                }`}>
+                                                {payment.operationType === 'cash' ? t('sales.common.cash') : t('sales.payments.non_cash')}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {payment.operationType === 'cash' ? t('sales.common.cash') : t('sales.payments.non_cash')}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {payment.client || '-'}
+                                            {payment.clientInfo?.name || payment.client || '-'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
                                             {payment.amount?.toFixed(2)} {t('sales.common.currency')}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                                            {payment.notes || '-'}
                                         </td>
                                     </tr>
                                 ))}
@@ -217,7 +305,9 @@ export default function Payments() {
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
                         {/* Modal Header */}
                         <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-                            <h2 className={`text-xl font-bold text-gray-800 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.payments.add_payment')}</h2>
+                            <h2 className={`text-xl font-bold text-gray-800 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                {t('sales.payments.add_payment')}
+                            </h2>
                             <button
                                 onClick={handleCancel}
                                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -261,26 +351,6 @@ export default function Payments() {
 
                                     <div>
                                         <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                            {t('sales.common.client')}
-                                        </label>
-                                        <select
-                                            name="client"
-                                            value={formData.client}
-                                            onChange={handleInputChange}
-                                            className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 bg-white"
-                                        >
-                                            <option value="">{t('sales.common.select')}</option>
-                                            <option value="client1">{t('sales.payments.client1')}</option>
-                                            <option value="client2">{t('sales.payments.client2')}</option>
-                                            <option value="client3">{t('sales.payments.client3')}</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                {/* Treasury and Operation Type */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
                                             {t('sales.payments.treasury')} <span className="text-red-500">*</span>
                                         </label>
                                         <select
@@ -301,7 +371,10 @@ export default function Payments() {
                                             </p>
                                         )}
                                     </div>
+                                </div>
 
+                                {/* Operation Type and Amount */}
+                                <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
                                             {t('sales.payments.operation_type')}
@@ -316,29 +389,90 @@ export default function Payments() {
                                             <option value="non-cash">{t('sales.payments.non_cash')}</option>
                                         </select>
                                     </div>
+
+                                    <div>
+                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                            {t('sales.common.amount')} <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="amount"
+                                            value={formData.amount}
+                                            onChange={handleInputChange}
+                                            className={`w-full px-3 py-2.5 border-2 rounded-lg focus:outline-none transition-colors ${i18n.language === 'ar' ? 'text-right' : 'text-left'} ${errors.amount ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'
+                                                }`}
+                                            placeholder="0.00"
+                                            min="0"
+                                            step="0.01"
+                                        />
+                                        {errors.amount && (
+                                            <p className={`mt-1 text-sm text-red-500 text-${i18n.language === 'ar' ? 'right' : 'left'} flex items-center gap-1`}>
+                                                <span>⚠</span> {errors.amount}
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
 
-                                {/* Amount */}
+                                {/* Client and Invoice */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                            {t('sales.common.client')}
+                                        </label>
+                                        <select
+                                            name="client"
+                                            value={formData.client}
+                                            onChange={handleInputChange}
+                                            className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 bg-white"
+                                        >
+                                            <option value="">{t('sales.common.select')}</option>
+                                            {clients.map((client) => (
+                                                <option key={client._id} value={client._id}>
+                                                    {client.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                            {t('sales.payments.invoice')}
+                                        </label>
+                                        <select
+                                            name="invoice"
+                                            value={formData.invoice}
+                                            onChange={handleInputChange}
+                                            disabled={!formData.client}
+                                            className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                        >
+                                            <option value="">{t('sales.common.select')}</option>
+                                            {invoices.map((invoice) => (
+                                                <option key={invoice._id} value={invoice._id}>
+                                                    {invoice.invoiceNumber} - {invoice.total.toFixed(2)} {t('sales.common.currency')}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {!formData.client && (
+                                            <p className={`mt-1 text-xs text-gray-400 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                                {t('sales.payments.select_client_first')}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Notes */}
                                 <div>
                                     <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                        {t('sales.common.amount')} <span className="text-red-500">*</span>
+                                        {t('sales.payments.notes')}
                                     </label>
-                                    <input
-                                        type="number"
-                                        name="amount"
-                                        value={formData.amount}
+                                    <textarea
+                                        name="notes"
+                                        value={formData.notes}
                                         onChange={handleInputChange}
-                                        className={`w-full px-3 py-2.5 border-2 rounded-lg focus:outline-none transition-colors ${i18n.language === 'ar' ? 'text-right' : 'text-left'} ${errors.amount ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'
-                                            }`}
-                                        placeholder="0.00"
-                                        min="0"
-                                        step="0.01"
+                                        rows="3"
+                                        className={`w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 resize-none ${i18n.language === 'ar' ? 'text-right' : 'text-left'}`}
+                                        placeholder={t('sales.payments.notes_placeholder')}
                                     />
-                                    {errors.amount && (
-                                        <p className={`mt-1 text-sm text-red-500 text-${i18n.language === 'ar' ? 'right' : 'left'} flex items-center gap-1`}>
-                                            <span>⚠</span> {errors.amount}
-                                        </p>
-                                    )}
                                 </div>
                             </form>
                         </div>

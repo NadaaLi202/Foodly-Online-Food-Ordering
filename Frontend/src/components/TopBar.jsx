@@ -25,14 +25,23 @@ const TopBar = ({ onToggleSidebar, isMobile }) => {
 
     return (
         <div className="flex flex-col w-full z-10">
-            {/* Orange Banner: Subscribe Now + X on one side, trial message + i icon on the other (match screenshot) */}
-            <div className="bg-orange-500 text-white px-6 py-2 flex justify-between items-center text-sm shadow-sm relative z-20">
+            {/* Orange Banner */}
+            <div className="bg-orange-600 text-white px-6 py-2 flex justify-between items-center text-sm shadow-sm relative z-20">
                 <div className="flex items-center gap-2">
-                    <button className="bg-white text-orange-600 px-4 py-1 rounded-md text-xs font-bold hover:bg-orange-50 transition-colors shadow-sm">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15">
+                        <Clock size={16} className="text-white" />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white">
+                        <span className="font-semibold">{t('topbar.trial_message', { days: 12 }).split(' ')[0]} 12 days left</span>
+                        <span className="text-white/90">until your free trial ends.</span>
+                    </div>
+                </div>
+                <div className="flex items-center gap-4">
+                    <button className="shrink-0 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-orange-700 shadow-sm hover:bg-orange-50 active:scale-[0.99] transition">
                         {t('topbar.subscribe_now')}
                     </button>
-                    <button className="text-white/80 hover:text-white transition-colors p-0.5">
-                        <X size={18} />
+                    <button className="text-white/90 hover:text-white transition-colors">
+                        <X size={16} />
                     </button>
                 </div>
                 <div className="flex items-center gap-2">

@@ -47,25 +47,32 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                 { key: 'inventories', path: '/inventory/inventories' },
             ]
         },
-        { key: 'purchases', icon: Truck, path: '/purchases', hasSub: true },
-        { key: 'finance', icon: Banknote, path: '/finance', hasSub: true },
         {
-            key: 'accounting', icon: Scale, path: '/accounting', hasSub: true, children: [
-                { key: 'journal_entries', path: '/accounting/journal-entries' },
-                { key: 'chart_of_accounts', path: '/accounting/chart-of-accounts' },
-                { key: 'cost_centers', path: '/accounting/cost-centers' },
+            key: 'purchases',
+            icon: Truck,
+            hasSub: true,
+            children: [
+                { key: 'invoices', path: '/purchases/invoices' },
+                { key: 'credit_notes', path: '/purchases/credit-notes' },
+                { key: 'purchase_requests', path: '/purchases/requests' },
+                { key: 'suppliers', path: '/purchases/suppliers' },
+                { key: 'payments', path: '/purchases/payments' },
             ]
         },
         {
-            key: 'reports', icon: BarChart3, path: '/reports', hasSub: true, children: [
-                { key: 'sales_reports', path: '/reports/sales' },
-                { key: 'purchases_reports', path: '/reports/purchases' },
-                { key: 'accounting_reports', path: '/reports/accounting' },
-                { key: 'customers_reports', path: '/reports/customers' },
-                { key: 'suppliers_reports', path: '/reports/suppliers' },
-                { key: 'inventory_reports', path: '/reports/inventory' },
+            key: 'finance',
+            icon: Banknote,
+            hasSub: true,
+            children: [
+                { key: 'expenses', path: '/finance/expenses' },
+                { key: 'transactions', path: '/finance/transactions' },
+                { key: 'requisitions', path: '/finance/requisitions' },
+                { key: 'safes', path: '/finance/safes' },
+                { key: 'bank_accounts', path: '/finance/bank-accounts' },
             ]
         },
+        { key: 'accounting', icon: Scale, path: '/accounting', hasSub: true },
+        { key: 'reports', icon: BarChart3, path: '/reports', hasSub: true },
         { key: 'users', icon: Users, path: '/users', hasSub: true },
         {
             key: 'branches', icon: Building2, hasSub: true, children: [

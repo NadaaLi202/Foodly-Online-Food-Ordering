@@ -7,6 +7,7 @@ const Products = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingProduct, setEditingProduct] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [errors, setErrors] = useState({});
     const [uploadedImage, setUploadedImage] = useState(null);
@@ -16,10 +17,10 @@ const Products = () => {
         name: '',
         code: '',
         category: '',
-        type: 'inventory', // 'inventory' or 'service'
+        type: 'tracked', // 'tracked' or 'service'
         unitName: '',
         purchasePrice: '',
-        salePrice: '',
+        sellingPrice: '',
         profitMargin: '',
         multipleUnits: false,
         description: '',
@@ -27,15 +28,19 @@ const Products = () => {
         stockQuantity: '',
         warehouse: 'main',
         lowStockThreshold: '',
-        barcodes: [],
-        taxes: [{ name: 'VAT', rate: '14', selected: true }]
+        barcode: '',
+        taxable: true,
+        taxRate: 14
     });
 
     // Fetch products from API
-    const fetchProducts = async () => {
+    const fetchProducts = async (search = '') => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/products');
+            const url = search
+                ? `http://localhost:5000/api/v1/products?search=${search}`
+                : 'http://localhost:5000/api/v1/products';
+            const response = await fetch(url);
             const data = await response.json();
             setProducts(data.products || []);
         } catch (error) {
@@ -61,8 +66,12 @@ const Products = () => {
             newErrors.code = `${t('stocked.products.code')} ${t('sales.common.required')}`;
         }
 
-        if (!formData.salePrice || parseFloat(formData.salePrice) <= 0) {
-            newErrors.salePrice = `${t('stocked.products.sale_price')} ${t('sales.common.required')}`;
+        if (!formData.sellingPrice || parseFloat(formData.sellingPrice) < 0) {
+            newErrors.sellingPrice = `${t('stocked.products.sale_price')} ${t('sales.common.required')}`;
+        }
+
+        if (!formData.purchasePrice || parseFloat(formData.purchasePrice) < 0) {
+            newErrors.purchasePrice = `${t('stocked.products.purchase_price')} ${t('sales.common.required')}`;
         }
 
         setErrors(newErrors);
@@ -127,52 +136,24 @@ const Products = () => {
         }
     };
 
-    // Add barcode
-    const addBarcode = () => {
-        setFormData({
-            ...formData,
-            barcodes: [...formData.barcodes, '']
-        });
+    // Add/Remove barcode is simplified to single field
+    const handleBarcodeChange = (e) => {
+        setFormData({ ...formData, barcode: e.target.value });
     };
 
-    // Update barcode
-    const updateBarcode = (index, value) => {
-        const newBarcodes = [...formData.barcodes];
-        newBarcodes[index] = value;
-        setFormData({ ...formData, barcodes: newBarcodes });
+    // Simplify taxes to taxable/taxRate for matching backend
+    const handleToggleTaxable = () => {
+        setFormData({ ...formData, taxable: !formData.taxable });
     };
 
-    // Remove barcode
-    const removeBarcode = (index) => {
-        const newBarcodes = formData.barcodes.filter((_, i) => i !== index);
-        setFormData({ ...formData, barcodes: newBarcodes });
-    };
-
-    // Add tax
-    const addTax = () => {
-        setFormData({
-            ...formData,
-            taxes: [...formData.taxes, { name: '', rate: '', selected: false }]
-        });
-    };
-
-    // Update tax
-    const updateTax = (index, field, value) => {
-        const newTaxes = [...formData.taxes];
-        newTaxes[index][field] = value;
-        setFormData({ ...formData, taxes: newTaxes });
-    };
-
-    // Remove tax
-    const removeTax = (index) => {
-        const newTaxes = formData.taxes.filter((_, i) => i !== index);
-        setFormData({ ...formData, taxes: newTaxes });
+    const handleTaxRateChange = (e) => {
+        setFormData({ ...formData, taxRate: parseFloat(e.target.value) || 0 });
     };
 
     // Calculate profit margin
     const calculateProfitMargin = () => {
         const purchase = parseFloat(formData.purchasePrice) || 0;
-        const sale = parseFloat(formData.salePrice) || 0;
+        const sale = parseFloat(formData.sellingPrice) || 0;
         if (purchase > 0 && sale > 0) {
             return (((sale - purchase) / purchase) * 100).toFixed(2);
         }
@@ -191,36 +172,102 @@ const Products = () => {
         setLoading(true);
 
         try {
-            const formDataToSend = new FormData();
-            Object.keys(formData).forEach(key => {
-                if (key === 'image' && formData[key]) {
-                    formDataToSend.append('image', formData[key]);
-                } else if (key === 'barcodes' || key === 'taxes') {
-                    formDataToSend.append(key, JSON.stringify(formData[key]));
-                } else {
-                    formDataToSend.append(key, formData[key]);
-                }
-            });
+            const url = editingProduct
+                ? `http://localhost:5000/api/v1/products/${editingProduct._id}`
+                : 'http://localhost:5000/api/v1/products';
 
-            const response = await fetch('http://localhost:4000/api/v1/products', {
-                method: 'POST',
-                body: formDataToSend,
+            const method = editingProduct ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: formData.name,
+                    code: formData.code,
+                    category: formData.category,
+                    type: formData.type,
+                    unitName: formData.unitName,
+                    purchasePrice: parseFloat(formData.purchasePrice),
+                    sellingPrice: parseFloat(formData.sellingPrice),
+                    description: formData.description,
+                    stockQuantity: parseFloat(formData.stockQuantity) || 0,
+                    warehouse: formData.warehouse,
+                    lowStockThreshold: parseFloat(formData.lowStockThreshold) || 0,
+                    barcode: formData.barcode,
+                    taxable: formData.taxable,
+                    taxRate: formData.taxRate,
+                    multipleUnits: formData.multipleUnits
+                })
             });
 
             if (response.ok) {
-                alert(i18n.language === 'ar' ? 'تم إضافة المنتج بنجاح!' : 'Product added successfully!');
+                alert(i18n.language === 'ar'
+                    ? (editingProduct ? 'تم تحديث المنتج بنجاح!' : 'تم إضافة المنتج بنجاح!')
+                    : (editingProduct ? 'Product updated successfully!' : 'Product added successfully!'));
                 setIsModalOpen(false);
+                setEditingProduct(null);
                 fetchProducts();
                 resetForm();
             } else {
                 const error = await response.json();
-                alert(error.message || (i18n.language === 'ar' ? 'حدث خطأ في إضافة المنتج' : 'Error adding product'));
+                alert(error.message || (i18n.language === 'ar' ? 'حدث خطأ' : 'Error occurred'));
             }
         } catch (error) {
-            console.error('Error creating product:', error);
+            console.error('Error saving product:', error);
             alert(i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error');
         } finally {
             setLoading(false);
+        }
+    };
+
+    // Handle Edit
+    const handleEdit = (product) => {
+        setEditingProduct(product);
+        setFormData({
+            name: product.name || '',
+            code: product.code || '',
+            category: product.category || '',
+            type: product.type || 'tracked',
+            unitName: product.unitName || '',
+            purchasePrice: product.purchasePrice || '',
+            sellingPrice: product.sellingPrice || '',
+            profitMargin: product.profitMargin || '',
+            multipleUnits: product.multipleUnits || false,
+            description: product.description || '',
+            image: null,
+            stockQuantity: product.stockQuantity || '',
+            warehouse: product.warehouse || 'main',
+            lowStockThreshold: product.lowStockThreshold || '',
+            barcode: product.barcode || '',
+            taxable: product.taxable !== undefined ? product.taxable : true,
+            taxRate: product.taxRate || 14
+        });
+        setIsModalOpen(true);
+    };
+
+    // Handle Delete
+    const handleDelete = async (id) => {
+        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد من حذف هذا المنتج؟' : 'Are you sure you want to delete this product?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/v1/products/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                alert(i18n.language === 'ar' ? 'تم حذف المنتج بنجاح!' : 'Product deleted successfully!');
+                fetchProducts();
+            } else {
+                const error = await response.json();
+                alert(error.message || (i18n.language === 'ar' ? 'حدث خطأ في الحذف' : 'Error deleting product'));
+            }
+        } catch (error) {
+            console.error('Error deleting product:', error);
+            alert(i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error');
         }
     };
 
@@ -230,10 +277,10 @@ const Products = () => {
             name: '',
             code: '',
             category: '',
-            type: 'inventory',
+            type: 'tracked',
             unitName: '',
             purchasePrice: '',
-            salePrice: '',
+            sellingPrice: '',
             profitMargin: '',
             multipleUnits: false,
             description: '',
@@ -241,9 +288,11 @@ const Products = () => {
             stockQuantity: '',
             warehouse: 'main',
             lowStockThreshold: '',
-            barcodes: [],
-            taxes: [{ name: 'VAT', rate: '14', selected: true }]
+            barcode: '',
+            taxable: true,
+            taxRate: 14
         });
+        setEditingProduct(null);
         setUploadedImage(null);
         setImagePreview(null);
         setErrors({});
@@ -262,22 +311,28 @@ const Products = () => {
                         <span>{t('sales.common.add')}</span>
                     </button>
 
-                    <button
-                        onClick={fetchProducts}
-                        className="flex items-center gap-2 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                        <Search size={18} />
-                        <span>{t('sales.common.search_filter')}</span>
-                    </button>
+                    <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 bg-white flex-1 max-w-md">
+                        <Search size={18} className="text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder={t('sales.common.search_filter')}
+                            value={searchTerm}
+                            onChange={(e) => {
+                                setSearchTerm(e.target.value);
+                                fetchProducts(e.target.value);
+                            }}
+                            className={`w-full focus:outline-none text-sm text-${i18n.language === 'ar' ? 'right' : 'left'}`}
+                        />
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white">
                     <Package size={18} className="text-gray-500" />
-                    <span className="text-gray-700">{t('stocked.products.title')}</span>
+                    <span className="text-gray-700 font-medium">{t('stocked.products.title')}</span>
                     <RefreshCw
                         size={16}
-                        className="text-gray-400 cursor-pointer hover:text-gray-600"
-                        onClick={fetchProducts}
+                        className={`text-gray-400 cursor-pointer hover:text-indigo-600 transition-colors ${loading ? 'animate-spin text-indigo-600' : ''}`}
+                        onClick={() => fetchProducts(searchTerm)}
                     />
                 </div>
             </div>
@@ -301,35 +356,64 @@ const Products = () => {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('stocked.products.product_name')}</th>
-                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('stocked.products.code')}</th>
-                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('stocked.products.category')}</th>
-                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('stocked.products.sale_price')}</th>
-                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('stocked.products.stock')}</th>
+                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase tracking-wider`}>{t('stocked.products.product_name')}</th>
+                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase tracking-wider`}>{t('stocked.products.code')}</th>
+                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase tracking-wider`}>{t('stocked.products.category')}</th>
+                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase tracking-wider`}>{t('stocked.products.sale_price')}</th>
+                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase tracking-wider`}>{t('stocked.products.stock')}</th>
+                                    <th className={`px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase tracking-wider`}>{t('sales.common.actions')}</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {products.map((product) => (
-                                    <tr key={product._id} className="hover:bg-gray-50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            {product.name}
+                                    <tr key={product._id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center">
+                                                <div className="h-10 w-10 flex-shrink-0 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 font-bold">
+                                                    {product.name.charAt(0)}
+                                                </div>
+                                                <div className={`${i18n.language === 'ar' ? 'mr-4' : 'ml-4'}`}>
+                                                    <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                                                    <div className="text-sm text-gray-500">{product.type === 'service' ? t('stocked.products.service_no_inventory') : t('stocked.products.product_with_inventory')}</div>
+                                                </div>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {product.code}
+                                            {product.code || '-'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {product.category || '-'}
                                         </td>
-                                        <td className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                            {product.salePrice?.toFixed(2)} {t('sales.common.currency')}
+                                        <td className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold`}>
+                                            {product.sellingPrice?.toLocaleString(undefined, { minimumFractionDigits: 2 })} {t('sales.common.currency')}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${product.stockQuantity <= (product.lowStockThreshold || 0)
-                                                ? 'bg-red-100 text-red-800'
-                                                : 'bg-green-100 text-green-800'
-                                                }`}>
-                                                {product.stockQuantity || 0}
-                                            </span>
+                                            {product.type === 'service' ? (
+                                                <span className="text-gray-400 text-xs italic">-</span>
+                                            ) : (
+                                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${product.stockQuantity <= (product.lowStockThreshold || 0)
+                                                    ? 'bg-red-100 text-red-800'
+                                                    : 'bg-green-100 text-green-800'
+                                                    }`}>
+                                                    {product.stockQuantity || 0}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div className="flex items-center gap-3">
+                                                <button
+                                                    onClick={() => handleEdit(product)}
+                                                    className="text-indigo-600 hover:text-indigo-900 transition-colors"
+                                                >
+                                                    {i18n.language === 'ar' ? 'تعديل' : 'Edit'}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(product._id)}
+                                                    className="text-red-600 hover:text-red-900 transition-colors"
+                                                >
+                                                    {i18n.language === 'ar' ? 'حذف' : 'Delete'}
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -345,9 +429,14 @@ const Products = () => {
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
                         {/* Modal Header */}
                         <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-                            <h2 className="text-lg sm:text-xl font-bold text-gray-800">{t('stocked.products.add_product')}</h2>
+                            <h2 className="text-lg sm:text-xl font-bold text-gray-800">
+                                {editingProduct ? (i18n.language === 'ar' ? 'تعديل المنتج' : 'Edit Product') : t('stocked.products.add_product')}
+                            </h2>
                             <button
-                                onClick={() => setIsModalOpen(false)}
+                                onClick={() => {
+                                    setIsModalOpen(false);
+                                    setEditingProduct(null);
+                                }}
                                 className="text-gray-400 hover:text-gray-600 transition-colors"
                             >
                                 <X size={24} />
@@ -433,8 +522,8 @@ const Products = () => {
                                             <input
                                                 type="radio"
                                                 name="type"
-                                                value="inventory"
-                                                checked={formData.type === 'inventory'}
+                                                value="tracked"
+                                                checked={formData.type === 'tracked'}
                                                 onChange={handleInputChange}
                                                 className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
                                             />
@@ -502,8 +591,13 @@ const Products = () => {
                                                 placeholder="0.00"
                                                 min="0"
                                                 step="0.01"
-                                                className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500`}
+                                                className={`w-full border-2 ${errors.purchasePrice ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors`}
                                             />
+                                            {errors.purchasePrice && (
+                                                <p className={`text-red-500 text-xs mt-1 text-${i18n.language === 'ar' ? 'right' : 'left'} flex items-center gap-1`}>
+                                                    <span>⚠</span> {errors.purchasePrice}
+                                                </p>
+                                            )}
                                         </div>
                                         <div>
                                             <label className={`block text-sm text-gray-600 mb-1 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
@@ -511,17 +605,17 @@ const Products = () => {
                                             </label>
                                             <input
                                                 type="number"
-                                                name="salePrice"
-                                                value={formData.salePrice}
+                                                name="sellingPrice"
+                                                value={formData.sellingPrice}
                                                 onChange={handleInputChange}
                                                 placeholder="0.00"
                                                 min="0"
                                                 step="0.01"
-                                                className={`w-full border-2 ${errors.salePrice ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors`}
+                                                className={`w-full border-2 ${errors.sellingPrice ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors`}
                                             />
-                                            {errors.salePrice && (
+                                            {errors.sellingPrice && (
                                                 <p className={`text-red-500 text-xs mt-1 text-${i18n.language === 'ar' ? 'right' : 'left'} flex items-center gap-1`}>
-                                                    <span>⚠</span> {errors.salePrice}
+                                                    <span>⚠</span> {errors.sellingPrice}
                                                 </p>
                                             )}
                                         </div>
@@ -592,8 +686,8 @@ const Products = () => {
                                     </div>
                                 </div>
 
-                                {/* Stock Info (only for inventory type) */}
-                                {formData.type === 'inventory' && (
+                                {/* Stock Info (only for tracked type) */}
+                                {formData.type === 'tracked' && (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
@@ -637,92 +731,50 @@ const Products = () => {
                                     </div>
                                 )}
 
-                                {/* Barcodes */}
                                 <div>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <label className={`text-sm font-semibold text-gray-700 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                            {t('stocked.products.barcodes')}
-                                        </label>
-                                        <button
-                                            type="button"
-                                            onClick={addBarcode}
-                                            className="flex items-center gap-1 bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 text-sm"
-                                        >
-                                            <Plus size={14} />
-                                            {t('stocked.products.add_barcode')}
-                                        </button>
-                                    </div>
-                                    <div className="space-y-2">
-                                        {formData.barcodes.map((barcode, index) => (
-                                            <div key={index} className="flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={barcode}
-                                                    onChange={(e) => updateBarcode(index, e.target.value)}
-                                                    placeholder={t('stocked.products.barcode')}
-                                                    className={`flex-1 border-2 border-gray-200 rounded-lg px-3 py-2 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500`}
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeBarcode(index)}
-                                                    className="text-red-500 hover:text-red-700 p-2"
-                                                >
-                                                    <X size={18} />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
+                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                        {t('stocked.products.barcode')}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="barcode"
+                                        value={formData.barcode}
+                                        onChange={handleInputChange}
+                                        placeholder={t('stocked.products.barcode')}
+                                        className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500`}
+                                    />
                                 </div>
 
-                                {/* Taxes */}
                                 <div>
-                                    <div className="flex items-center justify-between mb-2">
-                                        <label className={`text-sm font-semibold text-gray-700 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                            {t('stocked.products.taxes')}
+                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                        {t('stocked.products.taxes')}
+                                    </label>
+                                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                name="taxable"
+                                                checked={formData.taxable}
+                                                onChange={handleInputChange}
+                                                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                            />
+                                            <span className="text-sm font-medium text-gray-700">{i18n.language === 'ar' ? 'خاضع للضريبة' : 'Taxable'}</span>
                                         </label>
-                                        <button
-                                            type="button"
-                                            onClick={addTax}
-                                            className="flex items-center gap-1 bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 text-sm"
-                                        >
-                                            <Plus size={14} />
-                                            {t('stocked.products.add_tax')}
-                                        </button>
-                                    </div>
-                                    <div className="space-y-2">
-                                        {formData.taxes.map((tax, index) => (
-                                            <div key={index} className="flex items-center gap-3">
+
+                                        {formData.taxable && (
+                                            <div className="flex items-center gap-3">
+                                                <label className="text-sm text-gray-600 min-w-[100px]">{t('stocked.products.vat')} %</label>
                                                 <input
-                                                    type="radio"
-                                                    checked={tax.selected}
-                                                    onChange={() => {
-                                                        const newTaxes = formData.taxes.map((t, i) => ({
-                                                            ...t,
-                                                            selected: i === index
-                                                        }));
-                                                        setFormData({ ...formData, taxes: newTaxes });
-                                                    }}
-                                                    className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                                                    type="number"
+                                                    name="taxRate"
+                                                    value={formData.taxRate}
+                                                    onChange={handleInputChange}
+                                                    min="0"
+                                                    max="100"
+                                                    className={`w-24 border-2 border-gray-200 rounded-lg px-3 py-1.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500`}
                                                 />
-                                                <div className="flex-1 flex gap-2">
-                                                    <input
-                                                        type="text"
-                                                        value={tax.name || `${t('stocked.products.vat')} ${tax.rate}%`}
-                                                        readOnly
-                                                        className={`flex-1 border-2 border-gray-200 rounded-lg px-3 py-2 text-${i18n.language === 'ar' ? 'right' : 'left'} bg-gray-50`}
-                                                    />
-                                                    {index > 0 && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeTax(index)}
-                                                            className="text-red-500 hover:text-red-700 p-2"
-                                                        >
-                                                            <X size={18} />
-                                                        </button>
-                                                    )}
-                                                </div>
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
                                 </div>
                             </form>

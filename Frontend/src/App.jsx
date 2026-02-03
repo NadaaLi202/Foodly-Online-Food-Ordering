@@ -1,7 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import DashboardPage from './pages/DashboardPage';
-import PurchasesPage from './pages/PurchasesPage';
+import PurchaseInvoices from './Pages/Purchases/PurchaseInvoices';
+import PurchaseCreditNotes from './Pages/Purchases/PurchaseCreditNotes';
+import PurchaseRequests from './Pages/Purchases/PurchaseRequests';
+import Suppliers from './Pages/Purchases/Suppliers';
+import SupplierPayments from './Pages/Purchases/SupplierPayments';
 import Invoices from './Pages/Sales/Invoices';
 import Returns from './Pages/Sales/returns';
 import Quotations from './Pages/Sales/Quotations';
@@ -19,6 +23,11 @@ import CostCenters from './Pages/Accounting/CostCenters';
 import Branches from './Pages/Branches/Branches';
 import PartnerLists from './Pages/Branches/PartnerLists';
 import Activities from './Pages/Branches/Activities';
+import Expenses from './Pages/Finance/Expenses';
+import Transactions from './Pages/Finance/Transactions';
+import Requisitions from './Pages/Finance/Requisitions';
+import Safes from './Pages/Finance/Safes';
+import BankAccounts from './Pages/Finance/BankAccounts';
 
 const PlaceholderPage = ({ title }) => (
   <div className="p-8 text-center text-gray-500 bg-white rounded-lg shadow-sm border border-gray-100">
@@ -74,6 +83,24 @@ function App() {
             <Route path="suppliers" element={<PlaceholderPage title="Suppliers Reports" />} />
             <Route path="inventory" element={<PlaceholderPage title="Inventory Reports" />} />
           </Route>
+          <Route path="purchases">
+            <Route path="invoices" element={<PurchaseInvoices />} />
+            <Route path="invoices/add" element={<PurchaseInvoices />} />
+            <Route path="credit-notes" element={<PurchaseCreditNotes />} />
+            <Route path="credit-notes/add" element={<PurchaseCreditNotes />} />
+            <Route path="requests" element={<PurchaseRequests />} />
+            <Route path="suppliers" element={<Suppliers />} />
+            <Route path="payments" element={<SupplierPayments />} />
+          </Route>
+          <Route path="finance">
+            <Route path="expenses" element={<Expenses />} />
+            <Route path="transactions" element={<Transactions />} />
+            <Route path="requisitions" element={<Requisitions />} />
+            <Route path="safes" element={<Safes />} />
+            <Route path="bank-accounts" element={<BankAccounts />} />
+          </Route>
+          <Route path="accounting" element={<PlaceholderPage title="Accounting" />} />
+          <Route path="reports" element={<PlaceholderPage title="Reports" />} />
           <Route path="users" element={<PlaceholderPage title="Users" />} />
           <Route path="branches">
             <Route index element={<Branches />} />

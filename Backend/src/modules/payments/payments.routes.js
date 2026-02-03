@@ -1,17 +1,32 @@
 import express from "express";
-import { addPayment, deletePayment, getAllPayments, getPaymentById, updatePayment } from "./payments.controller.js";
+import {
+    addPayment,
+    getAllPayments,
+    getPaymentById,
+    updatePayment,
+    deletePayment
+} from "./payments.controller.js";
 import { validation } from "../../middleware/validation.js";
-import { addPaymentSchema, updatePaymentSchema } from "./payments.validation.js";
+import { paymentSchema } from "./payments.validation.js";
 
-const paymentRouter = express.Router();
+const router = express.Router();
 
-paymentRouter.route('/')
-    .post(validation(addPaymentSchema), addPayment)
-    .get(getAllPayments);
+// ================= SALES PAYMENTS =================
 
-paymentRouter.route('/:id')
-    .get(getPaymentById)
-    .put(validation(updatePaymentSchema), updatePayment)
-    .delete(deletePayment);
+router.post("/sales", validation(paymentSchema), addPayment("sales"));
+router.get("/sales", getAllPayments("sales"));
 
-export default paymentRouter;
+
+// ================= PURCHASES PAYMENTS =================
+
+router.post("/purchases", validation(paymentSchema), addPayment("purchases"));
+router.get("/purchases", getAllPayments("purchases"));
+
+
+// ================= SHARED =================
+
+router.get("/:id", getPaymentById);
+router.patch("/:id", updatePayment);
+router.delete("/:id", deletePayment);
+
+export default router;

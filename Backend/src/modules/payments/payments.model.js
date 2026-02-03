@@ -1,29 +1,84 @@
 import mongoose from "mongoose";
 
 const paymentSchema = new mongoose.Schema({
-    invoice: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Invoice", // Assuming Invoice model exists, or maybe Quote?
-        required: true
-    },
-    amount: {
-        type: Number,
-        required: true
-    },
-    method: {
-        type: String,
-        enum: ['Credit Card', 'PayPal', 'Bank Transfer', 'Cash'],
-        required: true
-    },
-    status: {
-        type: String,
-        enum: ['Completed', 'Pending', 'Failed'],
-        default: 'Pending'
-    },
     date: {
         type: Date,
-        default: Date.now
+        default: Date.now,
+        required: true
+    },
+
+    module: {
+        type: String,
+        enum: ['sales', 'purchases'],
+        required: true
+    },
+
+    treasury: {
+        type: String,
+        enum: ['main', 'bank'],
+        required: true
+    },
+
+    operationType: {
+        type: String,
+        enum: ['receive', 'spend'],
+        required: true
+    },
+
+    contact: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Contact',
+        required: true
+    },
+
+    invoice: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Transaction',
+        sparse: true
+    },
+
+    invoiceType: {
+        type: String,
+        enum: ['automatic', 'custom'],
+        default: 'automatic'
+    },
+
+    amount: {
+        type: Number,
+        required: true,
+        min: 0
+    },
+
+    notes: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+
+    lastModifiedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+
+    deletedAt: Date,
+    deletedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }
+
 }, { timestamps: true });
 
-export const paymentModel = mongoose.model("Payment", paymentSchema);
+// Indexes
+paymentSchema.index({ date: -1 });
+paymentSchema.index({ module: 1 });
+paymentSchema.index({ contact: 1 });
+paymentSchema.index({ treasury: 1 });
+paymentSchema.index({ operationType: 1 });
+
+const Payment = mongoose.model("Payment", paymentSchema);
+export default Payment;
