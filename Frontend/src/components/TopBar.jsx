@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Search, Building, Clock, X, Menu, Globe } from 'lucide-react';
+import { Plus, Search, Building, Clock, X, Menu, Info } from 'lucide-react';
 
 const TopBar = ({ onToggleSidebar, isMobile }) => {
     const { t, i18n } = useTranslation();
@@ -25,21 +25,23 @@ const TopBar = ({ onToggleSidebar, isMobile }) => {
 
     return (
         <div className="flex flex-col w-full z-10">
-            {/* Orange Banner */}
+            {/* Orange Banner: Subscribe Now + X on one side, trial message + i icon on the other (match screenshot) */}
             <div className="bg-orange-500 text-white px-6 py-2 flex justify-between items-center text-sm shadow-sm relative z-20">
                 <div className="flex items-center gap-2">
-                    <Clock size={16} className="text-white/80" />
-                    <span className="font-medium">
-                        {t('topbar.trial_message', { days: 14 })}
-                    </span>
-                </div>
-                <div className="flex items-center gap-4">
                     <button className="bg-white text-orange-600 px-4 py-1 rounded-md text-xs font-bold hover:bg-orange-50 transition-colors shadow-sm">
                         {t('topbar.subscribe_now')}
                     </button>
-                    <button className="text-white/80 hover:text-white transition-colors">
+                    <button className="text-white/80 hover:text-white transition-colors p-0.5">
                         <X size={18} />
                     </button>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="font-medium">
+                        {t('topbar.trial_message', { days: 8 })}
+                    </span>
+                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-white/20">
+                        <Info size={14} />
+                    </span>
                 </div>
             </div>
 

@@ -49,10 +49,31 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
         },
         { key: 'purchases', icon: Truck, path: '/purchases', hasSub: true },
         { key: 'finance', icon: Banknote, path: '/finance', hasSub: true },
-        { key: 'accounting', icon: Scale, path: '/accounting', hasSub: true },
-        { key: 'reports', icon: BarChart3, path: '/reports', hasSub: true },
+        {
+            key: 'accounting', icon: Scale, path: '/accounting', hasSub: true, children: [
+                { key: 'journal_entries', path: '/accounting/journal-entries' },
+                { key: 'chart_of_accounts', path: '/accounting/chart-of-accounts' },
+                { key: 'cost_centers', path: '/accounting/cost-centers' },
+            ]
+        },
+        {
+            key: 'reports', icon: BarChart3, path: '/reports', hasSub: true, children: [
+                { key: 'sales_reports', path: '/reports/sales' },
+                { key: 'purchases_reports', path: '/reports/purchases' },
+                { key: 'accounting_reports', path: '/reports/accounting' },
+                { key: 'customers_reports', path: '/reports/customers' },
+                { key: 'suppliers_reports', path: '/reports/suppliers' },
+                { key: 'inventory_reports', path: '/reports/inventory' },
+            ]
+        },
         { key: 'users', icon: Users, path: '/users', hasSub: true },
-        { key: 'branches', icon: Building2, path: '/branches', hasSub: true },
+        {
+            key: 'branches', icon: Building2, hasSub: true, children: [
+                { key: 'branches_list', path: '/branches' },
+                { key: 'partners_lists', path: '/branches/partner-lists' },
+                { key: 'activities', path: '/branches/businesses' },
+            ]
+        },
         { key: 'templates', icon: FileText, path: '/templates', hasSub: true },
         { key: 'settings', icon: Settings, path: '/settings', hasSub: true },
         { key: 'support', icon: Headphones, path: '/support' },
