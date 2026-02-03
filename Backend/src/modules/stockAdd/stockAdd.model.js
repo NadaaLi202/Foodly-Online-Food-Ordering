@@ -25,8 +25,7 @@ const stockAddSchema = new mongoose.Schema(
 
         // المخزن
         warehouse: {
-            type: String,
-            enum: ["main", "secondary"],
+            type: mongoose.Schema.Types.Mixed,
             required: true
         },
 

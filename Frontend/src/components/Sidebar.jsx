@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NavLink } from 'react-router-dom';
+import { useNavigate, NavLink } from 'react-router-dom';
 import {
     Home,
     ShoppingCart,
@@ -14,37 +14,45 @@ import {
     FileText,
     Settings,
     Headphones,
-    Play
+    Play,
+    LogOut
 } from 'lucide-react';
 
 import logo from '../assets/SidebarLogo.jpg';
 
 const Sidebar = ({ isMobile, isOpen, onClose }) => {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const [openMenu, setOpenMenu] = useState(null);
 
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+    };
+
     const navItems = [
-        { key: 'dashboard', icon: Home, path: '/' },
+        { key: 'dashboard', icon: Home, path: '/dashboard' },
         {
             key: 'sales',
             icon: ShoppingCart,
             hasSub: true,
             children: [
-                { key: 'invoices', path: '/sales/invoices' },
-                { key: 'returns', path: '/sales/returns' },
-                { key: 'quotations', path: '/sales/quotations' },
-                { key: 'customers', path: '/sales/customers' },
-                { key: 'payments', path: '/sales/payments' },
+                { key: 'invoices', path: '/dashboard/sales/invoices' },
+                { key: 'returns', path: '/dashboard/sales/returns' },
+                { key: 'quotations', path: '/dashboard/sales/quotations' },
+                { key: 'customers', path: '/dashboard/sales/customers' },
+                { key: 'payments', path: '/dashboard/sales/payments' },
             ]
         },
         {
             key: 'inventory', icon: Package, hasSub: true, children: [
-                { key: 'products', path: '/inventory/products' },
-                { key: 'categories', path: '/inventory/categories' },
-                { key: 'operations', path: '/inventory/operations' },
-                { key: 'permissions', path: '/inventory/permissions' },
-                { key: 'warehouses', path: '/inventory/warehouses' },
-                { key: 'inventories', path: '/inventory/inventories' },
+                { key: 'products', path: '/dashboard/inventory/products' },
+                { key: 'categories', path: '/dashboard/inventory/categories' },
+                { key: 'operations', path: '/dashboard/inventory/operations' },
+                { key: 'permissions', path: '/dashboard/inventory/permissions' },
+                { key: 'warehouses', path: '/dashboard/inventory/warehouses' },
+                { key: 'inventories', path: '/dashboard/inventory/inventories' },
             ]
         },
         {
@@ -52,11 +60,11 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
             icon: Truck,
             hasSub: true,
             children: [
-                { key: 'invoices', path: '/purchases/invoices' },
-                { key: 'credit_notes', path: '/purchases/credit-notes' },
-                { key: 'purchase_requests', path: '/purchases/requests' },
-                { key: 'suppliers', path: '/purchases/suppliers' },
-                { key: 'payments', path: '/purchases/payments' },
+                { key: 'invoices', path: '/dashboard/purchases/invoices' },
+                { key: 'credit_notes', path: '/dashboard/purchases/credit-notes' },
+                { key: 'purchase_requests', path: '/dashboard/purchases/requests' },
+                { key: 'suppliers', path: '/dashboard/purchases/suppliers' },
+                { key: 'payments', path: '/dashboard/purchases/payments' },
             ]
         },
         {
@@ -64,20 +72,27 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
             icon: Banknote,
             hasSub: true,
             children: [
-                { key: 'expenses', path: '/finance/expenses' },
-                { key: 'transactions', path: '/finance/transactions' },
-                { key: 'requisitions', path: '/finance/requisitions' },
-                { key: 'safes', path: '/finance/safes' },
-                { key: 'bank_accounts', path: '/finance/bank-accounts' },
+                { key: 'expenses', path: '/dashboard/finance/expenses' },
+                { key: 'transactions', path: '/dashboard/finance/transactions' },
+                { key: 'requisitions', path: '/dashboard/finance/requisitions' },
+                { key: 'safes', path: '/dashboard/finance/safes' },
+                { key: 'bank_accounts', path: '/dashboard/finance/bank-accounts' },
             ]
         },
-        { key: 'accounting', icon: Scale, path: '/accounting', hasSub: true },
-        { key: 'reports', icon: BarChart3, path: '/reports', hasSub: true },
-        { key: 'users', icon: Users, path: '/users', hasSub: true },
-        { key: 'branches', icon: Building2, path: '/branches', hasSub: true },
-        { key: 'templates', icon: FileText, path: '/templates', hasSub: true },
-        { key: 'settings', icon: Settings, path: '/settings', hasSub: true },
-        { key: 'support', icon: Headphones, path: '/support' },
+        { key: 'accounting', icon: Scale, path: '/dashboard/accounting', hasSub: true },
+        { key: 'reports', icon: BarChart3, path: '/dashboard/reports', hasSub: true },
+        {
+            key: 'users', icon: Users, path: '/dashboard/users', hasSub: true,
+            children: [
+                { key: 'users', path: '/dashboard/users' },
+                { key: 'roles', path: '/dashboard/users/roles' }
+
+            ]
+        },
+        { key: 'branches', icon: Building2, path: '/dashboard/branches', hasSub: true },
+        { key: 'templates', icon: FileText, path: '/dashboard/templates', hasSub: true },
+        { key: 'settings', icon: Settings, path: '/dashboard/settings', hasSub: true },
+        { key: 'support', icon: Headphones, path: '/dashboard/support' },
     ];
 
     const sidebarClasses = isMobile
@@ -164,6 +179,16 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                     );
 
                 })}
+
+                <div className="pt-2 mt-auto pb-2">
+                    <button
+                        onClick={handleLogout}
+                        className="group w-full flex items-center px-2 py-1.5 text-sm font-semibold rounded-md text-red-100 bg-red-600 hover:bg-opacity-80 transition-colors"
+                    >
+                        <LogOut className="me-3 flex-shrink-0 h-4 w-4" />
+                        <span>{t('sidebar.sign_out') || 'Sign Out'}</span>
+                    </button>
+                </div>
             </nav>
 
             {/* Decorative gradient at bottom */}

@@ -32,7 +32,9 @@
         "transactions": "Transactions",
         "requisitions": "Requisitions",
         "safes": "Safes",
-        "bank_accounts": "Bank Accounts"
+        "bank_accounts": "Bank Accounts",
+        "roles": "Roles",
+        "sign_out": "Sign Out"
     },
     "topbar": {
         "add": "Add",
@@ -186,12 +188,31 @@
             "apply": "Apply",
             "draft": "Draft",
             "issued": "Issued",
-            "unpaid": "Unpaid",
-            "partially_paid_settled": "Partially Paid or Settled",
-            "paid_settled": "Paid or Settled",
             "receipt_pending": "Receipt Pending",
             "partially_received": "Partially Received",
-            "received": "Received"
+            "received": "Received",
+            "name": "Name",
+            "type": "Type",
+            "code": "Code",
+            "phone": "Phone",
+            "mobile": "Mobile",
+            "email": "Email",
+            "balance": "Balance",
+            "individual": "Individual",
+            "commercial": "Commercial",
+            "tax_number": "Tax Number",
+            "commercial_register": "Commercial Register",
+            "contact_info": "Contact Information",
+            "address": "Address",
+            "address1": "Address Line 1",
+            "city": "City",
+            "country": "Country",
+            "financial_info": "Financial Information",
+            "initial_balance": "Initial Balance",
+            "credit_limit": "Credit Limit",
+            "update": "Update",
+            "delete": "Delete",
+            "confirm_delete": "Are you sure you want to delete?"
         },
         "invoices": {
             "title": "Invoices",
@@ -258,7 +279,15 @@
             "contact_name": "Contact Name",
             "job_title": "Job Title",
             "no_customers": "No customers found",
-            "start_customers": "Start by adding new customers"
+            "start_creating": "Start by creating your first customer",
+            "edit_customer": "Edit Customer"
+        },
+        "suppliers": {
+            "title": "Suppliers",
+            "add_supplier": "Add Supplier",
+            "edit_supplier": "Edit Supplier",
+            "no_suppliers": "No suppliers found",
+            "start_creating": "Start by creating your first supplier"
         },
         "payments": {
             "title": "Client Payments",
@@ -395,6 +424,67 @@
         },
         "credit_notes": {
             "add_title": "Add Purchase Credit Note"
+        }
+    },
+    "users_page": {
+        "title": "Users",
+        "add_user": "Add New User",
+        "edit_user": "Edit User",
+        "no_users": "No users found",
+        "start_creating": "Start by creating your first user",
+        "name": "Name",
+        "type": "Type",
+        "email": "Email",
+        "role": "Role",
+        "branch": "Branch",
+        "admin": "Employee",
+        "user": "User",
+        "password": "Password",
+        "confirm_password": "Confirm Password",
+        "password_mismatch": "Passwords do not match",
+        "leave_empty": "leave empty to keep current",
+        "select_role": "Select Role",
+        "manager": "Manager",
+        "accountant": "Accountant",
+        "sales": "Sales",
+        "select_branch": "Select Branch"
+    },
+    "roles_page": {
+        "title": "Roles",
+        "add_role": "Add Role",
+        "edit_role": "Edit Role",
+        "role_name": "Role Name",
+        "permissions": "Permissions",
+        "no_roles": "No roles found",
+        "start_creating": "Start by creating your first role",
+        "add": "Add",
+        "view": "View",
+        "edit": "Edit",
+        "delete": "Delete",
+        "all": "All",
+        "own": "Own",
+        "branch": "Branch",
+        "modules": {
+            "sales_invoices": "Sales Invoices",
+            "customers": "Customers",
+            "customer_payments": "Customer Payments",
+            "purchase_invoices": "Purchase Invoices",
+            "suppliers": "Suppliers",
+            "supplier_payments": "Supplier Payments",
+            "products": "Products",
+            "inventory_operations": "Inventory Operations",
+            "finance_operations": "Finance Operations",
+            "ledger_accounts": "Ledger Accounts",
+            "journal_entries": "Journal Entries",
+            "settle_with_balance": "Settle Invoices with Balance",
+            "settle_with_accounts": "Settle Invoices with Accounts",
+            "sales_report": "Sales Report",
+            "customer_payments_report": "Customer Payments Report",
+            "product_profit_report": "Product Profit Report",
+            "purchase_report": "Purchase Report",
+            "supplier_payments_report": "Supplier Payments Report",
+            "balance_sheet": "Balance Sheet Report",
+            "income_statement": "Income Statement Report"
         }
     }
 }

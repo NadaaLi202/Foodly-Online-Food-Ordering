@@ -12,11 +12,11 @@ export const addInventoryExchangeSchema = Joi.object({
             "any.required": "Operation مطلوب"
         }),
 
-    warehouse: Joi.string()
-        .valid("main")
-        .required()
+    warehouse: Joi.alternatives().try(
+        Joi.string().hex().length(24),
+        Joi.string().valid("main", "secondary")
+    ).required()
         .messages({
-            "any.only": "المخزن يجب أن يكون المستودع الرئيسي فقط",
             "any.required": "المخزن مطلوب"
         }),
 
@@ -39,21 +39,24 @@ export const addInventoryExchangeSchema = Joi.object({
             "any.required": "الكمية مطلوبة"
         }),
 
-    account: Joi.string().allow(""),
-    description: Joi.string().allow(""),
-    attachments: Joi.array().items(Joi.string()),
-    createdBy: Joi.string().hex().length(24)
-});
+    account: Joi.string().allow("", null).optional(),
+    date: Joi.any().optional(),
+    totalAmount: Joi.any().optional(),
+    description: Joi.string().allow("", null).optional(),
+    attachments: Joi.array().items(Joi.string()).optional(),
+    createdBy: Joi.string().hex().length(24).optional()
+}).unknown(true);
 
 // Update Inventory Exchange
 export const updateInventoryExchangeSchema = Joi.object({
     operation: Joi.string().hex().length(24),
 
-    warehouse: Joi.string()
-        .valid("main")
-        .messages({
-            "any.only": "المخزن يجب أن يكون المستودع الرئيسي فقط"
-        }),
+    warehouse: Joi.alternatives().try(
+        Joi.string().hex().length(24),
+        Joi.string().valid("main", "secondary")
+    ),
+    date: Joi.date().allow(null, ""),
+    totalAmount: Joi.number().allow(null, ""),
 
     product: Joi.string().hex().length(24),
     quantity: Joi.number().greater(0),

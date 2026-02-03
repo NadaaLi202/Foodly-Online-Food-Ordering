@@ -7,7 +7,11 @@ import { AppError } from "../../utils/AppError.js";
 // ====== StockAdd ======
 // Add
 export const addStockAdd = catchAsyncError(async (req, res) => {
-    const stockAdd = new stockAddModel(req.body);
+    const opData = { ...req.body };
+    if (req.files && req.files.length > 0) {
+        opData.attachments = req.files.map(file => `/uploads/products/${file.filename}`);
+    }
+    const stockAdd = new stockAddModel(opData);
     await stockAdd.save();
 
     res.status(201).json({
@@ -39,7 +43,11 @@ export const getStockAddById = catchAsyncError(async (req, res, next) => {
 // Update
 export const updateStockAdd = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
-    const stockAdd = await stockAddModel.findByIdAndUpdate(id, req.body, { new: true });
+    const updateData = { ...req.body };
+    if (req.files && req.files.length > 0) {
+        updateData.attachments = req.files.map(file => `/uploads/products/${file.filename}`);
+    }
+    const stockAdd = await stockAddModel.findByIdAndUpdate(id, updateData, { new: true });
     if (!stockAdd) return next(new AppError("StockAdd غير موجود", 404));
     res.status(200).json({
         message: "تم تحديث StockAdd بنجاح",

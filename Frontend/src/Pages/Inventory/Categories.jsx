@@ -22,8 +22,8 @@ const Categories = () => {
         setLoading(true);
         try {
             const url = search
-                ? `http://localhost:5000/api/v1/category?search=${search}`
-                : 'http://localhost:5000/api/v1/category';
+                ? `http://localhost:4000/api/v1/category?search=${search}`
+                : 'http://localhost:4000/api/v1/category';
             const response = await fetch(url);
             const data = await response.json();
             setCategories(data.categories || []);
@@ -76,8 +76,8 @@ const Categories = () => {
 
         try {
             const url = editingCategory
-                ? `http://localhost:5000/api/v1/category/${editingCategory._id}`
-                : 'http://localhost:5000/api/v1/category';
+                ? `http://localhost:4000/api/v1/category/${editingCategory._id}`
+                : 'http://localhost:4000/api/v1/category';
 
             const method = editingCategory ? 'PUT' : 'POST';
 
@@ -133,7 +133,7 @@ const Categories = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:5000/api/v1/category/${id}`, {
+            const response = await fetch(`http://localhost:4000/api/v1/category/${id}`, {
                 method: 'DELETE'
             });
 
@@ -181,14 +181,28 @@ const Categories = () => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white">
-                    <FolderTree size={18} className="text-gray-500" />
-                    <span className="text-gray-700 font-medium">{t('stocked.categories.title')}</span>
-                    <RefreshCw
-                        size={16}
-                        className={`text-gray-400 cursor-pointer hover:text-indigo-600 transition-colors ${loading ? 'animate-spin text-indigo-600' : ''}`}
-                        onClick={() => fetchCategories(searchTerm)}
-                    />
+                <div className="flex items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            resetForm();
+                            setIsModalOpen(true);
+                        }}
+                        className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl hover:bg-indigo-700 transition-all font-semibold shadow-lg shadow-indigo-100 group"
+                    >
+                        <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+                        <span>{t('sales.common.add')}</span>
+                    </button>
+
+                    <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 bg-white">
+                        <FolderTree size={18} className="text-gray-500" />
+                        <span className="text-gray-700 font-medium">{t('stocked.categories.title')}</span>
+                        <RefreshCw
+                            size={16}
+                            className={`text-gray-400 cursor-pointer hover:text-indigo-600 transition-colors ${loading ? 'animate-spin text-indigo-600' : ''}`}
+                            onClick={() => fetchCategories(searchTerm)}
+                        />
+                    </div>
                 </div>
             </div>
 

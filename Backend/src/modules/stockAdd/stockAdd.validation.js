@@ -12,33 +12,35 @@ export const addStockAddSchema = Joi.object({
             "string.length": "Operation ID غير صحيح",
             "any.required": "Operation مطلوب"
         }),
-    account: Joi.string().required().messages({
-        "any.required": "الحساب مطلوب"
-    }),
-    warehouse: Joi.string()
-        .valid("main", "secondary")
-        .required()
+    account: Joi.string().allow("", null).optional(),
+    warehouse: Joi.alternatives().try(
+        Joi.string().hex().length(24),
+        Joi.string().valid("main", "secondary")
+    ).required()
         .messages({
-            "any.only": "المخزن يجب أن يكون main أو secondary",
             "any.required": "المخزن مطلوب"
         }),
-    description: Joi.string().allow(""),
-    attachments: Joi.array().items(Joi.string()),
-    createdBy: Joi.string().hex().length(24).messages({
-        "string.hex": "ID المستخدم غير صحيح",
-        "string.length": "ID المستخدم غير صحيح"
-    })
-});
+    description: Joi.string().allow("", null).optional(),
+    date: Joi.any().optional(),
+    totalAmount: Joi.any().optional(),
+    attachments: Joi.array().items(Joi.string()).optional(),
+    createdBy: Joi.string().hex().length(24).optional()
+}).unknown(true);
 
 export const updateStockAddSchema = Joi.object({
     operation: Joi.string().hex().length(24).messages({
         "string.hex": "Operation ID غير صحيح",
         "string.length": "Operation ID غير صحيح"
     }),
-    account: Joi.string(),
-    warehouse: Joi.string().valid("main", "secondary").messages({
+    account: Joi.string().allow("", null),
+    warehouse: Joi.alternatives().try(
+        Joi.string().hex().length(24),
+        Joi.string().valid("main", "secondary")
+    ).messages({
         "any.only": "المخزن يجب أن يكون main أو secondary"
     }),
+    date: Joi.date().allow(null, ""),
+    totalAmount: Joi.number().allow(null, ""),
     description: Joi.string(),
     attachments: Joi.array().items(Joi.string()),
     createdBy: Joi.string().hex().length(24).messages({

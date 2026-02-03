@@ -20,17 +20,18 @@ import {
 } from "./stockAdd.validation.js";
 
 import { validation } from "../../middleware/validation.js";
+import { upload } from "../../middleware/uploadImage.js";
 
 const router = express.Router();
 
 // StockAdd routes
 router.route("/")
-    .post(validation(addStockAddSchema), addStockAdd)
+    .post(upload.array('attachments', 5), validation(addStockAddSchema), addStockAdd)
     .get(getAllStockAdds);
 
 router.route("/:id")
     .get(getStockAddById)
-    .put(validation(updateStockAddSchema), updateStockAdd)
+    .put(upload.array('attachments', 5), validation(updateStockAddSchema), updateStockAdd)
     .delete(deleteStockAdd);
 
 // StockAddItem routes

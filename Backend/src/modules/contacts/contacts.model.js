@@ -29,7 +29,6 @@ const contactSchema = new mongoose.Schema({
     taxNumber: {
         type: String,
         trim: true,
-        default: null,
         sparse: true,
         unique: true
     },
@@ -37,7 +36,6 @@ const contactSchema = new mongoose.Schema({
     commercialRegister: {
         type: String,
         trim: true,
-        default: null,
         sparse: true,
         unique: true
     },

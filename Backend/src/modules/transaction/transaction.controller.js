@@ -4,8 +4,30 @@ import { AppError } from "../../utils/AppError.js";
 
 const createTransaction = (module, documentType) =>
     catchAsyncError(async (req, res) => {
+        console.log(`[DEBUG] createTransaction called for ${module}/${documentType}`);
+        console.log('[DEBUG] req.body:', JSON.stringify(req.body));
+        const opData = { ...req.body };
+
+        // Handle file uploads
+        if (req.files && req.files.length > 0) {
+            opData.attachments = req.files.map(file => ({
+                fileName: file.originalname,
+                fileUrl: `/uploads/products/${file.filename}`, // Assuming this is the standard upload path
+                uploadedAt: new Date()
+            }));
+        }
+
+        // Parse items if they are sent as a JSON string (using FormData)
+        if (typeof opData.items === 'string') {
+            try {
+                opData.items = JSON.parse(opData.items);
+            } catch (e) {
+                console.error("Error parsing items JSON:", e);
+            }
+        }
+
         const transaction = await Transaction.create({
-            ...req.body,
+            ...opData,
             module,
             documentType,
             createdBy: req.user?._id
@@ -40,7 +62,28 @@ const updateOne = catchAsyncError(async (req, res, next) => {
     const doc = await Transaction.findById(req.params.id);
     if (!doc) return next(new AppError("غير موجود", 404));
 
-    Object.assign(doc, req.body);
+    const opData = { ...req.body };
+
+    // Handle file uploads
+    if (req.files && req.files.length > 0) {
+        const newAttachments = req.files.map(file => ({
+            fileName: file.originalname,
+            fileUrl: `/uploads/products/${file.filename}`,
+            uploadedAt: new Date()
+        }));
+        doc.attachments = [...(doc.attachments || []), ...newAttachments];
+    }
+
+    // Parse items if they are sent as a JSON string
+    if (typeof opData.items === 'string') {
+        try {
+            opData.items = JSON.parse(opData.items);
+        } catch (e) {
+            console.error("Error parsing items JSON:", e);
+        }
+    }
+
+    Object.assign(doc, opData);
     doc.lastModifiedBy = req.user?._id;
 
     await doc.save(); // ✅ يشغّل pre('save')

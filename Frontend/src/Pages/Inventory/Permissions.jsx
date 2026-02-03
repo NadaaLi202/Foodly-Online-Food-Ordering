@@ -42,13 +42,12 @@ const Permissions = () => {
     const fetchPermissions = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/permissions/all');
+            const response = await fetch('http://localhost:4000/api/v1/requisitions');
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
             const data = await response.json();
-            // Assuming API structure might be { permissions: [...] } or just [...]
-            setPermissions(data.permissions || data || []);
+            setPermissions(data.requisitions || []);
         } catch (error) {
             console.error('Error fetching permissions:', error);
         } finally {
@@ -60,7 +59,7 @@ const Permissions = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/permissions', {
+            const response = await fetch('http://localhost:4000/api/v1/requisitions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -73,12 +72,54 @@ const Permissions = () => {
                 setAddFormData({ number: '', warehouse: '', startDate: '', endDate: '' });
                 fetchPermissions();
             } else {
-                console.error('Failed to add permission');
+                const data = await response.json();
+                alert(data.message || (i18n.language === 'ar' ? 'فشل في إضافة الإذن' : 'Failed to add permission'));
             }
         } catch (error) {
             console.error('Error adding permission:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDeletePermission = async (id) => {
+        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد من حذف هذا الإذن؟' : 'Are you sure you want to delete this permission?')) return;
+
+        setLoading(true);
+        try {
+            const response = await fetch(`http://localhost:4000/api/v1/requisitions/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                fetchPermissions();
+            } else {
+                console.error('Failed to delete permission');
+            }
+        } catch (error) {
+            console.error('Error deleting permission:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleUpdateStatus = async (id, status) => {
+        try {
+            const response = await fetch(`http://localhost:4000/api/v1/requisitions/${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status }),
+            });
+
+            if (response.ok) {
+                fetchPermissions();
+            } else {
+                console.error('Failed to update status');
+            }
+        } catch (error) {
+            console.error('Error updating status:', error);
         }
     };
 
@@ -224,8 +265,8 @@ const Permissions = () => {
                                                     {item.warehouse === 'main' ? t('sales.common.main_warehouse') : t('sales.common.secondary_warehouse')}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-gray-600">{item.startDate}</td>
-                                            <td className="px-6 py-4 text-gray-600">{item.endDate}</td>
+                                            <td className="px-6 py-4 text-gray-600">{new Date(item.startDate).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US')}</td>
+                                            <td className="px-6 py-4 text-gray-600">{new Date(item.endDate).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US')}</td>
                                             <td className="px-6 py-4">
                                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${getStatusStyles(item.status || 'pending')}`}>
                                                     {getStatusIcon(item.status || 'pending')}
@@ -234,13 +275,18 @@ const Permissions = () => {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title={t('stocked.permissions.view')}>
-                                                        <Eye size={18} />
+                                                    <button
+                                                        onClick={() => handleUpdateStatus(item._id, 'approved')}
+                                                        className="p-1.5 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"
+                                                        title={t('stocked.permissions.approve', 'Approve')}
+                                                    >
+                                                        <CheckCircle2 size={18} />
                                                     </button>
-                                                    <button className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title={t('stocked.permissions.edit')}>
-                                                        <Edit size={18} />
-                                                    </button>
-                                                    <button className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title={t('stocked.permissions.delete')}>
+                                                    <button
+                                                        onClick={() => handleDeletePermission(item._id)}
+                                                        className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                                        title={t('stocked.permissions.delete')}
+                                                    >
                                                         <Trash2 size={18} />
                                                     </button>
                                                 </div>

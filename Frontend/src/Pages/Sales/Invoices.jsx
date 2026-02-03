@@ -15,9 +15,9 @@ const Invoices = () => {
     const fetchInvoices = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/invoices');
+            const response = await fetch('http://localhost:4000/api/v1/transactions/sales/invoices');
             const data = await response.json();
-            setInvoices(data.invoices || []);
+            setInvoices(data.data || []);
         } catch (error) {
             console.error('Error fetching invoices:', error);
         } finally {
@@ -37,10 +37,10 @@ const Invoices = () => {
     const handleInvoiceClick = async (invoice) => {
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:4000/api/v1/invoices/${invoice._id}`);
+            const response = await fetch(`http://localhost:4000/api/v1/transactions/${invoice._id}`);
             const data = await response.json();
             if (response.ok) {
-                setSelectedInvoice(data.invoice);
+                setSelectedInvoice(data);
                 setView('details');
             } else {
                 alert(data.message || t('sales.common.error_message'));
@@ -56,10 +56,10 @@ const Invoices = () => {
     const handleEditClick = async (invoice) => {
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:4000/api/v1/invoices/${invoice._id}`);
+            const response = await fetch(`http://localhost:4000/api/v1/transactions/${invoice._id}`);
             const data = await response.json();
             if (response.ok) {
-                setSelectedInvoice(data.invoice);
+                setSelectedInvoice(data);
                 setView('edit');
             } else {
                 alert(data.message || t('sales.common.error_message'));
@@ -76,14 +76,13 @@ const Invoices = () => {
         setLoading(true);
         try {
             const url = selectedInvoice
-                ? `http://localhost:4000/api/v1/invoices/${selectedInvoice._id}`
-                : 'http://localhost:4000/api/v1/invoices';
-            const method = selectedInvoice ? 'PUT' : 'POST';
+                ? `http://localhost:4000/api/v1/transactions/${selectedInvoice._id}`
+                : 'http://localhost:4000/api/v1/transactions/sales/invoices';
+            const method = selectedInvoice ? 'PATCH' : 'POST';
 
             const response = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
+                body: formData, // Expecting FormData
             });
 
             if (response.ok) {
@@ -104,7 +103,7 @@ const Invoices = () => {
 
     const handleDelete = async (id) => {
         try {
-            const response = await fetch(`http://localhost:4000/api/v1/invoices/${id}`, {
+            const response = await fetch(`http://localhost:4000/api/v1/transactions/${id}`, {
                 method: 'DELETE',
             });
 

@@ -7,14 +7,28 @@ const operationSchema = new mongoose.Schema(
             enum: [
                 "stock add process",
                 "inventory exchange process",
-                "transfer process"
+                "transfer process",
+                "inventory operation"
             ],
             required: true
+        },
+        warehouse: {
+            type: mongoose.Schema.Types.Mixed
+        },
+        date: {
+            type: Date,
+            default: Date.now
         },
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Contact"
-        }
+        },
+        // المرفقات
+        attachments: [
+            {
+                type: String
+            }
+        ]
     },
     {
         timestamps: true

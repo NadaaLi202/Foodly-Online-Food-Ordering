@@ -1,26 +1,100 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, Printer, Share2, Download, FileText, Package, CreditCard, ChevronDown, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, i18n }) => {
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState('invoice');
+    const invoiceRef = useRef();
 
     if (!invoice) return null;
 
     const balance = (invoice.total || 0) - (invoice.paidAmount || 0);
 
-    const calculateItemTotal = (item) => {
-        let itemTotal = item.quantity * item.price;
-        if (item.discountType === '%') {
-            itemTotal *= (1 - item.discount / 100);
+    const handlePrint = () => {
+        const content = invoiceRef.current;
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Invoice ${invoice.transactionNumber || invoice.invoiceNumber}</title>
+                    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+                    <style>
+                        body { font-family: 'Arial', sans-serif; direction: ${i18n.language === 'ar' ? 'rtl' : 'ltr'}; padding: 40px; }
+                        @media print {
+                            .no-print { display: none; }
+                            body { padding: 0; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${content.innerHTML}
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+        }, 500);
+    };
+
+    const handleExportPDF = async () => {
+        const element = invoiceRef.current;
+        if (!element) return;
+
+        try {
+            // Scroll to top of the modal if possible or ensure element is fully visible
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: "#ffffff",
+                windowWidth: element.scrollWidth,
+                windowHeight: element.scrollHeight,
+                dir: i18n.language === 'ar' ? 'rtl' : 'ltr'
+            });
+            const imgData = canvas.toDataURL('image/png', 1.0);
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const imgProps = pdf.getImageProperties(imgData);
+            const contentHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, contentHeight);
+            pdf.save(`Invoice_${invoice.transactionNumber || invoice.invoiceNumber}.pdf`);
+        } catch (error) {
+            console.error('Error exporting PDF:', error);
+            alert(t('sales.common.error_message') || 'Failed to export PDF');
+        }
+    };
+
+    const handleShare = async () => {
+        const shareData = {
+            title: `${t('sidebar.invoices')} ${invoice.transactionNumber || invoice.invoiceNumber}`,
+            text: `${t('sales.common.client')}: ${invoice.contact?.name || invoice.clientName}`,
+            url: window.location.href
+        };
+
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch (err) {
+                console.error('Error sharing:', err);
+            }
         } else {
-            itemTotal -= item.discount;
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+                alert(t('sales.common.link_copied') || 'Link copied to clipboard!');
+            } catch (err) {
+                console.error('Failed to copy code: ', err);
+            }
         }
-        if (item.tax > 0) {
-            itemTotal *= (1 + item.tax / 100);
-        }
-        return itemTotal;
+    };
+
+    const calculateItemTotal = (item) => {
+        return item.total || 0;
     };
 
     return (
@@ -49,11 +123,23 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, i18n }) => {
                         >
                             <Trash2 size={20} />
                         </button>
-                        <button className="p-2 text-gray-300 hover:text-indigo-600 border-2 border-transparent hover:border-indigo-50 transition-all rounded-lg">
+                        <button
+                            onClick={handleShare}
+                            className="p-2 text-gray-300 hover:text-indigo-600 border-2 border-transparent hover:border-indigo-50 transition-all rounded-lg"
+                        >
                             <Share2 size={20} />
                         </button>
-                        <button className="p-2 text-gray-300 hover:text-indigo-600 border-2 border-transparent hover:border-indigo-50 transition-all rounded-lg">
+                        <button
+                            onClick={handlePrint}
+                            className="p-2 text-gray-300 hover:text-indigo-600 border-2 border-transparent hover:border-indigo-50 transition-all rounded-lg"
+                        >
                             <Printer size={20} />
+                        </button>
+                        <button
+                            onClick={handleExportPDF}
+                            className="p-2 text-gray-300 hover:text-indigo-600 border-2 border-transparent hover:border-indigo-50 transition-all rounded-lg"
+                        >
+                            <Download size={20} />
                         </button>
                         <button onClick={onClose} className="p-2 text-gray-300 hover:text-gray-600 border-2 border-transparent hover:border-gray-50 transition-all rounded-lg ml-2">
                             <X size={20} />
@@ -84,14 +170,14 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, i18n }) => {
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-8">
+                <div ref={invoiceRef} className="flex-1 overflow-y-auto p-6 space-y-8 bg-white">
                     {activeTab === 'invoice' && (
                         <>
                             {/* Summary Cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 no-print">
                                 <div className="bg-indigo-50/20 border border-indigo-50 rounded-2xl p-5 transition-all hover:shadow-md hover:shadow-indigo-50/50">
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.common.client')}</p>
-                                    <p className="text-sm font-black text-indigo-600 truncate">{invoice.clientName || 'N/A'}</p>
+                                    <p className="text-sm font-black text-indigo-600 truncate">{invoice.contact?.name || invoice.clientName || 'N/A'}</p>
                                 </div>
                                 <div className="bg-indigo-50/20 border border-indigo-50 rounded-2xl p-5 transition-all hover:shadow-md hover:shadow-indigo-50/50">
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.common.status')}</p>
@@ -114,7 +200,7 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, i18n }) => {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-gray-50/50 rounded-2xl p-6 border border-gray-50">
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.invoices.invoice_number')}</p>
-                                    <p className="text-sm font-bold text-gray-700">{invoice.invoiceNumber}</p>
+                                    <p className="text-sm font-bold text-gray-700">{invoice.transactionNumber || invoice.invoiceNumber}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.invoices.issue_date')}</p>
@@ -146,17 +232,17 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, i18n }) => {
                                                 <td className="px-4 py-5 font-bold text-gray-700">{item.productName}</td>
                                                 <td className="px-4 py-5 text-gray-400 font-medium">{item.description || '-'}</td>
                                                 <td className="px-4 py-5 text-center font-bold text-gray-500">{item.quantity}</td>
-                                                <td className="px-4 py-5 text-center font-bold text-gray-500">{item.price?.toLocaleString()}</td>
+                                                <td className="px-4 py-5 text-center font-bold text-gray-500">{item.unitPrice?.toLocaleString()}</td>
                                                 <td className="px-4 py-5 text-center">
                                                     <span className="text-[10px] font-black bg-red-50 text-red-400 px-1.5 py-0.5 rounded">
-                                                        {item.discount > 0 ? `${item.discount}${item.discountType === '%' ? '%' : ''}` : '-'}
+                                                        {item.discountPercent > 0 ? `${item.discountPercent}%` : item.discountAmount > 0 ? `${item.discountAmount}` : '-'}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-5 text-center font-bold text-gray-400">
-                                                    {item.tax > 0 ? `${item.tax}%` : '-'}
+                                                    {item.taxPercent > 0 ? `${item.taxPercent}%` : '-'}
                                                 </td>
                                                 <td className={`px-4 py-5 text-${i18n.language === 'ar' ? 'left' : 'right'} font-black text-gray-800`}>
-                                                    {calculateItemTotal(item).toLocaleString()}
+                                                    {item.total?.toLocaleString()}
                                                 </td>
                                             </tr>
                                         ))}
@@ -173,7 +259,7 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, i18n }) => {
                                             {invoice.notes || t('sales.common.none')}
                                         </p>
                                     </div>
-                                    <div className="bg-indigo-50/30 border-2 border-dashed border-indigo-100/50 rounded-2xl p-8 text-center group cursor-pointer hover:bg-indigo-50/50 transition-all">
+                                    <div className="bg-indigo-50/30 border-2 border-dashed border-indigo-100/50 rounded-2xl p-8 text-center group cursor-pointer hover:bg-indigo-50/50 transition-all no-print">
                                         <div className="mx-auto w-12 h-12 bg-white rounded-2xl shadow-sm shadow-indigo-100 flex items-center justify-center text-indigo-400 group-hover:scale-110 transition-transform">
                                             <Download size={24} />
                                         </div>
@@ -188,11 +274,11 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, i18n }) => {
                                     </div>
                                     <div className="flex justify-between items-center text-gray-400 text-xs font-bold italic px-2">
                                         <span>{t('sales.common.tax')}</span>
-                                        <span>{invoice.tax?.toLocaleString()} {t('sales.common.currency')}</span>
+                                        <span>{invoice.totalTax?.toLocaleString()} {t('sales.common.currency')}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-red-300 text-xs font-bold italic px-2">
                                         <span>{t('sales.common.discount')}</span>
-                                        <span>-{invoice.discount?.toLocaleString() || '0'} {t('sales.common.currency')}</span>
+                                        <span>-{invoice.totalDiscount?.toLocaleString() || '0'} {t('sales.common.currency')}</span>
                                     </div>
                                     <div className="pt-6 mt-6 border-t-2 border-dashed border-indigo-50 flex justify-between items-center px-2">
                                         <span className="text-sm font-black text-gray-800 uppercase tracking-widest">{t('sales.common.total')}</span>

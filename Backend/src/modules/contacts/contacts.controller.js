@@ -5,7 +5,12 @@ import Contact from "./contacts.model.js";
 // ========== ADD ==========
 const addContact = (module) =>
     catchAsyncError(async (req, res, next) => {
-        const { code, taxNumber, commercialRegister } = req.body;
+        const opData = { ...req.body };
+        if (opData.code === "") delete opData.code;
+        if (opData.taxNumber === "") delete opData.taxNumber;
+        if (opData.commercialRegister === "") delete opData.commercialRegister;
+
+        const { code, taxNumber, commercialRegister } = opData;
 
         // Check duplicates
         if (code) {
@@ -22,7 +27,7 @@ const addContact = (module) =>
         }
 
         const contact = await Contact.create({
-            ...req.body,
+            ...opData,
             module,
             createdBy: req.user?._id
         });
@@ -63,7 +68,12 @@ const updateContact = catchAsyncError(async (req, res, next) => {
     const contact = await Contact.findById(req.params.id);
     if (!contact || contact.deletedAt) return next(new AppError("غير موجود", 404));
 
-    const { code, taxNumber, commercialRegister } = req.body;
+    const opData = { ...req.body };
+    if (opData.code === "") delete opData.code;
+    if (opData.taxNumber === "") delete opData.taxNumber;
+    if (opData.commercialRegister === "") delete opData.commercialRegister;
+
+    const { code, taxNumber, commercialRegister } = opData;
 
     // Check duplicates (ignore current record)
     if (code && code !== contact.code) {
@@ -79,7 +89,7 @@ const updateContact = catchAsyncError(async (req, res, next) => {
         if (existingCR) return next(new AppError("السجل التجاري مستخدم بالفعل", 400));
     }
 
-    Object.assign(contact, req.body);
+    Object.assign(contact, opData);
     contact.lastModifiedBy = req.user?._id;
 
     await contact.save();

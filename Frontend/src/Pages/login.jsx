@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { BarChart3, ArrowLeft, Mail, Lock, CheckCircle } from 'lucide-react';
 
 export default function Login() {
+    const navigate = useNavigate();
     const [form, setForm] = useState({
         email: "",
         password: "",
@@ -32,110 +35,140 @@ export default function Login() {
             setLoading(false);
 
             if (!res.ok) {
-                alert(data.message || "حدث خطأ في تسجيل الدخول");
+                alert(data.message || "Login failed");
                 return;
             }
 
-            alert("تم تسجيل الدخول بنجاح!");
-            console.log("Login result:", data);
+            // Save token
+            if (data.token) {
+                localStorage.setItem("token", data.token);
+                // Also save user info if needed
+                if (data.isUserExist) {
+                    localStorage.setItem("user", JSON.stringify(data.isUserExist));
+                }
+            }
 
-            // يمكنك حفظ الـ token هنا
-            // localStorage.setItem("token", data.token);
-            // window.location.href = "/dashboard";
+            // Redirect to dashboard
+            navigate('/dashboard');
 
         } catch (error) {
             setLoading(false);
             console.error(error);
-            alert("حدث خطأ في الاتصال بالسيرفر");
+            alert("Connection error");
         }
     };
 
     return (
-        <div className="w-full min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden mx-auto">
+        <div className="min-h-screen bg-white flex relative overflow-hidden font-sans text-left" dir="ltr">
 
-                {/* Header with gradient background */}
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-8 px-6 text-center">
-                    <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full mb-4 shadow-lg">
-                        <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center">
-                            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </div>
-                    </div>
-                    <h1 className="text-3xl font-bold mb-2">دفاتر المحاسب</h1>
-                    <p className="text-blue-100 text-sm">تسجيل الدخول</p>
+            {/* Left Side - Form */}
+            <div className="w-full lg:w-1/2 flex flex-col justify-between p-8 relative z-10 bg-white">
+                <div>
+                    <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-colors text-sm font-bold">
+                        <ArrowLeft className="w-4 h-4" />
+                        Back to Home
+                    </Link>
                 </div>
 
-                {/* Form Section */}
-                <div className="p-8">
-                    <form className="w-full space-y-5" onSubmit={handleSubmit}>
-
-                        <div>
-                            <label className="block mb-2 text-sm font-semibold text-gray-700 text-right">
-                                البريد الإلكتروني
-                            </label>
-                            <input
-                                required
-                                name="email"
-                                type="email"
-                                dir="rtl"
-                                value={form.email}
-                                onChange={handleChange}
-                                placeholder="example@mail.com"
-                                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-right focus:outline-none focus:border-blue-500 transition-colors"
-                            />
+                <div className="max-w-md w-full mx-auto">
+                    <div className="mb-10">
+                        <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200 mb-6">
+                            <BarChart3 className="text-white w-7 h-7" />
                         </div>
+                        <h1 className="text-4xl font-black text-gray-900 mb-2">Welcome back</h1>
+                        <p className="text-gray-500">Please enter your details to sign in.</p>
+                    </div>
 
+                    <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
-                            <label className="block mb-2 text-sm font-semibold text-gray-700 text-right">
-                                كلمة المرور
-                            </label>
-                            <input
-                                required
-                                type="password"
-                                name="password"
-                                dir="rtl"
-                                value={form.password}
-                                onChange={handleChange}
-                                placeholder="••••••••"
-                                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 text-right focus:outline-none focus:border-blue-500 transition-colors"
-                            />
-                        </div>
-
-                        <div className="flex items-center justify-between" dir="rtl">
-                            <label className="flex items-center gap-2 cursor-pointer">
+                            <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest text-left">Email Address</label>
+                            <div className="relative">
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                                 <input
-                                    type="checkbox"
-                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    required
+                                    name="email"
+                                    type="email"
+                                    value={form.email}
+                                    onChange={handleChange}
+                                    placeholder="name@company.com"
+                                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl text-gray-900 font-bold focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
                                 />
-                                <span className="text-sm text-gray-600">تذكرني</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest text-left">Password</label>
+                            <div className="relative">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                <input
+                                    required
+                                    type="password"
+                                    name="password"
+                                    value={form.password}
+                                    onChange={handleChange}
+                                    placeholder="••••••••"
+                                    className="w-full pl-12 pr-4 py-4 bg-gray-50 border-2 border-gray-100 rounded-xl text-gray-900 font-bold focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                <span className="text-sm font-bold text-gray-500">Remember me</span>
                             </label>
-                            <a href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 hover:underline">
-                                نسيت كلمة المرور؟
-                            </a>
+                            <a href="#" className="text-sm font-bold text-indigo-600 hover:text-indigo-700">Forgot Password?</a>
                         </div>
 
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl py-3.5 font-bold text-lg hover:from-blue-700 hover:to-indigo-700 transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                            className="w-full bg-gray-900 text-white rounded-xl py-4 font-bold text-lg hover:bg-gray-800 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-2"
                         >
-                            {loading ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
+                            {loading ? "Signing in..." : "Sign in"}
                         </button>
-
-                        <p className="text-center text-sm text-gray-600 pt-2">
-                            ليس لديك حساب؟{" "}
-                            <span
-                                onClick={() => window.location.href = '/register'}
-                                className="text-blue-600 font-semibold hover:text-blue-700 hover:underline cursor-pointer"
-                            >
-                                إنشاء حساب جديد
-                            </span>
-                        </p>
                     </form>
+
+                    <p className="text-center mt-8 text-gray-500 font-medium">
+                        Don't have an account?{" "}
+                        <Link to="/register" className="text-indigo-600 font-bold hover:underline">
+                            Sign up for free
+                        </Link>
+                    </p>
+                </div>
+
+                <div className="text-sm text-gray-400 font-medium">
+                    © {new Date().getFullYear()} Dafater Inc.
                 </div>
             </div>
+
+            {/* Right Side - Image/Decoration */}
+            <div className="hidden lg:flex w-1/2 bg-gray-900 relative overflow-hidden items-center justify-center">
+                <div className="absolute inset-0 z-0 opacity-40">
+                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600 rounded-full mix-blend-overlay filter blur-3xl animate-blob"></div>
+                    <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600 rounded-full mix-blend-overlay filter blur-3xl animate-blob animation-delay-2000"></div>
+                </div>
+
+                <div className="relative z-10 max-w-lg p-10 text-white text-center">
+                    <h2 className="text-4xl font-black mb-6">Manage your business with confidence.</h2>
+                    <p className="text-gray-400 text-lg mb-8">Join over 10,000+ businesses that trust Dafater for their accounting needs.</p>
+
+                    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/10 text-left">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center font-bold text-xl">JD</div>
+                            <div>
+                                <h4 className="font-bold text-lg">John Doe</h4>
+                                <p className="text-indigo-200 text-sm">CEO, TechStart Inc.</p>
+                            </div>
+                        </div>
+                        <p className="italic text-gray-300">"Dafater has completely transformed how we handle our finances. The automated insights are a game changer."</p>
+                        <div className="flex gap-1 mt-4 text-yellow-400">
+                            {[1, 2, 3, 4, 5].map(i => <span key={i}>★</span>)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     );
 }

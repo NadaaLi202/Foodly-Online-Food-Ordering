@@ -58,6 +58,10 @@ const transactionSchema = new mongoose.Schema({
         unique: true,
         trim: true
     },
+    warehouse: {
+        type: mongoose.Schema.Types.Mixed,
+        default: 'main'
+    },
 
     module: {
         type: String,
@@ -232,6 +236,7 @@ const transactionSchema = new mongoose.Schema({
 
 // ================= PRE SAVE =================
 transactionSchema.pre('save', function (next) {
+    console.log('[DEBUG] pre-save hook called');
     if (!this.items || this.items.length === 0) return next();
 
     this.subtotal = 0;

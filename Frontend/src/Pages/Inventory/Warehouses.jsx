@@ -38,10 +38,10 @@ const Warehouses = () => {
     const fetchWarehouses = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/warehouses/all');
+            const response = await fetch('http://localhost:4000/api/v1/warehouses');
             if (!response.ok) throw new Error('Failed to fetch');
             const data = await response.json();
-            setWarehouses(data.warehouses || data || []);
+            setWarehouses(data.warehouses || []);
         } catch (error) {
             console.error('Error fetching warehouses:', error);
         } finally {
@@ -88,10 +88,17 @@ const Warehouses = () => {
         const method = modalMode === 'add' ? 'POST' : 'PUT';
 
         try {
+            const payload = { ...formData };
+            if (!payload.users || payload.users === '') {
+                delete payload.users;
+            } else if (typeof payload.users === 'string') {
+                payload.users = [payload.users]; // Backend expects an array of ObjectIds
+            }
+
             const response = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
 
             if (response.ok) {

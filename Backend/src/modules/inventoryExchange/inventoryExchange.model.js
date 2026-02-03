@@ -10,8 +10,7 @@ const inventoryExchangeSchema = new mongoose.Schema(
 
         // المخزن (المستودع الرئيسي فقط)
         warehouse: {
-            type: String,
-            enum: ["main"],
+            type: mongoose.Schema.Types.Mixed,
             required: true
         },
 

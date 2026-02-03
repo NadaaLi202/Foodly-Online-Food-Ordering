@@ -5,7 +5,11 @@ import { AppError } from "../../utils/AppError.js";
 // ================== Add Transfer Process ==================
 export const addTransferProcess = catchAsyncError(async (req, res, next) => {
     const { fromWarehouse, toWarehouse } = req.body;
-    const process = new transferProcessModel(req.body);
+    const processData = { ...req.body };
+    if (req.files && req.files.length > 0) {
+        processData.attachments = req.files.map(file => `/uploads/products/${file.filename}`);
+    }
+    const process = new transferProcessModel(processData);
     await process.save();
 
     res.status(201).json({
@@ -67,8 +71,14 @@ export const deleteTransferProcess = catchAsyncError(async (req, res, next) => {
 
 
 export const updateTransferProcess = catchAsyncError(async (req, res, next) => {
+    const updateData = { ...req.body };
+    if (req.files && req.files.length > 0) {
+        updateData.attachments = req.files.map(file => `/uploads/products/${file.filename}`);
+    }
     const process = await transferProcessModel.findByIdAndUpdate(
-        req.params.id
+        req.params.id,
+        updateData,
+        { new: true }
     );
 
     if (!process) {

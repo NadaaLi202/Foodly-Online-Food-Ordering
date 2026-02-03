@@ -20,7 +20,7 @@ const warehouseSchema = new mongoose.Schema(
         // الفروع (الفرع الرئيسي فقط)
         branch: {
             type: String,
-            enum: ["main"],
+            enum: ["main", "secondary"],
             default: "main"
         },
 
@@ -30,14 +30,24 @@ const warehouseSchema = new mongoose.Schema(
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "Contact"
             }
-        ]
+        ],
+
+        enableReceiving: {
+            type: Boolean,
+            default: false
+        },
+
+        enableIssuing: {
+            type: Boolean,
+            default: false
+        }
     },
     {
         timestamps: true
     }
 );
 
-warehouseSchema.index({ name: 1 });
+
 
 export const warehouseModel =
     mongoose.models.Warehouse ||
