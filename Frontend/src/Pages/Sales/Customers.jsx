@@ -41,7 +41,7 @@ export default function Customers() {
     const fetchCustomers = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/contacts');
+            const response = await fetch('http://localhost:4000/api/v1/contacts/customers');
             const data = await response.json();
             setCustomers(data.contacts || []);
         } catch (error) {
@@ -60,7 +60,7 @@ export default function Customers() {
         try {
             const res = await fetch(`http://localhost:4000/api/v1/contacts/${id}`);
             const data = await res.json();
-            
+
             if (data.contact) {
                 // Fill form with customer data
                 setFormData({
@@ -78,7 +78,7 @@ export default function Customers() {
                     zipCode: data.contact.zipCode || '',
                     country: data.contact.country || ''
                 });
-                
+
                 // Set contact methods from API data
                 if (data.contact.contactMethods) {
                     setContactMethods({
@@ -94,7 +94,7 @@ export default function Customers() {
                         phone: true
                     });
                 }
-                
+
                 setCurrentCustomerId(id);
                 setIsEditing(true);
                 setIsModalOpen(true);
@@ -167,9 +167,9 @@ export default function Customers() {
             console.log('Data being sent:', dataToSend);
 
             if (isEditing && currentCustomerId) {
-                // Update existing customer - PUT request
+                // Update existing customer - PATCH request
                 response = await fetch(`http://localhost:4000/api/v1/contacts/${currentCustomerId}`, {
-                    method: 'PUT',
+                    method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
                     },
@@ -178,7 +178,7 @@ export default function Customers() {
                 result = await response.json();
             } else {
                 // Create new customer - POST request
-                response = await fetch('http://localhost:4000/api/v1/contacts', {
+                response = await fetch('http://localhost:4000/api/v1/contacts/customers', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

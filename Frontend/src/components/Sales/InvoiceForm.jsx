@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import { X, Plus, Search, ChevronDown, Upload, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AddContactModal from './AddContactModal';
@@ -9,6 +10,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n }) => {
     const [products, setProducts] = useState([]);
     const [errors, setErrors] = useState({});
     const [uploadedFiles, setUploadedFiles] = useState([]);
+    const [existingAttachments, setExistingAttachments] = useState([]);
     const [showAddContactModal, setShowAddContactModal] = useState(false);
 
     const [formData, setFormData] = useState({
@@ -42,10 +44,31 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n }) => {
     useEffect(() => {
         if (invoice) {
             setFormData({
-                ...invoice,
+                invoiceNumber: invoice.transactionNumber || '',
                 issueDate: invoice.issueDate ? new Date(invoice.issueDate).toISOString().split('T')[0] : '',
                 dueDate: invoice.dueDate ? new Date(invoice.dueDate).toISOString().split('T')[0] : '',
+                clientId: invoice.contact?._id || invoice.contact || '',
+                clientName: invoice.contact?.name || '',
+                items: (invoice.items || []).map(item => ({
+                    productId: item.product?._id || item.product,
+                    productName: item.productName || '',
+                    description: '',
+                    quantity: item.quantity,
+                    price: item.unitPrice,
+                    discount: item.discountPercent || item.discountAmount || 0,
+                    discountType: item.discountPercent ? '%' : 'fixed',
+                    tax: item.taxPercent || 0
+                })),
+                notes: invoice.notes || '',
+                paidAmount: invoice.paidAmount || 0,
+                paymentMethod: invoice.paymentMethod || 'cash',
+                activeTab: 'payment',
+                invoiceDiscount: invoice.generalDiscountPercent || invoice.generalDiscount || 0,
+                invoiceDiscountType: invoice.generalDiscountPercent ? '%' : 'fixed',
+                warehouse: invoice.warehouse || '',
+                status: invoice.status || 'unpaid'
             });
+            setExistingAttachments(invoice.attachments || []);
         } else {
             // Generate a default invoice number if needed or wait for user input
         }
@@ -55,7 +78,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n }) => {
 
     const fetchClients = async () => {
         try {
-            const response = await fetch('http://localhost:4000/api/v1/contacts?type=customer');
+            const response = await fetch('http://localhost:4000/api/v1/contacts/customers');
             const data = await response.json();
             setClients(data.contacts || []);
         } catch (error) {
@@ -65,7 +88,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n }) => {
 
     const fetchProducts = async () => {
         try {
-            const response = await fetch('http://localhost:4000/api/v1/product');
+            const response = await fetch('http://localhost:4000/api/v1/products');
             const data = await response.json();
             setProducts(data.products || []);
         } catch (error) {
@@ -165,6 +188,15 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n }) => {
         return { subtotal, totalTax, total, invDiscountAmount };
     };
 
+    const handleFileChange = (e) => {
+        const files = Array.from(e.target.files);
+        setUploadedFiles(prev => [...prev, ...files]);
+    };
+
+    const removeFile = (index) => {
+        setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
     const validate = () => {
         const newErrors = {};
         if (!formData.invoiceNumber) newErrors.invoiceNumber = t('sales.common.required');
@@ -184,14 +216,43 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!validate()) return;
-        const totals = calculateTotals();
-        onSave({
-            ...formData,
-            subtotal: totals.subtotal,
-            tax: totals.totalTax,
-            total: totals.total,
-            discount: totals.invDiscountAmount
+
+        const formDataToSend = new FormData();
+
+        // Basic fields
+        formDataToSend.append('transactionNumber', formData.invoiceNumber);
+        formDataToSend.append('contact', formData.clientId);
+        formDataToSend.append('issueDate', formData.issueDate);
+        formDataToSend.append('dueDate', formData.dueDate);
+        formDataToSend.append('paymentMethod', formData.paymentMethod);
+        formDataToSend.append('paidAmount', formData.paidAmount);
+        formDataToSend.append('notes', formData.notes);
+        formDataToSend.append('warehouse', formData.warehouse);
+
+        if (formData.invoiceDiscountType === '%') {
+            formDataToSend.append('generalDiscountPercent', formData.invoiceDiscount);
+        } else {
+            formDataToSend.append('generalDiscount', formData.invoiceDiscount);
+        }
+
+        // Items mapping for Backend
+        const mappedItems = formData.items.map(item => ({
+            product: item.productId,
+            productName: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.price,
+            discountPercent: item.discountType === '%' ? item.discount : 0,
+            discountAmount: item.discountType === 'fixed' ? item.discount : 0,
+            taxPercent: item.tax
+        }));
+        formDataToSend.append('items', JSON.stringify(mappedItems));
+
+        // Attachments
+        uploadedFiles.forEach(file => {
+            formDataToSend.append('attachments', file);
         });
+
+        onSave(formDataToSend);
     };
 
     const totals = calculateTotals();
@@ -427,7 +488,8 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n }) => {
                                     {[
                                         { id: 'payment', label: t('sales.common.payment_details') },
                                         { id: 'discount', label: t('sales.common.discount') },
-                                        { id: 'notes', label: t('sales.common.notes') }
+                                        { id: 'notes', label: t('sales.common.notes') },
+                                        { id: 'attachments', label: t('sales.common.attachments') }
                                     ].map(tab => (
                                         <button
                                             key={tab.id}
@@ -502,6 +564,33 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n }) => {
                                                 rows="3"
                                                 placeholder={t('sales.common.notes')}
                                             ></textarea>
+                                        </div>
+                                    )}
+                                    {formData.activeTab === 'attachments' && (
+                                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-4">
+                                            <div className="flex items-center justify-center w-full">
+                                                <label className="w-full flex flex-col items-center px-4 py-6 bg-white rounded-lg border-2 border-dashed border-gray-100 cursor-pointer hover:border-indigo-500 transition-all group">
+                                                    <Upload size={24} className="text-gray-300 group-hover:text-indigo-500 transition-colors" />
+                                                    <span className="mt-2 text-xs font-black text-gray-400 group-hover:text-indigo-600 uppercase tracking-widest">{t('sales.common.upload')}</span>
+                                                    <input type="file" multiple className="hidden" onChange={handleFileChange} />
+                                                </label>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {uploadedFiles.map((file, i) => (
+                                                    <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-100">
+                                                        <span className="text-[10px] font-bold text-gray-600 truncate max-w-[120px]">{file.name}</span>
+                                                        <button type="button" onClick={() => removeFile(i)} className="text-red-400 hover:text-red-600">
+                                                            <Trash2 size={12} />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                {existingAttachments.map((file, i) => (
+                                                    <div key={`exist-${i}`} className="flex items-center justify-between p-2 bg-indigo-50 rounded-lg border border-indigo-100">
+                                                        <span className="text-[10px] font-bold text-indigo-600 truncate max-w-[120px]">{file.fileName}</span>
+                                                        <span className="text-[8px] font-black text-indigo-300 uppercase">Existing</span>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                 </div>

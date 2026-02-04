@@ -28,6 +28,11 @@ import Transactions from './Pages/Finance/Transactions';
 import Requisitions from './Pages/Finance/Requisitions';
 import Safes from './Pages/Finance/Safes';
 import BankAccounts from './Pages/Finance/BankAccounts';
+import Contacts from './Pages/Users/Contacts';
+import Roles from './Pages/Users/Roles';
+import LandingPage from './Pages/LandingPage';
+import Login from './Pages/login';
+import Register from './Pages/Register';
 
 const PlaceholderPage = ({ title }) => (
   <div className="p-8 text-center text-gray-500 bg-white rounded-lg shadow-sm border border-gray-100">
@@ -40,7 +45,13 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Layout />}>
+        {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        {/* Protected Dashboard Routes */}
+        <Route path="/dashboard" element={<Layout />}>
           <Route index element={<DashboardPage />} />
 
           <Route path="sales">
@@ -101,6 +112,12 @@ function App() {
           </Route>
           <Route path="accounting" element={<PlaceholderPage title="Accounting" />} />
           <Route path="reports" element={<PlaceholderPage title="Reports" />} />
+          <Route path="users">
+            <Route index element={<Contacts />} />
+            <Route path="roles" element={<Roles />} />
+          </Route>
+
+          <Route path="branches" element={<PlaceholderPage title="Branches" />} />
           <Route path="users" element={<PlaceholderPage title="Users" />} />
           <Route path="branches">
             <Route index element={<Branches />} />
@@ -111,8 +128,9 @@ function App() {
           <Route path="settings" element={<PlaceholderPage title="Settings" />} />
           <Route path="support" element={<PlaceholderPage title="Technical Support" />} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

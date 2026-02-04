@@ -12,12 +12,15 @@ export const addWarehouseSchema = Joi.object({
     account: Joi.string().optional(),
 
     branch: Joi.string()
-        .valid("main")
+        .valid("main", "secondary")
         .optional(),
 
     users: Joi.array()
         .items(Joi.string().hex().length(24))
-        .optional()
+        .optional(),
+
+    enableReceiving: Joi.boolean().optional(),
+    enableIssuing: Joi.boolean().optional()
 });
 
 // Update
@@ -36,5 +39,8 @@ export const updateWarehouseSchema = Joi.object({
 
     users: Joi.array()
         .items(Joi.string().hex().length(24))
-        .optional()
+        .optional(),
+
+    enableReceiving: Joi.boolean().optional(),
+    enableIssuing: Joi.boolean().optional()
 });

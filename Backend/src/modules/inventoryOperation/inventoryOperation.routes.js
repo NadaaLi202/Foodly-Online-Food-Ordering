@@ -8,6 +8,7 @@ import {
 } from "./inventoryOperation.controller.js";
 
 import { validation } from "../../middleware/validation.js";
+import { upload } from "../../middleware/uploadImage.js";
 import {
     addInventoryOperationSchema,
     updateInventoryOperationSchema
@@ -17,13 +18,13 @@ const router = express.Router();
 
 router
     .route("/")
-    .post(validation(addInventoryOperationSchema), addInventoryOperation)
+    .post(upload.array('attachments', 5), validation(addInventoryOperationSchema), addInventoryOperation)
     .get(getAllInventoryOperations);
 
 router
     .route("/:id")
     .get(getInventoryOperationById)
-    .put(validation(updateInventoryOperationSchema), updateInventoryOperation)
+    .put(upload.array('attachments', 5), validation(updateInventoryOperationSchema), updateInventoryOperation)
     .delete(deleteInventoryOperation);
 
 export default router;

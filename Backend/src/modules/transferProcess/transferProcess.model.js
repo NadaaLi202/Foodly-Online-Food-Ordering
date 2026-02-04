@@ -17,14 +17,11 @@ const transferProcessSchema = new mongoose.Schema(
 
         // المخزن (المستودع الرئيسي فقط)
         toWarehouse: {
-            type: String,
-            enum: ["main"],
+            type: mongoose.Schema.Types.Mixed,
             required: true
         },
-          // المخزن (المستودع الرئيسي فقط)
         fromWarehouse: {
-            type: String,
-            enum: ["main"],
+            type: mongoose.Schema.Types.Mixed,
             required: true
         },
 

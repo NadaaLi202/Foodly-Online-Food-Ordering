@@ -13,18 +13,19 @@ import {
     updateOperationSchema
 } from "./operations.validation.js";
 import { validation } from "../../middleware/validation.js";
+import { upload } from "../../middleware/uploadImage.js";
 
 const router = express.Router();
 
 router
     .route("/")
-    .post(validation(addOperationSchema), addOperation)
+    .post(upload.array('attachments', 5), validation(addOperationSchema), addOperation)
     .get(getAllOperations);
 
 router
     .route("/:id")
     .get(getOperationById)
-    .put(validation(updateOperationSchema), updateOperation)
+    .put(upload.array('attachments', 5), validation(updateOperationSchema), updateOperation)
     .delete(deleteOperation);
 
 export default router;

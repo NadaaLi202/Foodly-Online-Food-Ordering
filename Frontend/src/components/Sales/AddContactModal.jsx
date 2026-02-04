@@ -74,7 +74,7 @@ const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/contacts', {
+            const response = await fetch('http://localhost:4000/api/v1/contacts/customers', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)

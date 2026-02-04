@@ -11,41 +11,45 @@ const Returns = () => {
     const [errors, setErrors] = useState({});
     const [uploadedFiles, setUploadedFiles] = useState([]);
 
+    const [clients, setClients] = useState([]);
+    const [products, setProducts] = useState([]);
+    const [selectedCreditNote, setSelectedCreditNote] = useState(null);
+    const [view, setView] = useState('list'); // 'list', 'add', 'edit'
+
     const [formData, setFormData] = useState({
-        creditNoteNumber: '',
+        transactionNumber: '',
         issueDate: new Date().toISOString().split('T')[0],
         dueDate: new Date().toISOString().split('T')[0],
-        clientName: '',
+        contactId: '',
+        contactName: '',
         items: [
             {
-                product: '',
+                productId: '',
+                productName: '',
                 description: '',
-                quantity: '',
-                price: '',
-                discount: '',
+                quantity: 1,
+                unitPrice: 0,
+                discount: 0,
                 discountType: '%',
-                tax: ''
+                tax: 0
             }
         ],
         notes: '',
-        subtotal: 0,
-        discount: 0,
-        total: 0,
+        paidAmount: 0,
         paymentMethod: 'cash',
-        attachments: null,
         activeTab: 'payment',
-        invoiceDiscount: '',
-        invoiceDiscountType: '%',
-        warehouse: ''
+        generalDiscount: 0,
+        generalDiscountType: '%',
+        warehouse: 'main'
     });
 
     // Fetch credit notes from API
     const fetchCreditNotes = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/credit-notes');
+            const response = await fetch('http://localhost:4000/api/v1/transactions/sales/returns');
             const data = await response.json();
-            setCreditNotes(data.creditNotes || []);
+            setCreditNotes(data.data || []);
         } catch (error) {
             console.error('Error fetching credit notes:', error);
         } finally {
@@ -53,42 +57,57 @@ const Returns = () => {
         }
     };
 
+    const fetchClients = async () => {
+        try {
+            const response = await fetch('http://localhost:4000/api/v1/contacts/customers');
+            const data = await response.json();
+            setClients(data.contacts || []);
+        } catch (error) {
+            console.error('Error fetching clients:', error);
+        }
+    };
+
+    const fetchProducts = async () => {
+        try {
+            const response = await fetch('http://localhost:4000/api/v1/products');
+            const data = await response.json();
+            setProducts(data.products || []);
+        } catch (error) {
+            console.error('Error fetching products:', error);
+        }
+    };
+
     useEffect(() => {
         fetchCreditNotes();
+        fetchClients();
+        fetchProducts();
     }, []);
 
     // Validate form
     const validateForm = () => {
         const newErrors = {};
 
-        if (!formData.creditNoteNumber.trim()) {
-            newErrors.creditNoteNumber = `${t('sales.returns.return_number')} ${t('sales.common.required')}`;
+        if (!formData.transactionNumber.trim()) {
+            newErrors.transactionNumber = `${t('sales.returns.return_number')} ${t('sales.common.required')}`;
         }
 
         if (!formData.issueDate) {
             newErrors.issueDate = `${t('sales.invoices.issue_date')} ${t('sales.common.required')}`;
         }
 
-        if (!formData.dueDate) {
-            newErrors.dueDate = `${t('sales.invoices.due_date')} ${t('sales.common.required')}`;
-        }
-
-        if (!formData.clientName.trim()) {
-            newErrors.clientName = `${t('sales.common.client')} ${t('sales.common.required')}`;
+        if (!formData.contactId) {
+            newErrors.contactId = `${t('sales.common.client')} ${t('sales.common.required')}`;
         }
 
         // Validate items
         formData.items.forEach((item, index) => {
-            if (!item.product || !item.product.trim()) {
+            if (!item.productId) {
                 newErrors[`item_product_${index}`] = `${t('sales.common.product')} ${t('sales.common.required')}`;
-            }
-            if (!item.description || !item.description.trim()) {
-                newErrors[`item_description_${index}`] = `${t('sales.common.description')} ${t('sales.common.required')}`;
             }
             if (!item.quantity || item.quantity <= 0) {
                 newErrors[`item_quantity_${index}`] = `${t('sales.common.quantity')} ${t('sales.common.required')}`;
             }
-            if (!item.price || item.price <= 0) {
+            if (!item.unitPrice || item.unitPrice <= 0) {
                 newErrors[`item_price_${index}`] = `${t('sales.common.price')} ${t('sales.common.required')}`;
             }
         });
@@ -176,7 +195,7 @@ const Returns = () => {
     // Calculate item total
     const calculateItemTotal = (item) => {
         const qty = parseFloat(item.quantity) || 0;
-        const price = parseFloat(item.price) || 0;
+        const price = parseFloat(item.unitPrice) || 0;
         const discount = parseFloat(item.discount) || 0;
 
         const subtotal = qty * price;
@@ -211,18 +230,44 @@ const Returns = () => {
         setLoading(true);
 
         try {
-            const totals = calculateTotals();
-            const response = await fetch('http://localhost:4000/api/v1/credit-notes', {
+            const fd = new FormData();
+            fd.append('transactionNumber', formData.transactionNumber);
+            fd.append('contact', formData.contactId);
+            fd.append('issueDate', formData.issueDate);
+            fd.append('dueDate', formData.dueDate);
+            fd.append('notes', formData.notes);
+            fd.append('warehouse', formData.warehouse);
+            fd.append('paymentMethod', formData.paymentMethod);
+            fd.append('paidAmount', formData.paidAmount);
+
+            // General Discount
+            if (formData.generalDiscountType === '%') {
+                fd.append('generalDiscountPercent', formData.generalDiscount);
+            } else {
+                fd.append('generalDiscount', formData.generalDiscount);
+            }
+
+            // Items
+            const formattedItems = formData.items.map(item => ({
+                product: item.productId,
+                productName: item.productName,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                taxPercent: item.tax,
+                [item.discountType === '%' ? 'discountPercent' : 'discountAmount']: item.discount
+            }));
+            fd.append('items', JSON.stringify(formattedItems));
+
+            // Attachments
+            if (uploadedFiles && uploadedFiles.length > 0) {
+                uploadedFiles.forEach(file => {
+                    fd.append('attachments', file);
+                });
+            }
+
+            const response = await fetch('http://localhost:4000/api/v1/transactions/sales/returns', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    ...formData,
-                    subtotal: totals.subtotal,
-                    tax: totals.totalTax,
-                    total: totals.total
-                }),
+                body: fd,
             });
 
             if (response.ok) {
@@ -245,21 +290,19 @@ const Returns = () => {
     // Reset form
     const resetForm = () => {
         setFormData({
-            creditNoteNumber: '',
+            transactionNumber: '',
             issueDate: new Date().toISOString().split('T')[0],
             dueDate: new Date().toISOString().split('T')[0],
-            clientName: '',
-            items: [{ product: '', description: '', quantity: '', price: '', discount: '', discountType: '%', tax: '' }],
+            contactId: '',
+            contactName: '',
+            items: [{ productId: '', productName: '', description: '', quantity: 1, unitPrice: 0, discount: 0, discountType: '%', tax: 0 }],
             notes: '',
-            subtotal: 0,
-            discount: 0,
-            total: 0,
+            paidAmount: 0,
             paymentMethod: 'cash',
-            attachments: null,
             activeTab: 'payment',
-            invoiceDiscount: '',
-            invoiceDiscountType: '%',
-            warehouse: ''
+            generalDiscount: 0,
+            generalDiscountType: '%',
+            warehouse: 'main'
         });
         setUploadedFiles([]);
         setErrors({});
@@ -322,10 +365,10 @@ const Returns = () => {
                                 {creditNotes.map((note) => (
                                     <tr key={note._id} className="hover:bg-gray-50">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            {note.creditNoteNumber}
+                                            {note.transactionNumber}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {note.clientName}
+                                            {note.contact?.name || t('sales.common.none')}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {new Date(note.issueDate).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US')}
@@ -372,15 +415,15 @@ const Returns = () => {
                                         </label>
                                         <input
                                             type="text"
-                                            name="creditNoteNumber"
-                                            value={formData.creditNoteNumber}
+                                            name="transactionNumber"
+                                            value={formData.transactionNumber}
                                             onChange={handleInputChange}
                                             placeholder={t('sales.returns.return_number_placeholder') || "RINV-26-1-000001"}
-                                            className={`w-full border-2 ${errors.creditNoteNumber ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors`}
+                                            className={`w-full border-2 ${errors.transactionNumber ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors`}
                                         />
-                                        {errors.creditNoteNumber && (
+                                        {errors.transactionNumber && (
                                             <p className={`text-red-500 text-xs mt-1 text-${i18n.language === 'ar' ? 'right' : 'left'} flex items-center gap-1`}>
-                                                <span>⚠</span> {errors.creditNoteNumber}
+                                                <span>⚠</span> {errors.transactionNumber}
                                             </p>
                                         )}
                                     </div>
@@ -430,24 +473,29 @@ const Returns = () => {
                                     <div className="flex gap-2">
                                         <button
                                             type="button"
-                                            onClick={handleNewClient}
                                             className="bg-indigo-600 text-white px-4 py-2.5 rounded-lg hover:bg-indigo-700 flex items-center gap-1 whitespace-nowrap transition-colors"
                                         >
                                             <Plus size={18} />
                                             {t('sales.common.add')}
                                         </button>
-                                        <input
-                                            type="text"
-                                            name="clientName"
-                                            value={formData.clientName}
-                                            onChange={handleInputChange}
-                                            placeholder={t('sales.common.select') + ' ' + t('sales.common.client')}
-                                            className={`flex-1 border-2 ${errors.clientName ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors`}
-                                        />
+                                        <select
+                                            name="contactId"
+                                            value={formData.contactId}
+                                            onChange={(e) => {
+                                                const selectedClient = clients.find(c => c._id === e.target.value);
+                                                setFormData({ ...formData, contactId: e.target.value, contactName: selectedClient?.name || '' });
+                                            }}
+                                            className={`flex-1 border-2 ${errors.contactId ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors bg-white`}
+                                        >
+                                            <option value="">{t('sales.common.select') + ' ' + t('sales.common.client')}</option>
+                                            {clients.map(client => (
+                                                <option key={client._id} value={client._id}>{client.name}</option>
+                                            ))}
+                                        </select>
                                     </div>
-                                    {errors.clientName && (
+                                    {errors.contactId && (
                                         <p className={`text-red-500 text-xs mt-1 text-${i18n.language === 'ar' ? 'right' : 'left'} flex items-center gap-1`}>
-                                            <span>⚠</span> {errors.clientName}
+                                            <span>⚠</span> {errors.contactId}
                                         </p>
                                     )}
                                 </div>
@@ -536,8 +584,8 @@ const Returns = () => {
                                                         <td className="px-3 py-3">
                                                             <input
                                                                 type="number"
-                                                                value={item.price}
-                                                                onChange={(e) => handleItemChange(index, 'price', e.target.value)}
+                                                                value={item.unitPrice}
+                                                                onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
                                                                 className={`w-28 border-2 ${errors[`item_price_${index}`] ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded px-2 py-2 text-sm text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors`}
                                                                 placeholder="0.00"
                                                                 min="0"
@@ -571,19 +619,26 @@ const Returns = () => {
                                                         {/* Product */}
                                                         <td className="px-3 py-3">
                                                             <div className="flex items-center gap-1">
-                                                                <input
-                                                                    type="text"
-                                                                    value={item.product}
-                                                                    onChange={(e) => handleItemChange(index, 'product', e.target.value)}
-                                                                    placeholder={t('sales.common.select') + ' ' + t('sales.common.product')}
-                                                                    className={`flex-1 border-2 ${errors[`item_product_${index}`] ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded px-2 py-2 text-sm text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors`}
-                                                                />
-                                                                <button type="button" className="text-gray-400 hover:text-gray-600">
-                                                                    <Search size={16} />
-                                                                </button>
-                                                                <button type="button" className="text-gray-400 hover:text-gray-600">
-                                                                    <span className="text-lg">⋮</span>
-                                                                </button>
+                                                                <select
+                                                                    value={item.productId}
+                                                                    onChange={(e) => {
+                                                                        const selectedProd = products.find(p => p._id === e.target.value);
+                                                                        const newItems = [...formData.items];
+                                                                        newItems[index] = {
+                                                                            ...newItems[index],
+                                                                            productId: e.target.value,
+                                                                            productName: selectedProd?.name || '',
+                                                                            unitPrice: selectedProd?.sellingPrice || 0
+                                                                        };
+                                                                        setFormData({ ...formData, items: newItems });
+                                                                    }}
+                                                                    className={`flex-1 border-2 ${errors[`item_product_${index}`] ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded px-2 py-2 text-sm text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors bg-white`}
+                                                                >
+                                                                    <option value="">{t('sales.common.select') + ' ' + t('sales.common.product')}</option>
+                                                                    {products.map(p => (
+                                                                        <option key={p._id} value={p._id}>{p.name}</option>
+                                                                    ))}
+                                                                </select>
                                                             </div>
                                                         </td>
 
@@ -664,9 +719,10 @@ const Returns = () => {
                                                 </label>
                                                 <input
                                                     type="number"
-                                                    value={totals.total.toFixed(2)}
-                                                    readOnly
-                                                    className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} bg-gray-50 font-bold`}
+                                                    name="paidAmount"
+                                                    value={formData.paidAmount}
+                                                    onChange={handleInputChange}
+                                                    className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} bg-white font-bold`}
                                                 />
                                             </div>
                                             <div>
@@ -694,8 +750,8 @@ const Returns = () => {
                                             </label>
                                             <div className="flex gap-2">
                                                 <select
-                                                    value={formData.invoiceDiscountType || '%'}
-                                                    onChange={(e) => setFormData({ ...formData, invoiceDiscountType: e.target.value })}
+                                                    value={formData.generalDiscountType || '%'}
+                                                    onChange={(e) => setFormData({ ...formData, generalDiscountType: e.target.value })}
                                                     className={`w-24 border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500 bg-white`}
                                                 >
                                                     <option value="%">%</option>
@@ -703,8 +759,8 @@ const Returns = () => {
                                                 </select>
                                                 <input
                                                     type="number"
-                                                    name="invoiceDiscount"
-                                                    value={formData.invoiceDiscount || ''}
+                                                    name="generalDiscount"
+                                                    value={formData.generalDiscount || ''}
                                                     onChange={handleInputChange}
                                                     placeholder="0"
                                                     className={`flex-1 border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500`}

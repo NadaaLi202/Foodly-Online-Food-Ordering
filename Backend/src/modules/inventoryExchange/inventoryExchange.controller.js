@@ -20,7 +20,11 @@ export const addInventoryExchange = catchAsyncError(async (req, res, next) => {
         );
     }
 
-    const exchange = new inventoryExchangeModel(req.body);
+    const exchangeData = { ...req.body };
+    if (req.files && req.files.length > 0) {
+        exchangeData.attachments = req.files.map(file => `/uploads/products/${file.filename}`);
+    }
+    const exchange = new inventoryExchangeModel(exchangeData);
     await exchange.save();
 
     res.status(201).json({
@@ -64,9 +68,14 @@ export const getInventoryExchangeById = catchAsyncError(async (req, res, next) =
 
 // Update
 export const updateInventoryExchange = catchAsyncError(async (req, res, next) => {
+    const updateData = { ...req.body };
+    if (req.files && req.files.length > 0) {
+        // Here you might want to merge with existing or replace
+        updateData.attachments = req.files.map(file => `/uploads/products/${file.filename}`);
+    }
     const exchange = await inventoryExchangeModel.findByIdAndUpdate(
         req.params.id,
-        req.body,
+        updateData,
         { new: true }
     );
 

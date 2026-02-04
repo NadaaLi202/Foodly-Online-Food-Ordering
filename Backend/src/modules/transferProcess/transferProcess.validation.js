@@ -11,13 +11,17 @@ export const addTransferProcessSchema = Joi.object({
             "any.required": "Operation مطلوب"
         }),
 
-    fromWarehouse: Joi.string()
-        .valid("main")
-        .required(),
+    fromWarehouse: Joi.alternatives().try(
+        Joi.string().hex().length(24),
+        Joi.string().valid("main", "secondary")
+    ).required(),
 
-    toWarehouse: Joi.string()
-        .valid("main")
-        .required(),
+    toWarehouse: Joi.alternatives().try(
+        Joi.string().hex().length(24),
+        Joi.string().valid("main", "secondary")
+    ).required(),
+
+    date: Joi.any().optional(),
 
     product: Joi.string()
         .hex()
@@ -37,12 +41,14 @@ export const addTransferProcessSchema = Joi.object({
             "any.required": "الكمية مطلوبة"
         }),
 
-    description: Joi.string().allow("").optional(),
+    account: Joi.string().allow("", null).optional(),
+    totalAmount: Joi.any().optional(),
+    description: Joi.string().allow("", null).optional(),
 
     attachments: Joi.array()
         .items(Joi.string())
         .optional()
-});
+}).unknown(true);
 
 
 
@@ -63,13 +69,19 @@ export const updateTransferProcessSchema = Joi.object({
         .length(24)
         .optional(),
 
-    fromWarehouse: Joi.string()
-        .valid("main")
-        .optional(),
+    fromWarehouse: Joi.alternatives().try(
+        Joi.string().hex().length(24),
+        Joi.string().valid("main", "secondary")
+    ).optional(),
 
-    toWarehouse: Joi.string()
-        .valid("main")
-        .optional(),
+    toWarehouse: Joi.alternatives().try(
+        Joi.string().hex().length(24),
+        Joi.string().valid("main", "secondary")
+    ).optional(),
+
+    date: Joi.date().allow(null, ""),
+    account: Joi.string().allow("", null),
+    totalAmount: Joi.number().allow(null, ""),
 
     product: Joi.string()
         .hex()

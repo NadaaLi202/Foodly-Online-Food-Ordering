@@ -4,7 +4,19 @@ import { AppError } from "../../utils/AppError.js";
 
 // ================= Add =================
 export const addInventoryOperation = catchAsyncError(async (req, res) => {
-    const operation = new inventoryOperationModel(req.body);
+    const opData = { ...req.body };
+    if (req.files && req.files.length > 0) {
+        opData.attachments = req.files.map(file => `/uploads/products/${file.filename}`);
+    }
+    // Parse items if they are sent as a JSON string
+    if (typeof opData.items === 'string') {
+        try {
+            opData.items = JSON.parse(opData.items);
+        } catch (e) {
+            console.error("Error parsing items JSON:", e);
+        }
+    }
+    const operation = new inventoryOperationModel(opData);
     await operation.save();
 
     res.status(201).json({
@@ -47,9 +59,13 @@ export const getInventoryOperationById = catchAsyncError(
 // ================= Update =================
 export const updateInventoryOperation = catchAsyncError(
     async (req, res, next) => {
+        const updateData = { ...req.body };
+        if (req.files && req.files.length > 0) {
+            updateData.attachments = req.files.map(file => `/uploads/products/${file.filename}`);
+        }
         const operation = await inventoryOperationModel.findByIdAndUpdate(
             req.params.id,
-            req.body,
+            updateData,
             { new: true }
         );
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Search, RefreshCw, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -11,6 +10,7 @@ const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoice
             <div className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <button
+                        type="button"
                         onClick={onAddClick}
                         className="flex items-center gap-1.5 bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition-all font-bold text-sm shadow-sm"
                     >
@@ -19,6 +19,7 @@ const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoice
                     </button>
 
                     <button
+                        type="button"
                         onClick={onFetchInvoices}
                         className="flex items-center gap-2 border-2 border-gray-100 text-gray-500 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all font-bold text-sm"
                     >
@@ -65,10 +66,10 @@ const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoice
                                         onClick={() => onInvoiceClick(invoice)}
                                     >
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-gray-700 group-hover:text-indigo-600">
-                                            {invoice.invoiceNumber}
+                                            {invoice.transactionNumber || invoice.invoiceNumber}
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-gray-500">
-                                            {invoice.clientName}
+                                            {invoice.contact?.name || invoice.clientName}
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-gray-400">
                                             {new Date(invoice.issueDate).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US')}
@@ -78,11 +79,11 @@ const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoice
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap">
                                             <span className={`px-4 py-1.5 text-[10px] font-black rounded-full shadow-sm ${invoice.status === 'paid' ? 'bg-green-100 text-green-700' :
-                                                    invoice.status === 'unpaid' ? 'bg-red-100 text-red-700' :
-                                                        invoice.status === 'partial' ? 'bg-amber-100 text-amber-700' :
-                                                            'bg-gray-100 text-gray-600'
+                                                invoice.status === 'unpaid' ? 'bg-red-100 text-red-700' :
+                                                    invoice.status === 'partial' || invoice.status === 'partially_paid' ? 'bg-amber-100 text-amber-700' :
+                                                        'bg-gray-100 text-gray-600'
                                                 }`}>
-                                                {t(`sales.common.${invoice.status || 'unpaid'}`)}
+                                                {t(`sales.common.${invoice.status === 'partially_paid' ? 'partial' : (invoice.status || 'unpaid')}`)}
                                             </span>
                                         </td>
                                     </tr>

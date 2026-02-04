@@ -6,14 +6,22 @@ export const addOperationSchema = Joi.object({
         .valid(
             "stock add process",
             "inventory exchange process",
-            "transfer process"
+            "transfer process",
+            "inventory operation"
         )
         .required()
         .messages({
             "any.only": "نوع العملية غير صحيح",
             "any.required": "نوع العملية مطلوب"
-        })
-});
+        }),
+    warehouse: Joi.alternatives().try(
+        Joi.string().hex().length(24),
+        Joi.string().valid("main", "secondary")
+    ).allow(null, ""),
+    date: Joi.any().optional(),
+    account: Joi.string().allow("", null).optional(),
+    totalAmount: Joi.any().optional()
+}).unknown(true);
 
 // Update Operation
 export const updateOperationSchema = Joi.object({

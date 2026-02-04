@@ -46,7 +46,9 @@
         "transactions": "المعاملات",
         "requisitions": "الطلبات",
         "safes": "الخزائن",
-        "bank_accounts": "الحسابات البنكية"
+        "bank_accounts": "الحسابات البنكية",
+        "roles": "الأدوار ",
+        "sign_out": "تسجيل الخروج"
     },
     "topbar": {
         "add": "إضافة",
@@ -200,12 +202,31 @@
             "apply": "تطبيق",
             "draft": "مسودة",
             "issued": "مصدرة",
-            "unpaid": "غير مدفوع",
-            "partially_paid_settled": "مدفوع جزئياً أو مسوى",
-            "paid_settled": "مدفوع أو مسوى",
             "receipt_pending": "بانتظار الاستلام",
             "partially_received": "مستلم جزئياً",
-            "received": "مستلم"
+            "received": "مستلم",
+            "name": "الاسم",
+            "type": "النوع",
+            "code": "الكود",
+            "phone": "الهاتف",
+            "mobile": "الجوال",
+            "email": "البريد الإلكتروني",
+            "balance": "الرصيد",
+            "individual": "فردي",
+            "commercial": "تجاري",
+            "tax_number": "الرقم الضريبي",
+            "commercial_register": "السجل التجاري",
+            "contact_info": "معلومات الاتصال",
+            "address": "العنوان",
+            "address1": "العنوان 1",
+            "city": "المدينة",
+            "country": "الدولة",
+            "financial_info": "المعلومات المالية",
+            "initial_balance": "الرصيد الافتتاحي",
+            "credit_limit": "حد الائتمان",
+            "update": "تحديث",
+            "delete": "حذف",
+            "confirm_delete": "هل أنت متأكد من الحذف؟"
         },
         "invoices": {
             "title": "الفواتير",
@@ -272,7 +293,15 @@
             "contact_name": "اسم جهة الاتصال",
             "job_title": "المسمى الوظيفي",
             "no_customers": "لا يوجد عملاء",
-            "start_customers": "ابدأ بإضافة عملاء جدد"
+            "start_creating": "ابدأ بإضافة أول عميل لك",
+            "edit_customer": "تعديل عميل"
+        },
+        "suppliers": {
+            "title": "الموردين",
+            "add_supplier": "إضافة مورد",
+            "edit_supplier": "تعديل مورد",
+            "no_suppliers": "لا يوجد موردين",
+            "start_creating": "ابدأ بإضافة أول مورد لك"
         },
         "payments": {
             "title": "مدفوعات العملاء",
@@ -527,6 +556,67 @@
         },
         "credit_notes": {
             "add_title": "إضافة إشعار دائن مشتريات"
+        }
+    },
+    "users_page": {
+        "title": "المستخدمين",
+        "add_user": "إضافة مستخدم جديد",
+        "edit_user": "تعديل مستخدم",
+        "no_users": "لم يتم العثور على مستخدمين",
+        "start_creating": "ابدأ بإضافة أول مستخدم لك",
+        "name": "الاسم",
+        "type": "النوع",
+        "email": "البريد الإلكتروني",
+        "role": "الدور الوظيفي",
+        "branch": "الفرع",
+        "admin": "موظف",
+        "user": "مستخدم",
+        "password": "كلمة المرور",
+        "confirm_password": "تأكيد كلمة المرور",
+        "password_mismatch": "كلمات المرور غير متطابقة",
+        "leave_empty": "اتركه فارغاً للإبقاء على الحالية",
+        "select_role": "اختر الدور",
+        "manager": "مدير",
+        "accountant": "محاسب",
+        "sales": "مبيعات",
+        "select_branch": "اختر الفرع"
+    },
+    "roles_page": {
+        "title": "الأدوار",
+        "add_role": "إضافة دور",
+        "edit_role": "تعديل دور",
+        "role_name": "اسم الدور",
+        "permissions": "الصلاحيات",
+        "no_roles": "لم يتم العثور على أدوار",
+        "start_creating": "ابدأ بإضافة أول دور",
+        "add": "إضافة",
+        "view": "عرض",
+        "edit": "تعديل",
+        "delete": "حذف",
+        "all": "الكل",
+        "own": "الخاصة",
+        "branch": "الفرع",
+        "modules": {
+            "sales_invoices": "فواتير المبيعات",
+            "customers": "العملاء",
+            "customer_payments": "مدفوعات العملاء",
+            "purchase_invoices": "فواتير المشتريات",
+            "suppliers": "الموردين",
+            "supplier_payments": "مدفوعات الموردين",
+            "products": "المنتجات",
+            "inventory_operations": "العمليات المخزنية",
+            "finance_operations": "العمليات المالية",
+            "ledger_accounts": "حسابات الأستاذ",
+            "journal_entries": "قيود اليومية",
+            "settle_with_balance": "تسوية الفواتير برصيد العميل/المورد",
+            "settle_with_accounts": "تسوية الفواتير بالحسابات",
+            "sales_report": "تقرير المبيعات",
+            "customer_payments_report": "تقرير مدفوعات العملاء",
+            "product_profit_report": "تقرير أرباح بيع المنتجات",
+            "purchase_report": "تقرير المشتريات",
+            "supplier_payments_report": "تقرير مدفوعات الموردين",
+            "balance_sheet": "تقرير الميزانية العمومية",
+            "income_statement": "تقرير قائمة الدخل"
         }
     }
 }

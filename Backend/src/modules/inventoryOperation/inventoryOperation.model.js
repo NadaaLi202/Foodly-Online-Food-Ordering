@@ -7,8 +7,7 @@ const inventoryOperationSchema = new mongoose.Schema(
     {
         // المخزن المرتبط بالعملية (مطلوب)
         warehouse: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Warehouse",
+            type: mongoose.Schema.Types.Mixed,
             required: [true, "المخزن مطلوب"]
         },
 
@@ -31,7 +30,26 @@ const inventoryOperationSchema = new mongoose.Schema(
             type: String,
             trim: true,
             default: ""
-        }
+        },
+        // المرفقات
+        attachments: [
+            {
+                type: String
+            }
+        ],
+        // البنود (المنتجات)
+        items: [
+            {
+                product: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "Product"
+                },
+                quantity: {
+                    type: Number,
+                    default: 0
+                }
+            }
+        ]
     },
     { timestamps: true }
 );

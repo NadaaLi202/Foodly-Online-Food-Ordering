@@ -13,18 +13,19 @@ import {
 } from "./inventoryExchange.validation.js";
 
 import { validation } from "../../middleware/validation.js";
+import { upload } from "../../middleware/uploadImage.js";
 
 const router = express.Router();
 
 router
     .route("/")
-    .post(validation(addInventoryExchangeSchema), addInventoryExchange)
+    .post(upload.array('attachments', 5), validation(addInventoryExchangeSchema), addInventoryExchange)
     .get(getAllInventoryExchanges);
 
 router
     .route("/:id")
     .get(getInventoryExchangeById)
-    .put(validation(updateInventoryExchangeSchema), updateInventoryExchange)
+    .put(upload.array('attachments', 5), validation(updateInventoryExchangeSchema), updateInventoryExchange)
     .delete(deleteInventoryExchange);
 
 export default router;

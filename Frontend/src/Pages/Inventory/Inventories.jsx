@@ -26,18 +26,19 @@ const Inventories = () => {
     const [searchTerm, setSearchTerm] = useState('');
 
     const [formData, setFormData] = useState({
-        inventory: '',
+        warehouse: '',
         date: new Date().toISOString().slice(0, 16), // datetime-local format
-        description: ''
+        description: '',
+        items: []
     });
 
     const fetchInventories = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/inventories/all');
+            const response = await fetch('http://localhost:4000/api/v1/inventory-operations');
             if (!response.ok) throw new Error('Failed to fetch inventories');
             const data = await response.json();
-            setInventories(data.inventories || data || []);
+            setInventories(data.operations || data || []);
         } catch (error) {
             console.error('Error fetching inventories:', error);
         } finally {
@@ -66,32 +67,57 @@ const Inventories = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/inventories', {
+            const response = await fetch('http://localhost:4000/api/v1/inventory-operations', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
 
             if (response.ok) {
+                alert(i18n.language === 'ar' ? 'تم الحفظ بنجاح' : 'Saved successfully');
                 setIsAddModalOpen(false);
                 setFormData({
-                    inventory: '',
+                    warehouse: '',
                     date: new Date().toISOString().slice(0, 16),
-                    description: ''
+                    description: '',
+                    items: []
                 });
                 fetchInventories();
+            } else {
+                const errorData = await response.json();
+                alert(errorData.message || 'Error saving');
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد من الحذف؟' : 'Are you sure you want to delete?')) return;
+
+        setLoading(true);
+        try {
+            const response = await fetch(`http://localhost:4000/api/v1/inventory-operations/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                alert(i18n.language === 'ar' ? 'تم الحذف بنجاح' : 'Deleted successfully');
+                fetchInventories();
+            } else {
+                alert(i18n.language === 'ar' ? 'فشل الحذف' : 'Deletion failed');
             }
         } catch (error) {
-            console.error('Error saving inventory:', error);
+            console.error('Error deleting inventory:', error);
         } finally {
             setLoading(false);
         }
     };
 
     const filteredInventories = useMemo(() => {
-        return inventories.filter(inv =>
-            inv.inventory?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            inv.description?.toLowerCase().includes(searchTerm.toLowerCase())
+        return (Array.isArray(inventories) ? inventories : []).filter(inv =>
+            (inv.warehouse?.name || inv.warehouse || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (inv.description || '').toLowerCase().includes(searchTerm.toLowerCase())
         );
     }, [inventories, searchTerm]);
 
@@ -174,7 +200,7 @@ const Inventories = () => {
                                             <td className="px-6 py-4 font-bold text-gray-900">
                                                 <div className="flex items-center gap-2">
                                                     <Warehouse size={14} className="text-gray-400" />
-                                                    {inv.inventory}
+                                                    {inv.warehouse?.name || inv.warehouse || '-'}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
@@ -189,7 +215,10 @@ const Inventories = () => {
                                                     <button className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
                                                         <Eye size={18} />
                                                     </button>
-                                                    <button className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                                                    <button
+                                                        onClick={() => handleDelete(inv._id || inv.id)}
+                                                        className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                                    >
                                                         <Trash2 size={18} />
                                                     </button>
                                                 </div>
@@ -225,15 +254,15 @@ const Inventories = () => {
                                         <Warehouse className={`absolute ${i18n.language === 'ar' ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400`} size={20} />
                                         <select
                                             required
-                                            value={formData.inventory}
-                                            onChange={(e) => setFormData({ ...formData, inventory: e.target.value })}
+                                            value={formData.warehouse}
+                                            onChange={(e) => setFormData({ ...formData, warehouse: e.target.value })}
                                             className={`w-full ${i18n.language === 'ar' ? 'pr-12 pl-4' : 'pl-12 pr-4'} py-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all appearance-none text-${i18n.language === 'ar' ? 'right' : 'left'}`}
                                         >
                                             <option value="">{t('sales.common.select_warehouse')}</option>
                                             {warehouses.map(w => (
-                                                <option key={w._id || w.id} value={w.name}>{w.name}</option>
+                                                <option key={w._id || w.id} value={w._id}>{w.name}</option>
                                             ))}
-                                            <option value="المستودع الرئيسي">{t('sales.common.main_warehouse')}</option>
+                                            <option value="main">{t('sales.common.main_warehouse')}</option>
                                         </select>
                                     </div>
                                 </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, RefreshCw, X, Upload, ChevronDown, ArrowLeftRight, Package } from 'lucide-react';
+import { Plus, Search, RefreshCw, X, Upload, ChevronDown, ArrowLeftRight, Package, Trash2, Edit } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const Operations = () => {
@@ -14,6 +14,8 @@ const Operations = () => {
     const [products, setProducts] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
     const [accounts, setAccounts] = useState([]);
+    const [inventoryOps, setInventoryOps] = useState([]);
+    const [editingOperation, setEditingOperation] = useState(null);
 
     const [formData, setFormData] = useState({
         warehouse: '',
@@ -35,6 +37,19 @@ const Operations = () => {
             setOperations(data.operations || []);
         } catch (error) {
             console.error('Error fetching operations:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchInventoryOps = async () => {
+        setLoading(true);
+        try {
+            const response = await fetch('http://localhost:4000/api/v1/inventory-operations');
+            const data = await response.json();
+            setInventoryOps(data.operations || []);
+        } catch (error) {
+            console.error('Error fetching inventory operations:', error);
         } finally {
             setLoading(false);
         }
@@ -89,6 +104,7 @@ const Operations = () => {
 
     useEffect(() => {
         fetchOperations();
+        fetchInventoryOps();
         fetchProducts();
         fetchWarehouses();
         fetchAccounts();
@@ -200,30 +216,112 @@ const Operations = () => {
 
         try {
             const formDataToSend = new FormData();
-            formDataToSend.append('type', operationType);
-            formDataToSend.append('warehouse', formData.warehouse);
-            if (operationType === 'transfer') {
-                formDataToSend.append('toWarehouse', formData.toWarehouse);
-            }
-            formDataToSend.append('account', formData.account);
-            formDataToSend.append('date', formData.date);
-            formDataToSend.append('items', JSON.stringify(formData.items));
-            formDataToSend.append('description', formData.description);
-            formDataToSend.append('total', formData.total);
 
-            formData.attachments.forEach((file, index) => {
-                formDataToSend.append(`attachments`, file);
+            // First, create the top-level Operation record to get an ID
+            const typeMap = {
+                'add': 'stock add process',
+                'withdraw': 'inventory exchange process',
+                'transfer': 'transfer process',
+                'inventory_op': 'inventory operation'
+            };
+
+            const opResponse = await fetch(`http://localhost:4000/api/v1/operations${editingOperation ? `/${editingOperation._id}` : ''}`, {
+                method: editingOperation ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: typeMap[operationType] || 'transfer process',
+                    warehouse: formData.warehouse,
+                    date: formData.date
+                }),
+            });
+            const opData = await opResponse.json();
+            if (!opResponse.ok) throw new Error(opData.message || 'Error creating operation reference');
+            const operationId = opData.operation._id;
+
+            // Identify special warehouse (main/secondary) if applicable
+            const selectedWh = warehouses.find(w => w._id === formData.warehouse);
+            const whIdentifier = (selectedWh?.branch === 'main' || selectedWh?.branch === 'secondary')
+                ? selectedWh.branch
+                : formData.warehouse;
+
+            // Prepare dynamic endpoint data
+            formDataToSend.append('operation', operationId);
+            formDataToSend.append('warehouse', whIdentifier);
+            formDataToSend.append('date', formData.date);
+            formDataToSend.append('description', formData.description);
+
+            if (operationType === 'add') {
+                formDataToSend.append('account', formData.account);
+                formDataToSend.append('totalAmount', formData.total);
+            } else if (operationType === 'withdraw') {
+                formDataToSend.append('account', formData.account);
+                // For Withdraw/Exchange, the current backend model only supports one product per record.
+                if (formData.items.length > 0) {
+                    formDataToSend.append('product', formData.items[0].product);
+                    formDataToSend.append('quantity', formData.items[0].quantity);
+                }
+            } else if (operationType === 'transfer') {
+                const toWh = warehouses.find(w => w._id === formData.toWarehouse);
+                const toWhIdentifier = (toWh?.branch === 'main' || toWh?.branch === 'secondary')
+                    ? toWh.branch
+                    : formData.toWarehouse;
+
+                formDataToSend.append('fromWarehouse', whIdentifier);
+                formDataToSend.append('toWarehouse', toWhIdentifier);
+                if (formData.items.length > 0) {
+                    formDataToSend.append('product', formData.items[0].product);
+                    formDataToSend.append('quantity', formData.items[0].quantity);
+                }
+            }
+
+            // For inventory_op, we send the whole items array
+            if (operationType === 'inventory_op') {
+                formDataToSend.append('items', JSON.stringify(formData.items));
+            }
+
+            // Append all attachments
+            formData.attachments.forEach((file) => {
+                formDataToSend.append('attachments', file);
             });
 
-            const response = await fetch('http://localhost:4000/api/v1/operations', {
-                method: 'POST',
+            // Route to specific endpoint
+            let endpoint = 'operations';
+            if (operationType === 'add') endpoint = 'stockAdd';
+            else if (operationType === 'withdraw') endpoint = 'inventory-exchange';
+            else if (operationType === 'transfer') endpoint = 'transfer-process';
+            else if (operationType === 'inventory_op') endpoint = 'inventory-operations';
+
+            const response = await fetch(`http://localhost:4000/api/v1/${endpoint}${editingOperation ? `/${editingOperation._id}` : ''}`, {
+                method: editingOperation ? 'PUT' : 'POST',
                 body: formDataToSend,
             });
 
             if (response.ok) {
-                alert(i18n.language === 'ar' ? 'تم إضافة العملية بنجاح!' : 'Operation added successfully!');
+                // If it's a StockAdd, we might need to add items separately if the backend doesn't handle them
+                if (operationType === 'add' && formData.items.length > 0) {
+                    const stockAddData = await response.json();
+                    const stockAddId = stockAddData.stockAdd._id;
+
+                    for (const item of formData.items) {
+                        await fetch('http://localhost:4000/api/v1/stockAdd/item', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                stockAdd: stockAddId,
+                                product: item.product,
+                                quantity: item.quantity,
+                                unitCost: 0 // Defaulting to 0 since UI doesn't have it yet
+                            }),
+                        });
+                    }
+                }
+
+                alert(i18n.language === 'ar'
+                    ? (editingOperation ? 'تم تحديث العملية بنجاح!' : 'تم إضافة العملية بنجاح!')
+                    : (editingOperation ? 'Operation updated successfully!' : 'Operation added successfully!'));
                 setIsModalOpen(false);
                 fetchOperations();
+                fetchInventoryOps();
                 resetForm();
             } else {
                 const error = await response.json();
@@ -232,6 +330,56 @@ const Operations = () => {
         } catch (error) {
             console.error('Error creating operation:', error);
             alert(i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+    const handleEdit = (operation) => {
+        setEditingOperation(operation);
+        const typeMap = {
+            'stock add process': 'add',
+            'inventory exchange process': 'withdraw',
+            'transfer process': 'transfer',
+            'inventory operation': 'inventory_op'
+        };
+        const type = typeMap[operation.type] || 'add';
+        setOperationType(type);
+
+        setFormData({
+            warehouse: operation.warehouse?._id || operation.warehouse || '',
+            toWarehouse: operation.toWarehouse || '',
+            date: new Date(operation.date).toISOString().slice(0, 16),
+            description: operation.description || '',
+            account: operation.account || '',
+            total: operation.totalAmount || 0,
+            items: operation.items || [{ product: '', quantity: 1 }],
+            attachments: []
+        });
+        setIsModalOpen(true);
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد من الحذف؟' : 'Are you sure you want to delete?')) return;
+
+        setLoading(true);
+        try {
+            let endpoint = 'operations';
+            if (activeTab === 'operations') endpoint = 'inventory-operations';
+
+            const response = await fetch(`http://localhost:4000/api/v1/${endpoint}/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                alert(i18n.language === 'ar' ? 'تم الحذف بنجاح' : 'Deleted successfully');
+                activeTab === 'operations' ? fetchInventoryOps() : fetchOperations();
+            } else {
+                alert(i18n.language === 'ar' ? 'فشل الحذف' : 'Deletion failed');
+            }
+        } catch (error) {
+            console.error('Error deleting operation:', error);
         } finally {
             setLoading(false);
         }
@@ -299,9 +447,15 @@ const Operations = () => {
                                 </button>
                                 <button
                                     onClick={() => openModal('transfer')}
-                                    className={`w-full px-4 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} hover:bg-gray-50 text-sm text-gray-700`}
+                                    className={`w-full px-4 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} hover:bg-gray-50 text-sm text-gray-700 border-b border-gray-100`}
                                 >
                                     {t('stocked.operations.transfer_operation')}
+                                </button>
+                                <button
+                                    onClick={() => openModal('inventory_op')}
+                                    className={`w-full px-4 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} hover:bg-gray-50 text-sm text-gray-700`}
+                                >
+                                    {i18n.language === 'ar' ? 'عملية جرد' : 'Inventory Operation'}
                                 </button>
                             </div>
                         )}
@@ -368,18 +522,23 @@ const Operations = () => {
                                     <th className={`px-4 sm:px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('stocked.operations.warehouse')}</th>
                                     <th className={`px-4 sm:px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('stocked.operations.date')}</th>
                                     <th className={`px-4 sm:px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('stocked.operations.products')}</th>
+                                    <th className={`px-4 sm:px-6 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('sales.common.actions')}</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {operations.map((operation) => (
+                                {(activeTab === 'operations' ? inventoryOps : operations).map((operation) => (
                                     <tr key={operation._id} className="hover:bg-gray-50">
                                         <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            {operation.type === 'add' && t('stocked.operations.add_inventory_operation')}
-                                            {operation.type === 'withdraw' && t('stocked.operations.withdraw_inventory_operation')}
-                                            {operation.type === 'transfer' && t('stocked.operations.transfer_operation')}
+                                            {activeTab === 'operations' ? (i18n.language === 'ar' ? 'عملية جرد' : 'Inventory Operation') : (
+                                                <>
+                                                    {operation.type === 'add' && t('stocked.operations.add_inventory_operation')}
+                                                    {operation.type === 'withdraw' && t('stocked.operations.withdraw_inventory_operation')}
+                                                    {operation.type === 'transfer' && t('stocked.operations.transfer_operation')}
+                                                </>
+                                            )}
                                         </td>
                                         <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {operation.warehouse?.name || '-'}
+                                            {operation.warehouse?.name || (typeof operation.warehouse === 'string' ? operation.warehouse : '-')}
                                         </td>
                                         <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {new Date(operation.date).toLocaleDateString()}
@@ -388,6 +547,24 @@ const Operations = () => {
                                             <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
                                                 {operation.items?.length || 0}
                                             </span>
+                                        </td>
+                                        <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handleEdit(operation)}
+                                                    className="text-indigo-600 hover:text-indigo-900"
+                                                    title={t('sales.common.edit')}
+                                                >
+                                                    <Edit size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(operation._id)}
+                                                    className="text-red-600 hover:text-red-900"
+                                                    title={t('sales.common.delete')}
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

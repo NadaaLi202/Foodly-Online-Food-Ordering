@@ -16,10 +16,8 @@ import operationRouter from "./operations/operations.routes.js"
 import transferProcessRouter from "./transferProcess/transferProcess.routes.js"
 import warehouseRouter from "./warehouse/warehouse.routes.js"
 import inventoryOperationRouter from "./inventoryOperation/inventoryOperation.routes.js"
+import requisitionRouter from "./permissions/requisition.routes.js"
 import transactionRouter from "./transaction/transaction.routes.js"
-
-
-
 
 export function routes(app) {
 
@@ -40,6 +38,7 @@ export function routes(app) {
     app.use("/api/v1/warehouses", warehouseRouter);
     app.use("/api/v1/inventory-operations", inventoryOperationRouter);
     app.use("/api/v1/transactions", transactionRouter)
+    app.use("/api/v1/requisitions", requisitionRouter)
 
 
 

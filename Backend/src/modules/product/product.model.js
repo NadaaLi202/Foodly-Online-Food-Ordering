@@ -54,7 +54,7 @@ const productSchema = new mongoose.Schema({
     profitMargin: {
         type: Number,
         default: 0,
-        get: function() {
+        get: function () {
             if (this.purchasePrice > 0 && this.sellingPrice > 0) {
                 return ((this.sellingPrice - this.purchasePrice) / this.purchasePrice * 100);
             }
@@ -128,6 +128,12 @@ const productSchema = new mongoose.Schema({
         default: false
     },
 
+    // صورة المنتج
+    image: {
+        type: String,
+        default: ''
+    },
+
     // حالة المنتج
     isActive: {
         type: Boolean,
@@ -145,7 +151,7 @@ const productSchema = new mongoose.Schema({
         ref: 'User'
     }
 
-}, { 
+}, {
     timestamps: true,
     toJSON: { virtuals: true, getters: true },
     toObject: { virtuals: true, getters: true }
@@ -176,12 +182,12 @@ productSchema.pre('save', function (next) {
     } else {
         this.profitMargin = 0;
     }
-    
+
     // تحويل الكود إلى uppercase
     if (this.code) {
         this.code = this.code.toUpperCase();
     }
-    
+
     next();
 });
 
@@ -203,7 +209,7 @@ productSchema.methods.updateStock = function (quantity, operation = 'add') {
     if (this.type !== 'tracked') {
         throw new Error('لا يمكن تحديث مخزون الخدمات');
     }
-    
+
     if (operation === 'add') {
         this.stockQuantity += quantity;
     } else if (operation === 'subtract') {

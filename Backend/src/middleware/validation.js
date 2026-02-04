@@ -21,7 +21,8 @@ export const validation = (schema) => {
     return async (req, res, next) => {
         try {
             let inputs = { ...req.body, ...req.params, ...req.query };
-            await schema.validateAsync(inputs, { abortEarly: false });
+            // { abortEarly: false, convert: true } ensures strings from FormData are converted to numbers/booleans
+            await schema.validateAsync(inputs, { abortEarly: false, convert: true });
             next();
         } catch (error) {
             res.status(400).json({ message: error.details ? error.details.map(err => err.message) : error.message });

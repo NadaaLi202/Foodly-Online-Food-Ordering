@@ -38,8 +38,8 @@ const Products = () => {
         setLoading(true);
         try {
             const url = search
-                ? `http://localhost:5000/api/v1/products?search=${search}`
-                : 'http://localhost:5000/api/v1/products';
+                ? `http://localhost:4000/api/v1/products?search=${search}`
+                : 'http://localhost:4000/api/v1/products';
             const response = await fetch(url);
             const data = await response.json();
             setProducts(data.products || []);
@@ -173,34 +173,40 @@ const Products = () => {
 
         try {
             const url = editingProduct
-                ? `http://localhost:5000/api/v1/products/${editingProduct._id}`
-                : 'http://localhost:5000/api/v1/products';
+                ? `http://localhost:4000/api/v1/products/${editingProduct._id}`
+                : 'http://localhost:4000/api/v1/products';
 
             const method = editingProduct ? 'PUT' : 'POST';
 
+            // Use FormData for file upload
+            const formDataToSend = new FormData();
+
+            // Explicitly append all fields to ensure order and avoid missing keys
+            formDataToSend.append('name', formData.name);
+            formDataToSend.append('code', formData.code || '');
+            formDataToSend.append('category', formData.category || '');
+            formDataToSend.append('type', formData.type || 'tracked');
+            formDataToSend.append('unitName', formData.unitName || '');
+            formDataToSend.append('purchasePrice', formData.purchasePrice);
+            formDataToSend.append('sellingPrice', formData.sellingPrice);
+            formDataToSend.append('description', formData.description || '');
+            formDataToSend.append('stockQuantity', formData.stockQuantity || 0);
+            formDataToSend.append('warehouse', formData.warehouse || 'main');
+            formDataToSend.append('lowStockThreshold', formData.lowStockThreshold || 0);
+            formDataToSend.append('barcode', formData.barcode || '');
+            formDataToSend.append('taxable', formData.taxable ? 'true' : 'false');
+            formDataToSend.append('taxRate', formData.taxRate || 0);
+            formDataToSend.append('multipleUnits', formData.multipleUnits ? 'true' : 'false');
+
+            // Add image if uploaded
+            if (uploadedImage) {
+                formDataToSend.append('image', uploadedImage);
+            }
+
             const response = await fetch(url, {
                 method,
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    name: formData.name,
-                    code: formData.code,
-                    category: formData.category,
-                    type: formData.type,
-                    unitName: formData.unitName,
-                    purchasePrice: parseFloat(formData.purchasePrice),
-                    sellingPrice: parseFloat(formData.sellingPrice),
-                    description: formData.description,
-                    stockQuantity: parseFloat(formData.stockQuantity) || 0,
-                    warehouse: formData.warehouse,
-                    lowStockThreshold: parseFloat(formData.lowStockThreshold) || 0,
-                    barcode: formData.barcode,
-                    taxable: formData.taxable,
-                    taxRate: formData.taxRate,
-                    multipleUnits: formData.multipleUnits
-                })
-            });
+                body: formDataToSend
+            });    // Don't set Content-Type header - browser will set it with boundary for FormData
 
             if (response.ok) {
                 alert(i18n.language === 'ar'
@@ -212,7 +218,11 @@ const Products = () => {
                 resetForm();
             } else {
                 const error = await response.json();
-                alert(error.message || (i18n.language === 'ar' ? 'حدث خطأ' : 'Error occurred'));
+                // Handle both single string and array of strings for error messages
+                const errorMessage = Array.isArray(error.message)
+                    ? error.message.join('\n')
+                    : (error.message || (i18n.language === 'ar' ? 'حدث خطأ' : 'Error occurred'));
+                alert(errorMessage);
             }
         } catch (error) {
             console.error('Error saving product:', error);
@@ -244,6 +254,15 @@ const Products = () => {
             taxable: product.taxable !== undefined ? product.taxable : true,
             taxRate: product.taxRate || 14
         });
+
+        // Set image preview if product has an image
+        if (product.image) {
+            setImagePreview(`http://localhost:4000${product.image}`);
+        } else {
+            setImagePreview(null);
+        }
+        setUploadedImage(null);
+
         setIsModalOpen(true);
     };
 
@@ -254,7 +273,7 @@ const Products = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:5000/api/v1/products/${id}`, {
+            const response = await fetch(`http://localhost:4000/api/v1/products/${id}`, {
                 method: 'DELETE'
             });
 
@@ -369,7 +388,21 @@ const Products = () => {
                                     <tr key={product._id} className="hover:bg-gray-50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center">
-                                                <div className="h-10 w-10 flex-shrink-0 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 font-bold">
+                                                {product.image ? (
+                                                    <img
+                                                        src={`http://localhost:4000${product.image}`}
+                                                        alt={product.name}
+                                                        className="h-10 w-10 flex-shrink-0 rounded-lg object-cover"
+                                                        onError={(e) => {
+                                                            e.target.style.display = 'none';
+                                                            e.target.nextSibling.style.display = 'flex';
+                                                        }}
+                                                    />
+                                                ) : null}
+                                                <div
+                                                    className="h-10 w-10 flex-shrink-0 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-600 font-bold"
+                                                    style={{ display: product.image ? 'none' : 'flex' }}
+                                                >
                                                     {product.name.charAt(0)}
                                                 </div>
                                                 <div className={`${i18n.language === 'ar' ? 'mr-4' : 'ml-4'}`}>
