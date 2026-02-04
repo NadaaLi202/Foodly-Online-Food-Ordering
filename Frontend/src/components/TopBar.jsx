@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Search, Building, Clock, X, Menu, Globe } from 'lucide-react';
+import { Plus, Search, Building, Clock, X, Menu, Info } from 'lucide-react';
 
 const TopBar = ({ onToggleSidebar, isMobile }) => {
     const { t, i18n } = useTranslation();
@@ -43,6 +43,14 @@ const TopBar = ({ onToggleSidebar, isMobile }) => {
                     <button className="text-white/90 hover:text-white transition-colors">
                         <X size={16} />
                     </button>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="font-medium">
+                        {t('topbar.trial_message', { days: 8 })}
+                    </span>
+                    <span className="flex items-center justify-center w-5 h-5 rounded-full bg-white/20">
+                        <Info size={14} />
+                    </span>
                 </div>
             </div>
 

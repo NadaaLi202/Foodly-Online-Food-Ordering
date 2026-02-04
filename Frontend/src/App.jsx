@@ -17,6 +17,12 @@ import Operations from './Pages/Inventory/Operations';
 import Permissions from './Pages/Inventory/Permissions';
 import Warehouses from './Pages/Inventory/Warehouses';
 import Inventories from './Pages/Inventory/Inventories';
+import JournalEntries from './Pages/Accounting/JournalEntries';
+import ChartOfAccounts from './Pages/Accounting/ChartOfAccounts';
+import CostCenters from './Pages/Accounting/CostCenters';
+import Branches from './Pages/Branches/Branches';
+import PartnerLists from './Pages/Branches/PartnerLists';
+import Activities from './Pages/Branches/Activities';
 import Expenses from './Pages/Finance/Expenses';
 import Transactions from './Pages/Finance/Transactions';
 import Requisitions from './Pages/Finance/Requisitions';
@@ -66,6 +72,28 @@ function App() {
             <Route path="warehouses" element={<Warehouses />} />
             <Route path="inventories" element={<Inventories />} />
           </Route>
+          <Route path="purchases" element={<PurchasesPage />} />
+          <Route path="finance" element={<PlaceholderPage title="Finance" />} />
+
+          <Route path="accounting">
+            <Route path="journal-entries" element={<JournalEntries />} />
+            <Route path="chart-of-accounts" element={<ChartOfAccounts />} />
+            <Route path="cost-centers" element={<CostCenters />} />
+            <Route index element={<PlaceholderPage title="Accounting" />} />
+          </Route>
+
+          <Route path="reports">
+            <Route index element={<PlaceholderPage title="Reports" />} />
+            <Route path="sales" element={<PlaceholderPage title="Sales Reports" />} />
+            <Route path="purchases" element={<PlaceholderPage title="Purchases Reports" />} />
+            <Route path="accounting">
+              <Route index element={<PlaceholderPage title="Accounting Reports" />} />
+              <Route path="general-ledger" element={<PlaceholderPage title="General Ledger" />} />
+            </Route>
+            <Route path="customers" element={<PlaceholderPage title="Customers Reports" />} />
+            <Route path="suppliers" element={<PlaceholderPage title="Suppliers Reports" />} />
+            <Route path="inventory" element={<PlaceholderPage title="Inventory Reports" />} />
+          </Route>
           <Route path="purchases">
             <Route path="invoices" element={<PurchaseInvoices />} />
             <Route path="invoices/add" element={<PurchaseInvoices />} />
@@ -90,6 +118,12 @@ function App() {
           </Route>
 
           <Route path="branches" element={<PlaceholderPage title="Branches" />} />
+          <Route path="users" element={<PlaceholderPage title="Users" />} />
+          <Route path="branches">
+            <Route index element={<Branches />} />
+            <Route path="partner-lists" element={<PartnerLists />} />
+            <Route path="businesses" element={<Activities />} />
+          </Route>
           <Route path="templates" element={<PlaceholderPage title="Templates" />} />
           <Route path="settings" element={<PlaceholderPage title="Settings" />} />
           <Route path="support" element={<PlaceholderPage title="Technical Support" />} />
