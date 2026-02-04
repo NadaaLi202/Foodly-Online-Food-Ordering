@@ -38,7 +38,7 @@
         "suppliers_reports": "تقارير الموردين",
         "inventory_reports": "تقارير المخزون",
         "users_reports": "تقارير المستخدمين",
-        "general_ledger": "حساب الأستاذ"
+        "general_ledger": "حساب الأستاذ",
         "credit_notes": "إشعارات دائنة",
         "purchase_requests": "طلبات شراء",
         "suppliers": "الموردين",
@@ -550,6 +550,8 @@
         "main_activity": "النشاط التجاري الرئيسي",
         "validation": {
             "name_required": "الرجاء إدخال الاسم"
+        }
+    },
     "purchases": {
         "invoices": {
             "add_title": "إضافة فاتورة مشتريات"

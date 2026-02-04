@@ -38,7 +38,7 @@
         "suppliers_reports": "Suppliers Reports",
         "inventory_reports": "Inventory Reports",
         "users_reports": "Users Reports",
-        "general_ledger": "General Ledger"
+        "general_ledger": "General Ledger",
         "credit_notes": "Credit Notes",
         "purchase_requests": "Purchase Requests",
         "suppliers": "Suppliers",
@@ -550,6 +550,8 @@
         "main_activity": "Main Business Activity",
         "validation": {
             "name_required": "Please enter the name"
+        }
+    },
     "purchases": {
         "invoices": {
             "add_title": "Add Purchase Invoice"

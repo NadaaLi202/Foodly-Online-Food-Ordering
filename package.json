@@ -1,0 +1,12 @@
+{
+    "name": "dafater-accounting-root",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "start": "concurrently \"npm start --prefix Backend\" \"npm run dev --prefix Frontend\"",
+        "install-all": "npm install && npm install --prefix Backend && npm install --prefix Frontend"
+    },
+    "devDependencies": {
+        "concurrently": "^9.1.2"
+    }
+}

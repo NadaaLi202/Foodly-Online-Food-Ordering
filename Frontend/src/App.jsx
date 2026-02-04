@@ -72,7 +72,7 @@ function App() {
             <Route path="warehouses" element={<Warehouses />} />
             <Route path="inventories" element={<Inventories />} />
           </Route>
-          <Route path="purchases" element={<PurchasesPage />} />
+
           <Route path="finance" element={<PlaceholderPage title="Finance" />} />
 
           <Route path="accounting">
