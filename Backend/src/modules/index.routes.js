@@ -18,6 +18,11 @@ import warehouseRouter from "./warehouse/warehouse.routes.js"
 import inventoryOperationRouter from "./inventoryOperation/inventoryOperation.routes.js"
 import requisitionRouter from "./permissions/requisition.routes.js"
 import transactionRouter from "./transaction/transaction.routes.js"
+import dailyRestrictionRouter from "./dailyRestrictions/dailyRestrictions.routes.js"
+import chartOfAccountsRouter from "./chartOfAccounts/chartOfAccounts.routes.js"
+import branchRouter from "./branch/branch.routes.js"
+import partnerListRouter from "./listOfPartners/listOfPartners.routes.js"
+import activityRouter from "./activity/activity.routes.js"
 
 export function routes(app) {
 
@@ -39,6 +44,11 @@ export function routes(app) {
     app.use("/api/v1/inventory-operations", inventoryOperationRouter);
     app.use("/api/v1/transactions", transactionRouter)
     app.use("/api/v1/requisitions", requisitionRouter)
+    app.use("/api/v1/daily-restrictions", dailyRestrictionRouter)
+    app.use("/api/v1/chart-of-accounts", chartOfAccountsRouter)
+    app.use("/api/v1/branches", branchRouter)
+    app.use("/api/v1/partner-lists", partnerListRouter)
+    app.use("/api/v1/activities", activityRouter)
 
 
 
