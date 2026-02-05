@@ -1,8 +1,10 @@
 import { Search, RefreshCw, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoiceClick, i18n }) => {
+const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoiceClick, i18n, noItemsKey, startKey }) => {
     const { t } = useTranslation();
+    const noItemsMsg = noItemsKey ? t(noItemsKey) : t('sales.invoices.no_invoices');
+    const startMsg = startKey ? t(startKey) : t('sales.invoices.start_creating');
 
     return (
         <div className="min-h-screen bg-white" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
@@ -43,8 +45,8 @@ const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoice
                 ) : invoices.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-80 text-gray-300">
                         <div className="text-6xl mb-4 opacity-20">📄</div>
-                        <p className="text-lg font-bold text-gray-400">{t('sales.invoices.no_invoices')}</p>
-                        <p className="text-sm text-gray-400 mt-1">{t('sales.invoices.start_creating')}</p>
+                        <p className="text-lg font-bold text-gray-400">{noItemsMsg}</p>
+                        <p className="text-sm text-gray-400 mt-1">{startMsg}</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -66,7 +68,7 @@ const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoice
                                         onClick={() => onInvoiceClick(invoice)}
                                     >
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-gray-700 group-hover:text-indigo-600">
-                                            {invoice.transactionNumber || invoice.invoiceNumber}
+                                            {invoice.transactionNumber || invoice.invoiceNumber || invoice.number}
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-gray-500">
                                             {invoice.contact?.name || invoice.clientName}
@@ -75,7 +77,7 @@ const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoice
                                             {new Date(invoice.issueDate).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US')}
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-800">
-                                            {invoice.total?.toLocaleString()} {t('sales.common.currency')}
+                                            {(invoice.totalAmount ?? invoice.total)?.toLocaleString()} {t('sales.common.currency')}
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap">
                                             <span className={`px-4 py-1.5 text-[10px] font-black rounded-full shadow-sm ${invoice.status === 'paid' ? 'bg-green-100 text-green-700' :

@@ -46,14 +46,18 @@ const getAllTransactions = (module, documentType) =>
             module,
             documentType,
             deletedAt: { $eq: null }
-        });
-
+        })
+            .populate('contact', 'name email phone type')
+            .sort({ createdAt: -1 })
+            .lean();
 
         res.json({ results: data.length, data });
     });
 
 const getOne = catchAsyncError(async (req, res, next) => {
-    const doc = await Transaction.findById(req.params.id);
+    const doc = await Transaction.findById(req.params.id)
+        .populate('contact', 'name email phone type address')
+        .populate('items.product', 'name sellingPrice');
     if (!doc) return next(new AppError("غير موجود", 404));
     res.json(doc);
 });

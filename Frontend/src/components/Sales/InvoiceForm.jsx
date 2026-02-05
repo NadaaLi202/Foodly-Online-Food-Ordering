@@ -3,8 +3,12 @@ import { X, Plus, Search, ChevronDown, Upload, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AddContactModal from './AddContactModal';
 
-const InvoiceForm = ({ invoice, onClose, onSave, i18n }) => {
+const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers', addTitleKey, editTitleKey, numberPlaceholderKey, clientLabelKey }) => {
     const { t } = useTranslation();
+    const addTitle = addTitleKey ? t(addTitleKey) : t('sales.invoices.add_invoice');
+    const editTitle = editTitleKey ? t(editTitleKey) : t('sales.invoices.edit_invoice');
+    const numberPlaceholder = numberPlaceholderKey ? t(numberPlaceholderKey) : t('sales.invoices.invoice_number_placeholder');
+    const clientLabel = clientLabelKey ? t(clientLabelKey) : t('sales.invoices.client_name');
     const [loading, setLoading] = useState(false);
     const [clients, setClients] = useState([]);
     const [products, setProducts] = useState([]);
@@ -61,7 +65,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n }) => {
                 })),
                 notes: invoice.notes || '',
                 paidAmount: invoice.paidAmount || 0,
-                paymentMethod: invoice.paymentMethod || 'cash',
+                paymentMethod: (invoice.paymentMethod === 'credit' ? 'card' : invoice.paymentMethod === 'bank_transfer' ? 'bank' : invoice.paymentMethod) || 'cash',
                 activeTab: 'payment',
                 invoiceDiscount: invoice.generalDiscountPercent || invoice.generalDiscount || 0,
                 invoiceDiscountType: invoice.generalDiscountPercent ? '%' : 'fixed',
@@ -70,7 +74,10 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n }) => {
             });
             setExistingAttachments(invoice.attachments || []);
         } else {
-            // Generate a default invoice number if needed or wait for user input
+            const yy = new Date().getFullYear().toString().slice(-2);
+            const mm = (new Date().getMonth() + 1).toString().padStart(2, '0');
+            const suffix = Date.now().toString().slice(-6);
+            setFormData(prev => ({ ...prev, invoiceNumber: prev.invoiceNumber || `INV-${yy}-${mm}-${suffix}` }));
         }
         fetchClients();
         fetchProducts();
@@ -78,11 +85,11 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n }) => {
 
     const fetchClients = async () => {
         try {
-            const response = await fetch('http://localhost:4000/api/v1/contacts/customers');
+            const response = await fetch(`http://localhost:4000/api/v1/contacts/${contactType}`);
             const data = await response.json();
-            setClients(data.contacts || []);
+            setClients(data.contacts || data.data || []);
         } catch (error) {
-            console.error('Error fetching clients:', error);
+            console.error('Error fetching contacts:', error);
         }
     };
 
@@ -224,7 +231,8 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n }) => {
         formDataToSend.append('contact', formData.clientId);
         formDataToSend.append('issueDate', formData.issueDate);
         formDataToSend.append('dueDate', formData.dueDate);
-        formDataToSend.append('paymentMethod', formData.paymentMethod);
+        const paymentMethodMap = { cash: 'cash', card: 'credit', bank: 'bank_transfer' };
+        formDataToSend.append('paymentMethod', paymentMethodMap[formData.paymentMethod] || formData.paymentMethod);
         formDataToSend.append('paidAmount', formData.paidAmount);
         formDataToSend.append('notes', formData.notes);
         formDataToSend.append('warehouse', formData.warehouse);
@@ -263,7 +271,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n }) => {
                 {/* Modal Header */}
                 <div className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-10 font-sans">
                     <h2 className="text-lg font-black text-gray-800">
-                        {invoice ? t('sales.invoices.edit_invoice') : t('sales.invoices.add_invoice')}
+                        {invoice ? editTitle : addTitle}
                     </h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
                         <X size={24} />
@@ -285,7 +293,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n }) => {
                                     value={formData.invoiceNumber}
                                     onChange={handleInputChange}
                                     className={`w-full border-2 ${errors.invoiceNumber ? 'border-red-500' : 'border-gray-100'} rounded-lg px-3 py-2 text-sm font-bold text-gray-700 focus:outline-none focus:border-indigo-500 transition-colors`}
-                                    placeholder={t('sales.invoices.invoice_number_placeholder')}
+                                    placeholder={numberPlaceholder}
                                 />
                                 {errors.invoiceNumber && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.invoiceNumber}</p>}
                             </div>
@@ -319,7 +327,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n }) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">
-                                    {t('sales.invoices.client_name')}
+                                    {clientLabel}
                                 </label>
                                 <div className="flex gap-2">
                                     <select
