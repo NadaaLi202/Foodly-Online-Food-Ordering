@@ -1,9 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
-import DashboardPage from './pages/DashboardPage';
+import DashboardPage from './Pages/DashboardPage';
+import PurchasesPage from './Pages/PurchasesPage';
 import PurchaseInvoices from './Pages/Purchases/PurchaseInvoices';
 import PurchaseCreditNotes from './Pages/Purchases/PurchaseCreditNotes';
 import PurchaseRequests from './Pages/Purchases/PurchaseRequests';
+import PurchaseOrders from './Pages/Purchases/PurchaseOrders';
+import PurchaseReturns from './Pages/Purchases/PurchaseReturns';
 import Suppliers from './Pages/Purchases/Suppliers';
 import SupplierPayments from './Pages/Purchases/SupplierPayments';
 import Invoices from './Pages/Sales/Invoices';
@@ -95,10 +98,13 @@ function App() {
             <Route path="inventory" element={<PlaceholderPage title="Inventory Reports" />} />
           </Route>
           <Route path="purchases">
+            <Route index element={<PurchasesPage />} />
             <Route path="invoices" element={<PurchaseInvoices />} />
             <Route path="invoices/add" element={<PurchaseInvoices />} />
             <Route path="credit-notes" element={<PurchaseCreditNotes />} />
             <Route path="credit-notes/add" element={<PurchaseCreditNotes />} />
+            <Route path="purchase-orders" element={<PurchaseOrders />} />
+            <Route path="returns" element={<PurchaseReturns />} />
             <Route path="requests" element={<PurchaseRequests />} />
             <Route path="suppliers" element={<Suppliers />} />
             <Route path="payments" element={<SupplierPayments />} />
@@ -110,15 +116,11 @@ function App() {
             <Route path="safes" element={<Safes />} />
             <Route path="bank-accounts" element={<BankAccounts />} />
           </Route>
-          <Route path="accounting" element={<PlaceholderPage title="Accounting" />} />
-          <Route path="reports" element={<PlaceholderPage title="Reports" />} />
           <Route path="users">
             <Route index element={<Contacts />} />
             <Route path="roles" element={<Roles />} />
           </Route>
 
-          <Route path="branches" element={<PlaceholderPage title="Branches" />} />
-          <Route path="users" element={<PlaceholderPage title="Users" />} />
           <Route path="branches">
             <Route index element={<Branches />} />
             <Route path="partner-lists" element={<PartnerLists />} />

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, NavLink } from 'react-router-dom';
+import { useNavigate, NavLink, useLocation } from 'react-router-dom';
 import {
     Home,
     ShoppingCart,
@@ -23,7 +23,14 @@ import logo from '../assets/SidebarLogo.jpg';
 const Sidebar = ({ isMobile, isOpen, onClose }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const location = useLocation();
     const [openMenu, setOpenMenu] = useState(null);
+
+    useEffect(() => {
+        const path = location.pathname;
+        if (path.startsWith('/dashboard/accounting')) setOpenMenu((m) => (m === 'accounting' ? m : 'accounting'));
+        else if (path.startsWith('/dashboard/reports')) setOpenMenu((m) => (m === 'reports' ? m : 'reports'));
+    }, [location.pathname]);
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -62,6 +69,8 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
             children: [
                 { key: 'invoices', path: '/dashboard/purchases/invoices' },
                 { key: 'credit_notes', path: '/dashboard/purchases/credit-notes' },
+                { key: 'purchase_orders', path: '/dashboard/purchases/purchase-orders' },
+                { key: 'purchase_returns', path: '/dashboard/purchases/returns' },
                 { key: 'purchase_requests', path: '/dashboard/purchases/requests' },
                 { key: 'suppliers', path: '/dashboard/purchases/suppliers' },
                 { key: 'payments', path: '/dashboard/purchases/payments' },
@@ -79,24 +88,54 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                 { key: 'bank_accounts', path: '/dashboard/finance/bank-accounts' },
             ]
         },
-      { key: 'accounting', icon: Scale, path: '/accounting', hasSub: true },
-      { key: 'reports', icon: BarChart3, path: '/reports', hasSub: true },
-      {
-         key: 'users', icon: Users, hasSub: true, children: [
-             { key: 'users', path: '/users' },
-             { key: 'roles', path: '/users/roles' }
-          ]
-      },
-    {
-        key: 'branches', icon: Building2, hasSub: true, children: [
-            { key: 'branches_list', path: '/branches' },
-            { key: 'partners_lists', path: '/branches/partner-lists' },
-            { key: 'activities', path: '/branches/businesses' },
-        ]
-    },
-      { key: 'templates', icon: FileText, path: '/templates', hasSub: true },
-      { key: 'settings', icon: Settings, path: '/settings', hasSub: true },
-      { key: 'support', icon: Headphones, path: '/support' },
+        {
+            key: 'accounting',
+            icon: Scale,
+            path: '/dashboard/accounting',
+            hasSub: true,
+            children: [
+                { key: 'journal_entries', path: '/dashboard/accounting/journal-entries' },
+                { key: 'chart_of_accounts', path: '/dashboard/accounting/chart-of-accounts' },
+                { key: 'cost_centers', path: '/dashboard/accounting/cost-centers' },
+            ]
+        },
+        {
+            key: 'reports',
+            icon: BarChart3,
+            path: '/dashboard/reports',
+            hasSub: true,
+            children: [
+                { key: 'sales_reports', path: '/dashboard/reports/sales' },
+                { key: 'purchases_reports', path: '/dashboard/reports/purchases' },
+                { key: 'accounting_reports', path: '/dashboard/reports/accounting' },
+                { key: 'general_ledger', path: '/dashboard/reports/accounting/general-ledger' },
+                { key: 'customers_reports', path: '/dashboard/reports/customers' },
+                { key: 'suppliers_reports', path: '/dashboard/reports/suppliers' },
+                { key: 'inventory_reports', path: '/dashboard/reports/inventory' },
+            ]
+        },
+        {
+            key: 'users',
+            icon: Users,
+            hasSub: true,
+            children: [
+                { key: 'users', path: '/dashboard/users' },
+                { key: 'roles', path: '/dashboard/users/roles' }
+            ]
+        },
+        {
+            key: 'branches',
+            icon: Building2,
+            hasSub: true,
+            children: [
+                { key: 'branches_list', path: '/dashboard/branches' },
+                { key: 'partners_lists', path: '/dashboard/branches/partner-lists' },
+                { key: 'activities', path: '/dashboard/branches/businesses' },
+            ]
+        },
+        { key: 'templates', icon: FileText, path: '/dashboard/templates', hasSub: true },
+        { key: 'settings', icon: Settings, path: '/dashboard/settings', hasSub: true },
+        { key: 'support', icon: Headphones, path: '/dashboard/support' },
     ];
 
     const sidebarClasses = isMobile
