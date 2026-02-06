@@ -487,6 +487,26 @@ export default function Customers() {
         } finally {
             setIsSavingView(false);
         }
+        return type === 'commercial' ? 'Commercial' : 'Individual';
+    };
+
+    const addAdditionalContact = () => {
+        setFormData(prev => ({
+            ...prev,
+            additionalContacts: [...(prev.additionalContacts || []), { name: '', phone: '', email: '', title: '' }]
+        }));
+    };
+
+    const removeAdditionalContact = (index) => {
+        setFormData(prev => ({
+            ...prev,
+            additionalContacts: prev.additionalContacts.filter((_, i) => i !== index)
+        }));
+        setErrors(prev => {
+            const next = { ...prev };
+            Object.keys(next).forEach(k => { if (k.startsWith('additionalContact_')) delete next[k]; });
+            return next;
+        });
     };
 
     const getTypeText = (type) => {
@@ -555,6 +575,7 @@ export default function Customers() {
                 {/* Left Side: Title & Navigation */}
                 <div className="flex items-center gap-4">
                     <button
+                        type="button"
                         onClick={fetchCustomers}
                         disabled={loading}
                         className={`p-2 text-gray-400 hover:text-indigo-600 transition-all rounded-full hover:bg-gray-50 ${loading ? 'animate-spin' : ''}`}
