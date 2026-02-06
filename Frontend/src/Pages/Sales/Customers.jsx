@@ -516,25 +516,6 @@ export default function Customers() {
         return type === 'commercial' ? 'Commercial' : 'Individual';
     };
 
-    const addAdditionalContact = () => {
-        setFormData(prev => ({
-            ...prev,
-            additionalContacts: [...(prev.additionalContacts || []), { name: '', phone: '', email: '', title: '' }]
-        }));
-    };
-
-    const removeAdditionalContact = (index) => {
-        setFormData(prev => ({
-            ...prev,
-            additionalContacts: prev.additionalContacts.filter((_, i) => i !== index)
-        }));
-        setErrors(prev => {
-            const next = { ...prev };
-            Object.keys(next).forEach(k => { if (k.startsWith('additionalContact_')) delete next[k]; });
-            return next;
-        });
-    };
-
     const handleAdditionalContactChange = (index, field, value) => {
         setFormData(prev => {
             const list = [...(prev.additionalContacts || [])];
