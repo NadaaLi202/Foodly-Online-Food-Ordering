@@ -205,7 +205,6 @@
             "reset": "إعادة تعيين",
             "apply": "تطبيق",
             "edit": "تعديل",
-            "update": "تحديث",
             "delete": "حذف",
             "confirm_delete": "هل أنت متأكد من الحذف؟",
             "close": "إغلاق",
@@ -235,7 +234,8 @@
             "financial_info": "المعلومات المالية",
             "initial_balance": "الرصيد الافتتاحي",
             "credit_limit": "حد الائتمان",
-            "update": "تحديث"
+            "update": "تحديث",
+            "save_changes": "حفظ التغييرات"
         },
         "invoices": {
             "title": "الفواتير",
@@ -374,7 +374,15 @@
             "country": "الدولة",
             "add_new_contact": "إضافة جهة اتصال جديدة",
             "additional_contacts": "جهات اتصال إضافية",
-            "contact_name": "اسم جهة الاتصال"
+            "contact_name": "اسم جهة الاتصال",
+            "job_title": "المسمى الوظيفي",
+            "no_additional_contacts": "لا توجد جهات اتصال إضافية",
+            "enter_name": "أدخل الاسم",
+            "summary": "الملخص",
+            "invoices_tab": "فواتير المشتريات",
+            "payments_tab": "المدفوعات",
+            "no_invoices": "لا توجد فواتير",
+            "no_payments": "لا توجد مدفوعات"
         },
         "payments": {
             "title": "مدفوعات العملاء",
@@ -399,6 +407,7 @@
             "secondary_treasury": "الخزينة الفرعية",
             "cash_treasury": "خزينة نقدية",
             "notes": "ملاحظات",
+            "notes_placeholder": "أضف ملاحظات...",
             "invoice": "الفاتورة",
             "select_client_first": "اختر العميل أولاً"
         }
@@ -411,7 +420,8 @@
             "edit_invoice": "تعديل فاتورة المشتريات",
             "view_invoice": "عرض فاتورة المشتريات",
             "invoice_number_placeholder": "PINV-26-1-000001",
-            "supplier": "المورد"
+            "supplier": "المورد",
+            "add_title": "إضافة فاتورة مشتريات"
         },
         "purchase_orders": {
             "no_orders": "لا توجد أوامر شراء بعد.",
@@ -420,6 +430,9 @@
             "edit_order": "تعديل أمر الشراء",
             "view_order": "عرض أمر الشراء",
             "order_number_placeholder": "PO-26-1-000001"
+        },
+        "credit_notes": {
+            "add_title": "إضافة إشعار دائن مشتريات"
         },
         "payments": {
             "no_payments": "لا توجد مدفوعات موردين",
@@ -668,14 +681,6 @@
         "main_activity": "النشاط التجاري الرئيسي",
         "validation": {
             "name_required": "الرجاء إدخال الاسم"
-        }
-    },
-    "purchases": {
-        "invoices": {
-            "add_title": "إضافة فاتورة مشتريات"
-        },
-        "credit_notes": {
-            "add_title": "إضافة إشعار دائن مشتريات"
         }
     },
     "users_page": {

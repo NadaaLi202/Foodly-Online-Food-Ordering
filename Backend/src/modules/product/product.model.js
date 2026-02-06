@@ -159,7 +159,7 @@ const productSchema = new mongoose.Schema({
 
 // Indexes للبحث السريع
 productSchema.index({ name: 1 });
-productSchema.index({ code: 1 });
+
 productSchema.index({ category: 1 });
 productSchema.index({ type: 1 });
 productSchema.index({ isActive: 1 });

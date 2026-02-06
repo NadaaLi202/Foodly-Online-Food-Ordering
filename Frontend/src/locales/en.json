@@ -148,6 +148,7 @@
             "client": "Client",
             "number": "Number",
             "notes": "Notes",
+            "notes_placeholder": "Add notes...",
             "total": "Total",
             "subtotal": "Subtotal",
             "tax": "Tax",
@@ -205,7 +206,6 @@
             "reset": "Reset",
             "apply": "Apply",
             "edit": "Edit",
-            "update": "Update",
             "delete": "Delete",
             "confirm_delete": "Are you sure you want to delete?",
             "close": "Close",
@@ -235,7 +235,8 @@
             "financial_info": "Financial Information",
             "initial_balance": "Initial Balance",
             "credit_limit": "Credit Limit",
-            "update": "Update"
+            "update": "Update",
+            "save_changes": "Save Changes"
         },
         "invoices": {
             "title": "Invoices",
@@ -373,7 +374,15 @@
             "country": "Country",
             "add_new_contact": "Add New Contact",
             "additional_contacts": "Additional Contacts",
-            "contact_name": "Contact Name"
+            "contact_name": "Contact Name",
+            "job_title": "Job Title",
+            "no_additional_contacts": "No additional contacts",
+            "enter_name": "Enter name",
+            "summary": "Summary",
+            "invoices_tab": "Purchase Invoices",
+            "payments_tab": "Payments",
+            "no_invoices": "No invoices",
+            "no_payments": "No payments"
         },
         "payments": {
             "title": "Client Payments",
@@ -410,7 +419,8 @@
             "edit_invoice": "Edit Purchase Invoice",
             "view_invoice": "View Purchase Invoice",
             "invoice_number_placeholder": "PINV-26-1-000001",
-            "supplier": "Supplier"
+            "supplier": "Supplier",
+            "add_title": "Add Purchase Invoice"
         },
         "purchase_orders": {
             "no_orders": "No purchase orders yet.",
@@ -419,6 +429,9 @@
             "edit_order": "Edit Purchase Order",
             "view_order": "View Purchase Order",
             "order_number_placeholder": "PO-26-1-000001"
+        },
+        "credit_notes": {
+            "add_title": "Add Purchase Credit Note"
         },
         "payments": {
             "no_payments": "No supplier payments found",
@@ -667,14 +680,6 @@
         "main_activity": "Main Business Activity",
         "validation": {
             "name_required": "Please enter the name"
-        }
-    },
-    "purchases": {
-        "invoices": {
-            "add_title": "Add Purchase Invoice"
-        },
-        "credit_notes": {
-            "add_title": "Add Purchase Credit Note"
         }
     },
     "users_page": {
