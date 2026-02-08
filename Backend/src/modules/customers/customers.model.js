@@ -9,9 +9,14 @@ const customerSchema = new mongoose.Schema({
     email: {
         type: String,
         required: true,
-        unique: true,
         trim: true,
         lowercase: true
+    },
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Company",
+        required: [true, 'Company ID is required'],
+        index: true
     },
     phone: {
         type: String,
@@ -35,5 +40,7 @@ const customerSchema = new mongoose.Schema({
         ref: "User" // Assuming User model exists
     }
 }, { timestamps: true });
+
+customerSchema.index({ email: 1, companyId: 1 }, { unique: true });
 
 export const salesCustomerModel = mongoose.model("SalesCustomer", customerSchema);

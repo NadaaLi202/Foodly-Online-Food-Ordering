@@ -14,7 +14,6 @@ const productSchema = new mongoose.Schema({
     code: {
         type: String,
         trim: true,
-        unique: true,
         sparse: true, // يسمح بعدة قيم null
         uppercase: true
     },
@@ -133,6 +132,10 @@ const productSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    imagePublicId: {
+        type: String,
+        default: ''
+    },
 
     // حالة المنتج
     isActive: {
@@ -144,6 +147,13 @@ const productSchema = new mongoose.Schema({
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
+    },
+
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Company",
+        required: [true, 'Company ID is required'],
+        index: true
     },
 
     lastModifiedBy: {
@@ -158,12 +168,12 @@ const productSchema = new mongoose.Schema({
 });
 
 // Indexes للبحث السريع
-productSchema.index({ name: 1 });
-
-productSchema.index({ category: 1 });
-productSchema.index({ type: 1 });
-productSchema.index({ isActive: 1 });
-productSchema.index({ barcode: 1 });
+productSchema.index({ name: 1, companyId: 1 });
+productSchema.index({ code: 1, companyId: 1 }, { unique: true, sparse: true });
+productSchema.index({ category: 1, companyId: 1 });
+productSchema.index({ type: 1, companyId: 1 });
+productSchema.index({ isActive: 1, companyId: 1 });
+productSchema.index({ barcode: 1, companyId: 1 });
 
 // Virtual للتحقق من انخفاض المخزون
 productSchema.virtual('isLowStock').get(function () {

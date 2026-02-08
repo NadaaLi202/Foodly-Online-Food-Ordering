@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, RefreshCw, X, Upload, ChevronDown, ArrowLeftRight, Package, Trash2, Edit } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import api from '../../services/api';
 
 const Operations = () => {
     const { t, i18n } = useTranslation();
@@ -32,9 +33,8 @@ const Operations = () => {
     const fetchOperations = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/operations');
-            const data = await response.json();
-            setOperations(data.operations || []);
+            const response = await api.get('/operations');
+            setOperations(response.data.operations || []);
         } catch (error) {
             console.error('Error fetching operations:', error);
         } finally {
@@ -45,9 +45,8 @@ const Operations = () => {
     const fetchInventoryOps = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/inventory-operations');
-            const data = await response.json();
-            setInventoryOps(data.operations || []);
+            const response = await api.get('/inventory-operations');
+            setInventoryOps(response.data.operations || []);
         } catch (error) {
             console.error('Error fetching inventory operations:', error);
         } finally {
@@ -58,9 +57,8 @@ const Operations = () => {
     // Fetch products
     const fetchProducts = async () => {
         try {
-            const response = await fetch('http://localhost:4000/api/v1/products');
-            const data = await response.json();
-            setProducts(data.products || []);
+            const response = await api.get('/products');
+            setProducts(response.data.products || []);
         } catch (error) {
             console.error('Error fetching products:', error);
         }
@@ -69,9 +67,8 @@ const Operations = () => {
     // Fetch warehouses
     const fetchWarehouses = async () => {
         try {
-            const response = await fetch('http://localhost:4000/api/v1/warehouses');
-            const data = await response.json();
-            setWarehouses(data.warehouses || [
+            const response = await api.get('/warehouses');
+            setWarehouses(response.data.warehouses || [
                 { _id: 'main', name: i18n.language === 'ar' ? 'المستودع الرئيسي' : 'Main Warehouse' }
             ]);
         } catch (error) {
@@ -85,9 +82,8 @@ const Operations = () => {
     // Fetch accounts
     const fetchAccounts = async () => {
         try {
-            const response = await fetch('http://localhost:4000/api/v1/accounts');
-            const data = await response.json();
-            setAccounts(data.accounts || [
+            const response = await api.get('/accounts');
+            setAccounts(response.data.accounts || [
                 { _id: '1211', name: i18n.language === 'ar' ? 'الخزنة الرئيسية' : 'Main Treasury', code: '#1211' },
                 { _id: '1221', name: i18n.language === 'ar' ? 'الحساب البنكي الرئيسي' : 'Main Bank Account', code: '#1221' },
                 { _id: '1251', name: i18n.language === 'ar' ? 'المستودع الرئيسي' : 'Main Warehouse', code: '#1251' }
@@ -225,65 +221,6 @@ const Operations = () => {
                 'inventory_op': 'inventory operation'
             };
 
-            const opResponse = await fetch(`http://localhost:4000/api/v1/operations${editingOperation ? `/${editingOperation._id}` : ''}`, {
-                method: editingOperation ? 'PUT' : 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: typeMap[operationType] || 'transfer process',
-                    warehouse: formData.warehouse,
-                    date: formData.date
-                }),
-            });
-            const opData = await opResponse.json();
-            if (!opResponse.ok) throw new Error(opData.message || 'Error creating operation reference');
-            const operationId = opData.operation._id;
-
-            // Identify special warehouse (main/secondary) if applicable
-            const selectedWh = warehouses.find(w => w._id === formData.warehouse);
-            const whIdentifier = (selectedWh?.branch === 'main' || selectedWh?.branch === 'secondary')
-                ? selectedWh.branch
-                : formData.warehouse;
-
-            // Prepare dynamic endpoint data
-            formDataToSend.append('operation', operationId);
-            formDataToSend.append('warehouse', whIdentifier);
-            formDataToSend.append('date', formData.date);
-            formDataToSend.append('description', formData.description);
-
-            if (operationType === 'add') {
-                formDataToSend.append('account', formData.account);
-                formDataToSend.append('totalAmount', formData.total);
-            } else if (operationType === 'withdraw') {
-                formDataToSend.append('account', formData.account);
-                // For Withdraw/Exchange, the current backend model only supports one product per record.
-                if (formData.items.length > 0) {
-                    formDataToSend.append('product', formData.items[0].product);
-                    formDataToSend.append('quantity', formData.items[0].quantity);
-                }
-            } else if (operationType === 'transfer') {
-                const toWh = warehouses.find(w => w._id === formData.toWarehouse);
-                const toWhIdentifier = (toWh?.branch === 'main' || toWh?.branch === 'secondary')
-                    ? toWh.branch
-                    : formData.toWarehouse;
-
-                formDataToSend.append('fromWarehouse', whIdentifier);
-                formDataToSend.append('toWarehouse', toWhIdentifier);
-                if (formData.items.length > 0) {
-                    formDataToSend.append('product', formData.items[0].product);
-                    formDataToSend.append('quantity', formData.items[0].quantity);
-                }
-            }
-
-            // For inventory_op, we send the whole items array
-            if (operationType === 'inventory_op') {
-                formDataToSend.append('items', JSON.stringify(formData.items));
-            }
-
-            // Append all attachments
-            formData.attachments.forEach((file) => {
-                formDataToSend.append('attachments', file);
-            });
-
             // Route to specific endpoint
             let endpoint = 'operations';
             if (operationType === 'add') endpoint = 'stockAdd';
@@ -291,27 +228,24 @@ const Operations = () => {
             else if (operationType === 'transfer') endpoint = 'transfer-process';
             else if (operationType === 'inventory_op') endpoint = 'inventory-operations';
 
-            const response = await fetch(`http://localhost:4000/api/v1/${endpoint}${editingOperation ? `/${editingOperation._id}` : ''}`, {
+            const response = await api({
                 method: editingOperation ? 'PUT' : 'POST',
-                body: formDataToSend,
+                url: `/${endpoint}${editingOperation ? `/${editingOperation._id}` : ''}`,
+                data: formDataToSend,
+                headers: { 'Content-Type': 'multipart/form-data' }
             });
 
-            if (response.ok) {
+            if (response.status === 200 || response.status === 201) {
                 // If it's a StockAdd, we might need to add items separately if the backend doesn't handle them
                 if (operationType === 'add' && formData.items.length > 0) {
-                    const stockAddData = await response.json();
-                    const stockAddId = stockAddData.stockAdd._id;
+                    const stockAddId = response.data.stockAdd._id;
 
                     for (const item of formData.items) {
-                        await fetch('http://localhost:4000/api/v1/stockAdd/item', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                stockAdd: stockAddId,
-                                product: item.product,
-                                quantity: item.quantity,
-                                unitCost: 0 // Defaulting to 0 since UI doesn't have it yet
-                            }),
+                        await api.post('/stockAdd/item', {
+                            stockAdd: stockAddId,
+                            product: item.product,
+                            quantity: item.quantity,
+                            unitCost: 0 // Defaulting to 0 since UI doesn't have it yet
                         });
                     }
                 }
@@ -324,7 +258,7 @@ const Operations = () => {
                 fetchInventoryOps();
                 resetForm();
             } else {
-                const error = await response.json();
+                const error = response.data;
                 alert(error.message || (i18n.language === 'ar' ? 'حدث خطأ في إضافة العملية' : 'Error adding operation'));
             }
         } catch (error) {
@@ -368,11 +302,9 @@ const Operations = () => {
             let endpoint = 'operations';
             if (activeTab === 'operations') endpoint = 'inventory-operations';
 
-            const response = await fetch(`http://localhost:4000/api/v1/${endpoint}/${id}`, {
-                method: 'DELETE'
-            });
+            const response = await api.delete(`/${endpoint}/${id}`);
 
-            if (response.ok) {
+            if (response.status === 200) {
                 alert(i18n.language === 'ar' ? 'تم الحذف بنجاح' : 'Deleted successfully');
                 activeTab === 'operations' ? fetchInventoryOps() : fetchOperations();
             } else {

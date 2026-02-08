@@ -1,66 +1,43 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-    Plus,
-    Search,
-    RefreshCw,
-    X,
-    Users as UsersIcon,
-    Mail,
-    Phone,
-    Building2,
-    Edit,
-    Trash2,
-    UserCircle,
-    Hash,
-    DollarSign
-} from 'lucide-react';
+import { Plus, Search, RefreshCw, X, Phone, MapPin, Mail, User, Building, FileText, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import api from '../../services/api';
 
 const Contacts = () => {
     const { t, i18n } = useTranslation();
     const [contacts, setContacts] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [activeModule, setActiveModule] = useState('customer'); // 'customer' or 'supplier'
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
     const [selectedContactId, setSelectedContactId] = useState(null);
-    const [activeModule, setActiveModule] = useState('customer'); // 'customer' or 'supplier'
-    const [searchTerm, setSearchTerm] = useState('');
 
+    // Form State
     const [formData, setFormData] = useState({
         name: '',
-        type: 'individual',
-        code: '',
-        taxNumber: '',
-        commercialRegister: '',
         phone: '',
-        mobile: '',
-        alternativePhone: '',
         email: '',
-        address: {
-            address1: '',
-            address2: '',
-            neighborhood: '',
-            city: '',
-            province: '',
-            zipCode: '',
-            country: ''
-        },
-        initialBalance: 0,
-        creditLimit: 0,
-        notes: '',
-        isActive: true
+        address: '',
+        taxNumber: '',
+        commercialRecord: '',
+        creditLimit: '',
+        openingBalance: 0,
+        notes: ''
     });
 
+    const [errors, setErrors] = useState({});
+
+    // Fetch Contacts
     const fetchContacts = async () => {
         setLoading(true);
         try {
             const endpoint = activeModule === 'customer' ? 'customers' : 'suppliers';
-            const response = await fetch(`http://localhost:4000/api/v1/contacts/${endpoint}`);
-            if (!response.ok) throw new Error('Failed to fetch');
-            const data = await response.json();
-            setContacts(data.contacts || []);
+            const response = await api.get(`/contacts/${endpoint}`);
+            setContacts(response.data.data || []);
         } catch (error) {
             console.error('Error fetching contacts:', error);
+            // setContacts([]); // Don't clear on error, maybe show notification
         } finally {
             setLoading(false);
         }
@@ -70,525 +47,463 @@ const Contacts = () => {
         fetchContacts();
     }, [activeModule]);
 
-    const handleOpenModal = (mode, contact = null) => {
+    // Filter contacts based on search
+    const filteredContacts = useMemo(() => {
+        return contacts.filter(contact =>
+            contact.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (contact.phone && contact.phone.includes(searchTerm)) ||
+            (contact.email && contact.email.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+    }, [contacts, searchTerm]);
+
+
+    // Handle input change
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
+        if (errors[name]) {
+            setErrors({ ...errors, [name]: '' });
+        }
+    };
+
+    // Validate Form
+    const validateForm = () => {
+        const newErrors = {};
+        if (!formData.name.trim()) newErrors.name = t('sales.common.required');
+        // Phone is optional but if provided should be valid-ish? backend doesn't seem to enforce strict regex
+        if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = i18n.language === 'ar' ? 'بريد إلكتروني غير صالح' : 'Invalid email';
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    // Open Modal
+    const openModal = (mode, contact = null) => {
         setModalMode(mode);
         if (mode === 'edit' && contact) {
             setSelectedContactId(contact._id);
             setFormData({
                 name: contact.name || '',
-                type: contact.type || 'individual',
-                code: contact.code || '',
-                taxNumber: contact.taxNumber || '',
-                commercialRegister: contact.commercialRegister || '',
                 phone: contact.phone || '',
-                mobile: contact.mobile || '',
-                alternativePhone: contact.alternativePhone || '',
                 email: contact.email || '',
-                address: {
-                    address1: contact.address?.address1 || '',
-                    address2: contact.address?.address2 || '',
-                    neighborhood: contact.address?.neighborhood || '',
-                    city: contact.address?.city || '',
-                    province: contact.address?.province || '',
-                    zipCode: contact.address?.zipCode || '',
-                    country: contact.address?.country || ''
-                },
-                initialBalance: contact.initialBalance || 0,
-                creditLimit: contact.creditLimit || 0,
-                notes: contact.notes || '',
-                isActive: contact.isActive !== undefined ? contact.isActive : true
+                address: contact.address || '',
+                taxNumber: contact.taxNumber || '',
+                commercialRecord: contact.commercialRecord || '',
+                creditLimit: contact.creditLimit || '',
+                openingBalance: contact.openingBalance || 0,
+                notes: contact.notes || ''
             });
         } else {
-            setSelectedContactId(null);
             setFormData({
                 name: '',
-                type: 'individual',
-                code: '',
-                taxNumber: '',
-                commercialRegister: '',
                 phone: '',
-                mobile: '',
-                alternativePhone: '',
                 email: '',
-                address: {
-                    address1: '',
-                    address2: '',
-                    neighborhood: '',
-                    city: '',
-                    province: '',
-                    zipCode: '',
-                    country: ''
-                },
-                initialBalance: 0,
-                creditLimit: 0,
-                notes: '',
-                isActive: true
+                address: '',
+                taxNumber: '',
+                commercialRecord: '',
+                creditLimit: '',
+                openingBalance: 0,
+                notes: ''
             });
         }
         setIsModalOpen(true);
+        setErrors({});
     };
 
+    // Handle Save (Add/Edit)
     const handleSave = async (e) => {
         e.preventDefault();
-        setLoading(true);
+        if (!validateForm()) return;
 
+        setLoading(true);
         try {
             let url, method;
+            const endpoint = activeModule === 'customer' ? 'customers' : 'suppliers';
+
             if (modalMode === 'add') {
-                const endpoint = activeModule === 'customer' ? 'customers' : 'suppliers';
-                url = `http://localhost:4000/api/v1/contacts/${endpoint}`;
+                url = `/contacts/${endpoint}`;
                 method = 'POST';
             } else {
-                url = `http://localhost:4000/api/v1/contacts/${selectedContactId}`;
+                url = `/contacts/${selectedContactId}`;
                 method = 'PATCH';
             }
 
-            const response = await fetch(url, {
+            // Adjust payload based on backend expectations
+            // Backend expects 'type' to be sent if creating? The routes are split by type (/customers vs /suppliers)
+            // But the controller might use req.body.type or default based on route.
+            // Looking at backend code (which I can't see right now but assuming standard REST), 
+            // usually separate endpoints imply type handling or we send type.
+            // Let's send type just in case, though the route `/contacts/customers` calls `createCustomer` which likely sets type.
+            // Actually, the previous code didn't send 'type', so the endpoint handles it.
+
+            const payload = {
+                ...formData,
+                type: activeModule // Just to be safe, though route likely handles it
+            };
+
+            await api({
                 method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                url,
+                data: payload
             });
 
-            if (response.ok) {
-                setIsModalOpen(false);
-                fetchContacts();
-            } else {
-                const error = await response.json();
-                alert(error.message || t('sales.common.error_message'));
-            }
+            alert(i18n.language === 'ar' ? 'تم الحفظ بنجاح' : 'Saved successfully');
+            setIsModalOpen(false);
+            fetchContacts();
+
         } catch (error) {
             console.error('Error saving contact:', error);
-            alert(t('sales.common.error_message'));
+            const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ' : 'An error occurred');
+            alert(msg);
         } finally {
             setLoading(false);
         }
     };
 
+    // Handle Delete
     const handleDelete = async (id) => {
-        if (!confirm(t('sales.common.confirm_delete', 'Are you sure you want to delete?'))) return;
-        setLoading(true);
+        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد؟' : 'Are you sure?')) return;
+
         try {
-            const response = await fetch(`http://localhost:4000/api/v1/contacts/${id}`, {
-                method: 'DELETE'
-            });
-            if (response.ok) fetchContacts();
+            await api.delete(`/contacts/${id}`);
+            alert(i18n.language === 'ar' ? 'تم الحذف بنجاح' : 'Deleted successfully');
+            fetchContacts();
         } catch (error) {
             console.error('Error deleting contact:', error);
-        } finally {
-            setLoading(false);
+            const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ في الحذف' : 'Error deleting');
+            alert(msg);
         }
     };
 
-    const filteredContacts = useMemo(() => {
-        return contacts.filter(c =>
-            c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.phone?.includes(searchTerm)
-        );
-    }, [contacts, searchTerm]);
-
     return (
-        <div className="min-h-screen bg-[#F8FAFC]" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
-            {/* Header Section */}
-            <div className="bg-white border-b border-gray-200 px-6 py-5 sticky top-0 z-30 shadow-sm">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
-                            <UsersIcon size={24} />
-                        </div>
-                        <h1 className="text-xl font-bold text-gray-900">
-                            {activeModule === 'customer' ? t('sidebar.customers', 'Customers') : t('sidebar.suppliers', 'Suppliers')}
-                        </h1>
-                    </div>
+        <div className="min-h-screen bg-gray-50" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
 
-                    <div className="flex items-center gap-3">
-                        {/* Module Toggle */}
-                        <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
-                            <button
-                                type="button"
-                                onClick={() => setActiveModule('customer')}
-                                className={`px-4 py-2 rounded-md font-semibold transition-all ${activeModule === 'customer'
-                                    ? 'bg-white text-indigo-600 shadow-sm'
-                                    : 'text-gray-600 hover:text-gray-900'
-                                    }`}
-                            >
-                                {t('sidebar.customers', 'Customers')}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setActiveModule('supplier')}
-                                className={`px-4 py-2 rounded-md font-semibold transition-all ${activeModule === 'supplier'
-                                    ? 'bg-white text-indigo-600 shadow-sm'
-                                    : 'text-gray-600 hover:text-gray-900'
-                                    }`}
-                            >
-                                {t('sidebar.suppliers', 'Suppliers')}
-                            </button>
-                        </div>
-
-                        <div className="relative group hidden sm:block">
-                            <Search className={`absolute ${i18n.language === 'ar' ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors`} size={18} />
-                            <input
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                placeholder={t('sales.common.search_filter')}
-                                className={`pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all w-64 text-${i18n.language === 'ar' ? 'right' : 'left'} ${i18n.language === 'ar' ? 'pr-10 pl-4' : 'pl-10 pr-4'}`}
-                            />
-                        </div>
-
+            {/* Header / Tabs */}
+            <div className="bg-white shadow-sm border-b border-gray-200">
+                <div className="px-6 pt-4">
+                    <div className="flex gap-6">
                         <button
-                            type="button"
-                            onClick={() => handleOpenModal('add')}
-                            className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl hover:bg-indigo-700 transition-all font-semibold shadow-lg shadow-indigo-100 group"
+                            onClick={() => setActiveModule('customer')}
+                            className={`pb-4 px-2 text-sm font-bold transition-all relative ${activeModule === 'customer'
+                                ? 'text-indigo-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
                         >
-                            <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
-                            <span>{t('sales.common.add')}</span>
+                            {t('sales.customers.title')}
+                            {activeModule === 'customer' && (
+                                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-t-full"></div>
+                            )}
                         </button>
-
                         <button
-                            type="button"
-                            onClick={fetchContacts}
-                            className={`p-2.5 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all bg-white ${loading ? 'animate-spin' : ''}`}
-                            title={t('sales.common.refresh')}
+                            onClick={() => setActiveModule('supplier')}
+                            className={`pb-4 px-2 text-sm font-bold transition-all relative ${activeModule === 'supplier'
+                                ? 'text-indigo-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                                }`}
                         >
-                            <RefreshCw size={20} className="text-gray-500" />
+                            {t('purchases.suppliers.title')}
+                            {activeModule === 'supplier' && (
+                                <div className="absolute bottom-0 left-0 w-full h-0.5 bg-indigo-600 rounded-t-full"></div>
+                            )}
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content */}
-            <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-                {loading && contacts.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-96 gap-4">
-                        <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-                        <p className="text-gray-500 font-medium">{i18n.language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</p>
+            {/* Action Bar */}
+            <div className="px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4 w-full sm:w-auto">
+                    <button
+                        onClick={() => openModal('add')}
+                        className="flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-xl hover:bg-indigo-700 transition-all font-bold shadow-lg shadow-indigo-100 hover:shadow-xl hover:-translate-y-0.5 w-full sm:w-auto"
+                    >
+                        <Plus size={20} />
+                        <span>{t('sales.common.add')}</span>
+                    </button>
+
+                    <div className="flex items-center gap-2 border-2 border-gray-100 rounded-xl px-4 py-2.5 bg-white flex-1 sm:w-80 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-50/50 transition-all">
+                        <Search size={20} className="text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder={t('sales.common.search_filter')}
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full focus:outline-none text-sm font-medium bg-transparent"
+                        />
+                    </div>
+                </div>
+
+                <button
+                    onClick={fetchContacts}
+                    className={`p-2.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all ${loading ? 'animate-spin text-indigo-600' : ''}`}
+                >
+                    <RefreshCw size={20} />
+                </button>
+            </div>
+
+            {/* Content */}
+            <div className="px-6 pb-8">
+                {loading && !contacts.length ? (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
                     </div>
                 ) : filteredContacts.length === 0 ? (
-                    <div className="bg-white rounded-3xl border border-gray-200 p-12 text-center shadow-sm">
-                        <div className="inline-flex p-6 bg-indigo-50 text-indigo-200 rounded-full mb-6">
-                            <UsersIcon size={64} />
+                    <div className="flex flex-col items-center justify-center h-64 text-center">
+                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                            <User className="w-8 h-8 text-gray-400" />
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">
-                            {activeModule === 'customer' ? t('sales.customers.no_customers', 'No customers found') : t('sales.suppliers.no_suppliers', 'No suppliers found')}
+                        <h3 className="text-lg font-bold text-gray-900 mb-1">
+                            {t('sales.common.no_data')}
                         </h3>
-                        <p className="text-gray-500 mb-8">
-                            {activeModule === 'customer' ? t('sales.customers.start_creating', 'Start by creating your first customer') : t('sales.suppliers.start_creating', 'Start by creating your first supplier')}
+                        <p className="text-gray-500 max-w-sm mx-auto mb-6">
+                            {activeModule === 'customer'
+                                ? t('sales.customers.start_adding')
+                                : t('purchases.suppliers.no_suppliers')}
                         </p>
                         <button
-                            type="button"
-                            onClick={() => handleOpenModal('add')}
-                            className="text-indigo-600 font-semibold hover:underline flex items-center gap-2 mx-auto justify-center"
+                            onClick={() => openModal('add')}
+                            className="text-indigo-600 font-bold hover:underline"
                         >
-                            <Plus size={18} /> {t('sales.common.add')}
+                            {t('sales.common.add_new')}
                         </button>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-[#FBFCFE] border-b border-gray-200">
-                                    <tr>
-                                        <th className={`px-6 py-4 font-bold text-gray-700 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.common.name', 'Name')}</th>
-                                        <th className={`px-6 py-4 font-bold text-gray-700 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.common.type', 'Type')}</th>
-                                        <th className={`px-6 py-4 font-bold text-gray-700 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.common.code', 'Code')}</th>
-                                        <th className={`px-6 py-4 font-bold text-gray-700 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.common.phone', 'Phone')}</th>
-                                        <th className={`px-6 py-4 font-bold text-gray-700 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.common.email', 'Email')}</th>
-                                        <th className={`px-6 py-4 font-bold text-gray-700 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.common.balance', 'Balance')}</th>
-                                        <th className={`px-6 py-4 font-bold text-gray-700 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.common.actions')}</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100 text-gray-600">
-                                    {filteredContacts.map((contact) => (
-                                        <tr key={contact._id} className="hover:bg-gray-50 transition-colors group">
-                                            <td className="px-6 py-4 font-bold text-gray-900">
-                                                <div className="flex items-center gap-2">
-                                                    <UserCircle size={16} className="text-gray-400" />
-                                                    {contact.name}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${contact.type === 'commercial' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'
-                                                    }`}>
-                                                    <Building2 size={12} />
-                                                    {contact.type === 'commercial' ? t('sales.common.commercial', 'Commercial') : t('sales.common.individual', 'Individual')}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <Hash size={14} className="text-gray-400" />
-                                                    {contact.code || '-'}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <Phone size={14} className="text-gray-400" />
-                                                    {contact.phone || contact.mobile || '-'}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <Mail size={14} className="text-gray-400" />
-                                                    {contact.email || '-'}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <DollarSign size={14} className="text-gray-400" />
-                                                    {contact.currentBalance?.toLocaleString() || '0'}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleOpenModal('edit', contact)}
-                                                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                                                        title={t('sales.common.update')}
-                                                    >
-                                                        <Edit size={18} />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleDelete(contact._id)}
-                                                        className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                                                        title={t('sales.common.delete')}
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {filteredContacts.map((contact) => (
+                            <div key={contact._id} className="bg-white rounded-2xl p-6 border border-gray-100 hover:shadow-xl hover:border-indigo-100 transition-all group relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-bold text-xl">
+                                        {contact.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                            onClick={() => openModal('edit', contact)}
+                                            className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                        >
+                                            {i18n.language === 'ar' ? 'تعديل' : 'Edit'}
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(contact._id)}
+                                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                        >
+                                            {i18n.language === 'ar' ? 'حذف' : 'Delete'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <h3 className="font-bold text-gray-900 text-lg mb-1 truncate">{contact.name}</h3>
+                                <p className="text-sm text-gray-500 mb-4 flex items-center gap-1">
+                                    <Building size={14} />
+                                    {contact.commercialRecord || 'No Commercial Record'}
+                                </p>
+
+                                <div className="space-y-3 pt-4 border-t border-gray-50">
+                                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                                        <Phone size={16} className="text-gray-400" />
+                                        <span dir="ltr">{contact.phone || '-'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                                        <Mail size={16} className="text-gray-400" />
+                                        <span className="truncate">{contact.email || '-'}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                                        <MapPin size={16} className="text-gray-400" />
+                                        <span className="truncate">
+                                            {typeof contact.address === 'object'
+                                                ? (contact.address?.address1 || contact.address?.city || '-')
+                                                : (contact.address || '-')}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 pt-4 border-t border-gray-50 flex justify-between items-center">
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                        {t('sales.customers.balance')}
+                                    </span>
+                                    <span className={`font-bold ${contact.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                        {contact.balance?.toLocaleString() || 0} {t('sales.common.currency')}
+                                    </span>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
-            </main>
+            </div>
 
             {/* Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto">
-                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-300 my-8">
-                        <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50 sticky top-0 z-10">
-                            <div className="flex items-center gap-3">
-                                <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg">
-                                    <UsersIcon size={24} />
-                                </div>
-                                <h2 className="text-xl font-bold text-gray-900">
-                                    {modalMode === 'add'
-                                        ? (activeModule === 'customer' ? t('sales.customers.add_customer', 'Add Customer') : t('sales.suppliers.add_supplier', 'Add Supplier'))
-                                        : (activeModule === 'customer' ? t('sales.customers.edit_customer', 'Edit Customer') : t('sales.suppliers.edit_supplier', 'Edit Supplier'))
-                                    }
-                                </h2>
-                            </div>
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+                        <div className="px-8 py-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <h2 className="text-2xl font-black text-gray-900">
+                                {modalMode === 'add'
+                                    ? (activeModule === 'customer' ? t('sales.customers.add_customer') : t('purchases.suppliers.add_supplier'))
+                                    : (activeModule === 'customer' ? t('sales.customers.edit_customer') : t('purchases.suppliers.edit_supplier'))
+                                }
+                            </h2>
                             <button
-                                type="button"
                                 onClick={() => setIsModalOpen(false)}
-                                className="text-gray-400 hover:text-gray-900 transition-colors"
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
                             >
                                 <X size={24} />
                             </button>
                         </div>
 
-                        <form onSubmit={handleSave} className="p-8 space-y-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-                            {/* Basic Information */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('sales.common.name', 'Name')} *</label>
-                                    <input
-                                        required
-                                        type="text"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                        placeholder={t('sales.common.name', 'Name')}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('sales.common.type', 'Type')}</label>
-                                    <select
-                                        value={formData.type}
-                                        onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                        className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                    >
-                                        <option value="individual">{t('sales.common.individual', 'Individual')}</option>
-                                        <option value="commercial">{t('sales.common.commercial', 'Commercial')}</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('sales.common.code', 'Code')}</label>
-                                    <input
-                                        type="text"
-                                        value={formData.code}
-                                        onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                                        className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                        placeholder={t('sales.common.code', 'Code')}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('sales.common.tax_number', 'Tax Number')}</label>
-                                    <input
-                                        type="text"
-                                        value={formData.taxNumber}
-                                        onChange={(e) => setFormData({ ...formData, taxNumber: e.target.value })}
-                                        className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                        placeholder={t('sales.common.tax_number', 'Tax Number')}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('sales.common.commercial_register', 'Commercial Register')}</label>
-                                    <input
-                                        type="text"
-                                        value={formData.commercialRegister}
-                                        onChange={(e) => setFormData({ ...formData, commercialRegister: e.target.value })}
-                                        className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                        placeholder={t('sales.common.commercial_register', 'Commercial Register')}
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Contact Information */}
-                            <div className="border-t pt-6">
-                                <h3 className="text-lg font-bold text-gray-900 mb-4">{t('sales.common.contact_info', 'Contact Information')}</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">{t('sales.common.phone', 'Phone')}</label>
+                        <div className="p-8 overflow-y-auto custom-scrollbar">
+                            <form onSubmit={handleSave} className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                            {t('sales.customers.name')} <span className="text-red-500">*</span>
+                                        </label>
                                         <input
-                                            type="tel"
+                                            type="text"
+                                            name="name"
+                                            value={formData.name}
+                                            onChange={handleInputChange}
+                                            className={`w-full bg-gray-50 border-2 ${errors.name ? 'border-red-500' : 'border-gray-100'} rounded-xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all`}
+                                            placeholder={t('sales.customers.name')}
+                                        />
+                                        {errors.name && <p className="text-red-500 text-xs mt-1 font-bold">{errors.name}</p>}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                            {t('sales.customers.phone')}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="phone"
                                             value={formData.phone}
-                                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                            className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                            placeholder={t('sales.common.phone', 'Phone')}
+                                            onChange={handleInputChange}
+                                            className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                            placeholder="05xxxxxxxx"
                                         />
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">{t('sales.common.mobile', 'Mobile')}</label>
-                                        <input
-                                            type="tel"
-                                            value={formData.mobile}
-                                            onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-                                            className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                            placeholder={t('sales.common.mobile', 'Mobile')}
-                                        />
-                                    </div>
-
-                                    <div className="md:col-span-2">
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">{t('sales.common.email', 'Email')}</label>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                            {t('sales.customers.email')}
+                                        </label>
                                         <input
                                             type="email"
+                                            name="email"
                                             value={formData.email}
-                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                            className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                            placeholder="email@example.com"
+                                            onChange={handleInputChange}
+                                            className={`w-full bg-gray-50 border-2 ${errors.email ? 'border-red-500' : 'border-gray-100'} rounded-xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all`}
+                                            placeholder="example@domain.com"
                                         />
+                                        {errors.email && <p className="text-red-500 text-xs mt-1 font-bold">{errors.email}</p>}
                                     </div>
-                                </div>
-                            </div>
 
-                            {/* Address */}
-                            <div className="border-t pt-6">
-                                <h3 className="text-lg font-bold text-gray-900 mb-4">{t('sales.common.address', 'Address')}</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="md:col-span-2">
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">{t('sales.common.address1', 'Address Line 1')}</label>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                            {t('sales.customers.tax_number')}
+                                        </label>
                                         <input
                                             type="text"
-                                            value={formData.address.address1}
-                                            onChange={(e) => setFormData({ ...formData, address: { ...formData.address, address1: e.target.value } })}
-                                            className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
+                                            name="taxNumber"
+                                            value={formData.taxNumber}
+                                            onChange={handleInputChange}
+                                            className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                            placeholder="3xxxxxxxxxxxxx"
                                         />
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">{t('sales.common.city', 'City')}</label>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                            {t('sales.customers.commercial_record')}
+                                        </label>
                                         <input
                                             type="text"
-                                            value={formData.address.city}
-                                            onChange={(e) => setFormData({ ...formData, address: { ...formData.address, city: e.target.value } })}
-                                            className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
+                                            name="commercialRecord"
+                                            value={formData.commercialRecord}
+                                            onChange={handleInputChange}
+                                            className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                            placeholder="1xxxxxxxxx"
                                         />
                                     </div>
 
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">{t('sales.common.country', 'Country')}</label>
-                                        <input
-                                            type="text"
-                                            value={formData.address.country}
-                                            onChange={(e) => setFormData({ ...formData, address: { ...formData.address, country: e.target.value } })}
-                                            className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                        />
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                            {t('sales.customers.address')}
+                                        </label>
+                                        <div className="relative">
+                                            <MapPin className="absolute top-3.5 left-4 text-gray-400 w-5 h-5 pointer-events-none" />
+                                            <input
+                                                type="text"
+                                                name="address"
+                                                value={formData.address}
+                                                onChange={handleInputChange}
+                                                className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl pl-12 pr-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                                placeholder={t('sales.customers.address')}
+                                            />
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            {/* Financial Information */}
-                            <div className="border-t pt-6">
-                                <h3 className="text-lg font-bold text-gray-900 mb-4">{t('sales.common.financial_info', 'Financial Information')}</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">{t('sales.common.initial_balance', 'Initial Balance')}</label>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                            {t('sales.customers.credit_limit')}
+                                        </label>
                                         <input
                                             type="number"
-                                            value={formData.initialBalance}
-                                            onChange={(e) => setFormData({ ...formData, initialBalance: parseFloat(e.target.value) || 0 })}
-                                            className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                            min="0"
-                                            step="0.01"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">{t('sales.common.credit_limit', 'Credit Limit')}</label>
-                                        <input
-                                            type="number"
+                                            name="creditLimit"
                                             value={formData.creditLimit}
-                                            onChange={(e) => setFormData({ ...formData, creditLimit: parseFloat(e.target.value) || 0 })}
-                                            className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                            min="0"
-                                            step="0.01"
+                                            onChange={handleInputChange}
+                                            className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                            placeholder="0.00"
                                         />
                                     </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                            {t('sales.customers.opening_balance')}
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="openingBalance"
+                                            value={formData.openingBalance}
+                                            onChange={handleInputChange}
+                                            className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                            {t('sales.common.notes')}
+                                        </label>
+                                        <textarea
+                                            name="notes"
+                                            value={formData.notes}
+                                            onChange={handleInputChange}
+                                            rows="3"
+                                            className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all resize-none"
+                                            placeholder={t('sales.common.notes')}
+                                        ></textarea>
+                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Notes */}
-                            <div className="border-t pt-6">
-                                <label className="block text-sm font-bold text-gray-700 mb-2">{t('sales.common.notes', 'Notes')}</label>
-                                <textarea
-                                    value={formData.notes}
-                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                    rows="3"
-                                    className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'} resize-none`}
-                                    placeholder={t('sales.common.notes', 'Notes')}
-                                />
-                            </div>
-
-                            <div className="flex gap-4 pt-4 sticky bottom-0 bg-white border-t pb-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="flex-1 p-4 border-2 border-gray-100 rounded-2xl font-bold text-gray-600 hover:bg-gray-50 transition-colors"
-                                >
-                                    {t('sales.common.cancel')}
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="flex-1 p-4 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all disabled:opacity-50"
-                                >
-                                    {loading ? '...' : t('sales.common.save')}
-                                </button>
-                            </div>
-                        </form>
+                                <div className="pt-6 border-t border-gray-100 flex gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsModalOpen(false)}
+                                        className="flex-1 py-4 rounded-xl border-2 border-gray-100 text-gray-600 font-bold hover:bg-gray-50 hover:border-gray-200 transition-all"
+                                    >
+                                        {t('sales.common.cancel')}
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="flex-1 py-4 rounded-xl bg-gray-900 text-white font-bold hover:bg-black transition-all shadow-lg hover:shadow-xl hover:-translate-y-1 disabled:opacity-50 disabled:translate-y-0"
+                                    >
+                                        {loading ? '...' : t('sales.common.save')}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             )}

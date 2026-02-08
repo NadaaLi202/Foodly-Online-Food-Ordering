@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BarChart3, ArrowLeft, Mail, Lock, CheckCircle } from 'lucide-react';
+import { useAuth } from "../context/AuthContext";
+import api from "../services/api";
 
 export default function Login() {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [form, setForm] = useState({
         email: "",
         password: "",
@@ -20,41 +23,34 @@ export default function Login() {
         setLoading(true);
 
         try {
-            const res = await fetch("http://localhost:4000/api/v1/auth/signIn", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    email: form.email,
-                    password: form.password,
-                }),
+            const res = await api.post("/auth/signIn", {
+                email: form.email,
+                password: form.password,
             });
 
-            const data = await res.json();
+            const data = res.data;
             setLoading(false);
 
-            if (!res.ok) {
-                alert(data.message || "Login failed");
-                return;
-            }
-
-            // Save token
+            // Save token via context
             if (data.token) {
-                localStorage.setItem("token", data.token);
-                // Also save user info if needed
-                if (data.isUserExist) {
-                    localStorage.setItem("user", JSON.stringify(data.isUserExist));
+                login(data.isUserExist, data.token);
+
+                const role = data.isUserExist.role;
+                console.log('Login successful, role:', role);
+
+                // Redirect based on role
+                if (role === 'superAdmin') {
+                    navigate('/super-admin');
+                } else {
+                    navigate('/dashboard');
                 }
             }
-
-            // Redirect to dashboard
-            navigate('/dashboard');
 
         } catch (error) {
             setLoading(false);
             console.error(error);
-            alert("Connection error");
+            const message = error.response?.data?.message || "Login failed";
+            alert(message);
         }
     };
 

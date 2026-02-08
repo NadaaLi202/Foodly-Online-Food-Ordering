@@ -4,6 +4,7 @@ import { FileText, RefreshCw, X, Circle } from 'lucide-react';
 
 const DashboardPage = () => {
     const { t } = useTranslation();
+    console.log('DashboardPage: Rendering');
 
     const SummaryCard = ({ title, amount }) => (
         <div className="bg-white px-4 py-5 sm:p-6 rounded-lg shadow border border-gray-200 flex flex-col justify-between">

@@ -18,11 +18,17 @@ const categorySchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Category',
         default: null
+    },
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Company",
+        required: [true, 'Company ID is required'],
+        index: true
     }
 }, {
     timestamps: true
 });
 
-categorySchema.index({ name: 1 });
+categorySchema.index({ name: 1, companyId: 1 });
 
 export const categoryModel = mongoose.model('Category', categorySchema);

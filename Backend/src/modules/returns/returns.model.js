@@ -31,6 +31,12 @@ const returnSchema = new mongoose.Schema({
     date: {
         type: Date,
         default: Date.now
+    },
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Company",
+        required: [true, 'Company ID is required'],
+        index: true
     }
 }, { timestamps: true });
 

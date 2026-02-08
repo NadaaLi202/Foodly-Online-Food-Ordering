@@ -45,7 +45,8 @@ const stockAddSchema = new mongoose.Schema(
         // مرفقات (اختياري)
         attachments: [
             {
-                type: String
+                secure_url: { type: String },
+                public_id: { type: String }
             }
         ],
 
@@ -53,6 +54,12 @@ const stockAddSchema = new mongoose.Schema(
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Contact"
+        },
+        // الشركة
+        companyId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Company',
+            required: true
         }
     },
     {

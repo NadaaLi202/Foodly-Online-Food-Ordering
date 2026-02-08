@@ -742,5 +742,44 @@
             "balance_sheet": "Balance Sheet Report",
             "income_statement": "Income Statement Report"
         }
+    },
+    "superAdmin": {
+        "dashboard": "SuperAdmin Dashboard",
+        "totalCompanies": "Total Companies",
+        "quickActions": "Quick Actions",
+        "manageCompanies": "Manage Companies",
+        "companies": "Companies",
+        "addCompany": "Add Company",
+        "editCompany": "Edit Company",
+        "noCompanies": "No companies found",
+        "companyName": "Company Name",
+        "email": "Email",
+        "password": "Password",
+        "leaveBlankPassword": "Leave blank to keep current password",
+        "subscription": "Subscription",
+        "subscriptionStatus": "Subscription Status",
+        "subscriptionEndDate": "Subscription End Date",
+        "active": "Active",
+        "inactive": "Inactive",
+        "trial": "Trial",
+        "logo": "Logo",
+        "confirmDelete": "Confirm Delete",
+        "deleteCompanyWarning": "Are you sure you want to delete {{name}}? This action cannot be undone.",
+        "loginAsCompany": "Login as Company"
+    },
+    "common": {
+        "search": "Search",
+        "loading": "Loading...",
+        "actions": "Actions",
+        "edit": "Edit",
+        "delete": "Delete",
+        "cancel": "Cancel",
+        "save": "Save",
+        "create": "Create",
+        "saving": "Saving...",
+        "back": "Back"
+    },
+    "validation": {
+        "required": "This field is required"
     }
 }

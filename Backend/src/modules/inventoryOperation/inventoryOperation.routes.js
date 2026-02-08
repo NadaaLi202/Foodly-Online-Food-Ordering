@@ -8,23 +8,28 @@ import {
 } from "./inventoryOperation.controller.js";
 
 import { validation } from "../../middleware/validation.js";
-import { upload } from "../../middleware/uploadImage.js";
 import {
     addInventoryOperationSchema,
     updateInventoryOperationSchema
 } from "./inventoryOperation.validation.js";
 
+import { uploadMultiFiles } from "../../middleware/uploadFiles.js";
+import { protectedRoutes } from "../auth/auth.controller.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+
 const router = express.Router();
+
+router.use(protectedRoutes, applyCompanyFilter);
 
 router
     .route("/")
-    .post(upload.array('attachments', 5), validation(addInventoryOperationSchema), addInventoryOperation)
+    .post(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), validation(addInventoryOperationSchema), applyCompanyFilter, addInventoryOperation)
     .get(getAllInventoryOperations);
 
 router
     .route("/:id")
     .get(getInventoryOperationById)
-    .put(upload.array('attachments', 5), validation(updateInventoryOperationSchema), updateInventoryOperation)
+    .put(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), validation(updateInventoryOperationSchema), applyCompanyFilter, updateInventoryOperation)
     .delete(deleteInventoryOperation);
 
 export default router;

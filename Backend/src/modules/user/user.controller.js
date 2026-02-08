@@ -1,71 +1,111 @@
-import { userModel } from "../../../dataBase/models/user.model.js";
+import { userModel } from "./user.model.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
-
-
-
+import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
 
 const addUser = catchAsyncError(async (req, res, next) => {
+    // Remove confirmPassword before processing (should not be stored)
+    const { confirmPassword, ...userData } = req.body;
 
-    let foundUser = await userModel.findOne({ email: req.body.email })
+    const { email } = userData;
 
+    // Check if user exists
+    let foundUser = await userModel.findOne({ email });
     if (foundUser) {
-        return next(new AppError('User already exist', 409))
+        return next(new AppError('User already exist', 409));
     }
 
-    if (req.file) req.body.image = req.file.filename
-    let user = new userModel(req.body)
-    await user.save()
-    res.status(200).json({ message: 'User added successfully', user })
+    // Validate companyId for non-superAdmin users
+    if (userData.role !== 'superAdmin' && !userData.companyId) {
+        // If req.companyFilter has a companyId, use it
+        if (req.companyFilter && req.companyFilter.companyId) {
+            userData.companyId = req.companyFilter.companyId;
+        } else {
+            return next(new AppError('Company ID is required for non-superAdmin users', 400));
+        }
+    }
+
+    if (req.file) {
+        const result = await uploadToCloudinary(req.file.buffer, 'users');
+        userData.image = result.secure_url;
+        userData.imagePublicId = result.public_id;
+    }
+
+    let user = new userModel(userData);
+    await user.save();
+
+    user.password = undefined;
+    res.status(201).json({ message: 'User added successfully', user });
 })
 
 const getAllUsers = catchAsyncError(async (req, res, next) => {
-
-    let users = await userModel.find()
+    // Use req.companyFilter
+    let users = await userModel.find(req.companyFilter);
     if (!users) {
-        return next(new AppError('Users not fetched', 400))
+        return next(new AppError('Users not fetched', 400));
     }
-    res.status(200).json({ message: 'Users fetched successfully', users })
+    res.status(200).json({ message: 'Users fetched successfully', users });
 })
 
 
 const getUserById = catchAsyncError(async (req, res, next) => {
-
-    const { id } = req.params
-    let user = await userModel.findById(id)
+    const { id } = req.params;
+    // Use req.companyFilter
+    let user = await userModel.findOne({ _id: id, ...req.companyFilter });
 
     if (!user) {
-        return next(new AppError('User not fetched', 400))
+        return next(new AppError('User not fetched', 400));
     }
-    res.status(200).json({ message: 'User fetched successfully', user })
+    res.status(200).json({ message: 'User fetched successfully', user });
 })
 
 
 const updateUser = catchAsyncError(async (req, res, next) => {
+    const { id } = req.params;
 
-    const { id } = req.params
-
-    if (req.file) req.body.image = req.file.filename
-    let User = await userModel.findByIdAndUpdate(id, req.body, { new: true })
-    if (!User) {
-        return next(new AppError('User not update', 400))
+    // Use req.companyFilter
+    let existingUser = await userModel.findOne({ _id: id, ...req.companyFilter });
+    if (!existingUser) {
+        return next(new AppError('User not found', 404));
     }
-    res.status(200).json({ message: 'User updated successfully', User })
+
+    if (req.file) {
+        if (existingUser.imagePublicId) {
+            await deleteFromCloudinary(existingUser.imagePublicId);
+        }
+        const result = await uploadToCloudinary(req.file.buffer, 'users');
+        req.body.image = result.secure_url;
+        req.body.imagePublicId = result.public_id;
+    }
+
+    let User = await userModel.findOneAndUpdate(
+        { _id: id, ...req.companyFilter },
+        req.body,
+        { new: true }
+    );
+
+    if (!User) {
+        return next(new AppError('User not update', 400));
+    }
+    res.status(200).json({ message: 'User updated successfully', User });
 })
 
 
 const deleteUser = catchAsyncError(async (req, res, next) => {
+    const { id } = req.params;
 
-    const { id } = req.params
-    let User = await userModel.findByIdAndDelete(id)
-    if (!User) {
-        return next(new AppError('User not delete', 400))
+    // Use req.companyFilter
+    let user = await userModel.findOne({ _id: id, ...req.companyFilter });
+    if (!user) {
+        return next(new AppError('User not delete', 400));
     }
-    res.status(200).json({ message: 'User deleted successfully', User })
+
+    if (user.imagePublicId) {
+        await deleteFromCloudinary(user.imagePublicId);
+    }
+
+    let User = await userModel.findOneAndDelete({ _id: id, ...req.companyFilter });
+    res.status(200).json({ message: 'User deleted successfully', User });
 })
-
-
-
-
 
 export { addUser, getAllUsers, getUserById, updateUser, deleteUser }

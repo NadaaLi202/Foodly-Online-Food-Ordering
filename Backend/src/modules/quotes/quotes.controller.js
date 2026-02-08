@@ -3,7 +3,11 @@ import { AppError } from "../../utils/AppError.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 
 const addQuote = catchAsyncError(async (req, res, next) => {
-    const quote = new quoteModel(req.body);
+    // req.body.companyId comes from middleware
+    const quote = new quoteModel({
+        ...req.body,
+        companyId: req.body.companyId
+    });
     await quote.save();
 
     if (!quote) {
@@ -14,13 +18,13 @@ const addQuote = catchAsyncError(async (req, res, next) => {
 });
 
 const getAllQuotes = catchAsyncError(async (req, res, next) => {
-    const quotes = await quoteModel.find().populate('customer').populate('items.product');
+    const quotes = await quoteModel.find(req.companyFilter).populate('customer').populate('items.product');
     res.status(200).json({ message: 'Quotes fetched successfully', quotes });
 });
 
 const getQuoteById = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
-    const quote = await quoteModel.findById(id).populate('customer').populate('items.product');
+    const quote = await quoteModel.findOne({ _id: id, ...req.companyFilter }).populate('customer').populate('items.product');
 
     if (!quote) {
         return next(new AppError('Quote not found', 404));
@@ -31,7 +35,11 @@ const getQuoteById = catchAsyncError(async (req, res, next) => {
 
 const updateQuote = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
-    const quote = await quoteModel.findByIdAndUpdate(id, req.body, { new: true });
+    const quote = await quoteModel.findOneAndUpdate(
+        { _id: id, ...req.companyFilter },
+        req.body,
+        { new: true }
+    );
 
     if (!quote) {
         return next(new AppError('Quote not updated', 400));
@@ -42,7 +50,7 @@ const updateQuote = catchAsyncError(async (req, res, next) => {
 
 const deleteQuote = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
-    const quote = await quoteModel.findByIdAndDelete(id);
+    const quote = await quoteModel.findOneAndDelete({ _id: id, ...req.companyFilter });
 
     if (!quote) {
         return next(new AppError('Quote not deleted', 400));

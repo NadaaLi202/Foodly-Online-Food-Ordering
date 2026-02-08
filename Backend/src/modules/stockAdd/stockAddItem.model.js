@@ -34,6 +34,12 @@ const stockAddItemSchema = new mongoose.Schema(
         totalCost: {
             type: Number,
             default: 0
+        },
+        // الشركة
+        companyId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Company',
+            required: true
         }
     },
     {

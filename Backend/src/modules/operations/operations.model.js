@@ -12,6 +12,12 @@ const operationSchema = new mongoose.Schema(
             ],
             required: true
         },
+        companyId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Company",
+            required: [true, 'Company ID is required'],
+            index: true
+        },
         warehouse: {
             type: mongoose.Schema.Types.Mixed
         },
@@ -26,7 +32,8 @@ const operationSchema = new mongoose.Schema(
         // المرفقات
         attachments: [
             {
-                type: String
+                secure_url: { type: String },
+                public_id: { type: String }
             }
         ]
     },

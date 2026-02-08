@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, RefreshCw, X, Search, MoreVertical, Pencil, Minus, Eye, Check, Trash2, Home } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import api from '../../services/api';
 
 export default function Customers() {
     const { t, i18n } = useTranslation();
@@ -55,8 +56,8 @@ export default function Customers() {
     const fetchCustomers = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/contacts/customers');
-            const data = await response.json();
+            const response = await api.get('/contacts/customers');
+            const data = response.data;
             setCustomers(data.contacts || []);
         } catch (error) {
             console.error('Error fetching customers:', error);
@@ -72,8 +73,8 @@ export default function Customers() {
     const getCustomerById = async (id) => {
         setLoadingCustomer(true);
         try {
-            const res = await fetch(`http://localhost:4000/api/v1/contacts/${id}`);
-            const data = await res.json();
+            const res = await api.get(`/contacts/${id}`);
+            const data = res.data;
 
             if (data.contact) {
                 const c = data.contact;
@@ -225,27 +226,15 @@ export default function Customers() {
 
             if (isEditing && currentCustomerId) {
                 // Update existing customer - PATCH request
-                response = await fetch(`http://localhost:4000/api/v1/contacts/${currentCustomerId}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(dataToSend)
-                });
-                result = await response.json();
+                response = await api.patch(`/contacts/${currentCustomerId}`, dataToSend);
+                result = response.data;
             } else {
                 // Create new customer - POST request
-                response = await fetch('http://localhost:4000/api/v1/contacts/customers', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(dataToSend)
-                });
-                result = await response.json();
+                response = await api.post('/contacts/customers', dataToSend);
+                result = response.data;
             }
 
-            if (!response.ok) {
+            if (response.status !== 200 && response.status !== 201) {
                 throw new Error(result.message || t('sales.common.error_message'));
             }
 
@@ -324,8 +313,8 @@ export default function Customers() {
         setMenuOpenId(null);
         setSelectedCustomerId(customer._id);
         try {
-            const res = await fetch(`http://localhost:4000/api/v1/contacts/${customer._id}`);
-            const data = await res.json();
+            const res = await api.get(`/contacts/${customer._id}`);
+            const data = res.data;
             if (data.contact) {
                 const c = data.contact;
                 const addr = c.address || {};
@@ -394,9 +383,9 @@ export default function Customers() {
 
     const handleDeleteCustomer = async (id) => {
         try {
-            const res = await fetch(`http://localhost:4000/api/v1/contacts/${id}`, { method: 'DELETE' });
-            const data = await res.json();
-            if (res.ok) {
+            const res = await api.delete(`/contacts/${id}`);
+            const data = res.data;
+            if (res.status === 200) {
                 fetchCustomers();
                 if (viewContact?._id === id) {
                     setViewContact(null);
@@ -470,13 +459,9 @@ export default function Customers() {
                 additionalContacts
             };
 
-            const res = await fetch(`http://localhost:4000/api/v1/contacts/${viewContact._id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dataToSend)
-            });
-            const result = await res.json();
-            if (res.ok) {
+            const res = await api.patch(`/contacts/${viewContact._id}`, dataToSend);
+            const result = res.data;
+            if (res.status === 200) {
                 await openViewModal({ _id: viewContact._id });
                 fetchCustomers();
             } else {

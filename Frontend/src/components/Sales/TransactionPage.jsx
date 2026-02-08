@@ -4,6 +4,7 @@ import { getTransactionConfig } from '../../config/transactionTypes';
 import InvoiceList from './InvoiceList';
 import InvoiceForm from './InvoiceForm';
 import InvoiceDetails from './InvoiceDetails';
+import api from '../../services/api';
 
 const TransactionPage = ({ configKey }) => {
     const { t, i18n } = useTranslation();
@@ -16,8 +17,8 @@ const TransactionPage = ({ configKey }) => {
     const fetchList = async () => {
         setLoading(true);
         try {
-            const response = await fetch(config.listUrl);
-            const data = await response.json();
+            const response = await api.get(config.listUrl);
+            const data = response.data;
             setItems(data.data || data.transactions || []);
         } catch (error) {
             console.error('Error fetching list:', error);
@@ -27,13 +28,7 @@ const TransactionPage = ({ configKey }) => {
     };
 
     useEffect(() => {
-        const listUrl = config.listUrl;
-        setLoading(true);
-        fetch(listUrl)
-            .then((res) => res.json())
-            .then((data) => setItems(data.data || data.transactions || []))
-            .catch((err) => console.error('Error fetching list:', err))
-            .finally(() => setLoading(false));
+        fetchList();
     }, [configKey]);
 
     const handleAddClick = () => {
@@ -44,14 +39,10 @@ const TransactionPage = ({ configKey }) => {
     const handleItemClick = async (item) => {
         setLoading(true);
         try {
-            const response = await fetch(config.getOneUrl(item._id));
-            const data = await response.json();
-            if (response.ok) {
-                setSelected(data);
-                setView('details');
-            } else {
-                alert(data.message || t('sales.common.error_message'));
-            }
+            const response = await api.get(config.getOneUrl(item._id));
+            const data = response.data;
+            setSelected(data);
+            setView('details');
         } catch (error) {
             console.error('Error fetching details:', error);
             alert(t('sales.common.error_message'));
@@ -63,14 +54,10 @@ const TransactionPage = ({ configKey }) => {
     const handleEditClick = async (item) => {
         setLoading(true);
         try {
-            const response = await fetch(config.getOneUrl(item._id));
-            const data = await response.json();
-            if (response.ok) {
-                setSelected(data);
-                setView('edit');
-            } else {
-                alert(data.message || t('sales.common.error_message'));
-            }
+            const response = await api.get(config.getOneUrl(item._id));
+            const data = response.data;
+            setSelected(data);
+            setView('edit');
         } catch (error) {
             console.error('Error fetching for edit:', error);
             alert(t('sales.common.error_message'));
@@ -84,24 +71,27 @@ const TransactionPage = ({ configKey }) => {
         try {
             const url = selected ? config.getOneUrl(selected._id) : config.createUrl;
             const method = selected ? 'PATCH' : 'POST';
-            const response = await fetch(url, { method, body: formData });
 
-            if (response.ok) {
-                if (options.stayOnDetails && selected?._id) {
-                    const res = await fetch(config.getOneUrl(selected._id));
-                    const data = await res.json();
-                    if (res.ok) setSelected(data);
-                } else {
-                    setView('list');
-                }
-                fetchList();
+            // Note: formData is likely a FormData object now due to file uploads
+            // api utility handles Content-Type automatically or we can force it if needed, 
+            // but Axios usually auto-detects FormData.
+            const response = await api({
+                method,
+                url,
+                data: formData
+            });
+
+            if (options.stayOnDetails && selected?._id) {
+                const res = await api.get(config.getOneUrl(selected._id));
+                setSelected(res.data);
             } else {
-                const error = await response.json();
-                alert(error.message || t('sales.common.error_message'));
+                setView('list');
             }
+            fetchList();
         } catch (error) {
             console.error('Error saving:', error);
-            alert(t('sales.common.error_message'));
+            const msg = error.response?.data?.message || t('sales.common.error_message');
+            alert(msg);
         } finally {
             setLoading(false);
         }
@@ -109,18 +99,14 @@ const TransactionPage = ({ configKey }) => {
 
     const handleDelete = async (id) => {
         try {
-            const response = await fetch(config.getOneUrl(id), { method: 'DELETE' });
-            if (response.ok) {
-                alert(t('sales.common.success_message'));
-                setView('list');
-                fetchList();
-            } else {
-                const error = await response.json();
-                alert(error.message || t('sales.common.error_message'));
-            }
+            await api.delete(config.getOneUrl(id));
+            alert(t('sales.common.success_message'));
+            setView('list');
+            fetchList();
         } catch (error) {
             console.error('Error deleting:', error);
-            alert(t('sales.common.error_message'));
+            const msg = error.response?.data?.message || t('sales.common.error_message');
+            alert(msg);
         }
     };
 
@@ -136,6 +122,7 @@ const TransactionPage = ({ configKey }) => {
                     i18n={i18n}
                     noItemsKey={config.noItemsKey}
                     startKey={config.startKey}
+                    clientLabelKey={config.clientLabelKey}
                 />
             )}
 

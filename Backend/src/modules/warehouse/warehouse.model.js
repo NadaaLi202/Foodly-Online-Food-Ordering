@@ -6,8 +6,14 @@ const warehouseSchema = new mongoose.Schema(
         name: {
             type: String,
             required: [true, "اسم المستودع مطلوب"],
-            trim: true,
-            unique: true
+            trim: true
+        },
+
+        companyId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Company",
+            required: [true, 'Company ID is required'],
+            index: true
         },
 
         // الحساب (اختياري)
@@ -46,6 +52,8 @@ const warehouseSchema = new mongoose.Schema(
         timestamps: true
     }
 );
+
+warehouseSchema.index({ name: 1, companyId: 1 }, { unique: true });
 
 
 

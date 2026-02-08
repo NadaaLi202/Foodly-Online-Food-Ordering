@@ -34,6 +34,12 @@ const quoteSchema = new mongoose.Schema({
     expiryDate: {
         type: Date,
         required: true
+    },
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Company",
+        required: [true, 'Company ID is required'],
+        index: true
     }
 }, { timestamps: true });
 

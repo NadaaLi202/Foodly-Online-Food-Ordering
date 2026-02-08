@@ -1,16 +1,27 @@
 import { productModel } from "./product.model.js"
 import { AppError } from "../../utils/AppError.js"
 import { catchAsyncError } from "../../middleware/catchAsyncError.js"
-import { deleteImage } from "../../middleware/uploadImage.js"
-
+import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js"
 
 
 const addProduct = catchAsyncError(async (req, res, next) => {
     const productData = { ...req.body };
 
+    // companyId is handled by middleware (forced for non-superAdmin)
+    // If superAdmin calls it, they should provide companyId or it might be null (logic in middleware allows null for superAdmin, 
+    // but model requires it). So superAdmin MUST provide it.
+
+    // Ensure companyId is present (if middleware didn't force it, e.g. superAdmin)
+    if (!productData.companyId && req.user.role === 'superAdmin') {
+        return next(new AppError('Company ID is required for SuperAdmin', 400));
+    }
+    // For others, middleware sets req.body.companyId = req.user.companyId
+
     // Add image path if file was uploaded
     if (req.file) {
-        productData.image = `/uploads/products/${req.file.filename}`;
+        const result = await uploadToCloudinary(req.file.buffer, 'products');
+        productData.image = result.secure_url;
+        productData.imagePublicId = result.public_id;
     }
 
     const product = new productModel(productData);
@@ -20,7 +31,8 @@ const addProduct = catchAsyncError(async (req, res, next) => {
 
 const getAllProducts = catchAsyncError(async (req, res, next) => {
     const { search } = req.query;
-    let query = {};
+    let query = { ...req.companyFilter }; // Apply company filter
+
     if (search) {
         query.name = { $regex: search, $options: 'i' };
     }
@@ -30,7 +42,8 @@ const getAllProducts = catchAsyncError(async (req, res, next) => {
 
 const getProductById = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
-    let product = await productModel.findById(id);
+    let product = await productModel.findOne({ _id: id, ...req.companyFilter });
+
     if (!product) {
         return next(new AppError('المنتج غير موجود', 404));
     }
@@ -40,8 +53,8 @@ const getProductById = catchAsyncError(async (req, res, next) => {
 const updateProduct = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
 
-    // Find existing product
-    let existingProduct = await productModel.findById(id);
+    // Find existing product with filter
+    let existingProduct = await productModel.findOne({ _id: id, ...req.companyFilter });
     if (!existingProduct) {
         return next(new AppError('المنتج غير موجود', 404));
     }
@@ -51,29 +64,36 @@ const updateProduct = catchAsyncError(async (req, res, next) => {
     // Handle image update
     if (req.file) {
         // Delete old image if exists
-        if (existingProduct.image) {
-            deleteImage(existingProduct.image);
+        if (existingProduct.imagePublicId) {
+            await deleteFromCloudinary(existingProduct.imagePublicId);
         }
-        updateData.image = `/uploads/products/${req.file.filename}`;
+        const result = await uploadToCloudinary(req.file.buffer, 'products');
+        updateData.image = result.secure_url;
+        updateData.imagePublicId = result.public_id;
     }
 
-    let product = await productModel.findByIdAndUpdate(id, updateData, { new: true });
+    let product = await productModel.findOneAndUpdate(
+        { _id: id, ...req.companyFilter },
+        updateData,
+        { new: true }
+    );
     res.status(200).json({ message: 'تم تحديث المنتج بنجاح', product });
 });
 
 const deleteProduct = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
-    let product = await productModel.findById(id);
+    let product = await productModel.findOne({ _id: id, ...req.companyFilter });
+
     if (!product) {
         return next(new AppError('المنتج غير موجود', 404));
     }
 
     // Delete product image if exists
-    if (product.image) {
-        deleteImage(product.image);
+    if (product.imagePublicId) {
+        await deleteFromCloudinary(product.imagePublicId);
     }
 
-    await productModel.findByIdAndDelete(id);
+    await productModel.findOneAndDelete({ _id: id, ...req.companyFilter });
     res.status(200).json({ message: 'تم حذف المنتج بنجاح', product });
 });
 

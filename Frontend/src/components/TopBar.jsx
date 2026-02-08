@@ -125,12 +125,8 @@ const TopBar = ({ onToggleSidebar, isMobile }) => {
                         <div className="flex flex-col items-end rtl:items-start hidden sm:block">
                             <span className="text-sm font-bold text-gray-800"></span>
                         </div>
-                        <div className="w-9 h-9 bg-gray-200 rounded-full overflow-hidden border border-gray-300">
-                            <img
-                                src=""
-                                alt="User"
-                                className="w-full h-full object-cover"
-                            />
+                        <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full overflow-hidden border border-gray-300 flex items-center justify-center text-white font-bold text-sm">
+                            U
                         </div>
                     </div>
                 </div>
