@@ -3,12 +3,17 @@ import { addActivity, deleteActivity, getActivityById, getAllActivities, updateA
 import { validation } from "../../middleware/validation.js";
 import { addActivitySchema, updateActivitySchema } from "./activity.validation.js";
 
+import { allowedTo, protectedRoutes } from "../auth/auth.controller.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+
 const activityRouter = express.Router();
 
-activityRouter.post('/', validation(addActivitySchema), addActivity);
-activityRouter.get('/', getAllActivities);
-activityRouter.get('/:id', getActivityById);
-activityRouter.put('/:id', validation(updateActivitySchema), updateActivity);
-activityRouter.delete('/:id', deleteActivity);
+activityRouter.use(protectedRoutes, applyCompanyFilter);
+
+activityRouter.post('/', validation(addActivitySchema), allowedTo("superAdmin", "admin", "accountant"), addActivity);
+activityRouter.get('/', allowedTo("superAdmin", "admin", "accountant", "employee"), getAllActivities);
+activityRouter.get('/:id', allowedTo("superAdmin", "admin", "accountant", "employee"), getActivityById);
+activityRouter.put('/:id', validation(updateActivitySchema), allowedTo("superAdmin", "admin", "accountant"), updateActivity);
+activityRouter.delete('/:id', allowedTo("superAdmin", "admin"), deleteActivity);
 
 export default activityRouter;

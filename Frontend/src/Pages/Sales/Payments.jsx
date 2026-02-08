@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, RefreshCw, X, Search, MoreVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-
-const API_BASE = 'http://localhost:4000/api/v1';
+import api from '../../services/api';
 
 export default function Payments() {
     const { t, i18n } = useTranslation();
@@ -29,9 +28,8 @@ export default function Payments() {
     const fetchPayments = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE}/payments/sales`);
-            const data = await response.json();
-            setPayments(data.payments || []);
+            const response = await api.get('/payments/sales');
+            setPayments(response.data.payments || []);
         } catch (error) {
             console.error('Error fetching payments:', error);
             setPayments([]);
@@ -42,9 +40,8 @@ export default function Payments() {
 
     const fetchCustomers = async () => {
         try {
-            const response = await fetch(`${API_BASE}/contacts/customers`);
-            const data = await response.json();
-            setCustomers(data.contacts || []);
+            const response = await api.get('/contacts/customers');
+            setCustomers(response.data.contacts || []);
         } catch (error) {
             console.error('Error fetching customers:', error);
         }
@@ -77,7 +74,7 @@ export default function Payments() {
         setIsSubmitting(true);
         setResponseMessage({ type: '', text: '' });
         try {
-            const url = editingPayment ? `${API_BASE}/payments/${editingPayment._id}` : `${API_BASE}/payments/sales`;
+            const url = editingPayment ? `/payments/${editingPayment._id}` : '/payments/sales';
             const method = editingPayment ? 'PATCH' : 'POST';
             const body = {
                 date: formData.date,
@@ -87,13 +84,14 @@ export default function Payments() {
                 amount: parseFloat(formData.amount),
                 notes: formData.notes || ''
             };
-            const response = await fetch(url, {
+
+            const response = await api({
                 method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+                url,
+                data: body
             });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message || t('sales.common.error_message'));
+
+            const result = response.data;
             setResponseMessage({ type: 'success', text: result.message || t('sales.common.success_message') });
             fetchPayments();
             setTimeout(() => {
@@ -102,7 +100,8 @@ export default function Payments() {
                 resetForm();
             }, 1200);
         } catch (error) {
-            setResponseMessage({ type: 'error', text: error.message || t('sales.common.error_message') });
+            const msg = error.response?.data?.message || t('sales.common.error_message');
+            setResponseMessage({ type: 'error', text: msg });
         } finally {
             setIsSubmitting(false);
         }
@@ -137,9 +136,9 @@ export default function Payments() {
     const openEditModal = async (payment) => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/payments/${payment._id}`);
-            const data = await res.json();
-            if (res.ok && data.payment) {
+            const res = await api.get(`/payments/${payment._id}`);
+            const data = res.data;
+            if (data.payment) {
                 const p = data.payment;
                 setFormData({
                     date: p.date ? new Date(p.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
@@ -162,15 +161,14 @@ export default function Payments() {
     const handleDelete = async (id) => {
         if (!window.confirm(t('sales.common.confirm_delete'))) return;
         try {
-            const res = await fetch(`${API_BASE}/payments/${id}`, { method: 'DELETE' });
-            const data = await res.json();
-            if (res.ok) {
+            const res = await api.delete(`/payments/${id}`);
+            if (res.status === 200) {
                 setPayments(prev => prev.filter(p => p._id !== id));
             } else {
-                alert(data.message || t('sales.common.error_message'));
+                alert(res.data?.message || t('sales.common.error_message'));
             }
         } catch (err) {
-            alert(t('sales.common.error_message'));
+            alert(err.response?.data?.message || t('sales.common.error_message'));
         }
         setMenuOpenId(null);
     };

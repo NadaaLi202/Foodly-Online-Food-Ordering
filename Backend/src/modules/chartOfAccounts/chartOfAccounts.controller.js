@@ -4,21 +4,24 @@ import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 
 const addAccount = catchAsyncError(async (req, res, next) => {
     const { code } = req.body;
+    const { companyFilter } = req;
 
-    const existingAccount = await chartOfAccountsModel.findOne({ code });
+    const existingAccount = await chartOfAccountsModel.findOne({ code, ...companyFilter });
     if (existingAccount) {
-        return next(new AppError('Account code already exists', 400));
+        return next(new AppError('Account code already exists for this company', 400));
     }
 
-    const account = new chartOfAccountsModel(req.body);
+    const account = new chartOfAccountsModel({ ...req.body, companyId: req.user.companyId });
     await account.save();
     res.status(201).json({ message: 'Account created successfully', account });
 });
 
 const getAllAccounts = catchAsyncError(async (req, res, next) => {
-    // Basic filtering
+    // Basic filtering from query
     const { type, parentAccount } = req.query;
-    let query = {};
+    const { companyFilter } = req;
+
+    let query = { ...companyFilter };
     if (type) query.type = type;
     if (parentAccount) query.parentAccount = parentAccount;
 
@@ -28,7 +31,7 @@ const getAllAccounts = catchAsyncError(async (req, res, next) => {
 
 const getAccountById = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
-    const account = await chartOfAccountsModel.findById(id).populate('parentAccount', 'name code');
+    const account = await chartOfAccountsModel.findOne({ _id: id, ...req.companyFilter }).populate('parentAccount', 'name code');
     if (!account) {
         return next(new AppError('Account not found', 404));
     }
@@ -38,39 +41,46 @@ const getAccountById = catchAsyncError(async (req, res, next) => {
 const updateAccount = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
     const { code } = req.body;
+    const { companyFilter } = req;
 
-    const accountExists = await chartOfAccountsModel.findById(id);
+    const accountExists = await chartOfAccountsModel.findOne({ _id: id, ...companyFilter });
     if (!accountExists) {
         return next(new AppError('Account not found', 404));
     }
 
     if (code && code !== accountExists.code) {
-        const duplicateCode = await chartOfAccountsModel.findOne({ code });
+        const duplicateCode = await chartOfAccountsModel.findOne({ code, ...companyFilter });
         if (duplicateCode) {
-            return next(new AppError('Account code already exists', 400));
+            return next(new AppError('Account code already exists for this company', 400));
         }
     }
 
-    const account = await chartOfAccountsModel.findByIdAndUpdate(id, req.body, { new: true });
+    const account = await chartOfAccountsModel.findOneAndUpdate(
+        { _id: id, ...companyFilter },
+        req.body,
+        { new: true }
+    );
     res.status(200).json({ message: 'Account updated successfully', account });
 });
 
 const deleteAccount = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
-    const account = await chartOfAccountsModel.findById(id);
+    const { companyFilter } = req;
+
+    const account = await chartOfAccountsModel.findOne({ _id: id, ...companyFilter });
     if (!account) {
         return next(new AppError('Account not found', 404));
     }
 
-    // Check for child accounts
-    const childAccounts = await chartOfAccountsModel.findOne({ parentAccount: id });
+    // Check for child accounts within the company
+    const childAccounts = await chartOfAccountsModel.findOne({ parentAccount: id, ...companyFilter });
     if (childAccounts) {
         return next(new AppError('Cannot delete account with child accounts', 400));
     }
 
     // In a real app, also check if account is used in transactions
 
-    await chartOfAccountsModel.findByIdAndDelete(id);
+    await chartOfAccountsModel.findOneAndDelete({ _id: id, ...companyFilter });
     res.status(200).json({ message: 'Account deleted successfully', account });
 });
 

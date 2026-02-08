@@ -23,6 +23,10 @@ import chartOfAccountsRouter from "./chartOfAccounts/chartOfAccounts.routes.js"
 import branchRouter from "./branch/branch.routes.js"
 import partnerListRouter from "./listOfPartners/listOfPartners.routes.js"
 import activityRouter from "./activity/activity.routes.js"
+import expenseRouter from "./Expenses/expense.router.js"
+import bankAccountRouter from "./BankAccounts/bankAccount.routes.js"
+import safeRouter from "./Safes/safe.routes.js"
+import companyRouter from "./companies/company.routes.js"
 
 export function routes(app) {
 
@@ -49,6 +53,10 @@ export function routes(app) {
     app.use("/api/v1/branches", branchRouter)
     app.use("/api/v1/partner-lists", partnerListRouter)
     app.use("/api/v1/activities", activityRouter)
+    app.use("/api/v1/expenses", expenseRouter)
+    app.use("/api/v1/bank-accounts", bankAccountRouter)
+    app.use("/api/v1/safes", safeRouter)
+    app.use("/api/v1/companies", companyRouter)
 
 
 

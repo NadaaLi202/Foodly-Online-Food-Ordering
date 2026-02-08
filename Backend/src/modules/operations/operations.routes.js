@@ -13,19 +13,23 @@ import {
     updateOperationSchema
 } from "./operations.validation.js";
 import { validation } from "../../middleware/validation.js";
-import { upload } from "../../middleware/uploadImage.js";
+import { uploadMultiFiles } from "../../middleware/uploadFiles.js";
+import { allowedTo, protectedRoutes } from "../auth/auth.controller.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const router = express.Router();
 
+router.use(protectedRoutes, applyCompanyFilter);
+
 router
     .route("/")
-    .post(upload.array('attachments', 5), validation(addOperationSchema), addOperation)
-    .get(getAllOperations);
+    .post(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), validation(addOperationSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), addOperation)
+    .get(allowedTo("superAdmin", "admin", "accountant", "employee"), getAllOperations);
 
 router
     .route("/:id")
-    .get(getOperationById)
-    .put(upload.array('attachments', 5), validation(updateOperationSchema), updateOperation)
-    .delete(deleteOperation);
+    .get(allowedTo("superAdmin", "admin", "accountant", "employee"), getOperationById)
+    .put(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), validation(updateOperationSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), updateOperation)
+    .delete(allowedTo("superAdmin", "admin"), deleteOperation);
 
 export default router;

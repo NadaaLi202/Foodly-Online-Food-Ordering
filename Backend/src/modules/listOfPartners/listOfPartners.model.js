@@ -14,6 +14,11 @@ const partnerListSchema = new mongoose.Schema({
     description: {
         type: String,
         trim: true
+    },
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Company',
+        required: true
     }
 }, {
     timestamps: true

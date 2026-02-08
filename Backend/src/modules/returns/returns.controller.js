@@ -3,7 +3,11 @@ import { AppError } from "../../utils/AppError.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 
 const addReturn = catchAsyncError(async (req, res, next) => {
-    const returnRequests = new returnModel(req.body);
+    // req.body.companyId comes from middleware (or superAdmin)
+    const returnRequests = new returnModel({
+        ...req.body,
+        companyId: req.body.companyId
+    });
     await returnRequests.save();
 
     if (!returnRequests) {
@@ -14,13 +18,13 @@ const addReturn = catchAsyncError(async (req, res, next) => {
 });
 
 const getAllReturns = catchAsyncError(async (req, res, next) => {
-    const returns = await returnModel.find().populate('invoice');
+    const returns = await returnModel.find(req.companyFilter).populate('invoice');
     res.status(200).json({ message: 'Returns fetched successfully', returns });
 });
 
 const getReturnById = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
-    const returnRequest = await returnModel.findById(id).populate('invoice');
+    const returnRequest = await returnModel.findOne({ _id: id, ...req.companyFilter }).populate('invoice');
 
     if (!returnRequest) {
         return next(new AppError('Return request not found', 404));
@@ -31,7 +35,12 @@ const getReturnById = catchAsyncError(async (req, res, next) => {
 
 const updateReturn = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
-    const returnRequest = await returnModel.findByIdAndUpdate(id, req.body, { new: true });
+    // Use findOneAndUpdate with flter
+    const returnRequest = await returnModel.findOneAndUpdate(
+        { _id: id, ...req.companyFilter },
+        req.body,
+        { new: true }
+    );
 
     if (!returnRequest) {
         return next(new AppError('Return request not updated', 400));
@@ -42,7 +51,7 @@ const updateReturn = catchAsyncError(async (req, res, next) => {
 
 const deleteReturn = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
-    const returnRequest = await returnModel.findByIdAndDelete(id);
+    const returnRequest = await returnModel.findOneAndDelete({ _id: id, ...req.companyFilter });
 
     if (!returnRequest) {
         return next(new AppError('Return request not deleted', 400));

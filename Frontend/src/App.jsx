@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import DashboardPage from './Pages/DashboardPage';
 import PurchasesPage from './Pages/PurchasesPage';
 import PurchaseInvoices from './Pages/Purchases/PurchaseInvoices';
@@ -10,7 +12,7 @@ import PurchaseReturns from './Pages/Purchases/PurchaseReturns';
 import Suppliers from './Pages/Purchases/Suppliers';
 import SupplierPayments from './Pages/Purchases/SupplierPayments';
 import Invoices from './Pages/Sales/Invoices';
-import Returns from './Pages/Sales/returns';
+import Returns from './Pages/Sales/Returns';
 import Quotations from './Pages/Sales/Quotations';
 import Customers from './Pages/Sales/Customers';
 import Payments from './Pages/Sales/Payments';
@@ -34,8 +36,13 @@ import BankAccounts from './Pages/Finance/BankAccounts';
 import Contacts from './Pages/Users/Contacts';
 import Roles from './Pages/Users/Roles';
 import LandingPage from './Pages/LandingPage';
-import Login from './Pages/login';
+import Login from './Pages/Login';
 import Register from './Pages/Register';
+// SuperAdmin
+import SuperAdminDashboard from './Pages/SuperAdmin/Dashboard';
+import CompanyList from './Pages/SuperAdmin/CompanyList';
+import CompanyForm from './Pages/SuperAdmin/CompanyForm';
+import UserManagement from './Pages/SuperAdmin/UserManagement';
 
 const PlaceholderPage = ({ title }) => (
   <div className="p-8 text-center text-gray-500 bg-white rounded-lg shadow-sm border border-gray-100">
@@ -47,93 +54,116 @@ const PlaceholderPage = ({ title }) => (
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+      <AuthProvider>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-        {/* Protected Dashboard Routes */}
-        <Route path="/dashboard" element={<Layout />}>
-          <Route index element={<DashboardPage />} />
-
-          <Route path="sales">
-            <Route path="invoices" element={<Invoices />} />
-            <Route path="returns" element={<Returns />} />
-            <Route path="quotations" element={<Quotations />} />
-            <Route path="customers" element={<Customers />} />
-            <Route path="payments" element={<Payments />} />
+          {/* SuperAdmin Layout Route */}
+          <Route
+            path="/super-admin"
+            element={
+              <ProtectedRoute allowedRoles={['superAdmin']}>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<SuperAdminDashboard />} />
+            <Route path="companies" element={<CompanyList />} />
+            <Route path="companies/new" element={<CompanyForm />} />
+            <Route path="companies/edit/:id" element={<CompanyForm />} />
+            <Route path="companies/:companyId/users" element={<UserManagement />} />
           </Route>
 
+          {/* Dashboard Layout Route */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'accountant', 'employee', 'company']}>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<DashboardPage />} />
 
-          {/* <Route path="inventory" element={<PlaceholderPage title="Inventory" />} /> */}
-          <Route path="inventory">
-            <Route path="products" element={<Products />} />
-            <Route path="categories" element={<Categories />} />
-            <Route path="operations" element={<Operations />} />
-            <Route path="permissions" element={<Permissions />} />
-            <Route path="warehouses" element={<Warehouses />} />
-            <Route path="inventories" element={<Inventories />} />
-          </Route>
-
-          <Route path="finance" element={<PlaceholderPage title="Finance" />} />
-
-          <Route path="accounting">
-            <Route path="journal-entries" element={<JournalEntries />} />
-            <Route path="chart-of-accounts" element={<ChartOfAccounts />} />
-            <Route path="cost-centers" element={<CostCenters />} />
-            <Route index element={<PlaceholderPage title="Accounting" />} />
-          </Route>
-
-          <Route path="reports">
-            <Route index element={<PlaceholderPage title="Reports" />} />
-            <Route path="sales" element={<PlaceholderPage title="Sales Reports" />} />
-            <Route path="purchases" element={<PlaceholderPage title="Purchases Reports" />} />
-            <Route path="accounting">
-              <Route index element={<PlaceholderPage title="Accounting Reports" />} />
-              <Route path="general-ledger" element={<PlaceholderPage title="General Ledger" />} />
+            <Route path="sales">
+              <Route path="invoices" element={<Invoices />} />
+              <Route path="returns" element={<Returns />} />
+              <Route path="quotations" element={<Quotations />} />
+              <Route path="customers" element={<Customers />} />
+              <Route path="payments" element={<Payments />} />
             </Route>
-            <Route path="customers" element={<PlaceholderPage title="Customers Reports" />} />
-            <Route path="suppliers" element={<PlaceholderPage title="Suppliers Reports" />} />
-            <Route path="inventory" element={<PlaceholderPage title="Inventory Reports" />} />
-          </Route>
-          <Route path="purchases">
-            <Route index element={<PurchasesPage />} />
-            <Route path="invoices" element={<PurchaseInvoices />} />
-            <Route path="invoices/add" element={<PurchaseInvoices />} />
-            <Route path="credit-notes" element={<PurchaseCreditNotes />} />
-            <Route path="credit-notes/add" element={<PurchaseCreditNotes />} />
-            <Route path="purchase-orders" element={<PurchaseOrders />} />
-            <Route path="returns" element={<PurchaseReturns />} />
-            <Route path="requests" element={<PurchaseRequests />} />
-            <Route path="suppliers" element={<Suppliers />} />
-            <Route path="payments" element={<SupplierPayments />} />
-          </Route>
-          <Route path="finance">
-            <Route path="expenses" element={<Expenses />} />
-            <Route path="transactions" element={<Transactions />} />
-            <Route path="requisitions" element={<Requisitions />} />
-            <Route path="safes" element={<Safes />} />
-            <Route path="bank-accounts" element={<BankAccounts />} />
-          </Route>
-          <Route path="users">
-            <Route index element={<Contacts />} />
-            <Route path="roles" element={<Roles />} />
+
+            <Route path="inventory">
+              <Route path="products" element={<Products />} />
+              <Route path="categories" element={<Categories />} />
+              <Route path="operations" element={<Operations />} />
+              <Route path="permissions" element={<Permissions />} />
+              <Route path="warehouses" element={<Warehouses />} />
+              <Route path="inventories" element={<Inventories />} />
+            </Route>
+
+            <Route path="accounting">
+              <Route path="journal-entries" element={<JournalEntries />} />
+              <Route path="chart-of-accounts" element={<ChartOfAccounts />} />
+              <Route path="cost-centers" element={<CostCenters />} />
+            </Route>
+
+            <Route path="purchases">
+              <Route index element={<PurchasesPage />} />
+              <Route path="invoices" element={<PurchaseInvoices />} />
+              <Route path="invoices/add" element={<PurchaseInvoices />} />
+              <Route path="credit-notes" element={<PurchaseCreditNotes />} />
+              <Route path="credit-notes/add" element={<PurchaseCreditNotes />} />
+              <Route path="purchase-orders" element={<PurchaseOrders />} />
+              <Route path="returns" element={<PurchaseReturns />} />
+              <Route path="requests" element={<PurchaseRequests />} />
+              <Route path="suppliers" element={<Suppliers />} />
+              <Route path="payments" element={<SupplierPayments />} />
+            </Route>
+
+            <Route path="finance">
+              <Route path="expenses" element={<Expenses />} />
+              <Route path="transactions" element={<Transactions />} />
+              <Route path="requisitions" element={<Requisitions />} />
+              <Route path="safes" element={<Safes />} />
+              <Route path="bank-accounts" element={<BankAccounts />} />
+            </Route>
+
+            <Route path="users">
+              <Route index element={<Contacts />} />
+              <Route path="roles" element={<Roles />} />
+            </Route>
+
+            <Route path="branches">
+              <Route index element={<Branches />} />
+              <Route path="partner-lists" element={<PartnerLists />} />
+              <Route path="businesses" element={<Activities />} />
+            </Route>
+
+            <Route path="reports">
+              <Route index element={<PlaceholderPage title="Reports" />} />
+              <Route path="sales" element={<PlaceholderPage title="Sales Reports" />} />
+              <Route path="purchases" element={<PlaceholderPage title="Purchases Reports" />} />
+              <Route path="accounting">
+                <Route index element={<PlaceholderPage title="Accounting Reports" />} />
+                <Route path="general-ledger" element={<PlaceholderPage title="General Ledger" />} />
+              </Route>
+              <Route path="customers" element={<PlaceholderPage title="Customers Reports" />} />
+              <Route path="suppliers" element={<PlaceholderPage title="Suppliers Reports" />} />
+              <Route path="inventory" element={<PlaceholderPage title="Inventory Reports" />} />
+            </Route>
+
+            <Route path="templates" element={<PlaceholderPage title="Templates" />} />
+            <Route path="settings" element={<PlaceholderPage title="Settings" />} />
+            <Route path="support" element={<PlaceholderPage title="Technical Support" />} />
           </Route>
 
-          <Route path="branches">
-            <Route index element={<Branches />} />
-            <Route path="partner-lists" element={<PartnerLists />} />
-            <Route path="businesses" element={<Activities />} />
-          </Route>
-          <Route path="templates" element={<PlaceholderPage title="Templates" />} />
-          <Route path="settings" element={<PlaceholderPage title="Settings" />} />
-          <Route path="support" element={<PlaceholderPage title="Technical Support" />} />
-
-        </Route>
-
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

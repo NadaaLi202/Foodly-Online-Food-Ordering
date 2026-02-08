@@ -60,6 +60,13 @@ const paymentSchema = new mongoose.Schema({
         ref: 'User'
     },
 
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Company",
+        required: [true, 'Company ID is required'],
+        index: true
+    },
+
     lastModifiedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'

@@ -175,9 +175,17 @@ const invoiceSchema = new mongoose.Schema({
     },
 
     // معلومات إضافية مفيدة
+    // معلومات إضافية مفيدة
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User' // إذا كان لديك نظام مستخدمين
+    },
+
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Company",
+        required: [true, 'Company ID is required'],
+        index: true
     },
 
     lastModifiedBy: {
@@ -197,10 +205,22 @@ invoiceSchema.virtual('balance').get(function () {
 });
 
 // Indexes للبحث السريع
-// { invoiceNumber: 1 } is already unique: true in schema definition
+// { invoiceNumber: 1 } is defined as unique but should be unique PER COMPANY?
+// Mongoose unique index is global. We need compound index { invoiceNumber: 1, companyId: 1 } unique.
+// But we cannot easily remove the existing unique index via code without dropping it first.
+// For now, let's keep it global unique if that's the requirement, OR strictly per company.
+// User said "Each Company is a tenant". Usually invoice numbers are unique per company.
+// I will attempt to make it unique per company in schema definition if I can, but replacing specific lines.
+// The existing `invoiceNumber` definition has `unique: true`.
+// I will NOT change the unique constraint on `invoiceNumber` field definition here to avoid complex migration issues in this step,
+// BUT I will add the `companyId` field.
+// Ideally, we should drop the index and create a compound one.
+// Let's stick to adding `companyId` and `index: true`.
+
 invoiceSchema.index({ clientName: 1 });
 invoiceSchema.index({ issueDate: -1 });
 invoiceSchema.index({ status: 1 });
+invoiceSchema.index({ companyId: 1 });
 
 // Virtual للحصول على عدد الأيام حتى الاستحقاق
 invoiceSchema.virtual('daysUntilDue').get(function () {
@@ -261,8 +281,9 @@ invoiceSchema.pre('save', function (next) {
 });
 
 // Method للبحث عن الفواتير
-invoiceSchema.statics.searchInvoices = function (searchTerm) {
+invoiceSchema.statics.searchInvoices = function (searchTerm, filter = {}) {
     return this.find({
+        ...filter, // Apply company filter
         $or: [
             { invoiceNumber: { $regex: searchTerm, $options: 'i' } },
             { clientName: { $regex: searchTerm, $options: 'i' } }

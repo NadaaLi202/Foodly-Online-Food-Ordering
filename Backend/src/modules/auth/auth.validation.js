@@ -6,7 +6,8 @@ export const signupVal = Joi.object({
     email: Joi.string().email().required(),
     password: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).required(),
     confirmPassword: Joi.string().valid(Joi.ref('password')).required(),
-    role: Joi.string().allow('accountant', 'admin', 'employee', 'user'),
+    role: Joi.string().valid('accountant', 'admin', 'employee', 'superAdmin'),
+    companyId: Joi.string().hex().length(24),
     phone: Joi.string(),
 })
 

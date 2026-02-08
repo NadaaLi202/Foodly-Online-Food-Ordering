@@ -16,7 +16,6 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
         trim: true,
-        unique: [true, 'User email must be unique'],
         lowercase: true,
     },
 
@@ -26,20 +25,25 @@ const userSchema = new mongoose.Schema({
         minLength: [6, 'User password must be at least 6 characters long'],
         maxLength: [30, 'User password must be at most 30 characters long']
     },
-    confirmPassword: {
-        type: String,
-        required: true,
-        minLength: [6, 'User password must be at least 6 characters long'],
-        maxLength: [30, 'User password must be at most 30 characters long']
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Company",
+        required: [
+            function () { return this.role !== 'superAdmin'; },
+            'Company ID is required for non-superAdmin users'
+        ]
     },
-
     role: {
         type: String,
-        enum: ["accountant", "admin", "employee", "user"],
-        default: "user",
+        enum: ["superAdmin", "admin", "accountant", "employee"],
+        default: "employee",
         required: true
     },
     image: {
+        type: String,
+        trim: true
+    },
+    imagePublicId: {
         type: String,
         trim: true
     },
@@ -48,6 +52,8 @@ const userSchema = new mongoose.Schema({
         trim: true
     }
 }, { timestamps: true })
+
+userSchema.index({ email: 1, companyId: 1 }, { unique: true });
 
 
 
@@ -60,10 +66,9 @@ userSchema.pre('save', function (next) {
     next();
 })
 
-userSchema.post('init', (doc) => {
-    doc.image = "http://localhost:4000/user/" + doc.image
-
-})
+// userSchema.post('init', (doc) => {
+//     doc.image = "http://localhost:4000/user/" + doc.image
+// })
 
 
 export const userModel = mongoose.model('user', userSchema)

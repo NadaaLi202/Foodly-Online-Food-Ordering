@@ -1,7 +1,7 @@
 import { Search, RefreshCw, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoiceClick, i18n, noItemsKey, startKey }) => {
+const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoiceClick, i18n, noItemsKey, startKey, clientLabelKey }) => {
     const { t } = useTranslation();
     const noItemsMsg = noItemsKey ? t(noItemsKey) : t('sales.invoices.no_invoices');
     const startMsg = startKey ? t(startKey) : t('sales.invoices.start_creating');
@@ -54,7 +54,7 @@ const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoice
                             <thead>
                                 <tr>
                                     <th className={`px-6 py-4 text-${i18n.language === 'ar' ? 'right' : 'left'} text-[10px] font-black text-gray-400 uppercase tracking-widest`}>{t('sales.common.number')}</th>
-                                    <th className={`px-6 py-4 text-${i18n.language === 'ar' ? 'right' : 'left'} text-[10px] font-black text-gray-400 uppercase tracking-widest`}>{t('sales.common.client')}</th>
+                                    <th className={`px-6 py-4 text-${i18n.language === 'ar' ? 'right' : 'left'} text-[10px] font-black text-gray-400 uppercase tracking-widest`}>{clientLabelKey ? t(clientLabelKey) : t('sales.common.client')}</th>
                                     <th className={`px-6 py-4 text-${i18n.language === 'ar' ? 'right' : 'left'} text-[10px] font-black text-gray-400 uppercase tracking-widest`}>{t('sales.common.date')}</th>
                                     <th className={`px-6 py-4 text-${i18n.language === 'ar' ? 'right' : 'left'} text-[10px] font-black text-gray-400 uppercase tracking-widest`}>{t('sales.common.total')}</th>
                                     <th className={`px-6 py-4 text-${i18n.language === 'ar' ? 'right' : 'left'} text-[10px] font-black text-gray-400 uppercase tracking-widest`}>{t('sales.common.status')}</th>

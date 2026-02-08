@@ -49,7 +49,8 @@ const inventoryExchangeSchema = new mongoose.Schema(
         // المرفقات
         attachments: [
             {
-                type: String
+                secure_url: { type: String },
+                public_id: { type: String }
             }
         ],
 
@@ -57,6 +58,11 @@ const inventoryExchangeSchema = new mongoose.Schema(
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Contact"
+        },
+        companyId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Company",
+            required: true
         }
     },
     {

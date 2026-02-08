@@ -9,7 +9,6 @@ const branchSchema = new mongoose.Schema({
     code: {
         type: String,
         required: true,
-        unique: true,
         trim: true
     },
     address1: {
@@ -55,12 +54,20 @@ const branchSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Company",
+        required: [true, 'Company ID is required'],
+        index: true
+    },
     partnerList: {
-        type: String, // Or ObjectId if referencing a PartnerList model
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "PartnerList",
         required: true
     },
     activity: {
-        type: String, // Or ObjectId if referencing an Activity model
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Activity",
         required: true
     },
     status: {
@@ -71,5 +78,7 @@ const branchSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
+
+branchSchema.index({ code: 1, companyId: 1 }, { unique: true });
 
 export const branchModel = mongoose.model('Branch', branchSchema);

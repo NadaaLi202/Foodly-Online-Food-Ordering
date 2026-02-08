@@ -13,4 +13,3 @@ authRouter.post('/signIn', validation(signinVal), signIn) // login
 
 
 export default authRouter;
-

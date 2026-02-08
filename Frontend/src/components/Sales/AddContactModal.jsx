@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Plus, Edit2, Phone, Mail, MapPin, Trash2 } from 'lucide-react';
+import api from '../../services/api';
 import { useTranslation } from 'react-i18next';
 
 const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
@@ -74,13 +75,9 @@ const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/contacts/customers', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            });
-            const data = await response.json();
-            if (response.ok) {
+            const response = await api.post('/contacts/customers', formData);
+            const data = response.data;
+            if (response.status === 200 || response.status === 201) {
                 onSave(data.contact);
                 onClose();
             } else {

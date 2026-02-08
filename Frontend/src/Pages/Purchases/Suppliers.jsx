@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, RefreshCw, X, Search, MoreVertical, Pencil, Minus, Eye, Check, Trash2, Home } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import api from '../../services/api';
 
 export default function Suppliers() {
     const { t, i18n } = useTranslation();
@@ -55,8 +56,8 @@ export default function Suppliers() {
     const fetchSuppliers = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/contacts/suppliers');
-            const data = await response.json();
+            const response = await api.get('/contacts/suppliers');
+            const data = response.data;
             setSuppliers(data.contacts || []);
         } catch (error) {
             console.error('Error fetching suppliers:', error);
@@ -72,8 +73,8 @@ export default function Suppliers() {
     const getSupplierById = async (id) => {
         setLoadingSupplier(true);
         try {
-            const res = await fetch(`http://localhost:4000/api/v1/contacts/${id}`);
-            const data = await res.json();
+            const res = await api.get(`/contacts/${id}`);
+            const data = res.data;
 
             if (data.contact) {
                 const c = data.contact;
@@ -224,27 +225,15 @@ export default function Suppliers() {
 
             if (isEditing && currentSupplierId) {
                 // Update existing supplier - PATCH request
-                response = await fetch(`http://localhost:4000/api/v1/contacts/${currentSupplierId}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(dataToSend)
-                });
-                result = await response.json();
+                response = await api.patch(`/contacts/${currentSupplierId}`, dataToSend);
+                result = response.data;
             } else {
                 // Create new supplier - POST request to SUPPLIERS endpoint
-                response = await fetch('http://localhost:4000/api/v1/contacts/suppliers', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(dataToSend)
-                });
-                result = await response.json();
+                response = await api.post('/contacts/suppliers', dataToSend);
+                result = response.data;
             }
 
-            if (!response.ok) {
+            if (response.status !== 200 && response.status !== 201) {
                 throw new Error(result.message || t('sales.common.error_message'));
             }
 
@@ -323,8 +312,8 @@ export default function Suppliers() {
         setMenuOpenId(null);
         setSelectedSupplierId(supplier._id);
         try {
-            const res = await fetch(`http://localhost:4000/api/v1/contacts/${supplier._id}`);
-            const data = await res.json();
+            const res = await api.get(`/contacts/${supplier._id}`);
+            const data = res.data;
             if (data.contact) {
                 const c = data.contact;
                 const addr = c.address || {};
@@ -393,9 +382,9 @@ export default function Suppliers() {
 
     const handleDeleteSupplier = async (id) => {
         try {
-            const res = await fetch(`http://localhost:4000/api/v1/contacts/${id}`, { method: 'DELETE' });
-            const data = await res.json();
-            if (res.ok) {
+            const res = await api.delete(`/contacts/${id}`);
+            const data = res.data;
+            if (res.status === 200) {
                 fetchSuppliers();
                 if (viewContact?._id === id) {
                     setViewContact(null);
@@ -469,13 +458,9 @@ export default function Suppliers() {
                 additionalContacts
             };
 
-            const res = await fetch(`http://localhost:4000/api/v1/contacts/${viewContact._id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dataToSend)
-            });
-            const result = await res.json();
-            if (res.ok) {
+            const res = await api.patch(`/contacts/${viewContact._id}`, dataToSend);
+            const result = res.data;
+            if (res.status === 200) {
                 await openViewModal({ _id: viewContact._id });
                 fetchSuppliers();
             } else {

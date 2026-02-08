@@ -14,6 +14,7 @@ import {
     UserCircle
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import api from '../../services/api';
 
 const Users = () => {
     const { t, i18n } = useTranslation();
@@ -37,9 +38,8 @@ const Users = () => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/users/all');
-            if (!response.ok) throw new Error('Failed to fetch');
-            const data = await response.json();
+            const response = await api.get('/users/all');
+            const data = response.data;
             setUsers(data.users || data || []);
         } catch (error) {
             console.error('Error fetching users:', error);
@@ -92,26 +92,12 @@ const Users = () => {
         }
 
         setLoading(true);
-        const url = modalMode === 'add'
-            ? 'http://localhost:4000/api/v1/users'
-            : `http://localhost:4000/api/v1/users/${selectedUserId}`;
-        const method = modalMode === 'add' ? 'POST' : 'PUT';
-
-        // Don't send password fields if they're empty during edit
-        const dataToSend = { ...formData };
-        if (modalMode === 'edit' && !formData.password) {
-            delete dataToSend.password;
-            delete dataToSend.confirmPassword;
-        }
-
         try {
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dataToSend)
-            });
+            const response = modalMode === 'add'
+                ? await api.post('/users', dataToSend)
+                : await api.put(`/users/${selectedUserId}`, dataToSend);
 
-            if (response.ok) {
+            if (response.status === 200 || response.status === 201) {
                 setIsModalOpen(false);
                 fetchUsers();
             }
@@ -126,10 +112,8 @@ const Users = () => {
         if (!confirm(t('sales.common.confirm_delete', 'Are you sure you want to delete?'))) return;
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:4000/api/v1/users/${id}`, {
-                method: 'DELETE'
-            });
-            if (response.ok) fetchUsers();
+            const response = await api.delete(`/users/${id}`);
+            if (response.status === 200) fetchUsers();
         } catch (error) {
             console.error('Error deleting user:', error);
         } finally {

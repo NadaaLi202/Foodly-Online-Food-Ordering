@@ -55,8 +55,13 @@ const transactionSchema = new mongoose.Schema({
     transactionNumber: {
         type: String,
         required: true,
-        unique: true,
         trim: true
+    },
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Company",
+        required: [true, 'Company ID is required'],
+        index: true
     },
     warehouse: {
         type: mongoose.Schema.Types.Mixed,

@@ -17,6 +17,7 @@ import {
     XCircle
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import api from '../../services/api';
 
 const Permissions = () => {
     const { t, i18n } = useTranslation();
@@ -42,12 +43,8 @@ const Permissions = () => {
     const fetchPermissions = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/requisitions');
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            const data = await response.json();
-            setPermissions(data.requisitions || []);
+            const response = await api.get('/requisitions');
+            setPermissions(response.data.requisitions || []);
         } catch (error) {
             console.error('Error fetching permissions:', error);
         } finally {
@@ -59,24 +56,20 @@ const Permissions = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/requisitions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(addFormData),
-            });
+            const response = await api.post('/requisitions', addFormData);
 
-            if (response.ok) {
+            if (response.status === 200 || response.status === 201) {
                 setIsAddModalOpen(false);
                 setAddFormData({ number: '', warehouse: '', startDate: '', endDate: '' });
                 fetchPermissions();
             } else {
-                const data = await response.json();
+                const data = response.data;
                 alert(data.message || (i18n.language === 'ar' ? 'فشل في إضافة الإذن' : 'Failed to add permission'));
             }
         } catch (error) {
             console.error('Error adding permission:', error);
+            const data = error.response?.data;
+            alert(data?.message || (i18n.language === 'ar' ? 'فشل في إضافة الإذن' : 'Failed to add permission'));
         } finally {
             setLoading(false);
         }
@@ -87,11 +80,9 @@ const Permissions = () => {
 
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:4000/api/v1/requisitions/${id}`, {
-                method: 'DELETE'
-            });
+            const response = await api.delete(`/requisitions/${id}`);
 
-            if (response.ok) {
+            if (response.status === 200) {
                 fetchPermissions();
             } else {
                 console.error('Failed to delete permission');
@@ -105,15 +96,9 @@ const Permissions = () => {
 
     const handleUpdateStatus = async (id, status) => {
         try {
-            const response = await fetch(`http://localhost:4000/api/v1/requisitions/${id}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ status }),
-            });
+            const response = await api.patch(`/requisitions/${id}`, { status });
 
-            if (response.ok) {
+            if (response.status === 200) {
                 fetchPermissions();
             } else {
                 console.error('Failed to update status');

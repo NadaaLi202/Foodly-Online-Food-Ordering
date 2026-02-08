@@ -20,18 +20,22 @@ import {
 } from "./stockAdd.validation.js";
 
 import { validation } from "../../middleware/validation.js";
-import { upload } from "../../middleware/uploadImage.js";
+import { uploadMultiFiles } from "../../middleware/uploadFiles.js";
+import { protectedRoutes } from "../auth/auth.controller.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const router = express.Router();
 
+router.use(protectedRoutes, applyCompanyFilter);
+
 // StockAdd routes
 router.route("/")
-    .post(upload.array('attachments', 5), validation(addStockAddSchema), addStockAdd)
+    .post(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), validation(addStockAddSchema), applyCompanyFilter, addStockAdd)
     .get(getAllStockAdds);
 
 router.route("/:id")
     .get(getStockAddById)
-    .put(upload.array('attachments', 5), validation(updateStockAddSchema), updateStockAdd)
+    .put(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), validation(updateStockAddSchema), applyCompanyFilter, updateStockAdd)
     .delete(deleteStockAdd);
 
 // StockAddItem routes

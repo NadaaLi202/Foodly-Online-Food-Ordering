@@ -743,5 +743,49 @@
             "balance_sheet": "تقرير الميزانية العمومية",
             "income_statement": "تقرير قائمة الدخل"
         }
+    },
+    "superAdmin": {
+        "dashboard": "لوحة تحكم المدير العام",
+        "totalCompanies": "إجمالي الشركات",
+        "quickActions": "إجراءات سريعة",
+        "manageCompanies": "إدارة الشركات",
+        "companies": "الشركات",
+        "addCompany": "إضافة شركة",
+        "editCompany": "تعديل شركة",
+        "noCompanies": "لم يتم العثور على شركات",
+        "companyName": "اسم الشركة",
+        "email": "البريد الإلكتروني",
+        "password": "كلمة المرور",
+        "leaveBlankPassword": "اتركه فارغاً للإبقاء على كلمة المرور الحالية",
+        "subscription": "الاشتراك",
+        "subscriptionStatus": "حالة الاشتراك",
+        "subscriptionEndDate": "تاريخ انتهاء الاشتراك",
+        "active": "نشط",
+        "inactive": "غير نشط",
+        "trial": "تجريبي",
+        "logo": "الشعار",
+        "confirmDelete": "تأكيد الحذف",
+        "deleteCompanyWarning": "هل أنت متأكد من حذف {{name}}؟ لا يمكن التراجع عن هذا الإجراء.",
+        "loginAsCompany": "تسجيل الدخول كشركة",
+        "manageUsers": "إدارة المستخدمين",
+        "companyUsers": "مستخدمي الشركة",
+        "addUser": "إضافة مستخدم",
+        "editUser": "تعديل مستخدم"
+    },
+    "common": {
+        "search": "بحث",
+        "loading": "جاري التحميل...",
+        "actions": "الإجراءات",
+        "edit": "تعديل",
+        "delete": "حذف",
+        "confirmDelete": "هل أنت متأكد من الحذف؟",
+        "cancel": "إلغاء",
+        "save": "حفظ",
+        "create": "إنشاء",
+        "saving": "جاري الحفظ...",
+        "back": "رجوع"
+    },
+    "validation": {
+        "required": "هذا الحقل مطلوب"
     }
 }

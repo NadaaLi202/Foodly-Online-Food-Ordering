@@ -34,7 +34,8 @@ const inventoryOperationSchema = new mongoose.Schema(
         // المرفقات
         attachments: [
             {
-                type: String
+                secure_url: { type: String },
+                public_id: { type: String }
             }
         ],
         // البنود (المنتجات)
@@ -49,13 +50,18 @@ const inventoryOperationSchema = new mongoose.Schema(
                     default: 0
                 }
             }
-        ]
+        ],
+        companyId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Company",
+            required: true
+        }
     },
     { timestamps: true }
 );
 
 // index لتحسين البحث
-inventoryOperationSchema.index({ warehouse: 1, date: -1 });
+inventoryOperationSchema.index({ warehouse: 1, date: -1, companyId: 1 });
 
 export const inventoryOperationModel =
     mongoose.models.InventoryOperation ||

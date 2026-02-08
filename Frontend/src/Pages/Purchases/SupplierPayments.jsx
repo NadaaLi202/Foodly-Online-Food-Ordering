@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, RefreshCw, X, Search, MoreVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-
-const API_BASE = 'http://localhost:4000/api/v1';
+import api from '../../services/api';
 
 export default function SupplierPayments() {
     const { t, i18n } = useTranslation();
@@ -29,9 +28,8 @@ export default function SupplierPayments() {
     const fetchPayments = async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE}/payments/purchases`);
-            const data = await response.json();
-            setPayments(data.payments || []);
+            const response = await api.get('/payments/purchases');
+            setPayments(response.data.payments || []);
         } catch (error) {
             console.error('Error fetching payments:', error);
             setPayments([]);
@@ -42,9 +40,8 @@ export default function SupplierPayments() {
 
     const fetchSuppliers = async () => {
         try {
-            const response = await fetch(`${API_BASE}/contacts/suppliers`);
-            const data = await response.json();
-            setSuppliers(data.contacts || []);
+            const response = await api.get('/contacts/suppliers');
+            setSuppliers(response.data.contacts || []);
         } catch (error) {
             console.error('Error fetching suppliers:', error);
         }
@@ -77,8 +74,6 @@ export default function SupplierPayments() {
         setIsSubmitting(true);
         setResponseMessage({ type: '', text: '' });
         try {
-            const url = editingPayment ? `${API_BASE}/payments/${editingPayment._id}` : `${API_BASE}/payments/purchases`;
-            const method = editingPayment ? 'PATCH' : 'POST';
             const body = {
                 date: formData.date,
                 contact: formData.contact || undefined,
@@ -87,22 +82,23 @@ export default function SupplierPayments() {
                 amount: parseFloat(formData.amount),
                 notes: formData.notes || ''
             };
-            const response = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message || t('sales.common.error_message'));
-            setResponseMessage({ type: 'success', text: result.message || t('sales.common.success_message') });
-            fetchPayments();
-            setTimeout(() => {
-                setIsModalOpen(false);
-                setEditingPayment(null);
-                resetForm();
-            }, 1200);
+
+            const response = editingPayment
+                ? await api.patch(`/payments/${editingPayment._id}`, body)
+                : await api.post('/payments/purchases', body);
+
+            const result = response.data;
+            if (response.status === 200 || response.status === 201) {
+                setResponseMessage({ type: 'success', text: result.message || t('sales.common.success_message') });
+                fetchPayments();
+                setTimeout(() => {
+                    setIsModalOpen(false);
+                    setEditingPayment(null);
+                    resetForm();
+                }, 1200);
+            }
         } catch (error) {
-            setResponseMessage({ type: 'error', text: error.message || t('sales.common.error_message') });
+            setResponseMessage({ type: 'error', text: error.response?.data?.message || t('sales.common.error_message') });
         } finally {
             setIsSubmitting(false);
         }
@@ -137,9 +133,9 @@ export default function SupplierPayments() {
     const openEditModal = async (payment) => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/payments/${payment._id}`);
-            const data = await res.json();
-            if (res.ok && data.payment) {
+            const res = await api.get(`/payments/${payment._id}`);
+            const data = res.data;
+            if (res.status === 200 && data.payment) {
                 const p = data.payment;
                 setFormData({
                     date: p.date ? new Date(p.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
@@ -162,9 +158,9 @@ export default function SupplierPayments() {
     const handleDelete = async (id) => {
         if (!window.confirm(t('sales.common.confirm_delete'))) return;
         try {
-            const res = await fetch(`${API_BASE}/payments/${id}`, { method: 'DELETE' });
-            const data = await res.json();
-            if (res.ok) {
+            const res = await api.delete(`/payments/${id}`);
+            const data = res.data;
+            if (res.status === 200) {
                 setPayments(prev => prev.filter(p => p._id !== id));
             } else {
                 alert(data.message || t('sales.common.error_message'));

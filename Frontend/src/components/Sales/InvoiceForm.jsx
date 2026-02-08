@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Search, ChevronDown, Upload, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AddContactModal from './AddContactModal';
+import api from '../../services/api';
 
 const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers', addTitleKey, editTitleKey, numberPlaceholderKey, clientLabelKey }) => {
     const { t } = useTranslation();
@@ -85,9 +86,8 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers'
 
     const fetchClients = async () => {
         try {
-            const response = await fetch(`http://localhost:4000/api/v1/contacts/${contactType}`);
-            const data = await response.json();
-            setClients(data.contacts || data.data || []);
+            const response = await api.get(`/contacts/${contactType}`);
+            setClients(response.data.contacts || response.data.data || []);
         } catch (error) {
             console.error('Error fetching contacts:', error);
         }
@@ -95,9 +95,8 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers'
 
     const fetchProducts = async () => {
         try {
-            const response = await fetch('http://localhost:4000/api/v1/products');
-            const data = await response.json();
-            setProducts(data.products || []);
+            const response = await api.get('/products');
+            setProducts(response.data.products || []);
         } catch (error) {
             console.error('Error fetching products:', error);
         }
@@ -140,6 +139,8 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers'
                 newItems[index].description = product.description || '';
             } else {
                 newItems[index].productId = '';
+                // Optional: clear description/price if user types something random? 
+                // For now just clearing ID is key for validation
             }
         }
 
@@ -211,7 +212,9 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers'
         if (formData.items.length === 0) newErrors.items = t('sales.invoices.at_least_one_item');
 
         formData.items.forEach((item, index) => {
-            if (!item.productName) newErrors[`item_product_${index}`] = t('sales.common.required');
+            if (!item.productName || !item.productId) {
+                newErrors[`item_product_${index}`] = t('sales.common.required');
+            }
             if (item.quantity <= 0) newErrors[`item_quantity_${index}`] = t('sales.common.required');
             if (item.price < 0) newErrors[`item_price_${index}`] = t('sales.common.required');
         });
