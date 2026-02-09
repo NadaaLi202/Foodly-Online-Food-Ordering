@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { formatCurrency } from '../../utils/currencyFormatter';
 import { Plus, Search, RefreshCw, X, Upload, Calendar, Edit3, Home, MoreVertical, ChevronsUpDown, Minus, ArrowRightLeft } from 'lucide-react';
 
 const JournalEntries = () => {
@@ -389,10 +390,10 @@ const JournalEntries = () => {
                                                 {t('accounting.journal_entries.total')}
                                             </td>
                                             <td className="text-center text-[#10B981] text-md font-bold">
-                                                {totalDebit.toFixed(2)} {t('sales.common.currency') || (isRTL ? 'ج.م' : 'EGP')}
+                                                {formatCurrency(totalDebit, 'EGP')}
                                             </td>
                                             <td className="text-center text-[#10B981] text-md font-bold">
-                                                {totalCredit.toFixed(2)} {t('sales.common.currency') || (isRTL ? 'ج.م' : 'EGP')}
+                                                {formatCurrency(totalCredit, 'EGP')}
                                             </td>
                                             <td className="bg-white"></td>
                                         </tr>

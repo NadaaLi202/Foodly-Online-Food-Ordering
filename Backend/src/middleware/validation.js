@@ -25,7 +25,10 @@ export const validation = (schema) => {
             await schema.validateAsync(inputs, { abortEarly: false, convert: true });
             next();
         } catch (error) {
-            res.status(400).json({ message: error.details ? error.details.map(err => err.message) : error.message });
+            const message = error.details
+                ? error.details.map(err => err.message).join('; ')
+                : (error.message || 'Validation failed');
+            res.status(400).json({ message });
         }
     }
 }

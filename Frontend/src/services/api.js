@@ -12,7 +12,15 @@ api.interceptors.request.use((config) => {
         config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Automatically remove companyId from request payload
+    // Allow companyId for user endpoints (superAdmin: create/update users for a company, list company users)
+    const isUserEndpoint = config.url?.startsWith('/users') || config.url === '/users';
+    const isUserCreateOrUpdate = (config.method === 'post' || config.method === 'put') && isUserEndpoint;
+    const isUserListWithCompany = config.method === 'get' && isUserEndpoint && config.params?.companyId;
+    if (isUserCreateOrUpdate || isUserListWithCompany) {
+        return config;
+    }
+
+    // Automatically remove companyId from request payload for other endpoints
     if (config.data) {
         if (config.data instanceof FormData) {
             config.data.delete('companyId');

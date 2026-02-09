@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, RefreshCw, X, Search, MoreVertical, Pencil, Minus, Eye, Check, Trash2, Home } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import { formatCurrency } from '../../utils/currencyFormatter';
 
 export default function Customers() {
     const { t, i18n } = useTranslation();
@@ -604,7 +605,7 @@ export default function Customers() {
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
                                             <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold ring-1 ring-inset ${(customer.currentBalance ?? customer.initialBalance ?? 0) < 0 ? 'bg-red-50 text-red-700 ring-red-600/10' : 'bg-green-50 text-green-700 ring-green-600/20'}`}>
                                                 {(customer.currentBalance ?? customer.initialBalance ?? 0) !== 0
-                                                    ? (Math.abs(customer.currentBalance ?? customer.initialBalance ?? 0)).toLocaleString() + ' ' + t('sales.common.currency')
+                                                    ? formatCurrency(Math.abs(customer.currentBalance ?? customer.initialBalance ?? 0), customer.currency || 'EGP')
                                                     : '—'}
                                             </span>
                                         </td>
@@ -682,7 +683,7 @@ export default function Customers() {
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{t('sales.customers.balance')}</p>
                                     <p className={`text-sm font-black ${(viewContact.currentBalance ?? viewContact.initialBalance ?? 0) < 0 ? 'text-red-600' : 'text-gray-800'}`}>
-                                        {(viewContact.currentBalance ?? viewContact.initialBalance ?? 0) !== 0 ? (viewContact.currentBalance ?? viewContact.initialBalance ?? 0).toLocaleString() + ' ' + t('sales.common.currency') : '—'}
+                                        {(viewContact.currentBalance ?? viewContact.initialBalance ?? 0) !== 0 ? formatCurrency(viewContact.currentBalance ?? viewContact.initialBalance ?? 0, viewContact.currency || 'EGP') : '—'}
                                     </p>
                                 </div>
                                 <div className={`text-${i18n.language === 'ar' ? 'right' : 'left'}`}>

@@ -1,5 +1,7 @@
 import Joi from "joi";
 
+const currencyValidator = Joi.string().valid("EGP", "USD", "EUR", "SAR", "AED", "GBP");
+
 const addQuoteSchema = Joi.object({
     customer: Joi.string().hex().length(24).required(),
     items: Joi.array().items(Joi.object({
@@ -9,7 +11,8 @@ const addQuoteSchema = Joi.object({
     })).required(),
     totalAmount: Joi.number().required(),
     status: Joi.string().valid('Pending', 'Accepted', 'Rejected'),
-    expiryDate: Joi.date().required()
+    expiryDate: Joi.date().required(),
+    currency: currencyValidator.optional()
 });
 
 const updateQuoteSchema = Joi.object({
@@ -22,6 +25,7 @@ const updateQuoteSchema = Joi.object({
     totalAmount: Joi.number(),
     status: Joi.string().valid('Pending', 'Accepted', 'Rejected'),
     expiryDate: Joi.date(),
+    currency: currencyValidator.optional(),
     id: Joi.string().hex().length(24).required()
 });
 

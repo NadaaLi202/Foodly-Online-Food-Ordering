@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, RefreshCw, X, Search, MoreVertical, Pencil, Minus, Eye, Check, Trash2, Home } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import { formatCurrency } from '../../utils/currencyFormatter';
+import AddSupplierModal from '../../components/AddSupplierModal';
 
 export default function Suppliers() {
     const { t, i18n } = useTranslation();
@@ -51,6 +53,7 @@ export default function Suppliers() {
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [responseMessage, setResponseMessage] = useState({ type: '', text: '' });
+    const [editSupplierData, setEditSupplierData] = useState(null);
 
     // Fetch suppliers from API
     const fetchSuppliers = async () => {
@@ -112,6 +115,7 @@ export default function Suppliers() {
 
                 setCurrentSupplierId(id);
                 setIsEditing(true);
+                setEditSupplierData(data.contact);
                 setIsModalOpen(true);
             }
         } catch (error) {
@@ -299,12 +303,14 @@ export default function Suppliers() {
 
     const handleCancel = () => {
         setIsModalOpen(false);
+        setEditSupplierData(null);
         resetForm();
     };
 
     const openAddModal = () => {
         resetForm();
         setViewContact(null);
+        setEditSupplierData(null);
         setIsModalOpen(true);
     };
 
@@ -601,7 +607,7 @@ export default function Suppliers() {
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
                                             <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold ring-1 ring-inset ${(supplier.currentBalance ?? supplier.initialBalance ?? 0) < 0 ? 'bg-red-50 text-red-700 ring-red-600/10' : 'bg-green-50 text-green-700 ring-green-600/20'}`}>
                                                 {(supplier.currentBalance ?? supplier.initialBalance ?? 0) !== 0
-                                                    ? (Math.abs(supplier.currentBalance ?? supplier.initialBalance ?? 0)).toLocaleString() + ' ' + t('sales.common.currency')
+                                                    ? formatCurrency(Math.abs(supplier.currentBalance ?? supplier.initialBalance ?? 0), supplier.currency || 'EGP')
                                                     : '—'}
                                             </span>
                                         </td>
@@ -678,7 +684,7 @@ export default function Suppliers() {
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{t('sales.suppliers.balance')}</p>
                                     <p className={`text-sm font-black ${(viewContact.currentBalance ?? viewContact.initialBalance ?? 0) < 0 ? 'text-red-600' : 'text-gray-800'}`}>
-                                        {(viewContact.currentBalance ?? viewContact.initialBalance ?? 0) !== 0 ? (viewContact.currentBalance ?? viewContact.initialBalance ?? 0).toLocaleString() + ' ' + t('sales.common.currency') : '—'}
+                                        {(viewContact.currentBalance ?? viewContact.initialBalance ?? 0) !== 0 ? formatCurrency(viewContact.currentBalance ?? viewContact.initialBalance ?? 0, viewContact.currency || 'EGP') : '—'}
                                     </p>
                                 </div>
                                 <div className={`text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
@@ -892,334 +898,12 @@ export default function Suppliers() {
                 </div>
             )}
             {/* Add / Edit Supplier Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-                        <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-                            <h2 className={`text-xl font-bold text-gray-800 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                {isEditing ? t('sales.suppliers.edit_supplier') : t('sales.suppliers.add_supplier')}
-                            </h2>
-                            <button onClick={handleCancel} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
-                        </div>
-
-                        <div className="flex-1 overflow-y-auto p-6">
-                            {responseMessage.text && (
-                                <div className={`mb-6 p-4 rounded-lg flex items-start gap-3 ${responseMessage.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                                    {responseMessage.type === 'success' ? <Check size={20} className="mt-0.5" /> : <X size={20} className="mt-0.5" />}
-                                    <p className="font-medium text-sm">{responseMessage.text}</p>
-                                </div>
-                            )}
-
-                            <form onSubmit={handleSubmit} className="space-y-6">
-                                {/* Type Selection */}
-                                <div>
-                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.type')}</label>
-                                    <div className="flex gap-4 flex-wrap">
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="type"
-                                                value="individual"
-                                                checked={formData.type === 'individual'}
-                                                onChange={handleInputChange}
-                                                className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                                            />
-                                            <span className="text-sm">{t('sales.suppliers.individual')}</span>
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="type"
-                                                value="commercial"
-                                                checked={formData.type === 'commercial'}
-                                                onChange={handleInputChange}
-                                                className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                                            />
-                                            <span className="text-sm">{t('sales.suppliers.commercial')}</span>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.supplier_code')} <span className="text-gray-400 font-normal text-xs">({t('sales.common.optional')})</span></label>
-                                        <input
-                                            type="text"
-                                            name="code"
-                                            value={formData.code}
-                                            onChange={handleInputChange}
-                                            placeholder={t('sales.common.auto_generated')}
-                                            className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 placeholder:text-gray-300 transition-all font-mono text-sm"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.supplier_name')} <span className="text-red-500">*</span></label>
-                                        <input
-                                            type="text"
-                                            name="name"
-                                            value={formData.name}
-                                            onChange={handleInputChange}
-                                            className={`w-full px-3 py-2.5 border-2 rounded-lg focus:outline-none focus:ring-4 transition-all ${errors.name ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10' : 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/10'}`}
-                                            placeholder={t('sales.suppliers.enter_name')}
-                                        />
-                                        {errors.name && <p className={`mt-1 text-xs font-bold text-red-500 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{errors.name}</p>}
-                                    </div>
-                                </div>
-
-                                {/* Commercial Fields */}
-                                {formData.type === 'commercial' && (
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-4 duration-300">
-                                        <div>
-                                            <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.tax_number')} <span className="text-red-500">*</span></label>
-                                            <input
-                                                type="text"
-                                                name="taxNumber"
-                                                value={formData.taxNumber}
-                                                onChange={handleInputChange}
-                                                className={`w-full px-3 py-2.5 border-2 rounded-lg focus:outline-none focus:ring-4 transition-all ${errors.taxNumber ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10' : 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/10'}`}
-                                            />
-                                            {errors.taxNumber && <p className={`mt-1 text-xs font-bold text-red-500 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{errors.taxNumber}</p>}
-                                        </div>
-                                        <div>
-                                            <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.commercial_register')} <span className="text-red-500">*</span></label>
-                                            <input
-                                                type="text"
-                                                name="commercialRegister"
-                                                value={formData.commercialRegister}
-                                                onChange={handleInputChange}
-                                                className={`w-full px-3 py-2.5 border-2 rounded-lg focus:outline-none focus:ring-4 transition-all ${errors.commercialRegister ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10' : 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/10'}`}
-                                            />
-                                            {errors.commercialRegister && <p className={`mt-1 text-xs font-bold text-red-500 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{errors.commercialRegister}</p>}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Notes */}
-                                <div>
-                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.common.notes')}</label>
-                                    <textarea
-                                        name="notes"
-                                        value={formData.notes}
-                                        onChange={handleInputChange}
-                                        rows={3}
-                                        className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 resize-none transition-all"
-                                        placeholder={t('sales.common.notes_placeholder')}
-                                    />
-                                </div>
-
-                                <div className="h-px bg-gray-100 my-2"></div>
-
-                                {/* Contact Methods */}
-                                <div>
-                                    <label className={`block text-sm font-semibold text-gray-700 mb-3 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.contact_methods')}</label>
-                                    <div className="flex flex-wrap gap-4 mb-4">
-                                        <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all ${contactMethods.phone ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
-                                            <input type="checkbox" checked={contactMethods.phone} onChange={() => handleContactMethodChange('phone')} className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
-                                            <span className="text-sm font-medium">{t('sales.suppliers.phone')}</span>
-                                        </label>
-                                        <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all ${contactMethods.email ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
-                                            <input type="checkbox" checked={contactMethods.email} onChange={() => handleContactMethodChange('email')} className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
-                                            <span className="text-sm font-medium">{t('sales.suppliers.email')}</span>
-                                        </label>
-                                        <label className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-all ${contactMethods.address ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
-                                            <input type="checkbox" checked={contactMethods.address} onChange={() => handleContactMethodChange('address')} className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500" />
-                                            <span className="text-sm font-medium">{t('sales.suppliers.address')}</span>
-                                        </label>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        {contactMethods.phone && (
-                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                <div>
-                                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.mobile')} <span className="text-red-500">*</span></label>
-                                                    <input
-                                                        type="text"
-                                                        name="mobile"
-                                                        value={formData.mobile}
-                                                        onChange={handleInputChange}
-                                                        className={`w-full px-3 py-2.5 border-2 rounded-lg focus:outline-none focus:ring-4 transition-all ${errors.mobile ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10' : 'border-gray-200 focus:border-indigo-500 focus:ring-indigo-500/10'}`}
-                                                    />
-                                                    {errors.mobile && <p className={`mt-1 text-xs font-bold text-red-500 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{errors.mobile}</p>}
-                                                </div>
-                                                <div>
-                                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.phone')}</label>
-                                                    <input
-                                                        type="text"
-                                                        name="phone"
-                                                        value={formData.phone}
-                                                        onChange={handleInputChange}
-                                                        className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
-                                                    />
-                                                </div>
-                                            </div>
-                                        )}
-                                        {contactMethods.email && (
-                                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                                                <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.email')}</label>
-                                                <input
-                                                    type="email"
-                                                    name="email"
-                                                    value={formData.email}
-                                                    onChange={handleInputChange}
-                                                    className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
-                                                />
-                                            </div>
-                                        )}
-                                        {contactMethods.address && (
-                                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                                    <div>
-                                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.address1')}</label>
-                                                        <input type="text" name="address1" value={formData.address1} onChange={handleInputChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10" />
-                                                    </div>
-                                                    <div>
-                                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.address2')}</label>
-                                                        <input type="text" name="address2" value={formData.address2} onChange={handleInputChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10" />
-                                                    </div>
-                                                </div>
-                                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                                    <div>
-                                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.city')}</label>
-                                                        <input type="text" name="city" value={formData.city} onChange={handleInputChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10" />
-                                                    </div>
-                                                    <div>
-                                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.neighborhood')}</label>
-                                                        <input type="text" name="neighborhood" value={formData.neighborhood} onChange={handleInputChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10" />
-                                                    </div>
-                                                    <div>
-                                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.province')}</label>
-                                                        <input type="text" name="province" value={formData.province} onChange={handleInputChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10" />
-                                                    </div>
-                                                    <div>
-                                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.zip_code')}</label>
-                                                        <input type="text" name="zipCode" value={formData.zipCode} onChange={handleInputChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10" />
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.country')}</label>
-                                                    <select name="country" value={formData.country} onChange={handleInputChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 bg-white">
-                                                        <option value="">{t('sales.common.choose')}</option>
-                                                        <option value="saudi">{i18n.language === 'ar' ? 'السعودية' : 'Saudi Arabia'}</option>
-                                                        <option value="egypt">{i18n.language === 'ar' ? 'مصر' : 'Egypt'}</option>
-                                                        <option value="uae">{i18n.language === 'ar' ? 'الإمارات' : 'UAE'}</option>
-                                                        <option value="kuwait">{i18n.language === 'ar' ? 'الكويت' : 'Kuwait'}</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="h-px bg-gray-100 my-2"></div>
-
-                                {/* Financial Info */}
-                                <div>
-                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.opening_balance')}</label>
-                                    <div className="relative">
-                                        <input
-                                            type="number"
-                                            name="initialBalance"
-                                            value={formData.initialBalance}
-                                            onChange={handleInputChange}
-                                            className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all font-mono"
-                                            placeholder="0.00"
-                                        />
-                                        <div className={`absolute inset-y-0 ${i18n.language === 'ar' ? 'left-0 pl-3' : 'right-0 pr-3'} flex items-center pointer-events-none`}>
-                                            <span className="text-gray-500 text-sm font-bold">{t('sales.common.currency')}</span>
-                                        </div>
-                                    </div>
-                                    <p className={`mt-1.5 text-xs text-gray-400 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.common.positive_credit_negative_debit')}</p>
-                                </div>
-
-                                {/* Additional Contact Persons */}
-                                <div>
-                                    <div className="flex items-center justify-between mb-3">
-                                        <p className="text-base font-semibold text-gray-700">{t('sales.suppliers.additional_contacts')}</p>
-                                        <button type="button" onClick={addAdditionalContact} className="flex items-center gap-1.5 text-sm font-bold text-purple-600 hover:text-purple-700 hover:bg-purple-50 px-3 py-1.5 rounded-lg transition-colors">
-                                            <Plus size={16} />
-                                            {t('sales.suppliers.add_new_contact')}
-                                        </button>
-                                    </div>
-
-                                    {(formData.additionalContacts || []).length === 0 ? (
-                                        <div className="text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 text-gray-400">
-                                            <p className="text-sm">{t('sales.suppliers.no_additional_contacts')}</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4">
-                                            {formData.additionalContacts.map((contact, index) => (
-                                                <div key={index} className="p-4 rounded-xl border-2 border-gray-100 bg-gray-50/50 group hover:border-indigo-100 transition-colors">
-                                                    <div className="flex justify-between items-start mb-3">
-                                                        <h4 className="text-sm font-bold text-gray-600">#{index + 1}</h4>
-                                                        <button type="button" onClick={() => removeAdditionalContact(index)} className="text-gray-400 hover:text-red-500 transition-colors" title={t('sales.common.delete')}><Trash2 size={16} /></button>
-                                                    </div>
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                        <div>
-                                                            <input
-                                                                type="text"
-                                                                placeholder={t('sales.suppliers.contact_name')}
-                                                                value={contact.name}
-                                                                onChange={(e) => handleAdditionalContactChange(index, 'name', e.target.value)}
-                                                                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm ${errors[`additionalContact_${index}`] ? 'border-red-300' : 'border-gray-200'}`}
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <input
-                                                                type="text"
-                                                                placeholder={t('sales.suppliers.job_title')}
-                                                                value={contact.title}
-                                                                onChange={(e) => handleAdditionalContactChange(index, 'title', e.target.value)}
-                                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <input
-                                                                type="text"
-                                                                placeholder={t('sales.suppliers.mobile')}
-                                                                value={contact.phone}
-                                                                onChange={(e) => handleAdditionalContactChange(index, 'phone', e.target.value)}
-                                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <input
-                                                                type="email"
-                                                                placeholder={t('sales.suppliers.email')}
-                                                                value={contact.email}
-                                                                onChange={(e) => handleAdditionalContactChange(index, 'email', e.target.value)}
-                                                                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-sm"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            </form>
-                        </div>
-
-                        <div className={`border-t border-gray-200 px-6 py-4 flex justify-end gap-3 bg-gray-50 ${i18n.language === 'ar' ? 'flex-row-reverse' : 'flex-row'}`}>
-                            <button
-                                type="button"
-                                onClick={handleCancel}
-                                disabled={isSubmitting}
-                                className="px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-bold hover:bg-white hover:shadow-sm transition-all disabled:opacity-50"
-                            >
-                                {t('sales.common.cancel')}
-                            </button>
-                            <button
-                                onClick={handleSubmit}
-                                disabled={isSubmitting}
-                                className="px-8 py-2.5 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                            >
-                                {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                                <span>{isEditing ? t('sales.common.save_changes') : t('sales.common.save')}</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <AddSupplierModal
+                isOpen={isModalOpen}
+                onClose={handleCancel}
+                editSupplier={editSupplierData}
+                onSave={() => { fetchSuppliers(); handleCancel(); }}
+            />
         </div>
     );
 }

@@ -33,12 +33,41 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
         localStorage.setItem("token", authToken);
         localStorage.setItem("user", JSON.stringify(userData));
-        localStorage.setItem("role", userData.role);
+        localStorage.setItem("role", userData?.role);
     };
+
+    const loginAsCompany = (companyData, companyToken) => {
+        const currentToken = localStorage.getItem("token");
+        const currentUser = localStorage.getItem("user");
+        if (currentToken && currentUser) {
+            sessionStorage.setItem("superAdminToken", currentToken);
+            sessionStorage.setItem("superAdminUser", currentUser);
+        }
+        login(companyData, companyToken);
+    };
+
+    const restoreSuperAdmin = () => {
+        const savedToken = sessionStorage.getItem("superAdminToken");
+        const savedUser = sessionStorage.getItem("superAdminUser");
+        if (savedToken && savedUser) {
+            try {
+                login(JSON.parse(savedUser), savedToken);
+                sessionStorage.removeItem("superAdminToken");
+                sessionStorage.removeItem("superAdminUser");
+                navigate("/super-admin/companies");
+            } catch (e) {
+                console.error("Failed to restore SuperAdmin session", e);
+            }
+        }
+    };
+
+    const isImpersonating = () => Boolean(sessionStorage.getItem("superAdminToken"));
 
     const logout = () => {
         setToken(null);
         setUser(null);
+        sessionStorage.removeItem("superAdminToken");
+        sessionStorage.removeItem("superAdminUser");
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         localStorage.removeItem("role");
@@ -49,10 +78,13 @@ export const AuthProvider = ({ children }) => {
         user,
         token,
         login,
+        loginAsCompany,
+        restoreSuperAdmin,
+        isImpersonating,
         logout,
         isAuthenticated: !!token,
         role: user?.role,
-        companyId: user?.companyId,
+        companyId: user?.companyId || user?._id,
         loading
     };
 

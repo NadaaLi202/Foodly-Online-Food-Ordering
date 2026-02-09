@@ -3,8 +3,10 @@ import { X, Plus, Search, ChevronDown, Upload, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AddContactModal from './AddContactModal';
 import api from '../../services/api';
+import { SUPPORTED_CURRENCIES } from '../../utils/currencyFormatter';
+import { currencySymbols } from '../../utils/currencySymbols';
 
-const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers', addTitleKey, editTitleKey, numberPlaceholderKey, clientLabelKey }) => {
+const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers', addTitleKey, editTitleKey, numberPlaceholderKey, clientLabelKey, defaultCurrency = 'EGP' }) => {
     const { t } = useTranslation();
     const addTitle = addTitleKey ? t(addTitleKey) : t('sales.invoices.add_invoice');
     const editTitle = editTitleKey ? t(editTitleKey) : t('sales.invoices.edit_invoice');
@@ -43,7 +45,8 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers'
         invoiceDiscount: 0,
         invoiceDiscountType: '%',
         warehouse: '',
-        status: 'unpaid'
+        status: 'unpaid',
+        currency: defaultCurrency
     });
 
     useEffect(() => {
@@ -71,7 +74,8 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers'
                 invoiceDiscount: invoice.generalDiscountPercent || invoice.generalDiscount || 0,
                 invoiceDiscountType: invoice.generalDiscountPercent ? '%' : 'fixed',
                 warehouse: invoice.warehouse || '',
-                status: invoice.status || 'unpaid'
+                status: invoice.status || 'unpaid',
+                currency: invoice.currency || defaultCurrency
             });
             setExistingAttachments(invoice.attachments || []);
         } else {
@@ -239,6 +243,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers'
         formDataToSend.append('paidAmount', formData.paidAmount);
         formDataToSend.append('notes', formData.notes);
         formDataToSend.append('warehouse', formData.warehouse);
+        formDataToSend.append('currency', formData.currency || 'EGP');
 
         if (formData.invoiceDiscountType === '%') {
             formDataToSend.append('generalDiscountPercent', formData.invoiceDiscount);
@@ -371,6 +376,21 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers'
                                     <option value="secondary">{t('sales.common.secondary_warehouse')}</option>
                                 </select>
                             </div>
+                            <div>
+                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">
+                                    {t('currency')}
+                                </label>
+                                <select
+                                    name="currency"
+                                    value={formData.currency || 'EGP'}
+                                    onChange={handleInputChange}
+                                    className="w-full border-2 border-gray-100 rounded-lg px-3 py-2 text-sm font-bold text-gray-700 focus:outline-none focus:border-indigo-500 bg-white transition-colors"
+                                >
+                                    {SUPPORTED_CURRENCIES.map(code => (
+                                        <option key={code} value={code}>{t(`currencies.${code}`)}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
 
                         {/* Items Table */}
@@ -441,7 +461,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers'
                                                         className="border-none bg-indigo-50 text-indigo-600 rounded p-1.5 text-[10px] font-black focus:ring-0"
                                                     >
                                                         <option value="%">%</option>
-                                                        <option value="fixed">{t('sales.common.currency')}</option>
+                                                        <option value="fixed">{t('sales.common.fixed')}</option>
                                                     </select>
                                                     <input
                                                         type="number"
@@ -465,7 +485,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers'
                                                 </div>
                                             </td>
                                             <td className="p-3 text-center text-sm font-black text-gray-800">
-                                                {calculateItemTotal(item).toLocaleString()}
+                                                {(currencySymbols[formData.currency] || formData.currency || 'EGP')} {calculateItemTotal(item).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </td>
                                             <td className="p-3 text-center">
                                                 <button
@@ -551,7 +571,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers'
                                                     className="border-2 border-gray-100 rounded-lg p-2 bg-indigo-50 text-indigo-600 font-black text-xs focus:ring-0"
                                                 >
                                                     <option value="%">%</option>
-                                                    <option value="fixed">{t('sales.common.currency')}</option>
+                                                    <option value="fixed">{t('sales.common.fixed')}</option>
                                                 </select>
                                                 <input
                                                     type="number"
@@ -607,25 +627,25 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers'
                                 </div>
                             </div>
 
-                            {/* Totals Summary */}
+                            {/* Totals Summary — symbol from selected currency */}
                             <div className="bg-indigo-50/30 rounded-2xl p-6 space-y-4 font-sans border border-indigo-50">
                                 <div className="flex justify-between text-xs font-bold text-gray-500 italic">
                                     <span>{t('sales.common.subtotal')}</span>
-                                    <span>{totals.subtotal.toLocaleString()} {t('sales.common.currency')}</span>
+                                    <span>{(currencySymbols[formData.currency] || formData.currency || 'EGP')} {totals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 <div className="flex justify-between text-xs font-bold text-gray-500 italic">
                                     <span>{t('sales.common.tax')}</span>
-                                    <span>{totals.totalTax.toLocaleString()} {t('sales.common.currency')}</span>
+                                    <span>{(currencySymbols[formData.currency] || formData.currency || 'EGP')} {totals.totalTax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                                 {totals.invDiscountAmount > 0 && (
                                     <div className="flex justify-between text-xs font-bold text-red-400 italic">
                                         <span>{t('sales.common.discount')}</span>
-                                        <span>-{totals.invDiscountAmount.toLocaleString()} {t('sales.common.currency')}</span>
+                                        <span>-{(currencySymbols[formData.currency] || formData.currency || 'EGP')} {totals.invDiscountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     </div>
                                 )}
                                 <div className="pt-4 border-t border-indigo-100/50 flex justify-between items-center">
                                     <span className="text-sm font-black text-gray-800 uppercase tracking-widest">{t('sales.common.total')}</span>
-                                    <span className="text-2xl font-black text-indigo-600 tracking-tighter">{totals.total.toLocaleString()} {t('sales.common.currency')}</span>
+                                    <span className="text-2xl font-black text-indigo-600 tracking-tighter">{(currencySymbols[formData.currency] || formData.currency || 'EGP')} {totals.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                 </div>
                             </div>
                         </div>

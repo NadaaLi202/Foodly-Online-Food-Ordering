@@ -2,6 +2,7 @@
 // المشتريات : الفواتير - المرتجعات - طلبات شراء
 
 import mongoose from "mongoose";
+import { SUPPORTED_CURRENCIES } from "../../constants/currencies.js";
 
 const transactionLineSchema = new mongoose.Schema({
     product: {
@@ -79,6 +80,13 @@ const transactionSchema = new mongoose.Schema({
         enum: ['invoice', 'return', 'quotation', 'purchaseOrder'],
         required: true,
         default: 'invoice'
+    },
+
+    currency: {
+        type: String,
+        enum: SUPPORTED_CURRENCIES,
+        required: true,
+        default: "EGP"
     },
 
     contact: {

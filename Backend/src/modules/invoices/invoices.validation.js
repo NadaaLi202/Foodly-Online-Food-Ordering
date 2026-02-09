@@ -31,6 +31,8 @@ const itemSchema = Joi.object({
     })
 }).unknown(true); // ✅ السماح بالحقول الإضافية
 
+const currencyValidator = Joi.string().valid("EGP", "USD", "EUR", "SAR", "AED", "GBP");
+
 const createInvoiceSchema = Joi.object({
     invoiceNumber: Joi.string().required().trim().messages({
         'string.empty': 'رقم الفاتورة مطلوب',
@@ -92,6 +94,8 @@ const createInvoiceSchema = Joi.object({
 
     status: Joi.string().valid("paid", "unpaid", "partial", "draft").default("paid").optional(),
 
+    currency: currencyValidator.default("EGP").optional(),
+
     createdBy: Joi.string().hex().length(24).optional(),
     lastModifiedBy: Joi.string().hex().length(24).optional(),
 
@@ -142,6 +146,8 @@ const updateInvoiceSchema = Joi.object({
     ).optional(),
 
     status: Joi.string().valid("paid", "unpaid", "partial", "draft").optional(),
+
+    currency: currencyValidator.optional(),
 
     lastModifiedBy: Joi.string().hex().length(24).optional(),
 

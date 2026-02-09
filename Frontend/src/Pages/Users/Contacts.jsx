@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, RefreshCw, X, Phone, MapPin, Mail, User, Building, FileText, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import { formatCurrency } from '../../utils/currencyFormatter';
 
 const Contacts = () => {
     const { t, i18n } = useTranslation();
@@ -323,7 +324,7 @@ const Contacts = () => {
                                         {t('sales.customers.balance')}
                                     </span>
                                     <span className={`font-bold ${contact.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        {contact.balance?.toLocaleString() || 0} {t('sales.common.currency')}
+                                        {formatCurrency(contact.balance ?? 0, 'EGP')}
                                     </span>
                                 </div>
                             </div>

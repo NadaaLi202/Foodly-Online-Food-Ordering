@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import userService from '../../services/userService';
 
 const Users = () => {
     const { t, i18n } = useTranslation();
@@ -38,8 +39,7 @@ const Users = () => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const response = await api.get('/users/all');
-            const data = response.data;
+            const data = await userService.getAllUsers();
             setUsers(data.users || data || []);
         } catch (error) {
             console.error('Error fetching users:', error);

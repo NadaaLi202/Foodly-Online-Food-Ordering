@@ -27,6 +27,7 @@ import expenseRouter from "./Expenses/expense.router.js"
 import bankAccountRouter from "./BankAccounts/bankAccount.routes.js"
 import safeRouter from "./Safes/safe.routes.js"
 import companyRouter from "./companies/company.routes.js"
+import { backupRouter } from "../backups/backup.routes.js"
 
 export function routes(app) {
 
@@ -57,6 +58,7 @@ export function routes(app) {
     app.use("/api/v1/bank-accounts", bankAccountRouter)
     app.use("/api/v1/safes", safeRouter)
     app.use("/api/v1/companies", companyRouter)
+    app.use("/api/v1/backups", backupRouter)
 
 
 

@@ -4,7 +4,8 @@ import {
     getAllTransactions,
     getOne,
     updateOne,
-    deleteOne
+    deleteOne,
+    downloadInvoicePDF
 } from "./transaction.controller.js";
 import { uploadMultiFiles } from "../../middleware/uploadFiles.js";
 import { allowedTo, protectedRoutes } from "../auth/auth.controller.js";
@@ -60,7 +61,8 @@ router.post("/purchases/purchaseOrder", uploadMultiFiles(['image'], [{ name: 'at
 router.get("/purchases/purchaseOrder", allowedTo("superAdmin", "admin", "accountant", "employee"), getAllTransactions("purchases", "purchaseOrder"));
 
 
-// ================= SHARED =================
+// ================= SHARED (PDF download — must be before catch-all 404) =================
+router.get("/:id/download", allowedTo("superAdmin", "admin", "accountant", "employee"), downloadInvoicePDF);
 router.route("/:id")
     .get(allowedTo("superAdmin", "admin", "accountant", "employee"), getOne)
     .patch(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), parseJsonFields(['items']), validation(transactionSchema), allowedTo("superAdmin", "admin", "accountant"), updateOne)
