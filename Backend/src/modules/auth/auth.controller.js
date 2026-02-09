@@ -84,6 +84,33 @@ const signIn = catchAsyncError(async (req, res, next) => {
     return next(new AppError('invalid email or password', 401));
 })
 
+// Dedicated company login (public) – returns JWT scoped to company
+const companySignIn = catchAsyncError(async (req, res, next) => {
+    const { email, password } = req.body;
+    const company = await companyModel.findOne({ email: email?.toLowerCase?.() || email });
+    if (!company) {
+        return next(new AppError('Invalid email or password', 401));
+    }
+    const match = await bcrypt.compare(password, company.password);
+    if (!match) {
+        return next(new AppError('Invalid email or password', 401));
+    }
+    const payload = {
+        userId: company._id,
+        companyId: company._id,
+        role: 'company'
+    };
+    const token = jwt.sign(payload, process.env.SECRET_KEY);
+    const companyResponse = company.toObject();
+    delete companyResponse.password;
+    companyResponse.role = 'company';
+    return res.status(200).json({
+        message: 'Company login successful',
+        company: companyResponse,
+        token
+    });
+});
+
 const protectedRoutes = catchAsyncError(async (req, res, next) => { // authentication 
     let { token } = req.headers;
     if (!token) {
@@ -133,7 +160,7 @@ const allowedTo = (...roles) => { // Authorization
 
 
 
-export { signup, signIn, protectedRoutes, allowedTo }
+export { signup, signIn, companySignIn, protectedRoutes, allowedTo }
 
 
 

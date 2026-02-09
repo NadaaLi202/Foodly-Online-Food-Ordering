@@ -1,11 +1,19 @@
 import Joi from "joi";
 
+const currencyValidator = Joi.string()
+    .valid("EGP", "USD", "EUR", "SAR", "AED", "GBP")
+    .trim()
+    .uppercase()
+    .optional()
+    .default("EGP");
+
 export const transactionSchema = Joi.object({
     transactionNumber: Joi.string().required(),
     contact: Joi.string().hex().length(24).required(),
     issueDate: Joi.date().required(),
     dueDate: Joi.date().optional(),
     warehouse: Joi.string().optional().allow(''),
+    currency: currencyValidator,
 
     items: Joi.array().items(
         Joi.object({
@@ -25,4 +33,4 @@ export const transactionSchema = Joi.object({
 
     paidAmount: Joi.number().min(0).optional(),
     paymentMethod: Joi.string().optional()
-});
+}).unknown(true);

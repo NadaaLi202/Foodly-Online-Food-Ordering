@@ -3,12 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import companyService from '../../services/companyService';
 import { useAuth } from '../../context/AuthContext';
-import { Plus, Edit, Trash2, LogIn, Search, Building } from 'lucide-react';
+import { Plus, Edit, Trash2, LogIn, Search, Building, Users, Mail, ExternalLink } from 'lucide-react';
 
 const CompanyList = () => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
-    const { login } = useAuth();
+    const { loginAsCompany } = useAuth();
     const [companies, setCompanies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -41,18 +41,29 @@ const CompanyList = () => {
         }
     };
 
-    const handleLoginAsCompany = async (companyId) => {
+    const handleLoginAsCompany = async (company) => {
         try {
-            const response = await companyService.loginAsCompany(companyId);
-            // Use the login function from auth context
-            login(response.user, response.token);
-            // Navigate to home or dashboard
-            navigate('/');
-            window.location.reload(); // Refresh to apply new context
+            const response = await companyService.loginAsCompany(company._id);
+            loginAsCompany(response.company, response.token);
+            navigate('/dashboard');
+            window.location.reload();
         } catch (error) {
             console.error('Error logging in as company:', error);
+            alert(error.response?.data?.message || 'Failed to login as company');
         }
     };
+
+    const handleSendCredentials = async (company) => {
+        try {
+            await companyService.sendCredentials(company._id);
+            alert(t('superAdmin.credentialsSent') || 'Credentials sent successfully');
+        } catch (error) {
+            console.error('Error sending credentials:', error);
+            alert(error.response?.data?.message || 'Failed to send credentials');
+        }
+    };
+
+    const appBaseUrl = window.location.origin;
 
     const filteredCompanies = companies.filter(company =>
         company.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -104,6 +115,7 @@ const CompanyList = () => {
                                 <th className={`px-6 py-4 text-${isRTL ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('superAdmin.companyName')}</th>
                                 <th className={`px-6 py-4 text-${isRTL ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('superAdmin.email')}</th>
                                 <th className={`px-6 py-4 text-${isRTL ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('superAdmin.subscription')}</th>
+                                <th className={`px-6 py-4 text-${isRTL ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>Slug</th>
                                 <th className={`px-6 py-4 text-${isRTL ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('common.actions')}</th>
                             </tr>
                         </thead>
@@ -112,8 +124,8 @@ const CompanyList = () => {
                                 <tr key={company._id} className="hover:bg-gray-50">
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center">
-                                            {company.logo ? (
-                                                <img src={company.logo} alt={company.name} className="w-10 h-10 rounded-full object-cover mr-3" />
+                                            {company.logo?.url ? (
+                                                <img src={company.logo.url} alt={company.name} className="w-10 h-10 rounded-full object-cover mr-3" />
                                             ) : (
                                                 <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
                                                     <Building size={20} className="text-blue-600" />
@@ -129,13 +141,26 @@ const CompanyList = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center gap-2">
+                                        {company.slug ? (
+                                            <a
+                                                href={`${appBaseUrl}/company/${company.slug}/login`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-indigo-600 hover:underline flex items-center gap-1"
+                                            >
+                                                {company.slug}
+                                                <ExternalLink size={14} />
+                                            </a>
+                                        ) : '—'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center gap-2 flex-wrap">
                                             <button
                                                 onClick={() => navigate(`/super-admin/companies/${company._id}/users`)}
                                                 className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg"
                                                 title={t('superAdmin.manageUsers')}
                                             >
-                                                <UsersIcon size={18} />
+                                                <Users size={18} />
                                             </button>
                                             <button
                                                 onClick={() => navigate(`/super-admin/companies/edit/${company._id}`)}
@@ -145,7 +170,14 @@ const CompanyList = () => {
                                                 <Edit size={18} />
                                             </button>
                                             <button
-                                                onClick={() => handleLoginAsCompany(company._id)}
+                                                onClick={() => handleSendCredentials(company)}
+                                                className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg"
+                                                title={t('superAdmin.sendCredentials')}
+                                            >
+                                                <Mail size={18} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleLoginAsCompany(company)}
                                                 className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
                                                 title={t('superAdmin.loginAsCompany')}
                                             >

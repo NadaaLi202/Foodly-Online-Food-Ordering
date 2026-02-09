@@ -40,8 +40,8 @@ const CompanyForm = () => {
                 subscriptionStatus: company.subscriptionStatus || 'active',
                 subscriptionEndDate: company.subscriptionEndDate ? company.subscriptionEndDate.split('T')[0] : '',
             });
-            if (company.logo) {
-                setLogoPreview(company.logo);
+            if (company.logo?.url) {
+                setLogoPreview(company.logo.url);
             }
         } catch (error) {
             console.error('Error fetching company:', error);
@@ -60,15 +60,28 @@ const CompanyForm = () => {
 
     const handleLogoChange = (e) => {
         const file = e.target.files[0];
-        if (file) {
-            setLogoFile(file);
-            setLogoPreview(URL.createObjectURL(file));
+        if (!file) return;
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            setErrors((prev) => ({ ...prev, logo: 'Only image files are allowed (JPEG, PNG, WebP).' }));
+            e.target.value = '';
+            return;
         }
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSize) {
+            setErrors((prev) => ({ ...prev, logo: 'File too large. Maximum size is 5MB.' }));
+            e.target.value = '';
+            return;
+        }
+        setErrors((prev) => ({ ...prev, logo: null }));
+        setLogoFile(file);
+        setLogoPreview(URL.createObjectURL(file));
     };
 
     const removeLogo = () => {
         setLogoFile(null);
         setLogoPreview(null);
+        setErrors((prev) => ({ ...prev, logo: null }));
     };
 
     const validate = () => {
@@ -102,9 +115,8 @@ const CompanyForm = () => {
             navigate('/super-admin/companies');
         } catch (error) {
             console.error('Error saving company:', error);
-            if (error.response?.data?.message) {
-                setErrors({ form: error.response.data.message });
-            }
+            const msg = error.response?.data?.message;
+            setErrors({ form: Array.isArray(msg) ? msg.join(' ') : msg || error.message || 'Failed to save company' });
         } finally {
             setLoading(false);
         }
@@ -150,10 +162,16 @@ const CompanyForm = () => {
                             ) : (
                                 <label className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center cursor-pointer hover:border-blue-500">
                                     <Upload size={24} className="text-gray-400" />
-                                    <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
+                                    <input
+                                        type="file"
+                                        accept="image/png, image/jpeg, image/jpg, image/webp"
+                                        onChange={handleLogoChange}
+                                        className="hidden"
+                                    />
                                 </label>
                             )}
                         </div>
+                        {errors.logo && <p className="mt-1 text-sm text-red-500">{errors.logo}</p>}
                     </div>
 
                     {/* Name */}
@@ -208,8 +226,7 @@ const CompanyForm = () => {
                             className="w-full p-3 border border-gray-300 rounded-lg"
                         >
                             <option value="active">{t('superAdmin.active')}</option>
-                            <option value="inactive">{t('superAdmin.inactive')}</option>
-                            <option value="trial">{t('superAdmin.trial')}</option>
+                            <option value="expired">{t('superAdmin.expired')}</option>
                         </select>
                     </div>
 

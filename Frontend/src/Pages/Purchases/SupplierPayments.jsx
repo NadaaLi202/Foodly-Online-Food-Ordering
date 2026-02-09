@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, RefreshCw, X, Search, MoreVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import { formatCurrency } from '../../utils/currencyFormatter';
 
 export default function SupplierPayments() {
     const { t, i18n } = useTranslation();
@@ -242,7 +243,7 @@ export default function SupplierPayments() {
                                             {payment.treasury === 'main' ? t('sales.payments.main_treasury') : t('sales.payments.main_bank_account')}
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-800">
-                                            {(payment.amount ?? 0).toLocaleString()} {t('sales.common.currency')}
+                                            {formatCurrency(payment.amount ?? 0, payment.currency || 'EGP')}
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-right relative">
                                             <button

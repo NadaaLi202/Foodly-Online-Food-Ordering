@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Search, Building, Clock, X, Menu, Info } from 'lucide-react';
+import { Plus, Search, Building, Clock, X, Menu, Info, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const TopBar = ({ onToggleSidebar, isMobile }) => {
     const { t, i18n } = useTranslation();
+    const { isImpersonating, restoreSuperAdmin } = useAuth();
     const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
     const langMenuRef = useRef(null);
 
@@ -119,6 +121,17 @@ const TopBar = ({ onToggleSidebar, isMobile }) => {
                             </div>
                         )}
                     </div>
+
+                    {/* Return to SuperAdmin when impersonating */}
+                    {isImpersonating() && (
+                        <button
+                            onClick={restoreSuperAdmin}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 font-medium text-sm"
+                        >
+                            <LogOut size={16} />
+                            <span>{t('topbar.returnToSuperAdmin') || 'Return to SuperAdmin'}</span>
+                        </button>
+                    )}
 
                     {/* User Profile */}
                     <div className="flex items-center gap-3 pl-4 rtl:pl-0 rtl:pr-4 border-l rtl:border-r rtl:border-l-0 border-gray-200">

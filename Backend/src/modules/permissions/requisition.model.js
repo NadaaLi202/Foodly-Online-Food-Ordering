@@ -1,5 +1,21 @@
 import mongoose from "mongoose";
 
+const requisitionItemSchema = new mongoose.Schema(
+    {
+        product: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Product",
+            required: true
+        },
+        quantity: {
+            type: Number,
+            required: true,
+            min: 0.0001
+        }
+    },
+    { _id: true }
+);
+
 const requisitionSchema = new mongoose.Schema(
     {
         number: {
@@ -7,8 +23,13 @@ const requisitionSchema = new mongoose.Schema(
             required: true,
             trim: true
         },
+        type: {
+            type: String,
+            enum: ["financial", "inventory_in", "inventory_out"],
+            default: "financial"
+        },
         warehouse: {
-            type: mongoose.Schema.Types.Mixed, // Accepting both ObjectId and branch name for flexibility
+            type: mongoose.Schema.Types.Mixed,
             required: true
         },
         startDate: {
@@ -24,13 +45,17 @@ const requisitionSchema = new mongoose.Schema(
             enum: ["pending", "approved", "rejected"],
             default: "pending"
         },
+        items: {
+            type: [requisitionItemSchema],
+            default: undefined
+        },
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Contact"
         },
         companyId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: 'Company',
+            ref: "Company",
             required: true
         }
     },

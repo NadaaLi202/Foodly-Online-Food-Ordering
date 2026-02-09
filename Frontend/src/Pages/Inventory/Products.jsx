@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, RefreshCw, X, ChevronDown, Upload, Package } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api, { BASE_URL } from '../../services/api';
+import { formatCurrency } from '../../utils/currencyFormatter';
 
 const Products = () => {
     const { t, i18n } = useTranslation();
@@ -408,7 +409,7 @@ const Products = () => {
                                             {product.category || '-'}
                                         </td>
                                         <td className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold`}>
-                                            {product.sellingPrice?.toLocaleString(undefined, { minimumFractionDigits: 2 })} {t('sales.common.currency')}
+                                            {formatCurrency(product.sellingPrice ?? 0, product.currency || 'EGP')}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {product.type === 'service' ? (

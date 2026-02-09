@@ -14,10 +14,10 @@ const TransactionPage = ({ configKey }) => {
     const [view, setView] = useState('list');
     const [selected, setSelected] = useState(null);
 
-    const fetchList = async () => {
+    const fetchList = async (params = {}) => {
         setLoading(true);
         try {
-            const response = await api.get(config.listUrl);
+            const response = await api.get(config.listUrl, { params });
             const data = response.data;
             setItems(data.data || data.transactions || []);
         } catch (error) {
@@ -117,7 +117,7 @@ const TransactionPage = ({ configKey }) => {
                     invoices={items}
                     loading={loading}
                     onAddClick={handleAddClick}
-                    onFetchInvoices={fetchList}
+                    onFetchInvoices={(currency) => fetchList(currency ? { currency } : {})}
                     onInvoiceClick={handleItemClick}
                     i18n={i18n}
                     noItemsKey={config.noItemsKey}
@@ -137,6 +137,7 @@ const TransactionPage = ({ configKey }) => {
                     editTitleKey={config.editTitleKey}
                     numberPlaceholderKey={config.numberPlaceholderKey}
                     clientLabelKey={config.clientLabelKey}
+                    defaultCurrency="EGP"
                 />
             )}
 

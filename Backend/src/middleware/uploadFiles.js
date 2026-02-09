@@ -1,13 +1,14 @@
 import multer from "multer";
 import { AppError } from "../utils/AppError.js";
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
 // shared upload options
 const uploadOptions = (fileTypes) => {
     const storage = multer.memoryStorage();
 
     const fileFilter = (req, file, cb) => {
-        // Check if file type is allowed (starts with any of the allowed types)
-        // Common fileTypes: ['image', 'application/pdf']
+        // Use mimetype validation (e.g. image/jpeg, image/png, image/webp)
         const isAllowed = fileTypes.some((type) =>
             file.mimetype.startsWith(type)
         );
@@ -15,13 +16,17 @@ const uploadOptions = (fileTypes) => {
         if (isAllowed) {
             cb(null, true);
         } else {
-            cb(new AppError("File type is not allowed", 400));
+            const message = fileTypes.includes("image")
+                ? "Only image files are allowed"
+                : "File type is not allowed";
+            cb(new AppError(message, 400));
         }
     };
 
     return multer({
         storage,
         fileFilter,
+        limits: { fileSize: MAX_FILE_SIZE },
     });
 };
 

@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -38,6 +39,7 @@ import Roles from './Pages/Users/Roles';
 import LandingPage from './Pages/LandingPage';
 import Login from './Pages/Login';
 import Register from './Pages/Register';
+import CompanyLogin from './Pages/CompanyLogin';
 // SuperAdmin
 import SuperAdminDashboard from './Pages/SuperAdmin/Dashboard';
 import CompanyList from './Pages/SuperAdmin/CompanyList';
@@ -55,11 +57,14 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/company-login" element={<CompanyLogin />} />
+          <Route path="/company/:slug/login" element={<CompanyLogin />} />
 
           {/* SuperAdmin Layout Route */}
           <Route

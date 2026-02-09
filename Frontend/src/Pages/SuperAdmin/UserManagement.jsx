@@ -43,7 +43,7 @@ const UserManagement = () => {
         setLoading(true);
         try {
             const [usersData, companyData] = await Promise.all([
-                userService.getAllUsers(),
+                userService.getAllUsers(companyId),
                 companyService.getCompany(companyId)
             ]);
             setUsers(usersData.users || []);
@@ -99,6 +99,11 @@ const UserManagement = () => {
             if (modalMode === 'edit' && !formData.password) {
                 delete data.password;
                 delete data.confirmPassword;
+            }
+
+            // Include companyId when creating/updating users from company users page (superAdmin context)
+            if (companyId) {
+                data.companyId = companyId;
             }
 
             if (modalMode === 'add') {

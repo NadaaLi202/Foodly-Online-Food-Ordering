@@ -48,6 +48,15 @@ const getCompany = catchAsyncError(async (req, res, next) => {
     res.status(200).json({ message: 'Company retrieved successfully', company });
 });
 
+const getCompanyBySlug = catchAsyncError(async (req, res, next) => {
+    const { slug } = req.params;
+    const company = await companyModel.findOne({ slug }).select('name slug logo');
+    if (!company) {
+        return next(new AppError('Company not found', 404));
+    }
+    res.status(200).json({ message: 'Company retrieved successfully', company });
+});
+
 const updateCompany = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
     let company = await companyModel.findById(id);
@@ -69,14 +78,16 @@ const updateCompany = catchAsyncError(async (req, res, next) => {
         };
     }
 
-    // If password is being updated, it will be hashed by the pre-save hook, 
-    // but findByIdAndUpdate doesn't trigger pre-save hooks by default unless configured or manual save is used.
-    // However, since we might want to trigger the hook, using manual save is better, 
-    // OR we hash it here manually if we stick to findByIdAndUpdate for other fields.
-    // Sticking to findByIdAndUpdate for simplicity but handling password manually if present.
+    // Only hash and set password if a non-empty password was sent (FormData may send empty string)
+    if (updateData.password && (typeof updateData.password === 'string' && updateData.password.trim())) {
+        updateData.password = bcrypt.hashSync(updateData.password.trim(), 10);
+    } else {
+        delete updateData.password;
+    }
 
-    if (updateData.password) {
-        updateData.password = bcrypt.hashSync(updateData.password, 10);
+    // Normalize empty subscriptionEndDate from FormData
+    if (updateData.subscriptionEndDate === '' || updateData.subscriptionEndDate === null) {
+        updateData.subscriptionEndDate = null;
     }
 
     const updatedCompany = await companyModel.findByIdAndUpdate(id, updateData, { new: true }).select('-password');
@@ -100,31 +111,33 @@ const deleteCompany = catchAsyncError(async (req, res, next) => {
 
 const loginAsCompany = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
-    const company = await companyModel.findById(id);
+    const company = await companyModel.findById(id).select('-password');
     if (!company) {
         return next(new AppError('Company not found', 404));
     }
-
-    // Generate token simulating an admin of that company
-    // We don't have a specific user here, so we might need to be careful.
-    // Ideally, we'd log in as a specific user, but the requirement is "Login as Company".
-    // We'll create a token with the companyId and role 'admin'. 
-    // The userId might be the superAdmin's ID or a placeholder if the system relies on it.
-    // Let's use the superAdmin's ID as the userId to track who is acting, 
-    // but the companyId will be the target company.
-
-    // CHECK: Does the frontend/backend rely on `userId` for anything critical other than logging?
-    // Most create operations use `req.user.companyId` which comes from the token.
-    // `createdBy` fields might use `req.user.userId`. 
-
-    // Let's use the SuperAdmin's ID.
     const token = jwt.sign({
-        userId: req.user.userId,
+        userId: company._id,
         companyId: company._id,
-        role: 'admin' // Impersonate as admin
+        role: 'company'
     }, process.env.SECRET_KEY);
-
-    res.status(200).json({ message: 'Login as company successful', token });
+    const companyObj = company.toObject ? company.toObject() : company;
+    companyObj.role = 'company';
+    res.status(200).json({ message: 'Login as company successful', token, company: companyObj });
 });
 
-export { addCompany, getAllCompanies, getCompany, updateCompany, deleteCompany, loginAsCompany };
+const sendCredentials = catchAsyncError(async (req, res, next) => {
+    const { id } = req.params;
+    const company = await companyModel.findById(id).select('-password');
+    if (!company) {
+        return next(new AppError('Company not found', 404));
+    }
+    // Optional: integrate nodemailer here to send email to company.email with login URL and credentials
+    // For now return success; frontend can show "Credentials sent" (or implement email later)
+    const loginUrl = `${process.env.APP_BASE_URL || 'http://localhost:5173'}/company/${company.slug}/login`;
+    res.status(200).json({
+        message: 'Credentials send endpoint called successfully. Configure email service to send to ' + company.email,
+        loginUrl
+    });
+});
+
+export { addCompany, getAllCompanies, getCompany, getCompanyBySlug, updateCompany, deleteCompany, loginAsCompany, sendCredentials };

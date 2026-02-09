@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
+import { SUPPORTED_CURRENCIES } from "../../constants/currencies.js";
 
 const companySchema = new mongoose.Schema({
     name: {
@@ -52,6 +53,11 @@ const companySchema = new mongoose.Schema({
     },
     subscriptionEndDate: {
         type: Date
+    },
+    defaultCurrency: {
+        type: String,
+        enum: SUPPORTED_CURRENCIES,
+        default: "EGP"
     }
 }, {
     timestamps: true
@@ -64,18 +70,14 @@ companySchema.pre('save', function (next) {
         this.password = bcrypt.hashSync(this.password, 10);
     }
 
-    // Generate slug from name if not present or name modified
-    if (this.isModified('name') || !this.slug) {
-        this.slug = this.name
+    // Generate unique slug from name only on create (keeps link stable on update)
+    if (this.isNew && !this.slug) {
+        let baseSlug = this.name
             .toLowerCase()
-            .replace(/[^\w\u0621-\u064A\s-]/g, '') // Remove non-word chars (keeping Arabic, spaces, hyphens)
-            .replace(/\s+/g, '-')       // Replace spaces with -
-            .replace(/^-+|-+$/g, '');   // Trim - from start/end
-
-        // Append random string to ensure uniqueness if needed, 
-        // but for now relying on unique name constraint mostly.
-        // A better approach for robust slugs usually involves async check, 
-        // but this simple synchronous version fits the basic requirement.
+            .replace(/[^\w\u0621-\u064A\s-]/g, '')
+            .replace(/\s+/g, '-')
+            .replace(/^-+|-+$/g, '') || 'company';
+        this.slug = baseSlug + '-' + Math.random().toString(36).slice(2, 8);
     }
 
     next();
