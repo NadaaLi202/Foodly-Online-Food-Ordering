@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, RefreshCw, X, Search, MoreVertical, Pencil, Minus, Eye, Check, Trash2, Home } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
@@ -6,6 +7,8 @@ import { formatCurrency } from '../../utils/currencyFormatter';
 
 export default function Customers() {
     const { t, i18n } = useTranslation();
+    const { id: customerIdFromUrl } = useParams();
+    const navigate = useNavigate();
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,6 +73,12 @@ export default function Customers() {
     useEffect(() => {
         fetchCustomers();
     }, []);
+
+    useEffect(() => {
+        if (customerIdFromUrl) {
+            openViewModal({ _id: customerIdFromUrl });
+        }
+    }, [customerIdFromUrl]);
 
     const getCustomerById = async (id) => {
         setLoadingCustomer(true);
@@ -664,7 +673,7 @@ export default function Customers() {
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                             <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                                 <h2 className={`text-xl font-bold text-gray-800 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.customers.view_customer')}</h2>
-                                <button type="button" onClick={() => { setViewContact(null); setViewFormData(null); setViewTab('summary'); setSelectedCustomerId(null); }} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+                                <button type="button" onClick={() => { setViewContact(null); setViewFormData(null); setViewTab('summary'); setSelectedCustomerId(null); if (customerIdFromUrl) navigate('/dashboard/sales/customers'); }} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
                             </div>
                             {/* Tabs */}
                             <div className="border-b border-gray-100 flex gap-0">
@@ -851,7 +860,7 @@ export default function Customers() {
                                 )}
                             </div>
                             <div className={`border-t border-gray-200 px-6 py-4 flex justify-start gap-3 bg-white sticky bottom-0 ${i18n.language === 'ar' ? 'flex-row' : 'flex-row-reverse'}`}>
-                                <button type="button" onClick={() => { setViewContact(null); setViewFormData(null); setSelectedCustomerId(null); setViewTab('summary'); }} className="border border-gray-300 text-gray-700 px-6 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold">
+                                <button type="button" onClick={() => { setViewContact(null); setViewFormData(null); setSelectedCustomerId(null); setViewTab('summary'); if (customerIdFromUrl) navigate('/dashboard/sales/customers'); }} className="border border-gray-300 text-gray-700 px-6 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold">
                                     {t('sales.common.close')}
                                 </button>
                                 <button type="button" onClick={handleSaveView} disabled={isSavingView || !viewFormData} className="bg-green-600 text-white px-6 py-2.5 rounded-lg hover:bg-green-700 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed">

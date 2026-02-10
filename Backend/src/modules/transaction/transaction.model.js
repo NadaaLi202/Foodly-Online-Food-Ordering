@@ -222,6 +222,7 @@ const transactionSchema = new mongoose.Schema({
     attachments: [{
         fileName: String,
         fileUrl: String,
+        publicId: String,
         uploadedAt: {
             type: Date,
             default: Date.now

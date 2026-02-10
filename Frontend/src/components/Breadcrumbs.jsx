@@ -87,8 +87,13 @@ const Breadcrumbs = () => {
                                     </svg>
 
                                     {isLast ? (
-                                        <span className="ms-2 md:ms-4 text-sm font-medium text-gray-700 cursor-default">
+                                        <span className="ms-2 md:ms-4 text-sm font-medium text-gray-700 cursor-default flex items-center gap-2">
                                             {getTranslatedName(segment)}
+                                            {hasFilters && (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
+                                                    {t('sales.common.filtered', 'Filtered')}
+                                                </span>
+                                            )}
                                         </span>
                                     ) : (
                                         <Link

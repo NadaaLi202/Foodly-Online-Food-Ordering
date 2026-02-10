@@ -1,58 +1,29 @@
-import { useState } from 'react';
-import { Search, RefreshCw, Plus } from 'lucide-react';
+import React from 'react';
+import { RefreshCw, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { formatCurrency, SUPPORTED_CURRENCIES } from '../../utils/currencyFormatter';
+import { formatCurrency } from '../../utils/currencyFormatter';
+import ClientLink from '../navigation/ClientLink';
 
-const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoiceClick, i18n, noItemsKey, startKey, clientLabelKey }) => {
+const InvoiceList = ({ invoices, loading, onAddClick, onRefresh, onInvoiceClick, i18n, noItemsKey, startKey, clientLabelKey, isSupplier = false }) => {
     const { t } = useTranslation();
-    const [currencyFilter, setCurrencyFilter] = useState('');
     const noItemsMsg = noItemsKey ? t(noItemsKey) : t('sales.invoices.no_invoices');
     const startMsg = startKey ? t(startKey) : t('sales.invoices.start_creating');
 
-    const handleCurrencyFilterChange = (e) => {
-        const value = e.target.value || '';
-        setCurrencyFilter(value);
-        onFetchInvoices(value || undefined);
-    };
-
     return (
         <div className="min-h-screen bg-white" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
-            {/* Header */}
-            <div className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <button
-                        type="button"
-                        onClick={onAddClick}
-                        className="flex items-center gap-1.5 bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition-all font-bold text-sm shadow-sm"
-                    >
+            <div className="bg-white border-b border-gray-100 px-6 py-4">
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                    <button type="button" onClick={onAddClick} className="flex items-center gap-1.5 bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition-all font-bold text-sm shadow-sm">
                         <span>{t('sales.common.add')}</span>
                         <Plus size={18} />
                     </button>
-
-                    <button
-                        type="button"
-                        onClick={() => onFetchInvoices(currencyFilter || undefined)}
-                        className="flex items-center gap-2 border-2 border-gray-100 text-gray-500 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all font-bold text-sm"
-                    >
+                    <button type="button" onClick={onRefresh} className="flex items-center gap-2 border-2 border-gray-100 text-gray-500 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all font-bold text-sm">
                         <RefreshCw size={16} />
                         <span>{t('sales.common.search_filter')}</span>
                     </button>
-                    <select
-                        value={currencyFilter}
-                        onChange={handleCurrencyFilterChange}
-                        className="border-2 border-gray-100 rounded-lg px-3 py-2 text-sm font-bold text-gray-600 bg-white focus:outline-none focus:border-indigo-500"
-                        title={t('currency')}
-                    >
-                        <option value="">{t('sales.common.all_currencies')}</option>
-                        {SUPPORTED_CURRENCIES.map(code => (
-                            <option key={code} value={code}>{t(`currencies.${code}`)}</option>
-                        ))}
-                    </select>
                 </div>
-
-                <div className="flex items-center gap-2 text-indigo-600 font-bold text-sm cursor-pointer hover:text-indigo-700 transition-colors">
-                    <Search size={18} />
-                    <span>{t('sales.common.view')}</span>
+                <div className="text-indigo-600 font-bold text-sm">
+                    {t('sales.payments.total')} {invoices.length}
                 </div>
             </div>
 
@@ -90,8 +61,10 @@ const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoice
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-gray-700 group-hover:text-indigo-600">
                                             {invoice.transactionNumber || invoice.invoiceNumber || invoice.number}
                                         </td>
-                                        <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-gray-500">
-                                            {invoice.contact?.name || invoice.clientName}
+                                        <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-gray-500" onClick={(e) => e.stopPropagation()}>
+                                            <ClientLink client={invoice.contact} clientId={invoice.contact?._id} isSupplier={isSupplier}>
+                                                {invoice.contact?.name || invoice.clientName}
+                                            </ClientLink>
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-gray-400">
                                             {new Date(invoice.issueDate).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US')}

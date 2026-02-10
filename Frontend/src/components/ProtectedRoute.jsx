@@ -6,8 +6,6 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     const { isAuthenticated, user, loading } = useAuth();
     const location = useLocation();
 
-    console.log('ProtectedRoute Check:', { isAuthenticated, role: user?.role, path: location.pathname });
-
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50 text-indigo-600">
@@ -18,12 +16,10 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     }
 
     if (!isAuthenticated) {
-        console.log('Not authenticated, redirecting to login');
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
     if (allowedRoles && !allowedRoles.includes(user?.role)) {
-        console.log(`Role ${user?.role} not authorized for this route. Needs:`, allowedRoles);
 
         // Avoid infinite redirect loops if already on the target path
         if (user?.role === 'superAdmin' && !location.pathname.startsWith('/super-admin')) {

@@ -1,4 +1,5 @@
 import Transaction from "./transaction.model.js";
+import Contact from "../contacts/contacts.model.js";
 import { companyModel } from "../companies/company.model.js";
 import { SUPPORTED_CURRENCIES } from "../../constants/currencies.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
@@ -73,6 +74,35 @@ const getAllTransactions = (module, documentType) =>
         if (req.query.currency && SUPPORTED_CURRENCIES.includes(req.query.currency)) {
             query.currency = req.query.currency;
         }
+        if (req.query.contactId) {
+            query.contact = req.query.contactId;
+        }
+        if (req.query.dateFrom || req.query.dateTo) {
+            query.issueDate = {};
+            if (req.query.dateFrom) query.issueDate.$gte = new Date(req.query.dateFrom);
+            if (req.query.dateTo) {
+                const d = new Date(req.query.dateTo);
+                d.setHours(23, 59, 59, 999);
+                query.issueDate.$lte = d;
+            }
+        }
+        if (req.query.amountMin != null || req.query.amountMax != null) {
+            query.totalAmount = {};
+            if (req.query.amountMin != null) query.totalAmount.$gte = parseFloat(req.query.amountMin);
+            if (req.query.amountMax != null) query.totalAmount.$lte = parseFloat(req.query.amountMax);
+        }
+        if (req.query.search && req.query.search.trim()) {
+            const searchTerm = req.query.search.trim();
+            const contactType = module === 'sales' ? 'customer' : 'supplier';
+            const contactFilter = { name: { $regex: searchTerm, $options: 'i' }, module: contactType, ...req.companyFilter };
+            const matchingContacts = await Contact.find(contactFilter).select('_id').lean();
+            const contactIds = matchingContacts.map(c => c._id);
+            if (contactIds.length > 0) {
+                query.contact = { $in: contactIds };
+            } else {
+                query.contact = null;
+            }
+        }
 
         const data = await Transaction.find(query)
             .populate('contact', 'name email phone type')
@@ -122,6 +152,18 @@ const updateOne = catchAsyncError(async (req, res, next) => {
             uploadedAt: new Date()
         }));
         doc.attachments = [...(doc.attachments || []), ...newAttachments];
+    }
+
+    // Handle attachment deletion: when opData.attachments is provided, delete from Cloudinary any removed ones
+    if (opData.attachments && Array.isArray(opData.attachments)) {
+        const existing = doc.attachments || [];
+        const newById = new Set(opData.attachments.map(a => (a.publicId || a.fileUrl)).filter(Boolean));
+        for (const a of existing) {
+            const id = a.publicId || a.fileUrl;
+            if (id && !newById.has(id)) {
+                if (a.publicId) await deleteFromCloudinary(a.publicId);
+            }
+        }
     }
 
     // Parse items if they are sent as a JSON string

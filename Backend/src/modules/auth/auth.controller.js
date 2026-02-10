@@ -147,15 +147,14 @@ const protectedRoutes = catchAsyncError(async (req, res, next) => { // authentic
 
 const allowedTo = (...roles) => { // Authorization
     return catchAsyncError(async (req, res, next) => {
-        // If it's a company account, allow if 'admin' is in the allowed roles
-        const userRole = req.user.role;
+        const userRole = req.user?.role;
         const isAuthorized = roles.includes(userRole) || (userRole === 'company' && roles.includes('admin'));
 
         if (!isAuthorized)
-            return next(new AppError('you are not authorized to access this route . you are ' + userRole, 401))
+            return next(new AppError('you are not authorized to access this route . you are ' + (userRole || 'unknown'), 403));
 
-        next()
-    })
+        next();
+    });
 }
 
 
