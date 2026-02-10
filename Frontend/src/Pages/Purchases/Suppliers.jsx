@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, RefreshCw, X, Search, MoreVertical, Pencil, Minus, Eye, Check, Trash2, Home } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
@@ -7,6 +8,8 @@ import AddSupplierModal from '../../components/AddSupplierModal';
 
 export default function Suppliers() {
     const { t, i18n } = useTranslation();
+    const { id: supplierIdFromUrl } = useParams();
+    const navigate = useNavigate();
     const [suppliers, setSuppliers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -72,6 +75,12 @@ export default function Suppliers() {
     useEffect(() => {
         fetchSuppliers();
     }, []);
+
+    useEffect(() => {
+        if (supplierIdFromUrl) {
+            openViewModal({ _id: supplierIdFromUrl });
+        }
+    }, [supplierIdFromUrl]);
 
     const getSupplierById = async (id) => {
         setLoadingSupplier(true);
@@ -665,7 +674,7 @@ export default function Suppliers() {
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                             <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                                 <h2 className={`text-xl font-bold text-gray-800 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.view_supplier')}</h2>
-                                <button type="button" onClick={() => { setViewContact(null); setViewFormData(null); setViewTab('summary'); setSelectedSupplierId(null); }} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+                                <button type="button" onClick={() => { setViewContact(null); setViewFormData(null); setViewTab('summary'); setSelectedSupplierId(null); if (supplierIdFromUrl) navigate('/dashboard/purchases/suppliers'); }} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
                             </div>
                             {/* Tabs */}
                             <div className="border-b border-gray-100 flex gap-0">
@@ -852,7 +861,7 @@ export default function Suppliers() {
                                 )}
                             </div>
                             <div className={`border-t border-gray-200 px-6 py-4 flex justify-start gap-3 bg-white sticky bottom-0 ${i18n.language === 'ar' ? 'flex-row' : 'flex-row-reverse'}`}>
-                                <button type="button" onClick={() => { setViewContact(null); setViewFormData(null); setSelectedSupplierId(null); setViewTab('summary'); }} className="border border-gray-300 text-gray-700 px-6 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold">
+                                <button type="button" onClick={() => { setViewContact(null); setViewFormData(null); setSelectedSupplierId(null); setViewTab('summary'); if (supplierIdFromUrl) navigate('/dashboard/purchases/suppliers'); }} className="border border-gray-300 text-gray-700 px-6 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold">
                                     {t('sales.common.close')}
                                 </button>
                                 <button type="button" onClick={handleSaveView} disabled={isSavingView || !viewFormData} className="bg-green-600 text-white px-6 py-2.5 rounded-lg hover:bg-green-700 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed">

@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import toast from 'react-hot-toast';
 import { getTransactionConfig } from '../../config/transactionTypes';
 import InvoiceList from './InvoiceList';
 import InvoiceForm from './InvoiceForm';
@@ -8,16 +10,22 @@ import api from '../../services/api';
 
 const TransactionPage = ({ configKey }) => {
     const { t, i18n } = useTranslation();
+    const [searchParams] = useSearchParams();
+    const contactId = searchParams.get('contactId');
+    const openId = searchParams.get('openId');
+    const openIdHandled = useRef(false);
     const config = getTransactionConfig(configKey);
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(false);
     const [view, setView] = useState('list');
     const [selected, setSelected] = useState(null);
 
-    const fetchList = async (params = {}) => {
+    const fetchList = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await api.get(config.listUrl, { params });
+            const queryParams = {};
+            if (contactId) queryParams.contactId = contactId;
+            const response = await api.get(config.listUrl, { params: queryParams });
             const data = response.data;
             setItems(data.data || data.transactions || []);
         } catch (error) {
@@ -25,11 +33,30 @@ const TransactionPage = ({ configKey }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [config.listUrl, contactId]);
 
     useEffect(() => {
         fetchList();
-    }, [configKey]);
+    }, [fetchList]);
+
+    useEffect(() => {
+        if (openId && !openIdHandled.current) {
+            openIdHandled.current = true;
+            const openInvoice = async () => {
+                setLoading(true);
+                try {
+                    const response = await api.get(config.getOneUrl(openId));
+                    setSelected(response.data);
+                    setView('details');
+                } catch (e) {
+                    console.error('Could not open invoice:', e);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            openInvoice();
+        }
+    }, [openId]);
 
     const handleAddClick = () => {
         setSelected(null);
@@ -81,6 +108,7 @@ const TransactionPage = ({ configKey }) => {
                 data: formData
             });
 
+            toast.success(t('sales.common.success_message'));
             if (options.stayOnDetails && selected?._id) {
                 const res = await api.get(config.getOneUrl(selected._id));
                 setSelected(res.data);
@@ -100,13 +128,26 @@ const TransactionPage = ({ configKey }) => {
     const handleDelete = async (id) => {
         try {
             await api.delete(config.getOneUrl(id));
-            alert(t('sales.common.success_message'));
+            toast.success(t('sales.common.success_message'));
             setView('list');
             fetchList();
         } catch (error) {
             console.error('Error deleting:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message');
-            alert(msg);
+            toast.error(msg);
+        }
+    };
+
+    const handleDeleteAttachment = async (transactionId, updatedAttachments) => {
+        try {
+            await api.patch(config.getOneUrl(transactionId), { attachments: updatedAttachments });
+            toast.success(t('sales.common.success_message'));
+            const res = await api.get(config.getOneUrl(transactionId));
+            setSelected(res.data);
+        } catch (error) {
+            console.error('Error deleting attachment:', error);
+            const msg = error.response?.data?.message || t('sales.common.error_message');
+            toast.error(msg);
         }
     };
 
@@ -117,12 +158,13 @@ const TransactionPage = ({ configKey }) => {
                     invoices={items}
                     loading={loading}
                     onAddClick={handleAddClick}
-                    onFetchInvoices={(currency) => fetchList(currency ? { currency } : {})}
+                    onRefresh={() => fetchList()}
                     onInvoiceClick={handleItemClick}
                     i18n={i18n}
                     noItemsKey={config.noItemsKey}
                     startKey={config.startKey}
                     clientLabelKey={config.clientLabelKey}
+                    isSupplier={configKey?.includes('purchases')}
                 />
             )}
 
@@ -131,6 +173,7 @@ const TransactionPage = ({ configKey }) => {
                     invoice={selected}
                     onClose={() => setView('list')}
                     onSave={handleSave}
+                    onDeleteAttachment={handleDeleteAttachment}
                     i18n={i18n}
                     contactType={config.contactType}
                     addTitleKey={config.addTitleKey}
@@ -148,10 +191,21 @@ const TransactionPage = ({ configKey }) => {
                     onEdit={handleEditClick}
                     onDelete={handleDelete}
                     onSave={handleSave}
+                    onRefreshInvoice={async () => {
+                        if (selected?._id) {
+                            try {
+                                const res = await api.get(config.getOneUrl(selected._id));
+                                setSelected(res.data);
+                            } catch (e) {
+                                console.error('Error refreshing invoice:', e);
+                            }
+                        }
+                    }}
                     loading={loading}
                     i18n={i18n}
                     viewTitleKey={config.viewTitleKey}
                     filenamePrefix={config.filenamePrefix}
+                    paymentsModule={configKey?.includes('sales') ? 'sales' : 'purchases'}
                 />
             )}
         </div>

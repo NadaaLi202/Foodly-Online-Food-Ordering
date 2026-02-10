@@ -55,6 +55,18 @@ const paymentSchema = new mongoose.Schema({
         default: ''
     },
 
+    referenceNumber: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+
+    status: {
+        type: String,
+        enum: ['completed', 'pending', 'cancelled'],
+        default: 'completed'
+    },
+
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'

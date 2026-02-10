@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Search, ChevronDown, Upload, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AddContactModal from './AddContactModal';
+import AttachmentsSection from '../AttachmentsSection';
 import api from '../../services/api';
 import { SUPPORTED_CURRENCIES } from '../../utils/currencyFormatter';
 import { currencySymbols } from '../../utils/currencySymbols';
 
-const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers', addTitleKey, editTitleKey, numberPlaceholderKey, clientLabelKey, defaultCurrency = 'EGP' }) => {
+const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, contactType = 'customers', addTitleKey, editTitleKey, numberPlaceholderKey, clientLabelKey, defaultCurrency = 'EGP' }) => {
     const { t } = useTranslation();
     const addTitle = addTitleKey ? t(addTitleKey) : t('sales.invoices.add_invoice');
     const editTitle = editTitleKey ? t(editTitleKey) : t('sales.invoices.edit_invoice');
@@ -200,13 +201,18 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers'
         return { subtotal, totalTax, total, invDiscountAmount };
     };
 
-    const handleFileChange = (e) => {
-        const files = Array.from(e.target.files);
-        setUploadedFiles(prev => [...prev, ...files]);
-    };
-
-    const removeFile = (index) => {
-        setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    const handleDeleteExistingAttachment = async (index) => {
+        const updated = existingAttachments.filter((_, i) => i !== index);
+        if (onDeleteAttachment && invoice?._id) {
+            try {
+                await onDeleteAttachment(invoice._id, updated);
+                setExistingAttachments(updated);
+            } catch (e) {
+                console.error('Delete attachment failed:', e);
+            }
+        } else {
+            setExistingAttachments(updated);
+        }
     };
 
     const validate = () => {
@@ -518,9 +524,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers'
                                 <div className="flex gap-6 border-b border-gray-100">
                                     {[
                                         { id: 'payment', label: t('sales.common.payment_details') },
-                                        { id: 'discount', label: t('sales.common.discount') },
-                                        { id: 'notes', label: t('sales.common.notes') },
-                                        { id: 'attachments', label: t('sales.common.attachments') }
+                                        { id: 'discount', label: t('sales.common.discount') }
                                     ].map(tab => (
                                         <button
                                             key={tab.id}
@@ -584,46 +588,30 @@ const InvoiceForm = ({ invoice, onClose, onSave, i18n, contactType = 'customers'
                                             </div>
                                         </div>
                                     )}
-                                    {formData.activeTab === 'notes' && (
-                                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                            <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">{t('sales.common.notes')}</label>
-                                            <textarea
-                                                name="notes"
-                                                value={formData.notes}
-                                                onChange={handleInputChange}
-                                                className="w-full border-2 border-gray-100 rounded-lg p-3 text-sm font-bold text-gray-700 focus:border-indigo-500 focus:outline-none transition-colors"
-                                                rows="3"
-                                                placeholder={t('sales.common.notes')}
-                                            ></textarea>
-                                        </div>
-                                    )}
-                                    {formData.activeTab === 'attachments' && (
-                                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-4">
-                                            <div className="flex items-center justify-center w-full">
-                                                <label className="w-full flex flex-col items-center px-4 py-6 bg-white rounded-lg border-2 border-dashed border-gray-100 cursor-pointer hover:border-indigo-500 transition-all group">
-                                                    <Upload size={24} className="text-gray-300 group-hover:text-indigo-500 transition-colors" />
-                                                    <span className="mt-2 text-xs font-black text-gray-400 group-hover:text-indigo-600 uppercase tracking-widest">{t('sales.common.upload')}</span>
-                                                    <input type="file" multiple className="hidden" onChange={handleFileChange} />
-                                                </label>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                {uploadedFiles.map((file, i) => (
-                                                    <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-100">
-                                                        <span className="text-[10px] font-bold text-gray-600 truncate max-w-[120px]">{file.name}</span>
-                                                        <button type="button" onClick={() => removeFile(i)} className="text-red-400 hover:text-red-600">
-                                                            <Trash2 size={12} />
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                                {existingAttachments.map((file, i) => (
-                                                    <div key={`exist-${i}`} className="flex items-center justify-between p-2 bg-indigo-50 rounded-lg border border-indigo-100">
-                                                        <span className="text-[10px] font-bold text-indigo-600 truncate max-w-[120px]">{file.fileName}</span>
-                                                        <span className="text-[8px] font-black text-indigo-300 uppercase">Existing</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
+                                </div>
+
+                                {/* Attachments & Notes — side by side per screenshot */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+                                    <AttachmentsSection
+                                        uploadedFiles={uploadedFiles}
+                                        onFilesChange={setUploadedFiles}
+                                        existingAttachments={existingAttachments}
+                                        onDeleteExisting={handleDeleteExistingAttachment}
+                                        documentId={invoice?._id}
+                                    />
+                                    <div>
+                                        <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">
+                                            {t('sales.common.notes')}
+                                        </label>
+                                        <textarea
+                                            name="notes"
+                                            value={formData.notes}
+                                            onChange={handleInputChange}
+                                            className="w-full border-2 border-gray-100 rounded-lg p-3 text-sm font-bold text-gray-700 focus:border-indigo-500 focus:outline-none transition-colors min-h-[120px]"
+                                            rows="4"
+                                            placeholder={t('sales.common.notes')}
+                                        />
+                                    </div>
                                 </div>
                             </div>
 

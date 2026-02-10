@@ -4,7 +4,8 @@ import {
     getAllPayments,
     getPaymentById,
     updatePayment,
-    deletePayment
+    deletePayment,
+    downloadPaymentPDF
 } from "./payments.controller.js";
 import { validation } from "../../middleware/validation.js";
 import { paymentSchema } from "./payments.validation.js";
@@ -29,6 +30,7 @@ router.get("/purchases", allowedTo("superAdmin", "admin", "accountant", "employe
 
 // ================= SHARED =================
 
+router.get("/:id/download", allowedTo("superAdmin", "admin", "accountant", "employee"), downloadPaymentPDF);
 router.get("/:id", allowedTo("superAdmin", "admin", "accountant", "employee"), getPaymentById);
 router.patch("/:id", validation(paymentSchema), allowedTo("superAdmin", "admin", "accountant"), updatePayment); // schema validation typically needed for update too? Using paymentSchema for now
 router.delete("/:id", allowedTo("superAdmin", "admin"), deletePayment);

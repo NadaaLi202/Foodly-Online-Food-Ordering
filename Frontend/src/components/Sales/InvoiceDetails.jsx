@@ -6,9 +6,10 @@ import toast from 'react-hot-toast';
 import api from '../../services/api';
 import DocumentActions from '../common/DocumentActions';
 import InvoiceLayout from '../invoice/InvoiceLayout';
+import InvoicePaymentsTab from './InvoicePaymentsTab';
 import { fetchPdfBlob, downloadBlob, openBlobInNewTab, getErrorMessage } from '../../utils/invoicePdf';
 
-const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, loading, i18n, viewTitleKey, filenamePrefix }) => {
+const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, onRefreshInvoice, loading, i18n, viewTitleKey, filenamePrefix, paymentsModule = 'sales' }) => {
     const { t } = useTranslation();
     const viewTitle = viewTitleKey ? t(viewTitleKey) : t('sales.invoices.view_invoice');
     const fPrefix = filenamePrefix || 'Invoice';
@@ -287,10 +288,11 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, loading, i
                             </>
                         )}
                         {viewTab === 'payments' && (
-                            <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-500">
-                                <p>{t('sales.invoices.payments_tab')}</p>
-                                <p className="text-sm mt-2">—</p>
-                            </div>
+                            <InvoicePaymentsTab
+                                invoice={invoice}
+                                paymentsModule={paymentsModule}
+                                onRefreshInvoice={onRefreshInvoice}
+                            />
                         )}
                         {viewTab === 'stock' && (
                             <div className="bg-white rounded-xl border border-gray-100 p-8 text-center text-gray-500">

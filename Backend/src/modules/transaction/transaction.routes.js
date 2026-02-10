@@ -7,7 +7,7 @@ import {
     deleteOne,
     downloadInvoicePDF
 } from "./transaction.controller.js";
-import { uploadMultiFiles } from "../../middleware/uploadFiles.js";
+import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadFiles.js";
 import { allowedTo, protectedRoutes } from "../auth/auth.controller.js";
 import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 import { validation } from "../../middleware/validation.js";
@@ -34,30 +34,30 @@ router.use(protectedRoutes, applyCompanyFilter);
 // ================= SALES =================
 
 // Sales Invoices
-router.post("/sales/invoices", uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), parseJsonFields(['items']), validation(transactionSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), createTransaction("sales", "invoice"));
+router.post("/sales/invoices", uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 5 }]), parseJsonFields(['items']), validation(transactionSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), createTransaction("sales", "invoice"));
 router.get("/sales/invoices", allowedTo("superAdmin", "admin", "accountant", "employee"), getAllTransactions("sales", "invoice"));
 
 // Sales Returns
-router.post("/sales/returns", uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), parseJsonFields(['items']), validation(transactionSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), createTransaction("sales", "return"));
+router.post("/sales/returns", uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 5 }]), parseJsonFields(['items']), validation(transactionSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), createTransaction("sales", "return"));
 router.get("/sales/returns", allowedTo("superAdmin", "admin", "accountant", "employee"), getAllTransactions("sales", "return"));
 
 // Sales Quotations
-router.post("/sales/quotations", uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), parseJsonFields(['items']), validation(transactionSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), createTransaction("sales", "quotation"));
+router.post("/sales/quotations", uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 5 }]), parseJsonFields(['items']), validation(transactionSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), createTransaction("sales", "quotation"));
 router.get("/sales/quotations", allowedTo("superAdmin", "admin", "accountant", "employee"), getAllTransactions("sales", "quotation"));
 
 
 // ================= PURCHASES =================
 
 // Purchase Invoices
-router.post("/purchases/invoices", uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), parseJsonFields(['items']), validation(transactionSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), createTransaction("purchases", "invoice"));
+router.post("/purchases/invoices", uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 5 }]), parseJsonFields(['items']), validation(transactionSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), createTransaction("purchases", "invoice"));
 router.get("/purchases/invoices", allowedTo("superAdmin", "admin", "accountant", "employee"), getAllTransactions("purchases", "invoice"));
 
 // Purchase Returns
-router.post("/purchases/returns", uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), parseJsonFields(['items']), validation(transactionSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), createTransaction("purchases", "return"));
+router.post("/purchases/returns", uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 5 }]), parseJsonFields(['items']), validation(transactionSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), createTransaction("purchases", "return"));
 router.get("/purchases/returns", allowedTo("superAdmin", "admin", "accountant", "employee"), getAllTransactions("purchases", "return"));
 
 // Purchase Orders
-router.post("/purchases/purchaseOrder", uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), parseJsonFields(['items']), validation(transactionSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), createTransaction("purchases", "purchaseOrder"));
+router.post("/purchases/purchaseOrder", uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 5 }]), parseJsonFields(['items']), validation(transactionSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), createTransaction("purchases", "purchaseOrder"));
 router.get("/purchases/purchaseOrder", allowedTo("superAdmin", "admin", "accountant", "employee"), getAllTransactions("purchases", "purchaseOrder"));
 
 
@@ -65,7 +65,7 @@ router.get("/purchases/purchaseOrder", allowedTo("superAdmin", "admin", "account
 router.get("/:id/download", allowedTo("superAdmin", "admin", "accountant", "employee"), downloadInvoicePDF);
 router.route("/:id")
     .get(allowedTo("superAdmin", "admin", "accountant", "employee"), getOne)
-    .patch(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), parseJsonFields(['items']), validation(transactionSchema), allowedTo("superAdmin", "admin", "accountant"), updateOne)
+    .patch(uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 5 }]), parseJsonFields(['items']), validation(transactionSchema), allowedTo("superAdmin", "admin", "accountant"), updateOne)
     .delete(allowedTo("superAdmin", "admin"), deleteOne);
 
 export default router;

@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { BarChart3, ArrowLeft, Mail, Lock, CheckCircle } from 'lucide-react';
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
 
 export default function Login() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const redirectTo = searchParams.get("redirect");
     const { login } = useAuth();
     const [form, setForm] = useState({
         email: "",
@@ -36,13 +38,14 @@ export default function Login() {
                 login(data.isUserExist, data.token);
 
                 const role = data.isUserExist.role;
-                console.log('Login successful, role:', role);
+                const target = redirectTo && redirectTo.startsWith("/") ? redirectTo : null;
 
-                // Redirect based on role
-                if (role === 'superAdmin') {
-                    navigate('/super-admin');
+                if (target) {
+                    navigate(target, { replace: true });
+                } else if (role === "superAdmin") {
+                    navigate("/super-admin", { replace: true });
                 } else {
-                    navigate('/dashboard');
+                    navigate("/dashboard", { replace: true });
                 }
             }
 

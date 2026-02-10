@@ -3,23 +3,28 @@ import { AppError } from "../utils/AppError.js";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+// Allowed mimetypes for transaction attachments (images + common documents)
+export const ATTACHMENT_MIMETYPES = [
+    'image/', // image/jpeg, image/png, etc.
+    'application/pdf',
+    'application/msword', // .doc
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+    'application/vnd.ms-excel', // .xls
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' // .xlsx
+];
+
 // shared upload options
 const uploadOptions = (fileTypes) => {
     const storage = multer.memoryStorage();
 
     const fileFilter = (req, file, cb) => {
-        // Use mimetype validation (e.g. image/jpeg, image/png, image/webp)
         const isAllowed = fileTypes.some((type) =>
-            file.mimetype.startsWith(type)
+            type.endsWith('/') ? file.mimetype.startsWith(type) : file.mimetype === type
         );
-
         if (isAllowed) {
             cb(null, true);
         } else {
-            const message = fileTypes.includes("image")
-                ? "Only image files are allowed"
-                : "File type is not allowed";
-            cb(new AppError(message, 400));
+            cb(new AppError("File type is not allowed. Use PDF, images, Word or Excel.", 400));
         }
     };
 

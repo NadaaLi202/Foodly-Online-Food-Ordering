@@ -33,6 +33,11 @@ export const paymentSchema = Joi.object({
     notes: Joi.string()
         .trim()
         .allow('')
+        .optional(),
+
+    referenceNumber: Joi.string()
+        .trim()
+        .allow('')
         .optional()
 
 }).unknown(true);

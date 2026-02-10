@@ -82,11 +82,11 @@ function App() {
             <Route path="companies/:companyId/users" element={<UserManagement />} />
           </Route>
 
-          {/* Dashboard Layout Route */}
+          {/* Dashboard Layout Route - SuperAdmin can access to view all company data */}
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute allowedRoles={['admin', 'accountant', 'employee', 'company']}>
+              <ProtectedRoute allowedRoles={['superAdmin', 'admin', 'accountant', 'employee', 'company']}>
                 <Layout />
               </ProtectedRoute>
             }
@@ -98,6 +98,7 @@ function App() {
               <Route path="returns" element={<Returns />} />
               <Route path="quotations" element={<Quotations />} />
               <Route path="customers" element={<Customers />} />
+              <Route path="customers/:id" element={<Customers />} />
               <Route path="payments" element={<Payments />} />
             </Route>
 
@@ -118,6 +119,7 @@ function App() {
 
             <Route path="purchases">
               <Route index element={<PurchasesPage />} />
+              <Route path="suppliers/:id" element={<Suppliers />} />
               <Route path="invoices" element={<PurchaseInvoices />} />
               <Route path="invoices/add" element={<PurchaseInvoices />} />
               <Route path="credit-notes" element={<PurchaseCreditNotes />} />
