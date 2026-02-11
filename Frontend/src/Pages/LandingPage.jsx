@@ -262,7 +262,7 @@ const LandingPage = () => {
                                 onClick={handleLogin}
                                 className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-lg font-bold rounded-xl hover:from-indigo-500 hover:to-violet-500 transition-all shadow-lg shadow-indigo-500/40 hover:shadow-indigo-500/60 hover:-translate-y-1 duration-300 flex items-center justify-center gap-2 group"
                             >
-                                Start Free Trial
+                                Get Started
                                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                             </button>
                             <a
@@ -583,14 +583,14 @@ const LandingPage = () => {
                                 Ready to transform your business?
                             </h2>
                             <p className="text-xl text-indigo-100 mb-10 max-w-2xl mx-auto">
-                                Join thousands of businesses automating their accounting with Dafater. Free 14-day trial, no credit card required.
+                                Join thousands of businesses automating their accounting with Dafater.
                             </p>
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                                 <button
                                     onClick={handleLogin}
                                     className="px-8 py-4 bg-white text-indigo-600 font-bold rounded-xl hover:bg-indigo-50 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 duration-300 flex items-center gap-2 group"
                                 >
-                                    Start Free Trial
+                                    Get Started
                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </button>
                                 <a

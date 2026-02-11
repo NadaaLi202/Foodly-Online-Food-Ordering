@@ -9,6 +9,8 @@ export const addUserVal = Joi.object({
     confirmPassword: Joi.string().valid(Joi.ref('password')).required(),
     role: Joi.string().valid('accountant', 'admin', 'employee', 'superAdmin'),
     companyId: Joi.string().hex().length(24),
+    roleId: Joi.string().hex().length(24),
+    systemRole: Joi.string().valid('superAdmin', 'companyOwner'),
     phone: Joi.string(),
 })
 
@@ -20,6 +22,8 @@ export const updateUserVal = Joi.object({
     confirmPassword: Joi.string().valid(Joi.ref('password')),
     role: Joi.string().valid('accountant', 'admin', 'employee', 'superAdmin'),
     companyId: Joi.string().hex().length(24),
+    roleId: Joi.string().hex().length(24),
+    systemRole: Joi.string().valid('superAdmin', 'companyOwner'),
     phone: Joi.string(),
 })
 

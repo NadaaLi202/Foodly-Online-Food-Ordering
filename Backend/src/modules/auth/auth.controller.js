@@ -1,5 +1,6 @@
 import { userModel } from "../user/user.model.js"
 import { companyModel } from "../companies/company.model.js"
+import { roleModel } from "../role/role.model.js"
 import { catchAsyncError } from "../../middleware/catchAsyncError.js"
 import { AppError } from "../../utils/AppError.js"
 import bcrypt from "bcrypt"
@@ -54,7 +55,9 @@ const signIn = catchAsyncError(async (req, res, next) => {
         const payload = {
             userId: account._id,
             role: type === 'company' ? 'company' : account.role,
-            type: type
+            type: type,
+            systemRole: type === 'company' ? 'companyOwner' : (account.systemRole || (account.role === 'superAdmin' ? 'superAdmin' : null)),
+            roleId: type === 'user' ? (account.roleId || null) : null
         };
 
         if (type === 'user') {
@@ -98,7 +101,9 @@ const companySignIn = catchAsyncError(async (req, res, next) => {
     const payload = {
         userId: company._id,
         companyId: company._id,
-        role: 'company'
+        role: 'company',
+        systemRole: 'companyOwner',
+        roleId: null
     };
     const token = jwt.sign(payload, process.env.SECRET_KEY);
     const companyResponse = company.toObject();
@@ -141,11 +146,13 @@ const protectedRoutes = catchAsyncError(async (req, res, next) => { // authentic
 
     if (!account) return next(new AppError('Account not found or invalid token', 401));
 
-    req.user = account;
+    req.user = typeof account.toObject === 'function' ? account.toObject() : account;
+    if (decoded.systemRole) req.user.systemRole = decoded.systemRole;
+    if (decoded.roleId) req.user.roleId = decoded.roleId;
     next();
 })
 
-const allowedTo = (...roles) => { // Authorization
+const allowedTo = (...roles) => { // Authorization (role-based, backward compatible)
     return catchAsyncError(async (req, res, next) => {
         const userRole = req.user?.role;
         const isAuthorized = roles.includes(userRole) || (userRole === 'company' && roles.includes('admin'));
@@ -157,9 +164,37 @@ const allowedTo = (...roles) => { // Authorization
     });
 }
 
+/**
+ * Permission-based authorization. Allow if:
+ * - systemRole is superAdmin, or
+ * - systemRole is companyOwner (or role is company), or
+ * - user's role (by roleId) has at least one of the given permissions and is active.
+ * @param {...string} permissions - One or more permission strings; user needs at least one.
+ */
+const requirePermission = (...permissions) => {
+    return catchAsyncError(async (req, res, next) => {
+        const systemRole = req.user?.systemRole;
+        const role = req.user?.role;
 
+        if (systemRole === 'superAdmin') return next();
+        if (systemRole === 'companyOwner' || role === 'company') return next();
 
-export { signup, signIn, companySignIn, protectedRoutes, allowedTo }
+        const roleId = req.user?.roleId;
+        if (!roleId) return next(new AppError('You do not have a role assigned', 403));
+
+        const roleDoc = await roleModel.findById(roleId);
+        if (!roleDoc) return next(new AppError('Role not found', 403));
+        if (roleDoc.status !== 'active') return next(new AppError('Your role is inactive', 403));
+
+        const userPerms = roleDoc.permissions || [];
+        const hasAny = permissions.some(p => userPerms.includes(p));
+        if (!hasAny) return next(new AppError('Insufficient permissions', 403));
+
+        next();
+    });
+};
+
+export { signup, signIn, companySignIn, protectedRoutes, allowedTo, requirePermission }
 
 
 

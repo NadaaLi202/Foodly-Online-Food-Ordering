@@ -1,4 +1,5 @@
 import multer from "multer";
+import mongoose from "mongoose";
 
 export const globalErrorMiddleware = (err, req, res, next) => {
     console.error('[ERROR] Global Error Handler:', err);
@@ -15,6 +16,15 @@ export const globalErrorMiddleware = (err, req, res, next) => {
             message = err.message || message;
         }
         return res.status(statusCode).json({ message, statusCode });
+    }
+
+    // Handle Mongoose validation errors (400 instead of 500)
+    if (err instanceof mongoose.Error.ValidationError) {
+        const message = Object.values(err.errors).map((e) => e.message).join("; ") || err.message;
+        return res.status(400).json({ message, statusCode: 400 });
+    }
+    if (err instanceof mongoose.Error.CastError) {
+        return res.status(400).json({ message: `Invalid value for ${err.path}: ${err.value}`, statusCode: 400 });
     }
 
     const statusCode = err.statusCode || 500;
