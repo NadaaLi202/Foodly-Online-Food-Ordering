@@ -49,9 +49,15 @@ const transferProcessSchema = new mongoose.Schema(
         // مرفقات
         attachments: [
             {
-                type: String
+                secure_url: { type: String },
+                public_id: { type: String }
             }
-        ]
+        ],
+        companyId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Company',
+            required: true
+        }
     },
     { timestamps: true }
 );

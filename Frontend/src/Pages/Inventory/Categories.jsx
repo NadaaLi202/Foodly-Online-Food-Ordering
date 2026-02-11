@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, RefreshCw, X, FolderTree } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import api from '../../services/api';
 
 const Categories = () => {
     const { t, i18n } = useTranslation();
@@ -22,11 +23,10 @@ const Categories = () => {
         setLoading(true);
         try {
             const url = search
-                ? `http://localhost:4000/api/v1/category?search=${search}`
-                : 'http://localhost:4000/api/v1/category';
-            const response = await fetch(url);
-            const data = await response.json();
-            setCategories(data.categories || []);
+                ? `/category?search=${search}`
+                : '/category';
+            const response = await api.get(url);
+            setCategories(response.data.categories || []);
         } catch (error) {
             console.error('Error fetching categories:', error);
         } finally {
@@ -76,8 +76,8 @@ const Categories = () => {
 
         try {
             const url = editingCategory
-                ? `http://localhost:4000/api/v1/category/${editingCategory._id}`
-                : 'http://localhost:4000/api/v1/category';
+                ? `/category/${editingCategory._id}`
+                : '/category';
 
             const method = editingCategory ? 'PUT' : 'POST';
 
@@ -87,29 +87,24 @@ const Categories = () => {
                 parentCategory: formData.parentCategory || null
             };
 
-            const response = await fetch(url, {
+            await api({
                 method,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload),
+                url,
+                data: payload,
             });
 
-            if (response.ok) {
-                alert(i18n.language === 'ar'
-                    ? (editingCategory ? 'تم تحديث التصنيف بنجاح!' : 'تم إضافة التصنيف بنجاح!')
-                    : (editingCategory ? 'Category updated successfully!' : 'Category added successfully!'));
-                setIsModalOpen(false);
-                setEditingCategory(null);
-                fetchCategories();
-                resetForm();
-            } else {
-                const error = await response.json();
-                alert(error.message || (i18n.language === 'ar' ? 'حدث خطأ' : 'Error occurred'));
-            }
+            alert(i18n.language === 'ar'
+                ? (editingCategory ? 'تم تحديث التصنيف بنجاح!' : 'تم إضافة التصنيف بنجاح!')
+                : (editingCategory ? 'Category updated successfully!' : 'Category added successfully!'));
+            setIsModalOpen(false);
+            setEditingCategory(null);
+            fetchCategories();
+            resetForm();
+
         } catch (error) {
             console.error('Error saving category:', error);
-            alert(i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error');
+            const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error');
+            alert(msg);
         } finally {
             setLoading(false);
         }
@@ -133,20 +128,13 @@ const Categories = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:4000/api/v1/category/${id}`, {
-                method: 'DELETE'
-            });
-
-            if (response.ok) {
-                alert(i18n.language === 'ar' ? 'تم حذف التصنيف بنجاح!' : 'Category deleted successfully!');
-                fetchCategories();
-            } else {
-                const error = await response.json();
-                alert(error.message || (i18n.language === 'ar' ? 'حدث خطأ في الحذف' : 'Error deleting category'));
-            }
+            await api.delete(`/category/${id}`);
+            alert(i18n.language === 'ar' ? 'تم حذف التصنيف بنجاح!' : 'Category deleted successfully!');
+            fetchCategories();
         } catch (error) {
             console.error('Error deleting category:', error);
-            alert(i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error');
+            const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ في الحذف' : 'Error deleting category');
+            alert(msg);
         }
     };
 

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { X, Plus, Edit2, Phone, Mail, MapPin, Trash2 } from 'lucide-react';
+import { X, Plus, Minus, Pencil } from 'lucide-react';
+import api from '../../services/api';
 import { useTranslation } from 'react-i18next';
 
 const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
     const { t } = useTranslation();
     const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState({});
     const [showOptions, setShowOptions] = useState({
         phone: true,
         email: true,
@@ -13,8 +15,10 @@ const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
 
     const [formData, setFormData] = useState({
         type: 'individual',
-        code: '1-000002', // Default or generated
+        code: '1-000002',
         name: '',
+        taxNumber: '',
+        commercialRegister: '',
         initialBalance: 0,
         notes: '',
         phone: '',
@@ -27,7 +31,7 @@ const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
             neighborhood: '',
             province: '',
             zipCode: '',
-            country: 'مصر'
+            country: ''
         },
         additionalContacts: []
     });
@@ -42,6 +46,10 @@ const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
             });
         } else {
             setFormData({ ...formData, [name]: value });
+        }
+        if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
+        if (name === 'type' && value === 'individual') {
+            setErrors((prev) => ({ ...prev, taxNumber: '', commercialRegister: '' }));
         }
     };
 
@@ -70,23 +78,46 @@ const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
         setFormData({ ...formData, additionalContacts: updated });
     };
 
+    const validate = () => {
+        const newErrors = {};
+        if (!(formData.name || '').trim()) {
+            newErrors.name = t('sales.customers.customer_name') + ' ' + t('sales.common.required');
+        }
+        if (formData.type === 'commercial') {
+            if (!(formData.taxNumber || '').trim()) {
+                newErrors.taxNumber = t('sales.customers.tax_number') + ' ' + t('sales.common.required');
+            }
+            if (!(formData.commercialRegister || '').trim()) {
+                newErrors.commercialRegister = t('sales.customers.commercial_register') + ' ' + t('sales.common.required');
+            }
+        }
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (!validate()) return;
         setLoading(true);
+        setErrors({});
         try {
-            const response = await fetch('http://localhost:4000/api/v1/contacts/customers', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            });
-            const data = await response.json();
-            if (response.ok) {
+            const payload = {
+                ...formData,
+                type: formData.type === 'commercial' ? 'commercial' : 'individual',
+                taxNumber: formData.type === 'commercial' ? (formData.taxNumber || '').trim() || undefined : undefined,
+                commercialRegister: formData.type === 'commercial' ? (formData.commercialRegister || '').trim() || undefined : undefined,
+            };
+            const response = await api.post('/contacts/customers', payload);
+            const data = response.data;
+            if (response.status === 200 || response.status === 201) {
                 onSave(data.contact);
                 onClose();
             } else {
-                alert(data.message || 'Error saving contact');
+                setErrors({ submit: data.message || t('sales.common.error_message') });
             }
         } catch (error) {
+            const msg = error.response?.data?.message || error.message || t('sales.common.error_message');
+            setErrors({ submit: msg });
             console.error('Error saving contact:', error);
         } finally {
             setLoading(false);
@@ -95,357 +126,224 @@ const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
 
     if (!isOpen) return null;
 
+    const isRtl = i18n?.language === 'ar';
+
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-in fade-in duration-300">
-            <div
-                className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-white/20"
-                dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}
-            >
-                {/* Header */}
-                <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-white/50 backdrop-blur-md sticky top-0 z-10">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
-                            <Plus size={20} strokeWidth={3} />
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4">
+            <div className="relative transform rounded-xl bg-white text-start shadow-xl transition-all w-full my-8 max-w-6xl max-h-[90vh] overflow-hidden flex flex-col" dir={isRtl ? 'rtl' : 'ltr'}>
+                {/* Header - match reference */}
+                <div className="border-b border-gray-200 bg-white px-6 py-4 flex-shrink-0">
+                    <div className="flex flex-wrap items-center justify-between sm:flex-nowrap">
+                        <div>
+                            <h3 className="text-lg font-medium leading-6 text-gray-900">
+                                {t('sales.customers.add_customer')}
+                            </h3>
                         </div>
-                        <h2 className="text-xl font-black text-gray-800 tracking-tight">
-                            {t('sales.customers.add_customer')}
-                        </h2>
+                        <div className="flex-shrink-0">
+                            <button type="button" onClick={onClose} className="flex rounded-md bg-white text-gray-400 hover:text-gray-500 p-1">
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl transition-all text-gray-400 hover:text-gray-600">
-                        <X size={24} />
-                    </button>
                 </div>
 
-                {/* Body */}
-                <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
-                    <form id="add-contact-form" onSubmit={handleSubmit} className="space-y-10">
-                        {/* Basic Info Grid */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
-                            {/* Left Side: Type, Name, Balance, Notes */}
-                            <div className="space-y-8">
-                                <div className="flex items-center gap-8">
-                                    <label className="text-sm font-black text-gray-400 uppercase tracking-widest">{t('sales.customers.type')}</label>
-                                    <div className="flex gap-6">
-                                        <label className="flex items-center gap-2.5 cursor-pointer group">
-                                            <input
-                                                type="radio"
-                                                name="type"
-                                                value="individual"
-                                                checked={formData.type === 'individual'}
-                                                onChange={handleInputChange}
-                                                className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 cursor-pointer"
-                                            />
-                                            <span className="text-sm font-bold text-gray-600 group-hover:text-indigo-600 transition-colors">{t('sales.customers.individual')}</span>
-                                        </label>
-                                        <label className="flex items-center gap-2.5 cursor-pointer group">
-                                            <input
-                                                type="radio"
-                                                name="type"
-                                                value="commercial"
-                                                checked={formData.type === 'commercial'}
-                                                onChange={handleInputChange}
-                                                className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 cursor-pointer"
-                                            />
-                                            <span className="text-sm font-bold text-gray-600 group-hover:text-indigo-600 transition-colors">{t('sales.customers.commercial')}</span>
-                                        </label>
+                <form onSubmit={handleSubmit} className="space-y-6 divide-y divide-gray-300 px-6 py-5 flex-1 overflow-y-auto">
+                    {errors.submit && (
+                        <div className="p-3 rounded-md bg-red-50 text-red-700 text-sm border border-red-100">
+                            {errors.submit}
+                        </div>
+                    )}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Left column */}
+                        <div className="grid content-start grid-cols-1 sm:grid-cols-6 gap-y-2 gap-x-4">
+                            <div className="sm:col-span-3">
+                                <label className="block text-sm font-medium text-gray-700">{t('sales.customers.type')}</label>
+                                <div className="mt-2 flex items-center space-x-7 rtl:space-x-reverse">
+                                    <div className="flex items-center">
+                                        <input id="individual" name="type" type="radio" value="individual" checked={formData.type === 'individual'} onChange={handleInputChange} className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-transparent" />
+                                        <label htmlFor="individual" className={`block text-sm font-medium text-gray-700 ${isRtl ? 'ms-2' : 'ml-2'}`}>{t('sales.customers.individual')}</label>
                                     </div>
-                                </div>
-
-                                <div className="relative group">
-                                    <label className="block text-[11px] font-black text-gray-400 mb-2 uppercase tracking-widest flex items-center gap-1.5">
-                                        {t('sales.customers.customer_name')}
-                                        <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="w-full bg-gray-50/50 border-2 border-transparent hover:border-gray-200 focus:border-indigo-500 focus:bg-white rounded-2xl px-5 py-3 text-sm font-bold text-gray-700 outline-none transition-all"
-                                        placeholder={t('sales.customers.customer_name')}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="group">
-                                        <label className="block text-[11px] font-black text-gray-400 mb-2 uppercase tracking-widest">{t('sales.customers.opening_balance')}</label>
-                                        <input
-                                            type="number"
-                                            name="initialBalance"
-                                            value={formData.initialBalance}
-                                            onChange={handleInputChange}
-                                            className="w-full bg-gray-50/50 border-2 border-transparent hover:border-gray-200 focus:border-indigo-500 focus:bg-white rounded-2xl px-5 py-3 text-sm font-bold text-gray-700 outline-none transition-all"
-                                            placeholder="0.00"
-                                        />
-                                    </div>
-                                    <div className="group">
-                                        <label className="block text-[11px] font-black text-gray-400 mb-2 uppercase tracking-widest">{t('sales.common.notes')}</label>
-                                        <textarea
-                                            name="notes"
-                                            value={formData.notes}
-                                            onChange={handleInputChange}
-                                            rows="1"
-                                            className="w-full bg-gray-50/50 border-2 border-transparent hover:border-gray-200 focus:border-indigo-500 focus:bg-white rounded-2xl px-5 py-3 text-sm font-bold text-gray-700 outline-none transition-all resize-none"
-                                            placeholder="..."
-                                        ></textarea>
+                                    <div className="flex items-center">
+                                        <input id="commercial" name="type" type="radio" value="commercial" checked={formData.type === 'commercial'} onChange={handleInputChange} className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-transparent" />
+                                        <label htmlFor="commercial" className={`block text-sm font-medium text-gray-700 ${isRtl ? 'ms-2' : 'ml-2'}`}>{t('sales.customers.commercial')}</label>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Right Side: Code & Options Toggles */}
-                            <div className="space-y-8">
-                                <div className="group">
-                                    <label className="block text-[11px] font-black text-gray-400 mb-2 uppercase tracking-widest">{t('sales.customers.customer_code')}</label>
-                                    <div className="relative flex items-center">
-                                        <input
-                                            type="text"
-                                            name="code"
-                                            value={formData.code}
-                                            onChange={handleInputChange}
-                                            className="w-full bg-indigo-50/30 border-2 border-transparent hover:border-indigo-100 focus:border-indigo-500 focus:bg-white rounded-2xl px-5 py-3 text-sm font-black text-indigo-600 outline-none transition-all"
-                                        />
-                                        <div className="absolute left-4 rtl:right-4 pointer-events-none text-indigo-300">
-                                            <Edit2 size={16} />
-                                        </div>
+                            <div className="sm:col-span-6 xl:col-span-3">
+                                <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.customer_code')}</label>
+                                <div className="relative">
+                                    <input id="code" name="code" type="text" disabled value={formData.code} className={`block w-full rounded-md border-gray-300 disabled:bg-transparent shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm ${isRtl ? 'pe-10 ps-3' : 'ps-10 pe-3'}`} />
+                                    <div className={`absolute inset-y-0 flex items-center pointer-events-none text-indigo-900 ${isRtl ? 'start-0 ps-3' : 'end-0 pe-3'}`}>
+                                        <Pencil className="h-4 w-4" />
                                     </div>
                                 </div>
+                            </div>
 
-                                <div className="space-y-4">
-                                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">{t('sales.customers.contact_methods')}</label>
-                                    <div className="flex flex-wrap gap-4">
-                                        {['phone', 'email', 'address'].map(opt => (
-                                            <button
-                                                key={opt}
-                                                type="button"
-                                                onClick={() => toggleOption(opt)}
-                                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all border-2 ${showOptions[opt] ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-300'}`}
-                                            >
-                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${showOptions[opt] ? 'bg-white border-white' : 'bg-gray-50 border-gray-200'}`}>
-                                                    {showOptions[opt] && <div className="w-2 h-2 bg-indigo-600 rounded-sm"></div>}
-                                                </div>
-                                                {t(`sales.customers.${opt === 'phone' ? 'phone' : opt === 'email' ? 'email' : 'address'}`)}
-                                            </button>
-                                        ))}
+                            <div className="sm:col-span-6">
+                                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.customer_name')} <span className="font-bold text-red-600">*</span></label>
+                                <input id="name" name="name" type="text" value={formData.name} onChange={handleInputChange} className={`rounded-md bg-white block w-full border shadow-sm focus:ring-indigo-500 sm:text-sm ${errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-indigo-500'}`} />
+                                {errors.name && <p className="mt-1 text-sm text-red-500">{errors.name}</p>}
+                            </div>
+
+                            {formData.type === 'commercial' && (
+                                <div className="sm:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.tax_number')} <span className="font-bold text-red-600">*</span></label>
+                                        <input name="taxNumber" type="text" value={formData.taxNumber} onChange={handleInputChange} className={`rounded-md bg-white block w-full border shadow-sm focus:ring-indigo-500 sm:text-sm ${errors.taxNumber ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-indigo-500'}`} />
+                                        {errors.taxNumber && <p className="mt-1 text-sm text-red-500">{errors.taxNumber}</p>}
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.commercial_register')} <span className="font-bold text-red-600">*</span></label>
+                                        <input name="commercialRegister" type="text" value={formData.commercialRegister} onChange={handleInputChange} className={`rounded-md bg-white block w-full border shadow-sm focus:ring-indigo-500 sm:text-sm ${errors.commercialRegister ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-indigo-500'}`} />
+                                        {errors.commercialRegister && <p className="mt-1 text-sm text-red-500">{errors.commercialRegister}</p>}
                                     </div>
                                 </div>
+                            )}
 
-                                {/* Dynamic Sub-Fields based on toggles */}
-                                <div className="space-y-6 pt-2">
-                                    {(showOptions.phone) && (
-                                        <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
-                                            <div className="group">
-                                                <label className="block text-[10px] font-black text-gray-400 mb-1.5 uppercase">{t('sales.customers.phone')}</label>
-                                                <input
-                                                    type="text"
-                                                    name="phone"
-                                                    value={formData.phone}
-                                                    onChange={handleInputChange}
-                                                    className="w-full bg-gray-50/50 border-2 border-transparent hover:border-gray-200 focus:border-indigo-500 focus:bg-white rounded-xl px-4 py-2.5 text-sm font-bold text-gray-700 outline-none transition-all"
-                                                />
-                                            </div>
-                                            <div className="group">
-                                                <label className="block text-[10px] font-black text-gray-400 mb-1.5 uppercase">{t('sales.customers.mobile')}</label>
-                                                <input
-                                                    type="text"
-                                                    name="mobile"
-                                                    value={formData.mobile}
-                                                    onChange={handleInputChange}
-                                                    className="w-full bg-gray-50/50 border-2 border-transparent hover:border-gray-200 focus:border-indigo-500 focus:bg-white rounded-xl px-4 py-2.5 text-sm font-bold text-gray-700 outline-none transition-all"
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                    {showOptions.email && (
-                                        <div className="animate-in slide-in-from-top-2 duration-300">
-                                            <label className="block text-[10px] font-black text-gray-400 mb-1.5 uppercase">{t('sales.customers.email')}</label>
-                                            <input
-                                                type="email"
-                                                name="email"
-                                                value={formData.email}
-                                                onChange={handleInputChange}
-                                                className="w-full bg-gray-50/50 border-2 border-transparent hover:border-gray-200 focus:border-indigo-500 focus:bg-white rounded-xl px-4 py-2.5 text-sm font-bold text-gray-700 outline-none transition-all"
-                                            />
-                                        </div>
-                                    )}
+                            <div className="sm:col-span-6">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.opening_balance')}</label>
+                                <input name="initialBalance" type="number" value={formData.initialBalance} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="0" />
+                            </div>
+
+                            <div className="sm:col-span-6">
+                                <label htmlFor="notes" className="block text-sm font-medium text-gray-700">{t('sales.common.notes')}</label>
+                                <div className="mt-1">
+                                    <textarea id="notes" name="notes" rows={3} value={formData.notes} onChange={handleInputChange} className="block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="..." />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Address Section */}
-                        {showOptions.address && (
-                            <div className="pt-8 border-t border-gray-100 animate-in fade-in duration-500">
-                                <h3 className="text-xs font-black text-indigo-400 uppercase tracking-[0.2em] mb-8">{t('sales.customers.address')}</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="md:col-span-2 grid grid-cols-2 gap-6">
-                                        <div className="group">
-                                            <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">{t('sales.customers.address1')}</label>
-                                            <input
-                                                type="text"
-                                                name="address.address1"
-                                                value={formData.address.address1}
-                                                onChange={handleInputChange}
-                                                className="w-full bg-gray-50/50 border-2 border-transparent hover:border-gray-200 focus:border-indigo-500 focus:bg-white rounded-2xl px-5 py-3 text-sm font-bold text-gray-700 outline-none transition-all"
-                                            />
-                                        </div>
-                                        <div className="group">
-                                            <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">{t('sales.customers.address2')}</label>
-                                            <input
-                                                type="text"
-                                                name="address.address2"
-                                                value={formData.address.address2}
-                                                onChange={handleInputChange}
-                                                className="w-full bg-gray-50/50 border-2 border-transparent hover:border-gray-200 focus:border-indigo-500 focus:bg-white rounded-2xl px-5 py-3 text-sm font-bold text-gray-700 outline-none transition-all"
-                                            />
-                                        </div>
-                                        <div className="group">
-                                            <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">{t('sales.customers.city')}</label>
-                                            <input
-                                                type="text"
-                                                name="address.city"
-                                                value={formData.address.city}
-                                                onChange={handleInputChange}
-                                                className="w-full bg-gray-50/50 border-2 border-transparent hover:border-gray-200 focus:border-indigo-500 focus:bg-white rounded-2xl px-5 py-3 text-sm font-bold text-gray-700 outline-none transition-all"
-                                            />
-                                        </div>
-                                        <div className="group">
-                                            <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">{t('sales.customers.neighborhood')}</label>
-                                            <input
-                                                type="text"
-                                                name="address.neighborhood"
-                                                value={formData.address.neighborhood}
-                                                onChange={handleInputChange}
-                                                className="w-full bg-gray-50/50 border-2 border-transparent hover:border-gray-200 focus:border-indigo-500 focus:bg-white rounded-2xl px-5 py-3 text-sm font-bold text-gray-700 outline-none transition-all"
-                                            />
-                                        </div>
-                                        <div className="group">
-                                            <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">{t('sales.customers.province')}</label>
-                                            <input
-                                                type="text"
-                                                name="address.province"
-                                                value={formData.address.province}
-                                                onChange={handleInputChange}
-                                                className="w-full bg-gray-50/50 border-2 border-transparent hover:border-gray-200 focus:border-indigo-500 focus:bg-white rounded-2xl px-5 py-3 text-sm font-bold text-gray-700 outline-none transition-all"
-                                            />
-                                        </div>
-                                        <div className="group">
-                                            <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">{t('sales.customers.zip_code')}</label>
-                                            <input
-                                                type="text"
-                                                name="address.zipCode"
-                                                value={formData.address.zipCode}
-                                                onChange={handleInputChange}
-                                                className="w-full bg-gray-50/50 border-2 border-transparent hover:border-gray-200 focus:border-indigo-500 focus:bg-white rounded-2xl px-5 py-3 text-sm font-bold text-gray-700 outline-none transition-all"
-                                            />
-                                        </div>
+                        {/* Right column - Contact Information */}
+                        <div className="grid content-start grid-cols-1 gap-y-2 gap-x-4 sm:grid-cols-6">
+                            <div className="sm:col-span-6">
+                                <h3 className="text-lg font-medium text-gray-900">{t('sales.customers.contact_methods')}</h3>
+                                <div className="mt-2 flex gap-x-5 flex-wrap">
+                                    <div className="flex items-center">
+                                        <input id="opt-phone" type="checkbox" checked={showOptions.phone} onChange={() => toggleOption('phone')} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                        <label htmlFor="opt-phone" className={`align-middle text-gray-700 font-medium ${isRtl ? 'ms-1' : 'ml-1'}`}>{t('sales.customers.phone')}</label>
                                     </div>
-                                    <div className="group">
-                                        <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">{t('sales.customers.country')}</label>
-                                        <div className="relative">
-                                            <select
-                                                name="address.country"
-                                                value={formData.address.country}
-                                                onChange={handleInputChange}
-                                                className="w-full bg-gray-50/50 border-2 border-transparent hover:border-gray-200 focus:border-indigo-500 focus:bg-white rounded-2xl px-5 py-3 text-sm font-bold text-gray-700 outline-none appearance-none transition-all"
-                                            >
-                                                <option value="مصر">{t('sales.common.egypt_country')}</option>
-                                                <option value="السعودية">{t('sales.common.saudi_arabia')}</option>
-                                                <option value="الإمارات">{t('sales.common.uae')}</option>
-                                            </select>
-                                            <div className="absolute inset-y-0 left-4 rtl:right-4 flex items-center pointer-events-none text-gray-400">
-                                                <MapPin size={18} />
-                                            </div>
-                                        </div>
+                                    <div className="flex items-center">
+                                        <input id="opt-email" type="checkbox" checked={showOptions.email} onChange={() => toggleOption('email')} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                        <label htmlFor="opt-email" className={`align-middle text-gray-700 font-medium ${isRtl ? 'ms-1' : 'ml-1'}`}>{t('sales.customers.email')}</label>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <input id="opt-address" type="checkbox" checked={showOptions.address} onChange={() => toggleOption('address')} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                        <label htmlFor="opt-address" className={`align-middle text-gray-700 font-medium ${isRtl ? 'ms-1' : 'ml-1'}`}>{t('sales.customers.address')}</label>
                                     </div>
                                 </div>
-                            </div>
-                        )}
 
-                        {/* Additional Contacts Section */}
-                        <div className="pt-8 border-t border-gray-100">
-                            <div className="flex items-center justify-between mb-8">
-                                <h3 className="text-xs font-black text-indigo-400 uppercase tracking-[0.2em]">{t('sales.customers.additional_contacts')}</h3>
-                                <button
-                                    type="button"
-                                    onClick={addAdditionalContact}
-                                    className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-2xl text-xs font-black hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
-                                >
-                                    <Plus size={16} />
+                                <div className="grid content-start grid-cols-1 sm:grid-cols-6 gap-y-2 gap-x-4 mt-4">
+                                    {showOptions.phone && (
+                                        <>
+                                            <div className="sm:col-span-3">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.phone')}</label>
+                                                <input name="phone" type="tel" value={formData.phone} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                            </div>
+                                            <div className="sm:col-span-3">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.mobile')}</label>
+                                                <input name="mobile" type="tel" value={formData.mobile} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                            </div>
+                                        </>
+                                    )}
+                                    {showOptions.email && (
+                                        <div className="sm:col-span-6">
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.email')}</label>
+                                            <input name="email" type="email" value={formData.email} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                        </div>
+                                    )}
+                                    {showOptions.address && (
+                                        <>
+                                            <div className="sm:col-span-6">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.address1')}</label>
+                                                <input name="address.address1" type="text" value={formData.address.address1} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                            </div>
+                                            <div className="sm:col-span-6">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.address2')}</label>
+                                                <input name="address.address2" type="text" value={formData.address.address2} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                            </div>
+                                            <div className="sm:col-span-3">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.neighborhood')}</label>
+                                                <input name="address.neighborhood" type="text" value={formData.address.neighborhood} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                            </div>
+                                            <div className="sm:col-span-3">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.city')}</label>
+                                                <input name="address.city" type="text" value={formData.address.city} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                            </div>
+                                            <div className="sm:col-span-3">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.zip_code')}</label>
+                                                <input name="address.zipCode" type="text" value={formData.address.zipCode} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                            </div>
+                                            <div className="sm:col-span-3">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.province')}</label>
+                                                <input name="address.province" type="text" value={formData.address.province} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                            </div>
+                                            <div className="sm:col-span-3">
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.country')}</label>
+                                                <select name="address.country" value={formData.address.country} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                                    <option value="">{t('sales.common.choose')}</option>
+                                                    <option value="مصر">{t('sales.common.egypt_country')}</option>
+                                                    <option value="السعودية">{t('sales.common.saudi_arabia')}</option>
+                                                    <option value="الإمارات">{t('sales.common.uae')}</option>
+                                                </select>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Additional Contacts */}
+                            <div className="sm:col-span-6 pt-6 border-t border-gray-200">
+                                <h3 className="text-lg font-medium text-gray-900">{t('sales.customers.additional_contacts')}</h3>
+                            </div>
+                            <div className="sm:col-span-6">
+                                <button type="button" onClick={addAdditionalContact} className="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-3 py-2 text-sm font-medium leading-4 text-white shadow-sm hover:bg-indigo-700">
+                                    <Plus className={`h-4 w-4 ${isRtl ? 'ms-2 -me-0.5' : '-ms-0.5 me-2'}`} />
                                     {t('sales.customers.add_new_contact')}
                                 </button>
                             </div>
-
-                            <div className="space-y-4">
+                            <div className="sm:col-span-6 space-y-4">
                                 {formData.additionalContacts.map((contact, index) => (
-                                    <div key={index} className="bg-gray-50/50 p-6 rounded-3xl border-2 border-transparent hover:border-indigo-100 transition-all grid grid-cols-1 md:grid-cols-4 gap-4 items-end animate-in zoom-in-95 duration-200">
-                                        <div className="group">
-                                            <label className="block text-[9px] font-black text-gray-400 mb-1.5 uppercase">{t('sales.customers.contact_name')}</label>
-                                            <input
-                                                type="text"
-                                                value={contact.name}
-                                                onChange={(e) => handleAdditionalContactChange(index, 'name', e.target.value)}
-                                                className="w-full bg-white border border-gray-100 rounded-xl px-4 py-2 text-sm font-bold text-gray-700 focus:border-indigo-500 outline-none transition-all"
-                                            />
-                                        </div>
-                                        <div className="group">
-                                            <label className="block text-[9px] font-black text-gray-400 mb-1.5 uppercase">{t('sales.customers.phone')}</label>
-                                            <input
-                                                type="text"
-                                                value={contact.phone}
-                                                onChange={(e) => handleAdditionalContactChange(index, 'phone', e.target.value)}
-                                                className="w-full bg-white border border-gray-100 rounded-xl px-4 py-2 text-sm font-bold text-gray-700 focus:border-indigo-500 outline-none transition-all"
-                                            />
-                                        </div>
-                                        <div className="group">
-                                            <label className="block text-[9px] font-black text-gray-400 mb-1.5 uppercase">{t('sales.customers.job_title')}</label>
-                                            <input
-                                                type="text"
-                                                value={contact.title}
-                                                onChange={(e) => handleAdditionalContactChange(index, 'title', e.target.value)}
-                                                className="w-full bg-white border border-gray-100 rounded-xl px-4 py-2 text-sm font-bold text-gray-700 focus:border-indigo-500 outline-none transition-all"
-                                            />
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => removeAdditionalContact(index)}
-                                            className="h-10 w-10 flex items-center justify-center bg-white border border-gray-100 text-gray-400 hover:text-red-500 hover:border-red-100 rounded-xl transition-all"
-                                        >
-                                            <Trash2 size={18} />
+                                    <div key={index} className="flex flex-wrap items-start gap-4 p-4 bg-white rounded-md border border-gray-200">
+                                        <button type="button" onClick={() => removeAdditionalContact(index)} className="flex-shrink-0 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600" aria-label={t('sales.common.delete')}>
+                                            <Minus size={14} strokeWidth={3} />
                                         </button>
+                                        <div className="flex-1 min-w-[200px] space-y-3">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.contact_name')}</label>
+                                                <input type="text" value={contact.name} onChange={(e) => handleAdditionalContactChange(index, 'name', e.target.value)} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.phone')}</label>
+                                                    <input type="text" value={contact.phone} onChange={(e) => handleAdditionalContactChange(index, 'phone', e.target.value)} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.job_title')}</label>
+                                                    <input type="text" value={contact.title} onChange={(e) => handleAdditionalContactChange(index, 'title', e.target.value)} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
-                    </form>
-                </div>
+                    </div>
 
-                {/* Footer */}
-                <div className="px-8 py-6 border-t border-gray-100 bg-gray-50/50 backdrop-blur-md flex justify-end gap-4">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-8 py-3.5 border-2 border-gray-100 text-gray-400 rounded-2xl hover:bg-white hover:border-gray-300 hover:text-gray-600 transition-all text-sm font-black uppercase tracking-widest"
-                    >
-                        {t('sales.common.cancel')}
-                    </button>
-                    <button
-                        form="add-contact-form"
-                        type="submit"
-                        disabled={loading}
-                        className="px-10 py-3.5 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 text-sm font-black uppercase tracking-widest flex items-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {loading ? (
-                            <div className="w-5 h-5 border-3 border-white/20 border-t-white rounded-full animate-spin"></div>
-                        ) : (
-                            <>
-                                {t('sales.common.save')}
-                                <div className="rtl:rotate-180 group-hover:translate-x-1 transition-transform">
-                                    {/* Arrow icon optional */}
-                                </div>
-                            </>
-                        )}
-                    </button>
-                </div>
+                    {/* Footer - match reference: Cancel (white) + Save (emerald/green) */}
+                    <div className="flex gap-x-2 justify-end pt-4">
+                        <button type="button" onClick={onClose} className="rounded-md border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 shadow-sm hover:bg-gray-50 text-sm">
+                            {t('sales.common.cancel')}
+                        </button>
+                        <button type="submit" disabled={loading} className="inline-flex gap-1 rounded-md border border-transparent bg-emerald-500 px-4 py-2 font-medium text-white shadow-sm hover:bg-emerald-600 text-sm disabled:opacity-70 disabled:cursor-not-allowed">
+                            {loading ? (
+                                <span className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            ) : (
+                                t('sales.common.save')
+                            )}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     );

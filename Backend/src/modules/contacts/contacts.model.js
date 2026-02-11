@@ -21,7 +21,6 @@ const contactSchema = new mongoose.Schema({
 
     code: {
         type: String,
-        unique: true,
         trim: true,
         sparse: true
     },
@@ -30,14 +29,12 @@ const contactSchema = new mongoose.Schema({
         type: String,
         trim: true,
         sparse: true,
-        unique: true
     },
 
     commercialRegister: {
         type: String,
         trim: true,
         sparse: true,
-        unique: true
     },
 
     phone: {
@@ -145,6 +142,12 @@ const contactSchema = new mongoose.Schema({
         ref: 'User'
     },
 
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Company",
+        required: [true, 'Company ID is required']
+    },
+
     lastModifiedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
@@ -157,6 +160,10 @@ const contactSchema = new mongoose.Schema({
     }
 
 }, { timestamps: true });
+
+contactSchema.index({ code: 1, companyId: 1 }, { unique: true, sparse: true });
+contactSchema.index({ taxNumber: 1, companyId: 1 }, { unique: true, sparse: true });
+contactSchema.index({ commercialRegister: 1, companyId: 1 }, { unique: true, sparse: true });
 
 
 // Pre-save

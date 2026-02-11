@@ -13,22 +13,27 @@ const addContact = (module) =>
         const { code, taxNumber, commercialRegister } = opData;
 
         // Check duplicates
+        // Check duplicates within company
+        // If req.body.companyId is present (it is, explicitly or via middleware), use it.
+        const companyId = req.body.companyId;
+
         if (code) {
-            const existingCode = await Contact.findOne({ code });
+            const existingCode = await Contact.findOne({ code, companyId });
             if (existingCode) return next(new AppError("الكود مستخدم بالفعل", 400));
         }
         if (taxNumber) {
-            const existingTax = await Contact.findOne({ taxNumber });
+            const existingTax = await Contact.findOne({ taxNumber, companyId });
             if (existingTax) return next(new AppError("الرقم الضريبي مستخدم بالفعل", 400));
         }
         if (commercialRegister) {
-            const existingCR = await Contact.findOne({ commercialRegister });
+            const existingCR = await Contact.findOne({ commercialRegister, companyId });
             if (existingCR) return next(new AppError("السجل التجاري مستخدم بالفعل", 400));
         }
 
         const contact = await Contact.create({
             ...opData,
             module,
+            companyId, // Explicitly passed
             createdBy: req.user?._id
         });
 
@@ -41,10 +46,13 @@ const addContact = (module) =>
 // ========== GET ALL ==========
 const getAllContacts = (module) =>
     catchAsyncError(async (req, res) => {
-        const contacts = await Contact.find({
+        let filter = {
             module,
-            deletedAt: { $eq: null }
-        });
+            deletedAt: { $eq: null },
+            ...req.companyFilter
+        };
+
+        const contacts = await Contact.find(filter);
         res.json({
             message: "تم جلب البيانات بنجاح",
             count: contacts.length,
@@ -54,7 +62,8 @@ const getAllContacts = (module) =>
 
 // ========== GET ONE ==========
 const getContactById = catchAsyncError(async (req, res, next) => {
-    const contact = await Contact.findById(req.params.id);
+    const contact = await Contact.findOne({ _id: req.params.id, ...req.companyFilter });
+
     if (!contact || contact.deletedAt) return next(new AppError("غير موجود", 404));
 
     res.json({
@@ -65,7 +74,8 @@ const getContactById = catchAsyncError(async (req, res, next) => {
 
 // ========== UPDATE ==========
 const updateContact = catchAsyncError(async (req, res, next) => {
-    const contact = await Contact.findById(req.params.id);
+    const contact = await Contact.findOne({ _id: req.params.id, ...req.companyFilter });
+
     if (!contact || contact.deletedAt) return next(new AppError("غير موجود", 404));
 
     const opData = { ...req.body };
@@ -74,18 +84,19 @@ const updateContact = catchAsyncError(async (req, res, next) => {
     if (opData.commercialRegister === "") delete opData.commercialRegister;
 
     const { code, taxNumber, commercialRegister } = opData;
+    const companyId = contact.companyId; // Use existing contact's companyId for integrity
 
     // Check duplicates (ignore current record)
     if (code && code !== contact.code) {
-        const existingCode = await Contact.findOne({ code });
+        const existingCode = await Contact.findOne({ code, companyId });
         if (existingCode) return next(new AppError("الكود مستخدم بالفعل", 400));
     }
     if (taxNumber && taxNumber !== contact.taxNumber) {
-        const existingTax = await Contact.findOne({ taxNumber });
+        const existingTax = await Contact.findOne({ taxNumber, companyId });
         if (existingTax) return next(new AppError("الرقم الضريبي مستخدم بالفعل", 400));
     }
     if (commercialRegister && commercialRegister !== contact.commercialRegister) {
-        const existingCR = await Contact.findOne({ commercialRegister });
+        const existingCR = await Contact.findOne({ commercialRegister, companyId });
         if (existingCR) return next(new AppError("السجل التجاري مستخدم بالفعل", 400));
     }
 
@@ -102,9 +113,9 @@ const updateContact = catchAsyncError(async (req, res, next) => {
 
 // ========== DELETE ==========
 const deleteContact = catchAsyncError(async (req, res, next) => {
-    const contact = await Contact.findByIdAndDelete(req.params.id);
-    if (!contact) return next(new AppError("غير موجود", 404));
+    const contact = await Contact.findOneAndDelete({ _id: req.params.id, ...req.companyFilter });
 
+    if (!contact) return next(new AppError("غير موجود", 404));
 
     res.json({
         message: "تم الحذف بنجاح",

@@ -23,11 +23,18 @@ import chartOfAccountsRouter from "./chartOfAccounts/chartOfAccounts.routes.js"
 import branchRouter from "./branch/branch.routes.js"
 import partnerListRouter from "./listOfPartners/listOfPartners.routes.js"
 import activityRouter from "./activity/activity.routes.js"
+import expenseRouter from "./Expenses/expense.router.js"
+import bankAccountRouter from "./BankAccounts/bankAccount.routes.js"
+import safeRouter from "./Safes/safe.routes.js"
+import companyRouter from "./companies/company.routes.js"
+import roleRouter from "./role/role.routes.js"
+import { backupRouter } from "../backups/backup.routes.js"
 
 export function routes(app) {
 
     app.use('/api/v1/users', userRouter)
     app.use('/api/v1/auth', authRouter)
+    app.use("/api/v1/roles", roleRouter)
     app.use('/api/v1/invoices', invoiceRouter)
     app.use('/api/v1/products', productRouter)
     app.use('/api/v1/customers', customerRouter)
@@ -49,6 +56,11 @@ export function routes(app) {
     app.use("/api/v1/branches", branchRouter)
     app.use("/api/v1/partner-lists", partnerListRouter)
     app.use("/api/v1/activities", activityRouter)
+    app.use("/api/v1/expenses", expenseRouter)
+    app.use("/api/v1/bank-accounts", bankAccountRouter)
+    app.use("/api/v1/safes", safeRouter)
+    app.use("/api/v1/companies", companyRouter)
+    app.use("/api/v1/backups", backupRouter)
 
 
 

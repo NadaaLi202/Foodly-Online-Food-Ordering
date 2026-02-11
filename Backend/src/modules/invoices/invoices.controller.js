@@ -5,12 +5,29 @@ import Invoice from "./invoices.model.js";
 // إنشاء فاتورة جديدة
 const createInvoice = catchAsyncError(async (req, res, next) => {
     // التحقق من وجود رقم الفاتورة
-    const existingInvoice = await Invoice.findOne({
-        invoiceNumber: req.body.invoiceNumber?.toUpperCase()
-    });
+    // Ensure uniqueness within company if we enforce it, or generally.
+    // If invoiceNumber is unique globally in schema, this check is still good.
+    // If we want per-company uniqueness, we need schema change (compound index), but let's just check with filter here.
 
-    if (existingInvoice) {
-        return next(new AppError('رقم الفاتورة موجود بالفعل', 409));
+    // Middleware sets req.body.companyId for non-superAdmin.
+    const companyId = req.body.companyId;
+
+    if (req.body.invoiceNumber) {
+        // If we want to check uniqueness, we should check with companyId if possible, 
+        // but since schema has global unique index on invoiceNumber (likely), we check globally or handle the error.
+        // For now, let's query with companyId to be safe on logic level, 
+        // but DB might throw duplicate error if another company has same number. 
+        // Refactoring to global unique check (which is safer if schema is global unique) OR check with filter.
+        // Let's assume global uniqueness for invoiceNumber for now as per schema.
+
+        const existingInvoice = await Invoice.findOne({
+            invoiceNumber: req.body.invoiceNumber?.toUpperCase()
+        });
+
+        // Use companyFilter check? If it exists globally, it exists.
+        if (existingInvoice) {
+            return next(new AppError('رقم الفاتورة موجود بالفعل', 409));
+        }
     }
 
     // التحقق من صحة التواريخ
@@ -19,6 +36,7 @@ const createInvoice = catchAsyncError(async (req, res, next) => {
     }
 
     // إنشاء الفاتورة (الحسابات ستتم تلقائياً في pre-save middleware)
+    // companyId included in req.body
     const invoice = new Invoice(req.body);
     await invoice.save();
 
@@ -33,7 +51,7 @@ const getAllInvoices = catchAsyncError(async (req, res, next) => {
     const { search, status, startDate, endDate, page = 1, limit = 10, clientId } = req.query;
 
     // بناء query للبحث
-    let query = {};
+    let query = { ...req.companyFilter };
 
     if (search) {
         query.$or = [
@@ -84,7 +102,7 @@ const getAllInvoices = catchAsyncError(async (req, res, next) => {
 // الحصول على فاتورة واحدة
 const getInvoiceById = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
-    const invoice = await Invoice.findById(id).populate('clientId');
+    const invoice = await Invoice.findOne({ _id: id, ...req.companyFilter }).populate('clientId');
 
     if (!invoice) {
         return next(new AppError('الفاتورة غير موجودة', 404));
@@ -101,7 +119,7 @@ const updateInvoice = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
 
     // التحقق من وجود الفاتورة
-    const invoice = await Invoice.findById(id);
+    const invoice = await Invoice.findOne({ _id: id, ...req.companyFilter });
     if (!invoice) {
         return next(new AppError('الفاتورة غير موجودة', 404));
     }
@@ -127,6 +145,13 @@ const updateInvoice = catchAsyncError(async (req, res, next) => {
 
     // تحديث البيانات
     Object.assign(invoice, req.body);
+    // Ensure companyId is not changed or is valid? 
+    // Usually companyId shouldn't be changed. Safe to ignore or force check.
+    // If strict, reset companyId to original.
+    if (req.companyFilter.companyId) {
+        invoice.companyId = req.companyFilter.companyId;
+    }
+
     await invoice.save(); // سيؤدي هذا لتشغيل الـ pre-save middleware
 
     res.status(200).json({
@@ -138,7 +163,7 @@ const updateInvoice = catchAsyncError(async (req, res, next) => {
 // حذف فاتورة
 const deleteInvoice = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
-    const invoice = await Invoice.findByIdAndDelete(id);
+    const invoice = await Invoice.findOneAndDelete({ _id: id, ...req.companyFilter });
 
     if (!invoice) {
         return next(new AppError('الفاتورة غير موجودة', 404));
@@ -163,7 +188,7 @@ const searchInvoices = catchAsyncError(async (req, res, next) => {
         return next(new AppError('يجب إدخال كلمة البحث', 400));
     }
 
-    const invoices = await Invoice.searchInvoices(term);
+    const invoices = await Invoice.searchInvoices(term, req.companyFilter);
 
     res.status(200).json({
         message: 'نتائج البحث',
@@ -181,7 +206,7 @@ const updateInvoiceStatus = catchAsyncError(async (req, res, next) => {
         return next(new AppError('حالة غير صحيحة', 400));
     }
 
-    const invoice = await Invoice.findById(id);
+    const invoice = await Invoice.findOne({ _id: id, ...req.companyFilter });
 
     if (!invoice) {
         return next(new AppError('الفاتورة غير موجودة', 404));
@@ -197,7 +222,10 @@ const updateInvoiceStatus = catchAsyncError(async (req, res, next) => {
 
 // إحصائيات الفواتير
 const getInvoiceStats = catchAsyncError(async (req, res, next) => {
+    const matchStage = { ...req.companyFilter }; // Apply filter
+
     const stats = await Invoice.aggregate([
+        { $match: matchStage },
         {
             $group: {
                 _id: '$status',
@@ -207,7 +235,7 @@ const getInvoiceStats = catchAsyncError(async (req, res, next) => {
         }
     ]);
 
-    const totalInvoices = await Invoice.countDocuments();
+    const totalInvoices = await Invoice.countDocuments(matchStage);
 
     res.status(200).json({
         message: 'إحصائيات الفواتير',

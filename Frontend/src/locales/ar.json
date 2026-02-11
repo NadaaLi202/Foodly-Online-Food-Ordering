@@ -1,5 +1,14 @@
 {
     "app_name": "دفاتر",
+    "currency": "العملة",
+    "currencies": {
+        "EGP": "جنيه مصري",
+        "USD": "دولار أمريكي",
+        "EUR": "يورو",
+        "SAR": "ريال سعودي",
+        "AED": "درهم إماراتي",
+        "GBP": "جنيه إسترليني"
+    },
     "sidebar": {
         "dashboard": "لوحة التحكم",
         "sales": "المبيعات",
@@ -313,8 +322,7 @@
         "add": "إضافة",
         "view": "عرض",
         "main_branch": "الفرع الرئيسي",
-        "subscribe_now": "اشترك الآن",
-        "trial_message": "متبقي {{days}} يومًا على انتهاء فترتك المجانية."
+        "returnToSuperAdmin": "العودة إلى SuperAdmin"
     },
     "dashboard": {
         "invoice_templates": "قوالب الفواتير",
@@ -409,6 +417,7 @@
             "subtotal": "الإجمالي",
             "tax": "الضرائب",
             "discount": "الخصم",
+            "fixed": "ثابت",
             "price": "السعر",
             "quantity": "الكمية",
             "description": "الوصف",
@@ -422,7 +431,8 @@
             "items": "البنود",
             "add_item": "إضافة بند",
             "required": "مطلوب",
-            "currency": "ج.م",
+            "currency_label": "العملة",
+            "all_currencies": "جميع العملات",
             "fully_paid": "مدفوع بالكامل",
             "cash": "نقدي",
             "card": "بطاقة ائتمان",
@@ -460,6 +470,7 @@
             "end_issue_date": "تاريخ الحق النهائي",
             "line_item_description": "وصف البند",
             "reset": "إعادة تعيين",
+            "filtered": "مُصفّى",
             "apply": "تطبيق",
             "edit": "تعديل",
             "delete": "حذف",
@@ -497,7 +508,9 @@
         "invoices": {
             "title": "الفواتير",
             "add_invoice": "إضافة فاتورة",
+            "invoice_details": "تفاصيل الفاتورة",
             "invoice_number": "رقم الفاتورة",
+            "remaining_amount": "المبلغ المتبقي",
             "issue_date": "تاريخ الإصدار",
             "due_date": "تاريخ الاستحقاق",
             "client_name": "اسم العميل",
@@ -515,11 +528,27 @@
             "save_invoice": "حفظ الفاتورة",
             "view_invoice": "عرض فاتورة",
             "invoice_tab": "الفاتورة",
+            "product": "المنتج",
+            "price": "السعر",
             "payments_tab": "المدفوعات",
             "inventory_movements_tab": "حركات المخزون",
             "payment_status": "حالة الدفع",
             "inventory_movement_status": "حالة حركة المخزون",
+            "document": "المستند",
+            "download": "تحميل",
+            "print_pdf": "طباعة PDF",
+            "share": "مشاركة",
+            "link_copied": "تم نسخ الرابط",
             "status_issued": "تم الإصدار",
+            "status_label": "الحالة",
+            "warehouse": "المستودع",
+            "notes_label": "ملحوظات",
+            "attachments_label": "المرفقات",
+            "upload_attachments": "اضغط لرفع الملفات أو اسحبها هنا",
+            "file_too_large": "يجب ألا يتجاوز حجم الملف {{max}}",
+            "file_type_not_allowed": "نوع الملف غير مسموح. استخدم PDF أو صور أو Word أو Excel.",
+            "max_attachments": "الحد الأقصى {{max}} مرفقات",
+            "qr_code": "رمز QR",
             "responsible": "المسئول",
             "user_label": "المستخدم",
             "journal_entry_number": "رقم القيد اليومية",
@@ -666,7 +695,27 @@
             "notes": "ملاحظات",
             "notes_placeholder": "أضف ملاحظات...",
             "invoice": "الفاتورة",
-            "select_client_first": "اختر العميل أولاً"
+            "select_client_first": "اختر العميل أولاً",
+            "reference_number": "رقم المرجع",
+            "pay_full_remaining": "دفع كامل المبلغ المتبقي",
+            "amount_exceeds_remaining": "المبلغ يتجاوز الرصيد المتبقي",
+            "add_first": "أضف دفعة للبدء",
+            "payment_id": "رقم العملية",
+            "status": "الحالة",
+            "linked_invoice": "الفاتورة المرتبطة",
+            "view_payment": "عرض العملية",
+            "download_pdf": "تحميل PDF",
+            "status_completed": "تمت",
+            "status_pending": "قيد الانتظار",
+            "status_cancelled": "ملغى",
+            "search_placeholder": "البحث بالعميل، المبلغ...",
+            "filter_status": "الحالة",
+            "date_from": "من تاريخ",
+            "date_to": "إلى تاريخ",
+            "view_invoice": "عرض الفاتورة",
+            "page": "صفحة",
+            "of": "من",
+            "total": "الإجمالي"
         }
     },
     "purchases": {
@@ -705,6 +754,22 @@
             "edit_return": "تعديل المرتجع",
             "view_return": "عرض المرتجع",
             "return_number_placeholder": "PRET-26-1-000001"
+        },
+        "suppliers": {
+            "add_title": "إضافة مورد",
+            "edit_title": "تعديل المورد",
+            "type": "نوع المورد",
+            "type_individual": "فردي",
+            "type_commercial": "تجاري",
+            "contact_details": "بيانات الاتصال",
+            "additional_contacts": "جهات اتصال إضافية",
+            "add_contact": "إضافة جهة اتصال جديدة",
+            "select_type_placeholder": "اختر النوع",
+            "name_required": "الاسم مطلوب",
+            "save": "حفظ",
+            "update": "تحديث",
+            "cancel": "إلغاء",
+            "delete": "حذف"
         }
     },
     "stocked": {
@@ -781,6 +846,10 @@
             "title": "الأذونات",
             "add_permission": "إضافة إذن",
             "number": "الرقم",
+            "type": "النوع",
+            "type_financial": "إذن مالي",
+            "type_inventory_in": "إذن إضافة مخزون",
+            "type_inventory_out": "إذن صرف مخزون",
             "warehouse": "المستودع",
             "start_date": "تاريخ البدء",
             "end_date": "تاريخ الانتهاء",
@@ -792,8 +861,17 @@
             "edit": "تعديل",
             "view": "عرض",
             "delete": "حذف",
+            "approve": "موافقة",
             "no_permissions": "لا توجد أذونات",
-            "start_creating": "ابدأ بإنشاء أذونات"
+            "start_creating": "ابدأ بإنشاء أذونات",
+            "available_quantity": "المتاح",
+            "items_required": "أضف بنداً واحداً على الأقل (منتج وكمية)",
+            "add_success": "تم إضافة الإذن بنجاح",
+            "add_failed": "فشل في إضافة الإذن",
+            "delete_success": "تم حذف الإذن",
+            "confirm_delete": "هل أنت متأكد من حذف هذا الإذن؟",
+            "status_updated": "تم تحديث الحالة",
+            "fetch_error": "فشل في تحميل الأذونات"
         },
         "warehouses": {
             "title": "المستودعات",
@@ -824,9 +902,20 @@
         "journal_entries": {
             "title": "قيود اليومية",
             "add_entry": "إضافة قيد يومية",
+            "view_entry": "عرض قيد يومية",
             "no_entries": "لا يوجد قيود يومية",
+            "source": "المصدر",
+            "source_placeholder": "مثال: عملية قبض مالية #1",
+            "document": "المستند",
+            "user": "المستخدم",
+            "share": "مشاركة",
+            "pdf": "PDF",
+            "print": "طباعة",
+            "download": "تحميل",
+            "auto_entry_info": "معلومات لا يمكن تحديث تاريخ او اسطر قيد اليومية الذي تم إنشاؤه تلقائيا مباشرة ، يمكنك تحديث مصدره بدلاً من ذلك.",
             "start_creating": "ابدأ بإنشاء قيود يومية",
             "entry_number": "الرقم",
+            "daily_entry_number": "قيد اليومية",
             "date": "التاريخ",
             "reference": "المرجع",
             "debit": "مدين",
@@ -887,7 +976,8 @@
             "delete": "حذف",
             "all_branches": "جميع الفروع",
             "branches": "الفروع",
-            "search_filter": "البحث والتصفية"
+            "search_filter": "البحث والتصفية",
+            "no_accounts_yet": "لا توجد حسابات بعد. أضف حساباً للبدء."
         },
         "cost_centers": {
             "info": "معلومات",
@@ -898,6 +988,7 @@
         "title": "الفروع",
         "add_branch": "إضافة فرع",
         "branch_name": "الاسم",
+        "code": "الكود",
         "address1": "العنوان الأول",
         "address2": "العنوان الثاني",
         "city": "المدينة",
@@ -913,8 +1004,13 @@
         "main_activity": "النشاط التجاري الرئيسي",
         "default_partners": "قائمة الشركاء الافتراضية",
         "choose": "اختر",
+        "phone": "الهاتف",
+        "no_branches_yet": "لا توجد فروع بعد. أضف فرعاً للبدء.",
+        "no_partner_lists_hint": "لا توجد قوائم شركاء. أضف قائمة من صفحة قوائم الشركاء.",
+        "no_activities_hint": "لا توجد أنشطة. أضف نشاطاً من صفحة الأنشطة.",
         "validation": {
             "name_required": "الرجاء إدخال الاسم",
+            "code_required": "الرجاء إدخال كود الفرع",
             "country_required": "الرجاء اختيار الدولة",
             "partners_required": "الرجاء اختيار قائمة الشركاء",
             "activity_required": "الرجاء اختيار النشاط"
@@ -923,9 +1019,13 @@
     "partner_lists_page": {
         "title": "قوائم الشركاء",
         "add_partner_list": "إضافة قائمة شركاء",
+        "edit_partner_list": "تعديل قائمة شركاء",
         "partner_list_name": "الاسم",
         "partners_list": "قائمة الشركاء",
         "default_partners": "قائمة الشركاء الافتراضية",
+        "description": "الوصف",
+        "no_lists_yet": "لا توجد قوائم شركاء. أضف واحدة للبدء.",
+        "delete_confirm_message": "هل أنت متأكد من حذف قائمة الشركاء هذه؟",
         "validation": {
             "name_required": "الرجاء إدخال الاسم"
         }
@@ -933,9 +1033,13 @@
     "activities_page": {
         "title": "الأنشطة",
         "add_activity": "إضافة نشاط",
+        "edit_activity": "تعديل نشاط",
         "activity_name": "الاسم",
         "activity": "النشاط",
         "main_activity": "النشاط التجاري الرئيسي",
+        "description": "الوصف",
+        "no_activities_yet": "لا توجد أنشطة. أضف واحداً للبدء.",
+        "delete_confirm_message": "هل أنت متأكد من حذف هذا النشاط؟",
         "validation": {
             "name_required": "الرجاء إدخال الاسم"
         }
@@ -958,6 +1062,8 @@
         "password_mismatch": "كلمات المرور غير متطابقة",
         "leave_empty": "اتركه فارغاً للإبقاء على الحالية",
         "select_role": "اختر الدور",
+        "company_role": "دور الشركة",
+        "employee": "موظف",
         "manager": "مدير",
         "accountant": "محاسب",
         "sales": "مبيعات",
@@ -968,6 +1074,8 @@
         "add_role": "إضافة دور",
         "edit_role": "تعديل دور",
         "role_name": "اسم الدور",
+        "company": "الشركة",
+        "select_company": "اختر الشركة",
         "permissions": "الصلاحيات",
         "no_roles": "لم يتم العثور على أدوار",
         "start_creating": "ابدأ بإضافة أول دور",
@@ -1000,5 +1108,52 @@
             "balance_sheet": "تقرير الميزانية العمومية",
             "income_statement": "تقرير قائمة الدخل"
         }
+    },
+    "superAdmin": {
+        "dashboard": "لوحة تحكم المدير العام",
+        "totalCompanies": "إجمالي الشركات",
+        "quickActions": "إجراءات سريعة",
+        "manageCompanies": "إدارة الشركات",
+        "companies": "الشركات",
+        "addCompany": "إضافة شركة",
+        "editCompany": "تعديل شركة",
+        "noCompanies": "لم يتم العثور على شركات",
+        "companyName": "اسم الشركة",
+        "email": "البريد الإلكتروني",
+        "password": "كلمة المرور",
+        "leaveBlankPassword": "اتركه فارغاً للإبقاء على كلمة المرور الحالية",
+        "subscription": "الاشتراك",
+        "subscriptionStatus": "حالة الاشتراك",
+        "subscriptionEndDate": "تاريخ انتهاء الاشتراك",
+        "active": "نشط",
+        "inactive": "غير نشط",
+        "trial": "تجريبي",
+        "logo": "الشعار",
+        "confirmDelete": "تأكيد الحذف",
+        "deleteCompanyWarning": "هل أنت متأكد من حذف {{name}}؟ لا يمكن التراجع عن هذا الإجراء.",
+        "loginAsCompany": "تسجيل الدخول كشركة",
+        "sendCredentials": "إرسال بيانات الدخول",
+        "credentialsSent": "تم إرسال بيانات الدخول بنجاح",
+        "expired": "منتهي",
+        "manageUsers": "إدارة المستخدمين",
+        "companyUsers": "مستخدمي الشركة",
+        "addUser": "إضافة مستخدم",
+        "editUser": "تعديل مستخدم"
+    },
+    "common": {
+        "search": "بحث",
+        "loading": "جاري التحميل...",
+        "actions": "الإجراءات",
+        "edit": "تعديل",
+        "delete": "حذف",
+        "confirmDelete": "هل أنت متأكد من الحذف؟",
+        "cancel": "إلغاء",
+        "save": "حفظ",
+        "create": "إنشاء",
+        "saving": "جاري الحفظ...",
+        "back": "رجوع"
+    },
+    "validation": {
+        "required": "هذا الحقل مطلوب"
     }
 }

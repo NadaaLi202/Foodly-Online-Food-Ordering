@@ -2,6 +2,7 @@ import { inventoryExchangeModel } from "./inventoryExchange.model.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
 import { operationModel } from "../Operations/operations.model.js";
+import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
 
 
 // Add
@@ -9,7 +10,7 @@ export const addInventoryExchange = catchAsyncError(async (req, res, next) => {
     const { operation } = req.body;
 
     // تحقق من العملية
-    const operationDoc = await operationModel.findById(operation);
+    const operationDoc = await operationModel.findOne({ _id: operation, ...req.companyFilter });
     if (!operationDoc) {
         return next(new AppError("العملية غير موجودة", 404));
     }
@@ -20,9 +21,17 @@ export const addInventoryExchange = catchAsyncError(async (req, res, next) => {
         );
     }
 
-    const exchangeData = { ...req.body };
-    if (req.files && req.files.length > 0) {
-        exchangeData.attachments = req.files.map(file => `/uploads/products/${file.filename}`);
+    const exchangeData = {
+        ...req.body,
+        companyId: req.user.companyId
+    };
+    if (req.files && req.files.attachments) {
+        const uploadPromises = req.files.attachments.map(file => uploadToCloudinary(file.buffer, 'inventory_exchange'));
+        const results = await Promise.all(uploadPromises);
+        exchangeData.attachments = results.map(result => ({
+            secure_url: result.secure_url,
+            public_id: result.public_id
+        }));
     }
     const exchange = new inventoryExchangeModel(exchangeData);
     await exchange.save();
@@ -36,7 +45,7 @@ export const addInventoryExchange = catchAsyncError(async (req, res, next) => {
 // Get All
 export const getAllInventoryExchanges = catchAsyncError(async (req, res) => {
     const exchanges = await inventoryExchangeModel
-        .find()
+        .find(req.companyFilter)
         .populate("operation")
         .populate("product")
         .populate("createdBy")
@@ -51,7 +60,7 @@ export const getAllInventoryExchanges = catchAsyncError(async (req, res) => {
 // Get By ID
 export const getInventoryExchangeById = catchAsyncError(async (req, res, next) => {
     const exchange = await inventoryExchangeModel
-        .findById(req.params.id)
+        .findOne({ _id: req.params.id, ...req.companyFilter })
         .populate("operation")
         .populate("product")
         .populate("createdBy");
@@ -69,19 +78,32 @@ export const getInventoryExchangeById = catchAsyncError(async (req, res, next) =
 // Update
 export const updateInventoryExchange = catchAsyncError(async (req, res, next) => {
     const updateData = { ...req.body };
-    if (req.files && req.files.length > 0) {
-        // Here you might want to merge with existing or replace
-        updateData.attachments = req.files.map(file => `/uploads/products/${file.filename}`);
+
+    const existingExchange = await inventoryExchangeModel.findOne({ _id: req.params.id, ...req.companyFilter });
+    if (!existingExchange) {
+        return next(new AppError("عملية تبادل المخزون غير موجودة", 404));
     }
-    const exchange = await inventoryExchangeModel.findByIdAndUpdate(
-        req.params.id,
+
+    if (req.files && req.files.attachments) {
+        // Delete old attachments
+        if (existingExchange.attachments && existingExchange.attachments.length > 0) {
+            const deletePromises = existingExchange.attachments.map(att => deleteFromCloudinary(att.public_id));
+            await Promise.all(deletePromises);
+        }
+
+        const uploadPromises = req.files.attachments.map(file => uploadToCloudinary(file.buffer, 'inventory_exchange'));
+        const results = await Promise.all(uploadPromises);
+        updateData.attachments = results.map(result => ({
+            secure_url: result.secure_url,
+            public_id: result.public_id
+        }));
+    }
+
+    const exchange = await inventoryExchangeModel.findOneAndUpdate(
+        { _id: req.params.id, ...req.companyFilter },
         updateData,
         { new: true }
     );
-
-    if (!exchange) {
-        return next(new AppError("عملية تبادل المخزون غير موجودة", 404));
-    }
 
     res.status(200).json({
         message: "تم تحديث العملية بنجاح",
@@ -91,11 +113,19 @@ export const updateInventoryExchange = catchAsyncError(async (req, res, next) =>
 
 // Delete
 export const deleteInventoryExchange = catchAsyncError(async (req, res, next) => {
-    const exchange = await inventoryExchangeModel.findByIdAndDelete(req.params.id);
+    const exchange = await inventoryExchangeModel.findOne({ _id: req.params.id, ...req.companyFilter });
 
     if (!exchange) {
         return next(new AppError("عملية تبادل المخزون غير موجودة", 404));
     }
+
+    // Delete attachments
+    if (exchange.attachments && exchange.attachments.length > 0) {
+        const deletePromises = exchange.attachments.map(att => deleteFromCloudinary(att.public_id));
+        await Promise.all(deletePromises);
+    }
+
+    await inventoryExchangeModel.findOneAndDelete({ _id: req.params.id, ...req.companyFilter });
 
     res.status(200).json({
         message: "تم حذف العملية بنجاح",

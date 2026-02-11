@@ -13,19 +13,24 @@ import {
 } from "./inventoryExchange.validation.js";
 
 import { validation } from "../../middleware/validation.js";
-import { upload } from "../../middleware/uploadImage.js";
+
+import { uploadMultiFiles } from "../../middleware/uploadFiles.js";
+import { protectedRoutes } from "../auth/auth.controller.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const router = express.Router();
 
+router.use(protectedRoutes, applyCompanyFilter);
+
 router
     .route("/")
-    .post(upload.array('attachments', 5), validation(addInventoryExchangeSchema), addInventoryExchange)
+    .post(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), validation(addInventoryExchangeSchema), applyCompanyFilter, addInventoryExchange)
     .get(getAllInventoryExchanges);
 
 router
     .route("/:id")
     .get(getInventoryExchangeById)
-    .put(upload.array('attachments', 5), validation(updateInventoryExchangeSchema), updateInventoryExchange)
+    .put(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), validation(updateInventoryExchangeSchema), applyCompanyFilter, updateInventoryExchange)
     .delete(deleteInventoryExchange);
 
 export default router;

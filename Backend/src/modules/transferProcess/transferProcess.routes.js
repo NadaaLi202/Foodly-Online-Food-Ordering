@@ -7,15 +7,19 @@ import {
     updateTransferProcess
 } from "./transferProcess.controller.js";
 
+import { protectedRoutes } from "../auth/auth.controller.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 import { validation } from "../../middleware/validation.js";
-import { upload } from "../../middleware/uploadImage.js";
+import { uploadMultiFiles } from "../../middleware/uploadFiles.js";
 import { addTransferProcessSchema, updateTransferProcessSchema } from "./transferProcess.validation.js";
 
 const router = express.Router();
 
+router.use(protectedRoutes, applyCompanyFilter);
+
 router
     .route("/")
-    .post(upload.array('attachments', 5), validation(addTransferProcessSchema), addTransferProcess)
+    .post(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), validation(addTransferProcessSchema), applyCompanyFilter, addTransferProcess)
     .get(getAllTransferProcesses);
 
 router
@@ -25,7 +29,9 @@ router
 
 router.put(
     "/:id",
+    uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]),
     validation(updateTransferProcessSchema),
+    applyCompanyFilter,
     updateTransferProcess
 );
 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, RefreshCw, X, ChevronDown, Upload, Package } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import api, { BASE_URL } from '../../services/api';
+import { formatCurrency } from '../../utils/currencyFormatter';
 
 const Products = () => {
     const { t, i18n } = useTranslation();
@@ -33,16 +35,16 @@ const Products = () => {
         taxRate: 14
     });
 
+
     // Fetch products from API
     const fetchProducts = async (search = '') => {
         setLoading(true);
         try {
             const url = search
-                ? `http://localhost:4000/api/v1/products?search=${search}`
-                : 'http://localhost:4000/api/v1/products';
-            const response = await fetch(url);
-            const data = await response.json();
-            setProducts(data.products || []);
+                ? `/products?search=${search}`
+                : '/products';
+            const response = await api.get(url);
+            setProducts(response.data.products || []);
         } catch (error) {
             console.error('Error fetching products:', error);
         } finally {
@@ -173,8 +175,8 @@ const Products = () => {
 
         try {
             const url = editingProduct
-                ? `http://localhost:4000/api/v1/products/${editingProduct._id}`
-                : 'http://localhost:4000/api/v1/products';
+                ? `/products/${editingProduct._id}`
+                : '/products';
 
             const method = editingProduct ? 'PUT' : 'POST';
 
@@ -203,30 +205,27 @@ const Products = () => {
                 formDataToSend.append('image', uploadedImage);
             }
 
-            const response = await fetch(url, {
+            // Axios automatically handles FormData content-type
+            const response = await api({
                 method,
-                body: formDataToSend
-            });    // Don't set Content-Type header - browser will set it with boundary for FormData
+                url,
+                data: formDataToSend
+            });
 
-            if (response.ok) {
-                alert(i18n.language === 'ar'
-                    ? (editingProduct ? 'تم تحديث المنتج بنجاح!' : 'تم إضافة المنتج بنجاح!')
-                    : (editingProduct ? 'Product updated successfully!' : 'Product added successfully!'));
-                setIsModalOpen(false);
-                setEditingProduct(null);
-                fetchProducts();
-                resetForm();
-            } else {
-                const error = await response.json();
-                // Handle both single string and array of strings for error messages
-                const errorMessage = Array.isArray(error.message)
-                    ? error.message.join('\n')
-                    : (error.message || (i18n.language === 'ar' ? 'حدث خطأ' : 'Error occurred'));
-                alert(errorMessage);
-            }
+            alert(i18n.language === 'ar'
+                ? (editingProduct ? 'تم تحديث المنتج بنجاح!' : 'تم إضافة المنتج بنجاح!')
+                : (editingProduct ? 'Product updated successfully!' : 'Product added successfully!'));
+            setIsModalOpen(false);
+            setEditingProduct(null);
+            fetchProducts();
+            resetForm();
+
         } catch (error) {
             console.error('Error saving product:', error);
-            alert(i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error');
+            const errorMessage = Array.isArray(error.response?.data?.message)
+                ? error.response.data.message.join('\n')
+                : (error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error'));
+            alert(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -257,7 +256,7 @@ const Products = () => {
 
         // Set image preview if product has an image
         if (product.image) {
-            setImagePreview(`http://localhost:4000${product.image}`);
+            setImagePreview(`${BASE_URL}${product.image}`);
         } else {
             setImagePreview(null);
         }
@@ -273,20 +272,12 @@ const Products = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:4000/api/v1/products/${id}`, {
-                method: 'DELETE'
-            });
-
-            if (response.ok) {
-                alert(i18n.language === 'ar' ? 'تم حذف المنتج بنجاح!' : 'Product deleted successfully!');
-                fetchProducts();
-            } else {
-                const error = await response.json();
-                alert(error.message || (i18n.language === 'ar' ? 'حدث خطأ في الحذف' : 'Error deleting product'));
-            }
+            await api.delete(`/products/${id}`);
+            alert(i18n.language === 'ar' ? 'تم حذف المنتج بنجاح!' : 'Product deleted successfully!');
+            fetchProducts();
         } catch (error) {
             console.error('Error deleting product:', error);
-            alert(i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error');
+            alert(error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ في الحذف' : 'Error deleting product'));
         }
     };
 
@@ -390,7 +381,7 @@ const Products = () => {
                                             <div className="flex items-center">
                                                 {product.image ? (
                                                     <img
-                                                        src={`http://localhost:4000${product.image}`}
+                                                        src={`${BASE_URL}${product.image}`}
                                                         alt={product.name}
                                                         className="h-10 w-10 flex-shrink-0 rounded-lg object-cover"
                                                         onError={(e) => {
@@ -418,7 +409,7 @@ const Products = () => {
                                             {product.category || '-'}
                                         </td>
                                         <td className={`px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold`}>
-                                            {product.sellingPrice?.toLocaleString(undefined, { minimumFractionDigits: 2 })} {t('sales.common.currency')}
+                                            {formatCurrency(product.sellingPrice ?? 0, product.currency || 'EGP')}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {product.type === 'service' ? (
@@ -802,33 +793,34 @@ const Products = () => {
                                                     name="taxRate"
                                                     value={formData.taxRate}
                                                     onChange={handleInputChange}
-                                                    min="0"
-                                                    max="100"
-                                                    className={`w-24 border-2 border-gray-200 rounded-lg px-3 py-1.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500`}
+                                                    className="w-24 border-2 border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500"
                                                 />
                                             </div>
                                         )}
                                     </div>
                                 </div>
-                            </form>
-                        </div>
 
-                        {/* Modal Footer */}
-                        <div className="bg-white border-t border-gray-200 px-4 sm:px-6 py-4 flex flex-col-reverse sm:flex-row items-center justify-start gap-3 sticky bottom-0">
-                            <button
-                                onClick={handleSubmit}
-                                disabled={loading}
-                                className="w-full sm:w-auto bg-indigo-600 text-white px-6 py-2.5 rounded-lg hover:bg-indigo-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {loading ? t('sales.common.saving') : t('sales.common.save')}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setIsModalOpen(false)}
-                                className="w-full sm:w-auto border-2 border-gray-300 text-gray-700 px-6 py-2.5 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
-                            >
-                                {t('sales.common.cancel')}
-                            </button>
+                                {/* Footer (Save Buttons) */}
+                                <div className="flex gap-4 pt-4 sticky bottom-0 bg-white border-t pb-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsModalOpen(false);
+                                            setEditingProduct(null);
+                                        }}
+                                        className="flex-1 p-4 border-2 border-gray-100 rounded-2xl font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                                    >
+                                        {t('sales.common.cancel')}
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="flex-1 p-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all disabled:opacity-50"
+                                    >
+                                        {loading ? '...' : (editingProduct ? (i18n.language === 'ar' ? 'تحديث' : 'Update') : t('sales.common.save'))}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>

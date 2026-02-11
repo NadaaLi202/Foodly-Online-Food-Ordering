@@ -6,14 +6,14 @@ const partnerListSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
-    status: {
-        type: String,
-        enum: ['active', 'inactive'],
-        default: 'active'
-    },
     description: {
         type: String,
         trim: true
+    },
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Company',
+        required: true
     }
 }, {
     timestamps: true

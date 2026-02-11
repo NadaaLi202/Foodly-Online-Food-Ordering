@@ -22,10 +22,13 @@ export const validation = (schema) => {
         try {
             let inputs = { ...req.body, ...req.params, ...req.query };
             // { abortEarly: false, convert: true } ensures strings from FormData are converted to numbers/booleans
-            await schema.validateAsync(inputs, { abortEarly: false, convert: true });
+            await schema.validateAsync(inputs, { abortEarly: false, convert: true, allowUnknown: true });
             next();
         } catch (error) {
-            res.status(400).json({ message: error.details ? error.details.map(err => err.message) : error.message });
+            const message = error.details
+                ? error.details.map(err => err.message).join('; ')
+                : (error.message || 'Validation failed');
+            res.status(400).json({ message });
         }
     }
 }

@@ -1,6 +1,4 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { BarChart3, ArrowLeft, Mail, Lock, User, Phone, Globe } from 'lucide-react';
+import api from "../services/api";
 
 export default function Register() {
     const navigate = useNavigate();
@@ -42,21 +40,9 @@ export default function Register() {
         }
 
         try {
-            const res = await fetch("http://localhost:4000/api/v1/auth/signup", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(requestBody),
-            });
-
-            const data = await res.json();
+            const res = await api.post("/auth/signup", requestBody);
+            const data = res.data;
             setLoading(false);
-
-            if (!res.ok) {
-                alert(data.message || "Registration failed");
-                return;
-            }
 
             alert("Account created successfully! Please sign in.");
             navigate('/login');
@@ -64,7 +50,8 @@ export default function Register() {
         } catch (error) {
             setLoading(false);
             console.error(error);
-            alert("Connection error");
+            const errorMessage = error.response?.data?.message || "Registration failed";
+            alert(errorMessage);
         }
     };
 
@@ -86,7 +73,7 @@ export default function Register() {
                             <BarChart3 className="text-white w-7 h-7" />
                         </div>
                         <h1 className="text-4xl font-black text-gray-900 mb-2">Create Account</h1>
-                        <p className="text-gray-500">Start your 14-day free trial. No credit card required.</p>
+                        <p className="text-gray-500">Create your account to get started.</p>
                     </div>
 
                     <form className="space-y-4" onSubmit={handleSubmit}>

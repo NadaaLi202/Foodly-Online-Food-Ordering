@@ -15,6 +15,10 @@ const dailyRestrictionSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+    source: {
+        type: String,
+        trim: true
+    },
     totalDebit: {
         type: Number,
         required: true,
@@ -26,6 +30,9 @@ const dailyRestrictionSchema = new mongoose.Schema({
         default: 0
     },
     attachment: {
+        type: String
+    },
+    attachmentPublicId: {
         type: String
     },
     entries: [{
@@ -45,9 +52,16 @@ const dailyRestrictionSchema = new mongoose.Schema({
             type: Number,
             default: 0
         }
-    }]
+    }],
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Company',
+        required: true
+    }
 }, {
     timestamps: true
 });
+
+dailyRestrictionSchema.index({ number: 1, companyId: 1 }, { unique: true });
 
 export const dailyRestrictionModel = mongoose.model('DailyRestriction', dailyRestrictionSchema);

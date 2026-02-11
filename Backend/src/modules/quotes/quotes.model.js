@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { SUPPORTED_CURRENCIES } from "../../constants/currencies.js";
 
 const quoteSchema = new mongoose.Schema({
     customer: {
@@ -34,6 +35,17 @@ const quoteSchema = new mongoose.Schema({
     expiryDate: {
         type: Date,
         required: true
+    },
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Company",
+        required: [true, 'Company ID is required'],
+        index: true
+    },
+    currency: {
+        type: String,
+        enum: SUPPORTED_CURRENCIES,
+        default: "EGP"
     }
 }, { timestamps: true });
 

@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Plus, RefreshCw, X, Search, MoreVertical, Pencil, Minus, Eye, Check, Trash2, Home } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import api from '../../services/api';
+import { formatCurrency } from '../../utils/currencyFormatter';
 
 export default function Customers() {
     const { t, i18n } = useTranslation();
+    const { id: customerIdFromUrl } = useParams();
+    const navigate = useNavigate();
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,8 +60,8 @@ export default function Customers() {
     const fetchCustomers = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/contacts/customers');
-            const data = await response.json();
+            const response = await api.get('/contacts/customers');
+            const data = response.data;
             setCustomers(data.contacts || []);
         } catch (error) {
             console.error('Error fetching customers:', error);
@@ -69,11 +74,17 @@ export default function Customers() {
         fetchCustomers();
     }, []);
 
+    useEffect(() => {
+        if (customerIdFromUrl) {
+            openViewModal({ _id: customerIdFromUrl });
+        }
+    }, [customerIdFromUrl]);
+
     const getCustomerById = async (id) => {
         setLoadingCustomer(true);
         try {
-            const res = await fetch(`http://localhost:4000/api/v1/contacts/${id}`);
-            const data = await res.json();
+            const res = await api.get(`/contacts/${id}`);
+            const data = res.data;
 
             if (data.contact) {
                 const c = data.contact;
@@ -225,27 +236,15 @@ export default function Customers() {
 
             if (isEditing && currentCustomerId) {
                 // Update existing customer - PATCH request
-                response = await fetch(`http://localhost:4000/api/v1/contacts/${currentCustomerId}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(dataToSend)
-                });
-                result = await response.json();
+                response = await api.patch(`/contacts/${currentCustomerId}`, dataToSend);
+                result = response.data;
             } else {
                 // Create new customer - POST request
-                response = await fetch('http://localhost:4000/api/v1/contacts/customers', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(dataToSend)
-                });
-                result = await response.json();
+                response = await api.post('/contacts/customers', dataToSend);
+                result = response.data;
             }
 
-            if (!response.ok) {
+            if (response.status !== 200 && response.status !== 201) {
                 throw new Error(result.message || t('sales.common.error_message'));
             }
 
@@ -324,8 +323,8 @@ export default function Customers() {
         setMenuOpenId(null);
         setSelectedCustomerId(customer._id);
         try {
-            const res = await fetch(`http://localhost:4000/api/v1/contacts/${customer._id}`);
-            const data = await res.json();
+            const res = await api.get(`/contacts/${customer._id}`);
+            const data = res.data;
             if (data.contact) {
                 const c = data.contact;
                 const addr = c.address || {};
@@ -394,9 +393,9 @@ export default function Customers() {
 
     const handleDeleteCustomer = async (id) => {
         try {
-            const res = await fetch(`http://localhost:4000/api/v1/contacts/${id}`, { method: 'DELETE' });
-            const data = await res.json();
-            if (res.ok) {
+            const res = await api.delete(`/contacts/${id}`);
+            const data = res.data;
+            if (res.status === 200) {
                 fetchCustomers();
                 if (viewContact?._id === id) {
                     setViewContact(null);
@@ -470,13 +469,9 @@ export default function Customers() {
                 additionalContacts
             };
 
-            const res = await fetch(`http://localhost:4000/api/v1/contacts/${viewContact._id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dataToSend)
-            });
-            const result = await res.json();
-            if (res.ok) {
+            const res = await api.patch(`/contacts/${viewContact._id}`, dataToSend);
+            const result = res.data;
+            if (res.status === 200) {
                 await openViewModal({ _id: viewContact._id });
                 fetchCustomers();
             } else {
@@ -619,7 +614,7 @@ export default function Customers() {
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
                                             <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold ring-1 ring-inset ${(customer.currentBalance ?? customer.initialBalance ?? 0) < 0 ? 'bg-red-50 text-red-700 ring-red-600/10' : 'bg-green-50 text-green-700 ring-green-600/20'}`}>
                                                 {(customer.currentBalance ?? customer.initialBalance ?? 0) !== 0
-                                                    ? (Math.abs(customer.currentBalance ?? customer.initialBalance ?? 0)).toLocaleString() + ' ' + t('sales.common.currency')
+                                                    ? formatCurrency(Math.abs(customer.currentBalance ?? customer.initialBalance ?? 0), customer.currency || 'EGP')
                                                     : '—'}
                                             </span>
                                         </td>
@@ -678,7 +673,7 @@ export default function Customers() {
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                             <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                                 <h2 className={`text-xl font-bold text-gray-800 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.customers.view_customer')}</h2>
-                                <button type="button" onClick={() => { setViewContact(null); setViewFormData(null); setViewTab('summary'); setSelectedCustomerId(null); }} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+                                <button type="button" onClick={() => { setViewContact(null); setViewFormData(null); setViewTab('summary'); setSelectedCustomerId(null); if (customerIdFromUrl) navigate('/dashboard/sales/customers'); }} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
                             </div>
                             {/* Tabs */}
                             <div className="border-b border-gray-100 flex gap-0">
@@ -697,7 +692,7 @@ export default function Customers() {
                                 <div>
                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{t('sales.customers.balance')}</p>
                                     <p className={`text-sm font-black ${(viewContact.currentBalance ?? viewContact.initialBalance ?? 0) < 0 ? 'text-red-600' : 'text-gray-800'}`}>
-                                        {(viewContact.currentBalance ?? viewContact.initialBalance ?? 0) !== 0 ? (viewContact.currentBalance ?? viewContact.initialBalance ?? 0).toLocaleString() + ' ' + t('sales.common.currency') : '—'}
+                                        {(viewContact.currentBalance ?? viewContact.initialBalance ?? 0) !== 0 ? formatCurrency(viewContact.currentBalance ?? viewContact.initialBalance ?? 0, viewContact.currency || 'EGP') : '—'}
                                     </p>
                                 </div>
                                 <div className={`text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
@@ -865,7 +860,7 @@ export default function Customers() {
                                 )}
                             </div>
                             <div className={`border-t border-gray-200 px-6 py-4 flex justify-start gap-3 bg-white sticky bottom-0 ${i18n.language === 'ar' ? 'flex-row' : 'flex-row-reverse'}`}>
-                                <button type="button" onClick={() => { setViewContact(null); setViewFormData(null); setSelectedCustomerId(null); setViewTab('summary'); }} className="border border-gray-300 text-gray-700 px-6 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold">
+                                <button type="button" onClick={() => { setViewContact(null); setViewFormData(null); setSelectedCustomerId(null); setViewTab('summary'); if (customerIdFromUrl) navigate('/dashboard/sales/customers'); }} className="border border-gray-300 text-gray-700 px-6 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold">
                                     {t('sales.common.close')}
                                 </button>
                                 <button type="button" onClick={handleSaveView} disabled={isSavingView || !viewFormData} className="bg-green-600 text-white px-6 py-2.5 rounded-lg hover:bg-green-700 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed">

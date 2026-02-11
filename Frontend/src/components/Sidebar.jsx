@@ -15,21 +15,27 @@ import {
     Settings,
     Headphones,
     Play,
-    LogOut
+    LogOut,
+    ShieldCheck
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 import logo from '../assets/SidebarLogo.jpg';
+
 
 const Sidebar = ({ isMobile, isOpen, onClose }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
     const [openMenu, setOpenMenu] = useState(null);
+    const isSuperAdmin = user?.role === 'superAdmin';
 
     useEffect(() => {
         const path = location.pathname;
         if (path.startsWith('/dashboard/accounting')) setOpenMenu((m) => (m === 'accounting' ? m : 'accounting'));
         else if (path.startsWith('/dashboard/reports')) setOpenMenu((m) => (m === 'reports' ? m : 'reports'));
+        else if (path.startsWith('/super-admin')) setOpenMenu((m) => (m === 'superAdmin' ? m : 'superAdmin'));
     }, [location.pathname]);
 
     const handleLogout = () => {
@@ -38,7 +44,22 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
         navigate('/login');
     };
 
+    // Build navItems dynamically based on user role
+    const superAdminItems = isSuperAdmin ? [
+        {
+            key: 'superAdmin',
+            label: t('superAdmin.dashboard'),
+            icon: ShieldCheck,
+            hasSub: true,
+            children: [
+                { key: 'superAdminDashboard', label: t('superAdmin.dashboard'), path: '/super-admin' },
+                { key: 'companies', label: t('superAdmin.companies'), path: '/super-admin/companies' },
+            ]
+        },
+    ] : [];
+
     const navItems = [
+        ...superAdminItems,
         { key: 'dashboard', icon: Home, path: '/dashboard' },
         {
             key: 'sales',
@@ -177,7 +198,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                                     className="group w-full flex items-center ps-2 pe-1 py-1.5 text-start text-sm font-semibold rounded-md text-indigo-100 hover:bg-indigo-600 hover:bg-opacity-75 transition-colors"
                                 >
                                     <item.icon className="me-3 flex-shrink-0 h-5 w-5" strokeWidth={1.5} />
-                                    <span className="flex-1">{t(`sidebar.${item.key}`)}</span>
+                                    <span className="flex-1">{item.label || t(`sidebar.${item.key}`)}</span>
 
                                     <Play
                                         className={`rtl:rotate-180 ms-3 h-4 w-4 flex-shrink-0 transition-transform duration-150 ease-in-out text-current ${openMenu === item.key ? 'rotate-90' : ''
@@ -214,7 +235,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                                                 } hover:text-white hover:bg-indigo-600 transition-colors`
                                             }
                                         >
-                                            {t(`sidebar.${child.key}`)}
+                                            {child.label || t(`sidebar.${child.key}`)}
                                         </NavLink>
                                     ))}
                                 </div>

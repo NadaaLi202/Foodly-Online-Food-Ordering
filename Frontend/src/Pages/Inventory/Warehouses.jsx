@@ -7,15 +7,12 @@ import {
     Warehouse,
     Building2,
     Users as UsersIcon,
-    ShieldCheck,
-    Edit,
-    Trash2,
-    Filter,
-    MoreVertical,
     CheckCircle2,
-    Layout
+    Edit,
+    Trash2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import api from '../../services/api';
 
 const Warehouses = () => {
     const { t, i18n } = useTranslation();
@@ -38,10 +35,8 @@ const Warehouses = () => {
     const fetchWarehouses = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/warehouses');
-            if (!response.ok) throw new Error('Failed to fetch');
-            const data = await response.json();
-            setWarehouses(data.warehouses || []);
+            const response = await api.get('/warehouses');
+            setWarehouses(response.data.warehouses || []);
         } catch (error) {
             console.error('Error fetching warehouses:', error);
         } finally {
@@ -61,7 +56,7 @@ const Warehouses = () => {
                 name: warehouse.name || '',
                 account: warehouse.account || '',
                 branch: warehouse.branch || '',
-                users: warehouse.users || '',
+                users: Array.isArray(warehouse.users) && warehouse.users.length > 0 ? warehouse.users[0] : (warehouse.users || ''), // Handle array/string mismatch if any
                 enableReceiving: warehouse.enableReceiving || false,
                 enableIssuing: warehouse.enableIssuing || false
             });
@@ -83,8 +78,8 @@ const Warehouses = () => {
         e.preventDefault();
         setLoading(true);
         const url = modalMode === 'add'
-            ? 'http://localhost:4000/api/v1/warehouses'
-            : `http://localhost:4000/api/v1/warehouses/${selectedWarehouseId}`;
+            ? '/warehouses'
+            : `/warehouses/${selectedWarehouseId}`;
         const method = modalMode === 'add' ? 'POST' : 'PUT';
 
         try {
@@ -92,36 +87,39 @@ const Warehouses = () => {
             if (!payload.users || payload.users === '') {
                 delete payload.users;
             } else if (typeof payload.users === 'string') {
-                payload.users = [payload.users]; // Backend expects an array of ObjectIds
+                payload.users = [payload.users]; // Backend expects an array of ObjectIds or strings
             }
 
-            const response = await fetch(url, {
+            await api({
                 method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                url,
+                data: payload
             });
 
-            if (response.ok) {
-                setIsModalOpen(false);
-                fetchWarehouses();
-            }
+            setIsModalOpen(false);
+            fetchWarehouses();
+            alert(i18n.language === 'ar' ? 'تم الحفظ بنجاح' : 'Saved successfully');
+
         } catch (error) {
             console.error('Error saving warehouse:', error);
+            const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ' : 'An error occurred');
+            alert(msg);
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (id) => {
-        if (!confirm(t('sales.common.confirm_delete', 'Are you sure you want to delete?'))) return;
+        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد من الحذف؟' : 'Are you sure you want to delete?')) return;
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:4000/api/v1/warehouses/${id}`, {
-                method: 'DELETE'
-            });
-            if (response.ok) fetchWarehouses();
+            await api.delete(`/warehouses/${id}`);
+            fetchWarehouses();
+            alert(i18n.language === 'ar' ? 'تم الحذف بنجاح' : 'Deleted successfully');
         } catch (error) {
             console.error('Error deleting warehouse:', error);
+            const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ في الحذف' : 'Error deleting');
+            alert(msg);
         } finally {
             setLoading(false);
         }
@@ -221,7 +219,7 @@ const Warehouses = () => {
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
                                                     <UsersIcon size={14} className="text-gray-400" />
-                                                    {w.users || '-'}
+                                                    {Array.isArray(w.users) ? w.users.join(', ') : (w.users || '-')}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">

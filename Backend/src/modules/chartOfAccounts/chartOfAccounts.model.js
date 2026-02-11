@@ -9,8 +9,13 @@ const chartOfAccountsSchema = new mongoose.Schema({
     code: {
         type: String,
         required: true,
-        unique: true,
         trim: true
+    },
+    companyId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Company",
+        required: [true, 'Company ID is required'],
+        index: true
     },
     type: {
         type: String,
@@ -37,5 +42,7 @@ const chartOfAccountsSchema = new mongoose.Schema({
 }, {
     timestamps: true
 });
+
+chartOfAccountsSchema.index({ code: 1, companyId: 1 }, { unique: true });
 
 export const chartOfAccountsModel = mongoose.model('ChartOfAccounts', chartOfAccountsSchema);

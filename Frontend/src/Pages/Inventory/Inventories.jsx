@@ -16,6 +16,7 @@ import {
     Clock
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import api from '../../services/api';
 
 const Inventories = () => {
     const { t, i18n } = useTranslation();
@@ -35,10 +36,8 @@ const Inventories = () => {
     const fetchInventories = async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/inventory-operations');
-            if (!response.ok) throw new Error('Failed to fetch inventories');
-            const data = await response.json();
-            setInventories(data.operations || data || []);
+            const response = await api.get('/inventory-operations');
+            setInventories(response.data.operations || response.data || []);
         } catch (error) {
             console.error('Error fetching inventories:', error);
         } finally {
@@ -48,11 +47,8 @@ const Inventories = () => {
 
     const fetchWarehouses = async () => {
         try {
-            const response = await fetch('http://localhost:4000/api/v1/warehouses/all');
-            if (response.ok) {
-                const data = await response.json();
-                setWarehouses(data.warehouses || data || []);
-            }
+            const response = await api.get('/warehouses/all');
+            setWarehouses(response.data.warehouses || response.data || []);
         } catch (error) {
             console.error('Error fetching warehouses:', error);
         }
@@ -67,13 +63,9 @@ const Inventories = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:4000/api/v1/inventory-operations', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            });
+            const response = await api.post('/inventory-operations', formData);
 
-            if (response.ok) {
+            if (response.status === 200 || response.status === 201) {
                 alert(i18n.language === 'ar' ? 'تم الحفظ بنجاح' : 'Saved successfully');
                 setIsAddModalOpen(false);
                 setFormData({
@@ -84,9 +76,12 @@ const Inventories = () => {
                 });
                 fetchInventories();
             } else {
-                const errorData = await response.json();
+                const errorData = response.data;
                 alert(errorData.message || 'Error saving');
             }
+        } catch (error) {
+            const errorData = error.response?.data;
+            alert(errorData?.message || 'Error saving');
         } finally {
             setLoading(false);
         }
@@ -97,11 +92,9 @@ const Inventories = () => {
 
         setLoading(true);
         try {
-            const response = await fetch(`http://localhost:4000/api/v1/inventory-operations/${id}`, {
-                method: 'DELETE'
-            });
+            const response = await api.delete(`/inventory-operations/${id}`);
 
-            if (response.ok) {
+            if (response.status === 200) {
                 alert(i18n.language === 'ar' ? 'تم الحذف بنجاح' : 'Deleted successfully');
                 fetchInventories();
             } else {

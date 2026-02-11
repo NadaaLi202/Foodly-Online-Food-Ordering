@@ -1,6 +1,7 @@
 import express from 'express'
 import { dbConnection } from './dataBase/dbConnection.js'
 import { routes } from './src/modules/index.routes.js'
+import { startBackupCron } from './src/backups/backup.cron.js'
 
 import cors from 'cors'
 import * as  dotenv from 'dotenv'
@@ -25,9 +26,13 @@ app.use('/uploads', express.static('uploads'))
 app.get('/', (req, res) => res.send('Hello World!'))
 
 routes(app)
-dbConnection()
 
-app.listen(process.env.PORT || port, () => console.log(`Example app listening on port ${port}!`))
+async function bootstrap() {
+    await dbConnection()
+    startBackupCron()
+    app.listen(process.env.PORT || port, () => console.log(`Example app listening on port ${port}!`))
+}
+bootstrap()
 
 process.on('unhandledRejection', (err) => {
     console.log('unhandledRejection', err)

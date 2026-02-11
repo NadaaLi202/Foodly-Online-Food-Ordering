@@ -1,38 +1,29 @@
-import { Search, RefreshCw, Plus } from 'lucide-react';
+import React from 'react';
+import { RefreshCw, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { formatCurrency } from '../../utils/currencyFormatter';
+import ClientLink from '../navigation/ClientLink';
 
-const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoiceClick, i18n, noItemsKey, startKey }) => {
+const InvoiceList = ({ invoices, loading, onAddClick, onRefresh, onInvoiceClick, i18n, noItemsKey, startKey, clientLabelKey, isSupplier = false }) => {
     const { t } = useTranslation();
     const noItemsMsg = noItemsKey ? t(noItemsKey) : t('sales.invoices.no_invoices');
     const startMsg = startKey ? t(startKey) : t('sales.invoices.start_creating');
 
     return (
         <div className="min-h-screen bg-white" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
-            {/* Header */}
-            <div className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <button
-                        type="button"
-                        onClick={onAddClick}
-                        className="flex items-center gap-1.5 bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition-all font-bold text-sm shadow-sm"
-                    >
+            <div className="bg-white border-b border-gray-100 px-6 py-4">
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                    <button type="button" onClick={onAddClick} className="flex items-center gap-1.5 bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition-all font-bold text-sm shadow-sm">
                         <span>{t('sales.common.add')}</span>
                         <Plus size={18} />
                     </button>
-
-                    <button
-                        type="button"
-                        onClick={onFetchInvoices}
-                        className="flex items-center gap-2 border-2 border-gray-100 text-gray-500 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all font-bold text-sm"
-                    >
+                    <button type="button" onClick={onRefresh} className="flex items-center gap-2 border-2 border-gray-100 text-gray-500 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all font-bold text-sm">
                         <RefreshCw size={16} />
                         <span>{t('sales.common.search_filter')}</span>
                     </button>
                 </div>
-
-                <div className="flex items-center gap-2 text-indigo-600 font-bold text-sm cursor-pointer hover:text-indigo-700 transition-colors">
-                    <Search size={18} />
-                    <span>{t('sales.common.view')}</span>
+                <div className="text-indigo-600 font-bold text-sm">
+                    {t('sales.payments.total')} {invoices.length}
                 </div>
             </div>
 
@@ -54,7 +45,7 @@ const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoice
                             <thead>
                                 <tr>
                                     <th className={`px-6 py-4 text-${i18n.language === 'ar' ? 'right' : 'left'} text-[10px] font-black text-gray-400 uppercase tracking-widest`}>{t('sales.common.number')}</th>
-                                    <th className={`px-6 py-4 text-${i18n.language === 'ar' ? 'right' : 'left'} text-[10px] font-black text-gray-400 uppercase tracking-widest`}>{t('sales.common.client')}</th>
+                                    <th className={`px-6 py-4 text-${i18n.language === 'ar' ? 'right' : 'left'} text-[10px] font-black text-gray-400 uppercase tracking-widest`}>{clientLabelKey ? t(clientLabelKey) : t('sales.common.client')}</th>
                                     <th className={`px-6 py-4 text-${i18n.language === 'ar' ? 'right' : 'left'} text-[10px] font-black text-gray-400 uppercase tracking-widest`}>{t('sales.common.date')}</th>
                                     <th className={`px-6 py-4 text-${i18n.language === 'ar' ? 'right' : 'left'} text-[10px] font-black text-gray-400 uppercase tracking-widest`}>{t('sales.common.total')}</th>
                                     <th className={`px-6 py-4 text-${i18n.language === 'ar' ? 'right' : 'left'} text-[10px] font-black text-gray-400 uppercase tracking-widest`}>{t('sales.common.status')}</th>
@@ -70,14 +61,16 @@ const InvoiceList = ({ invoices, loading, onAddClick, onFetchInvoices, onInvoice
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-gray-700 group-hover:text-indigo-600">
                                             {invoice.transactionNumber || invoice.invoiceNumber || invoice.number}
                                         </td>
-                                        <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-gray-500">
-                                            {invoice.contact?.name || invoice.clientName}
+                                        <td className="px-6 py-5 whitespace-nowrap text-sm font-bold text-gray-500" onClick={(e) => e.stopPropagation()}>
+                                            <ClientLink client={invoice.contact} clientId={invoice.contact?._id} isSupplier={isSupplier}>
+                                                {invoice.contact?.name || invoice.clientName}
+                                            </ClientLink>
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-gray-400">
                                             {new Date(invoice.issueDate).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US')}
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-800">
-                                            {(invoice.totalAmount ?? invoice.total)?.toLocaleString()} {t('sales.common.currency')}
+                                            {formatCurrency(invoice.totalAmount ?? invoice.total, invoice.currency || 'EGP')}
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap">
                                             <span className={`px-4 py-1.5 text-[10px] font-black rounded-full shadow-sm ${invoice.status === 'paid' ? 'bg-green-100 text-green-700' :
