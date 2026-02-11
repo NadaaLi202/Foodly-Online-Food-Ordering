@@ -29,9 +29,10 @@ export const applyCompanyFilter = (req, res, next) => {
     // Attach filter for queries
     req.companyFilter = { companyId: req.user.companyId };
 
-    // Force companyId on create/update
+    // Force companyId on create/update (ensure string for validation)
     if (["POST", "PUT", "PATCH"].includes(req.method)) {
-        req.body.companyId = req.user.companyId;
+        const id = req.user.companyId;
+        req.body.companyId = id != null ? String(id) : undefined;
     }
 
     next();
