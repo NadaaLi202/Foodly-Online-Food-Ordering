@@ -25,6 +25,15 @@ const addUser = catchAsyncError(async (req, res, next) => {
         }
     }
 
+    // Set systemRole: superAdmin stays superAdmin, others are companyOwner
+    if (userData.role === 'superAdmin') {
+        userData.systemRole = 'superAdmin';
+        userData.companyId = undefined;
+        userData.roleId = undefined;
+    } else {
+        userData.systemRole = userData.systemRole || 'companyOwner';
+    }
+
     if (req.file) {
         const result = await uploadToCloudinary(req.file.buffer, 'users');
         userData.image = result.secure_url;

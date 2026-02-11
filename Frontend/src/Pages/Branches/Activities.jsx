@@ -1,204 +1,260 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Search, RefreshCw, X, Home } from 'lucide-react';
+import { Plus, RefreshCw, X, Home } from 'lucide-react';
+import toast from 'react-hot-toast';
+import activitiesService from '../../services/activitiesService';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 
 const Activities = () => {
     const { t, i18n } = useTranslation();
     const isRTL = i18n.language === 'ar';
+
+    const [activities, setActivities] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [submitLoading, setSubmitLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingId, setEditingId] = useState(null);
-    const [searchTerm, setSearchTerm] = useState('');
     const [errors, setErrors] = useState([]);
+    const [deleteModal, setDeleteModal] = useState({ open: false, id: null });
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
-    const [activities, setActivities] = useState([
-        {
-            id: 1,
-            name: t('activities_page.main_activity')
+    const [formData, setFormData] = useState({ name: '' });
+
+    const fetchActivities = async () => {
+        setLoading(true);
+        try {
+            const res = await activitiesService.getAllActivities();
+            setActivities(res.activities || []);
+        } catch (err) {
+            const msg =
+                err.response?.data?.message ||
+                t('sales.common.error_message', 'An error occurred');
+            if (err.response?.status !== 401 && err.response?.status !== 403) {
+                toast.error(msg);
+            }
+        } finally {
+            setLoading(false);
         }
-    ]);
+    };
 
-    // Form State
-    const [formData, setFormData] = useState({
-        name: ''
-    });
-
-    const filteredActivities = activities.filter(activity =>
-        activity.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    useEffect(() => {
+        fetchActivities();
+    }, []);
 
     const validateForm = () => {
         const newErrors = [];
-        if (!formData.name) newErrors.push(t('activities_page.validation.name_required'));
-
+        if (!(formData.name || '').trim()) {
+            newErrors.push(t('activities_page.validation.name_required'));
+        }
         setErrors(newErrors);
         return newErrors.length === 0;
     };
 
-    const handleSave = () => {
-        if (validateForm()) {
-            if (editingId) {
-                setActivities(activities.map(a => a.id === editingId ? { ...a, name: formData.name } : a));
-            } else {
-                const newActivity = {
-                    id: Date.now(),
-                    name: formData.name
-                };
-                setActivities([...activities, newActivity]);
-            }
-            setIsModalOpen(false);
-            resetForm();
-        }
-    };
-
     const resetForm = () => {
-        setFormData({
-            name: ''
-        });
+        setFormData({ name: '' });
         setEditingId(null);
         setErrors([]);
     };
 
-    const handleEdit = (activity) => {
-        setFormData({ name: activity.name });
-        setEditingId(activity.id);
+    const handleOpenAdd = () => {
+        resetForm();
         setIsModalOpen(true);
     };
 
-    const handleDelete = (id) => {
-        setActivities(activities.filter(a => a.id !== id));
+    const handleSave = async () => {
+        if (!validateForm()) return;
+
+        setSubmitLoading(true);
+        try {
+            const payload = {
+                name: formData.name.trim(),
+                description: '',
+            };
+
+            if (editingId) {
+                await activitiesService.updateActivity(editingId, payload);
+                toast.success(
+                    t('sales.common.success_message', 'Activity updated successfully')
+                );
+            } else {
+                await activitiesService.createActivity(payload);
+                toast.success(
+                    t('sales.common.success_message', 'Activity created successfully')
+                );
+            }
+
+            await fetchActivities();
+            setIsModalOpen(false);
+            resetForm();
+        } catch (err) {
+            const msg =
+                err.response?.data?.message ||
+                t('sales.common.error_message', 'An error occurred');
+            toast.error(msg);
+        } finally {
+            setSubmitLoading(false);
+        }
+    };
+
+    const handleEdit = (item) => {
+        setFormData({ name: item.name || '' });
+        setEditingId(item._id);
+        setIsModalOpen(true);
+    };
+
+    const handleDeleteClick = (id) => {
+        setDeleteModal({ open: true, id });
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteModal.id) return;
+
+        setDeleteLoading(true);
+        try {
+            await activitiesService.deleteActivity(deleteModal.id);
+            toast.success(
+                t('sales.common.success_message', 'Activity deleted successfully')
+            );
+            await fetchActivities();
+            setDeleteModal({ open: false, id: null });
+        } catch (err) {
+            const msg =
+                err.response?.data?.message ||
+                t('sales.common.error_message', 'An error occurred');
+            toast.error(msg);
+        } finally {
+            setDeleteLoading(false);
+        }
     };
 
     return (
         <div className="p-6 bg-white min-h-screen" dir={isRTL ? 'rtl' : 'ltr'}>
-            {/* Top Toolbar */}
-            <div className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between mb-6">
+            {/* Toolbar */}
+            <div className="bg-white border-b border-gray-100 px-6 py-4 flex flex-wrap items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center bg-white border border-gray-200 rounded-md overflow-hidden h-10 shadow-sm">
-                        <button className="px-3 h-full text-gray-400 hover:text-gray-600 transition-colors bg-white">
-                            <Home size={18} />
-                        </button>
-                        <div className="flex items-center text-[#4B5563] font-medium text-sm h-full relative">
-                            <span className="h-full w-[1px] bg-gray-200 skew-x-[-20deg] mx-1"></span>
-                            <div className="px-5 h-full flex items-center bg-gray-50/80 font-bold text-gray-700">
-                                {t('activities_page.title')}
-                            </div>
-                        </div>
-                    </div>
-                    <button className="text-gray-400 hover:text-gray-600 transition-colors bg-white p-2 rounded-md border border-gray-100 shadow-sm">
-                        <RefreshCw size={18} />
-                    </button>
-                </div>
-
-                <div className="flex items-center gap-3">
                     <button
-                        onClick={() => { resetForm(); setIsModalOpen(true); }}
+                        type="button"
+                        onClick={handleOpenAdd}
                         className="flex items-center gap-2 bg-[#4F46E5] text-white px-4 h-10 rounded-md hover:bg-indigo-700 transition-colors font-semibold shadow-sm text-sm"
                     >
                         <Plus size={18} strokeWidth={3} />
                         <span>{t('sales.common.add')}</span>
                     </button>
+                    <h1 className="text-lg font-bold text-gray-800">
+                        {t('activities_page.title')}
+                    </h1>
+                </div>
 
-                    <div className="relative h-10">
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder={t('sales.common.search_filter')}
-                            className="bg-[#F0F7FF] border border-[#BFDBFE] text-[#2563EB] px-4 h-full pr-10 rounded-md hover:bg-blue-100 transition-colors outline-none focus:ring-1 focus:ring-blue-400 font-semibold w-72 placeholder:text-blue-400 text-sm"
-                        />
-                        <Search size={16} className="absolute ltr:right-3 rtl:left-3 top-1/2 -translate-y-1/2 text-blue-500 pointer-events-none" />
-                    </div>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={fetchActivities}
+                        disabled={loading}
+                        className="text-gray-500 hover:text-gray-700 transition-colors bg-white p-2 rounded-full border border-gray-100 shadow-sm disabled:opacity-50"
+                        title={t('sales.common.refresh', 'Refresh')}
+                    >
+                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => window.history.back()}
+                        className="text-gray-500 hover:text-gray-700 transition-colors bg-white p-2 rounded-full border border-gray-100 shadow-sm"
+                        title={t('sales.common.home', 'Home')}
+                    >
+                        <Home size={18} />
+                    </button>
                 </div>
             </div>
 
-            {/* List Content */}
-            <div className="overflow-x-auto border border-gray-100 rounded-xl shadow-sm">
-                <table className="w-full text-sm text-start">
-                    <thead className="bg-gray-50 text-gray-600 font-bold border-b border-gray-100">
-                        <tr>
-                            <th className="px-6 py-4 text-start">{t('activities_page.activity')}</th>
-                            <th className="px-6 py-4 text-center"></th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
-                        {filteredActivities.map((activity) => (
-                            <tr key={activity.id} className="hover:bg-gray-50/80 transition-colors group">
-                                <td className="px-6 py-4 text-gray-700 font-bold">{activity.name}</td>
-                                <td className="px-6 py-4 flex items-center justify-center gap-3">
-                                    <button
-                                        onClick={() => handleEdit(activity)}
-                                        className="text-blue-500 hover:text-blue-700 font-bold"
-                                    >
-                                        {t('accounting.chart_of_accounts.edit')}
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(activity.id)}
-                                        className="text-red-500 hover:text-red-700 font-bold"
-                                    >
-                                        {t('accounting.chart_of_accounts.delete')}
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+            {/* List */}
+            <div className="space-y-3">
+                {loading ? (
+                    <div className="py-12 text-center text-gray-500">
+                        {t('sales.common.loading', 'Loading...')}
+                    </div>
+                ) : activities.length === 0 ? (
+                    <div className="py-12 text-center text-gray-500">
+                        {t('activities_page.no_activities_yet')}
+                    </div>
+                ) : (
+                    activities.map((item) => (
+                        <div
+                            key={item._id}
+                            className="flex items-center justify-between gap-4 py-4 px-5 bg-white border border-gray-100 rounded-lg shadow-sm hover:bg-gray-50/50 transition-colors"
+                        >
+                            <span className="text-gray-700 font-semibold text-base truncate">
+                                {item.name || '—'}
+                            </span>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => handleEdit(item)}
+                                    className="text-red-500 hover:text-red-700 font-bold text-sm"
+                                >
+                                    {t('accounting.chart_of_accounts.edit')}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleDeleteClick(item._id)}
+                                    className="text-red-500 hover:text-red-700 font-bold text-sm"
+                                >
+                                    {t('accounting.chart_of_accounts.delete')}
+                                </button>
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
 
-            {/* Add/Edit Modal */}
+            {/* Add / Edit Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[1px]" dir={isRTL ? 'rtl' : 'ltr'}>
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-[600px] overflow-hidden flex flex-col">
-                        {/* Modal Header */}
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-                            <h2 className="text-xl font-bold text-gray-800">
-                                {editingId ? t('accounting.chart_of_accounts.edit') : t('activities_page.add_activity')}
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[1px]">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-[480px]">
+                        <div className="flex items-center justify-between px-6 py-4 border-b">
+                            <h2 className="text-xl font-bold">
+                                {editingId
+                                    ? t('activities_page.edit_activity')
+                                    : t('activities_page.add_activity')}
                             </h2>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition">
-                                <X size={24} />
+                            <button onClick={() => { setIsModalOpen(false); resetForm(); }}>
+                                <X />
                             </button>
                         </div>
 
-                        {/* Modal Body */}
-                        <div className="p-8 bg-white">
-                            {/* Validation Errors */}
+                        <div className="p-6">
                             {errors.length > 0 && (
-                                <div className="mb-6 p-4 bg-red-50 border-r-4 border-red-500 rounded-md">
-                                    <ul className="list-disc list-inside text-red-600 text-sm font-bold space-y-1">
-                                        {errors.map((error, index) => (
-                                            <li key={index}>{error}</li>
+                                <div className="mb-4 p-4 bg-red-50 border-r-4 border-red-500">
+                                    <ul className="text-red-600 text-sm font-bold">
+                                        {errors.map((e, i) => (
+                                            <li key={i}>{e}</li>
                                         ))}
                                     </ul>
                                 </div>
                             )}
 
-                            <div className="space-y-6">
-                                {/* Name */}
-                                <div className="space-y-1.5">
-                                    <label className="block text-sm font-bold text-gray-600 text-start">
-                                        {t('activities_page.activity_name')} <span className="text-red-500">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        autoFocus
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        className="w-full h-11 px-4 border border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 text-gray-700 text-start transition-colors"
-                                    />
-                                </div>
-                            </div>
+                            <label className="block text-sm font-bold mb-1">
+                                {t('activities_page.activity_name')} *
+                            </label>
+                            <input
+                                value={formData.name}
+                                onChange={(e) => setFormData({ name: e.target.value })}
+                                className="w-full h-11 px-4 border-2 border-blue-300 rounded-lg"
+                            />
                         </div>
 
-                        {/* Modal Footer */}
-                        <div className="px-8 py-5 border-t border-gray-100 flex items-center gap-3 justify-start bg-white">
+                        <div className="px-6 py-5 border-t flex gap-3">
                             <button
                                 onClick={handleSave}
-                                className="px-8 py-2 bg-[#10B981] text-white font-bold rounded-md hover:bg-emerald-600 transition-colors shadow-sm"
+                                disabled={submitLoading}
+                                className="px-8 py-2.5 bg-emerald-500 text-white font-bold rounded-lg"
                             >
-                                {t('sales.common.save')}
+                                {submitLoading
+                                    ? t('sales.common.loading')
+                                    : t('sales.common.save')}
                             </button>
                             <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="px-8 py-2 bg-white border border-gray-300 text-gray-600 font-bold rounded-md hover:bg-gray-50 transition-colors shadow-sm"
+                                onClick={() => { setIsModalOpen(false); resetForm(); }}
+                                className="px-8 py-2.5 border rounded-lg"
                             >
                                 {t('sales.common.cancel')}
                             </button>
@@ -206,6 +262,15 @@ const Activities = () => {
                     </div>
                 </div>
             )}
+
+            <ConfirmDeleteModal
+                isOpen={deleteModal.open}
+                onClose={() => setDeleteModal({ open: false, id: null })}
+                onConfirm={confirmDelete}
+                title={t('sales.common.confirm_delete')}
+                message={t('activities_page.delete_confirm_message')}
+                loading={deleteLoading}
+            />
         </div>
     );
 };

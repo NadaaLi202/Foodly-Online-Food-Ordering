@@ -5,27 +5,39 @@ import {
     Shield,
     ChevronRight,
     Home,
-    Search,
     RefreshCw,
     Edit,
     Trash2,
     Check
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import api from '../../services/api';
+import rolesService from '../../services/rolesService';
+import companyService from '../../services/companyService';
+
+const getStoredUser = () => {
+    try {
+        const user = localStorage.getItem('user');
+        return user ? JSON.parse(user) : null;
+    } catch {
+        return null;
+    }
+};
 
 const Roles = () => {
     const { t, i18n } = useTranslation();
-    const [roles, setRoles] = useState([
-        { id: 1, name: 'المدير' } // Placeholder data to match screenshot
-    ]);
+    const [roles, setRoles] = useState([]);
+    const [companies, setCompanies] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState('add');
     const [selectedRole, setSelectedRole] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
-        permissions: {}
+        permissions: {},
+        companyId: ''
     });
+    const isSuperAdmin = getStoredUser()?.role === 'superAdmin';
 
     const modules = [
         { key: 'sales_invoices', actions: ['add', 'view', 'edit', 'delete'] },
@@ -51,9 +63,49 @@ const Roles = () => {
     ];
 
     const fetchRoles = async () => {
-        // Placeholder for API call
-        // setLoading(true);
-        // ...
+        setLoading(true);
+        try {
+            const data = await rolesService.getAllRoles();
+            setRoles(data.roles || data || []);
+        } catch (err) {
+            console.error('Error fetching roles:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchRoles();
+    }, []);
+
+    useEffect(() => {
+        if (isSuperAdmin) {
+            companyService.getAllCompanies().then((data) => {
+                setCompanies(data.companies || data || []);
+            }).catch(() => setCompanies([]));
+        }
+    }, [isSuperAdmin]);
+
+    const permissionsArrayToObject = (arr) => {
+        const obj = {};
+        (arr || []).forEach((p) => {
+            const [moduleKey, action] = (p || '').split(':');
+            if (moduleKey && action) {
+                if (!obj[moduleKey]) obj[moduleKey] = {};
+                obj[moduleKey][action] = true;
+            }
+        });
+        return obj;
+    };
+
+    const permissionsObjectToArray = (obj) => {
+        const arr = [];
+        Object.entries(obj || {}).forEach(([moduleKey, actions]) => {
+            Object.entries(actions || {}).forEach(([action, checked]) => {
+                if (checked) arr.push(`${moduleKey}:${action}`);
+            });
+        });
+        return arr;
     };
 
     const handleOpenModal = (mode, role = null) => {
@@ -62,13 +114,14 @@ const Roles = () => {
             setSelectedRole(role);
             setFormData({
                 name: role.name,
-                permissions: role.permissions || {}
+                permissions: Array.isArray(role.permissions) ? permissionsArrayToObject(role.permissions) : (role.permissions || {})
             });
         } else {
             setSelectedRole(null);
             setFormData({
                 name: '',
-                permissions: {}
+                permissions: {},
+                companyId: isSuperAdmin ? (formData.companyId || '') : ''
             });
         }
         setIsModalOpen(true);
@@ -100,6 +153,64 @@ const Roles = () => {
         }));
     };
 
+    const handleSaveRole = async (e) => {
+        e.preventDefault();
+        const roleName = formData.name?.trim();
+        if (!roleName) return;
+        if (isSuperAdmin && modalMode === 'add' && !formData.companyId) {
+            alert(t('roles_page.select_company', 'Please select a company'));
+            return;
+        }
+        setLoading(true);
+        const selectedPermissions = permissionsObjectToArray(formData.permissions);
+        const companyId = formData.companyId != null && formData.companyId !== ''
+            ? String(formData.companyId)
+            : undefined;
+        const payload = {
+            name: roleName,
+            permissions: selectedPermissions,
+            status: modalMode === 'add' ? 'active' : (selectedRole?.status || 'active')
+        };
+        if (companyId) payload.companyId = companyId;
+        try {
+            if (modalMode === 'add') {
+                const response = await api.post('/roles', payload);
+                if (response?.data) {
+                    console.log('Role created:', response.data);
+                }
+                setIsModalOpen(false);
+                fetchRoles();
+            } else if (selectedRole?._id) {
+                const response = await api.put(`/roles/${selectedRole._id}`, payload);
+                if (response?.data) {
+                    console.log('Role updated:', response.data);
+                }
+                setIsModalOpen(false);
+                fetchRoles();
+            }
+        } catch (err) {
+            console.error('Error saving role:', err);
+            const message = err.response?.data?.message || err.message || t('sales.common.error', 'Error saving');
+            alert(message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteRole = async (role) => {
+        if (!confirm(t('sales.common.confirm_delete', 'Are you sure you want to delete?'))) return;
+        setLoading(true);
+        try {
+            await api.delete(`/roles/${role._id}`);
+            fetchRoles();
+        } catch (err) {
+            console.error('Error deleting role:', err);
+            alert(err.response?.data?.message || t('sales.common.error', 'Error deleting'));
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#F8FAFC]" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
             {/* Header / Breadcrumbs */}
@@ -126,9 +237,11 @@ const Roles = () => {
                         </button>
                         <button
                             type="button"
-                            className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all bg-white"
+                            onClick={fetchRoles}
+                            disabled={loading}
+                            className={`p-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all bg-white ${loading ? 'opacity-70' : ''}`}
                         >
-                            <RefreshCw size={18} className="text-gray-500" />
+                            <RefreshCw size={18} className={`text-gray-500 ${loading ? 'animate-spin' : ''}`} />
                         </button>
                     </div>
                 </div>
@@ -150,7 +263,13 @@ const Roles = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100 text-gray-600">
-                                {roles.length === 0 ? (
+                                {loading && roles.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="2" className="px-6 py-12 text-center text-gray-500">
+                                            {t('sales.common.loading', 'Loading...')}
+                                        </td>
+                                    </tr>
+                                ) : roles.length === 0 ? (
                                     <tr>
                                         <td colSpan="2" className="px-6 py-12 text-center text-gray-500">
                                             {t('roles_page.no_roles')}
@@ -158,19 +277,24 @@ const Roles = () => {
                                     </tr>
                                 ) : (
                                     roles.map((role) => (
-                                        <tr key={role.id} className="hover:bg-gray-50 transition-colors">
+                                        <tr key={role._id} className="hover:bg-gray-50 transition-colors">
                                             <td className="px-6 py-4 font-bold text-gray-900">
                                                 {role.name}
                                             </td>
                                             <td className="px-6 py-4 text-end whitespace-nowrap">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button
+                                                        type="button"
                                                         onClick={() => handleOpenModal('edit', role)}
                                                         className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                                                     >
                                                         <Edit size={18} />
                                                     </button>
-                                                    <button className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDeleteRole(role)}
+                                                        className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                                    >
                                                         <Trash2 size={18} />
                                                     </button>
                                                 </div>
@@ -205,6 +329,22 @@ const Roles = () => {
 
                         {/* Modal Body */}
                         <div className="overflow-y-auto p-8 custom-scrollbar">
+                            {isSuperAdmin && modalMode === 'add' && (
+                                <div className="mb-6 max-w-md">
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('roles_page.company')} *</label>
+                                    <select
+                                        required={isSuperAdmin && modalMode === 'add'}
+                                        value={formData.companyId}
+                                        onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
+                                        className={`w-full p-3.5 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all font-medium text-${i18n.language === 'ar' ? 'right' : 'left'}`}
+                                    >
+                                        <option value="">{t('roles_page.select_company')}</option>
+                                        {companies.map((c) => (
+                                            <option key={c._id} value={c._id}>{c.name || c.companyName || c._id}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
                             <div className="mb-8 max-w-md">
                                 <label className="block text-sm font-bold text-gray-700 mb-2">{t('roles_page.role_name')} *</label>
                                 <input
@@ -297,10 +437,13 @@ const Roles = () => {
                                 {t('sales.common.cancel')}
                             </button>
                             <button
-                                className="flex-1 p-3.5 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2"
+                                type="button"
+                                onClick={handleSaveRole}
+                                disabled={loading || !formData.name?.trim()}
+                                className="flex-1 p-3.5 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-60"
                             >
                                 <Check size={20} />
-                                {t('sales.common.save')}
+                                {loading ? '...' : t('sales.common.save')}
                             </button>
                         </div>
                     </div>

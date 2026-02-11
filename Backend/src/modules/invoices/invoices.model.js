@@ -227,7 +227,7 @@ invoiceSchema.virtual('balance').get(function () {
 invoiceSchema.index({ clientName: 1 });
 invoiceSchema.index({ issueDate: -1 });
 invoiceSchema.index({ status: 1 });
-invoiceSchema.index({ companyId: 1 });
+// companyId already indexed via field option index: true
 
 // Virtual للحصول على عدد الأيام حتى الاستحقاق
 invoiceSchema.virtual('daysUntilDue').get(function () {

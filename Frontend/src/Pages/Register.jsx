@@ -73,7 +73,7 @@ export default function Register() {
                             <BarChart3 className="text-white w-7 h-7" />
                         </div>
                         <h1 className="text-4xl font-black text-gray-900 mb-2">Create Account</h1>
-                        <p className="text-gray-500">Start your 14-day free trial. No credit card required.</p>
+                        <p className="text-gray-500">Create your account to get started.</p>
                     </div>
 
                     <form className="space-y-4" onSubmit={handleSubmit}>

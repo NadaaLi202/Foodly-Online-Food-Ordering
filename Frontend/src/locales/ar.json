@@ -65,8 +65,6 @@
         "add": "إضافة",
         "view": "عرض",
         "main_branch": "الفرع الرئيسي",
-        "subscribe_now": "اشترك الآن",
-        "trial_message": "متبقي {{days}} يومًا على انتهاء فترتك المجانية.",
         "returnToSuperAdmin": "العودة إلى SuperAdmin"
     },
     "dashboard": {
@@ -647,9 +645,20 @@
         "journal_entries": {
             "title": "قيود اليومية",
             "add_entry": "إضافة قيد يومية",
+            "view_entry": "عرض قيد يومية",
             "no_entries": "لا يوجد قيود يومية",
+            "source": "المصدر",
+            "source_placeholder": "مثال: عملية قبض مالية #1",
+            "document": "المستند",
+            "user": "المستخدم",
+            "share": "مشاركة",
+            "pdf": "PDF",
+            "print": "طباعة",
+            "download": "تحميل",
+            "auto_entry_info": "معلومات لا يمكن تحديث تاريخ او اسطر قيد اليومية الذي تم إنشاؤه تلقائيا مباشرة ، يمكنك تحديث مصدره بدلاً من ذلك.",
             "start_creating": "ابدأ بإنشاء قيود يومية",
             "entry_number": "الرقم",
+            "daily_entry_number": "قيد اليومية",
             "date": "التاريخ",
             "reference": "المرجع",
             "debit": "مدين",
@@ -710,7 +719,8 @@
             "delete": "حذف",
             "all_branches": "جميع الفروع",
             "branches": "الفروع",
-            "search_filter": "البحث والتصفية"
+            "search_filter": "البحث والتصفية",
+            "no_accounts_yet": "لا توجد حسابات بعد. أضف حساباً للبدء."
         },
         "cost_centers": {
             "info": "معلومات",
@@ -721,6 +731,7 @@
         "title": "الفروع",
         "add_branch": "إضافة فرع",
         "branch_name": "الاسم",
+        "code": "الكود",
         "address1": "العنوان الأول",
         "address2": "العنوان الثاني",
         "city": "المدينة",
@@ -736,8 +747,13 @@
         "main_activity": "النشاط التجاري الرئيسي",
         "default_partners": "قائمة الشركاء الافتراضية",
         "choose": "اختر",
+        "phone": "الهاتف",
+        "no_branches_yet": "لا توجد فروع بعد. أضف فرعاً للبدء.",
+        "no_partner_lists_hint": "لا توجد قوائم شركاء. أضف قائمة من صفحة قوائم الشركاء.",
+        "no_activities_hint": "لا توجد أنشطة. أضف نشاطاً من صفحة الأنشطة.",
         "validation": {
             "name_required": "الرجاء إدخال الاسم",
+            "code_required": "الرجاء إدخال كود الفرع",
             "country_required": "الرجاء اختيار الدولة",
             "partners_required": "الرجاء اختيار قائمة الشركاء",
             "activity_required": "الرجاء اختيار النشاط"
@@ -746,9 +762,13 @@
     "partner_lists_page": {
         "title": "قوائم الشركاء",
         "add_partner_list": "إضافة قائمة شركاء",
+        "edit_partner_list": "تعديل قائمة شركاء",
         "partner_list_name": "الاسم",
         "partners_list": "قائمة الشركاء",
         "default_partners": "قائمة الشركاء الافتراضية",
+        "description": "الوصف",
+        "no_lists_yet": "لا توجد قوائم شركاء. أضف واحدة للبدء.",
+        "delete_confirm_message": "هل أنت متأكد من حذف قائمة الشركاء هذه؟",
         "validation": {
             "name_required": "الرجاء إدخال الاسم"
         }
@@ -756,9 +776,13 @@
     "activities_page": {
         "title": "الأنشطة",
         "add_activity": "إضافة نشاط",
+        "edit_activity": "تعديل نشاط",
         "activity_name": "الاسم",
         "activity": "النشاط",
         "main_activity": "النشاط التجاري الرئيسي",
+        "description": "الوصف",
+        "no_activities_yet": "لا توجد أنشطة. أضف واحداً للبدء.",
+        "delete_confirm_message": "هل أنت متأكد من حذف هذا النشاط؟",
         "validation": {
             "name_required": "الرجاء إدخال الاسم"
         }
@@ -781,6 +805,8 @@
         "password_mismatch": "كلمات المرور غير متطابقة",
         "leave_empty": "اتركه فارغاً للإبقاء على الحالية",
         "select_role": "اختر الدور",
+        "company_role": "دور الشركة",
+        "employee": "موظف",
         "manager": "مدير",
         "accountant": "محاسب",
         "sales": "مبيعات",
@@ -791,6 +817,8 @@
         "add_role": "إضافة دور",
         "edit_role": "تعديل دور",
         "role_name": "اسم الدور",
+        "company": "الشركة",
+        "select_company": "اختر الشركة",
         "permissions": "الصلاحيات",
         "no_roles": "لم يتم العثور على أدوار",
         "start_creating": "ابدأ بإضافة أول دور",

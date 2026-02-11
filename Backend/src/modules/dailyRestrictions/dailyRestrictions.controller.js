@@ -4,18 +4,31 @@ import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
 
 const addRestriction = catchAsyncError(async (req, res, next) => {
+    const companyId = req.user?.companyId;
+    if (!companyId) {
+        return next(new AppError("Journal entries require a company context. Please sign in as a company.", 403));
+    }
+
     const restrictionData = {
         ...req.body,
-        companyId: req.user.companyId
+        companyId
     };
 
-    // Format entries if sent as string (adjust based on frontend payload)
-    if (typeof restrictionData.entries === 'string') {
-        try {
-            restrictionData.entries = JSON.parse(restrictionData.entries);
-        } catch (error) {
-            return next(new AppError('Invalid entries format', 400));
-        }
+    // Ensure numeric fields from FormData (all body fields come as strings)
+    restrictionData.totalDebit = Number(restrictionData.totalDebit) || 0;
+    restrictionData.totalCredit = Number(restrictionData.totalCredit) || 0;
+    if (restrictionData.date && typeof restrictionData.date === "string") {
+        restrictionData.date = new Date(restrictionData.date);
+    }
+
+    // Map accountId to account for model (entries already parsed by parseJournalEntries)
+    if (Array.isArray(restrictionData.entries)) {
+        restrictionData.entries = restrictionData.entries.map(({ accountId, debit, credit, description }) => ({
+            account: accountId ?? '',
+            debit: Number(debit) || 0,
+            credit: Number(credit) || 0,
+            description: description ?? ''
+        }));
     }
 
     if (req.file) {
@@ -55,13 +68,19 @@ const updateRestriction = catchAsyncError(async (req, res, next) => {
 
     const updateData = { ...req.body };
 
-    // Format entries if sent as string
-    if (typeof updateData.entries === 'string') {
-        try {
-            updateData.entries = JSON.parse(updateData.entries);
-        } catch (error) {
-            return next(new AppError('Invalid entries format', 400));
-        }
+    // Coerce FormData string fields
+    if (updateData.totalDebit !== undefined) updateData.totalDebit = Number(updateData.totalDebit) || 0;
+    if (updateData.totalCredit !== undefined) updateData.totalCredit = Number(updateData.totalCredit) || 0;
+    if (updateData.date && typeof updateData.date === "string") updateData.date = new Date(updateData.date);
+
+    // Map accountId to account for model (entries already parsed by parseJournalEntries)
+    if (Array.isArray(updateData.entries)) {
+        updateData.entries = updateData.entries.map((entry) => ({
+            account: entry.accountId ?? entry.account ?? '',
+            debit: Number(entry.debit) || 0,
+            credit: Number(entry.credit) || 0,
+            description: entry.description ?? ''
+        }));
     }
 
     if (req.file) {

@@ -12,7 +12,7 @@ const addCompanySchema = Joi.object({
     subscriptionEndDate: Joi.date().iso().allow(null),
     defaultCurrency: currencyValidator.default('EGP').optional(),
     logo: Joi.any().strip(),
-    companyId: Joi.forbidden(),
+    companyId: Joi.string().hex().length(24).optional(),
     slug: Joi.forbidden()
 });
 
@@ -28,7 +28,7 @@ const updateCompanySchema = Joi.object({
     ).optional(),
     defaultCurrency: currencyValidator.optional(),
     logo: Joi.any().strip(),
-    companyId: Joi.forbidden(),
+    companyId: Joi.string().hex().length(24).optional(),
     slug: Joi.forbidden()
 });
 

@@ -16,6 +16,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import userService from '../../services/userService';
+import rolesService from '../../services/rolesService';
 
 const Users = () => {
     const { t, i18n } = useTranslation();
@@ -26,13 +27,15 @@ const Users = () => {
     const [selectedUserId, setSelectedUserId] = useState(null);
 
     const [searchTerm, setSearchTerm] = useState('');
+    const [roles, setRoles] = useState([]);
     const [formData, setFormData] = useState({
         name: '',
         type: 'user',
         email: '',
         password: '',
         confirmPassword: '',
-        role: '',
+        role: 'employee',
+        roleId: '',
         branch: ''
     });
 
@@ -52,6 +55,18 @@ const Users = () => {
         fetchUsers();
     }, []);
 
+    useEffect(() => {
+        const loadRoles = async () => {
+            try {
+                const data = await rolesService.getAllRoles();
+                setRoles(data.roles || data || []);
+            } catch (err) {
+                console.error('Error fetching roles:', err);
+            }
+        };
+        loadRoles();
+    }, []);
+
     const handleOpenModal = (mode, user = null) => {
         setModalMode(mode);
         if (mode === 'edit' && user) {
@@ -62,7 +77,8 @@ const Users = () => {
                 email: user.email || '',
                 password: '',
                 confirmPassword: '',
-                role: user.role || '',
+                role: user.role || 'employee',
+                roleId: user.roleId ? String(user.roleId) : '',
                 branch: user.branch || ''
             });
         } else {
@@ -73,7 +89,8 @@ const Users = () => {
                 email: '',
                 password: '',
                 confirmPassword: '',
-                role: '',
+                role: 'employee',
+                roleId: '',
                 branch: ''
             });
         }
@@ -93,6 +110,21 @@ const Users = () => {
 
         setLoading(true);
         try {
+            const dataToSend = {
+                name: formData.name,
+                email: formData.email,
+                type: formData.type,
+                role: formData.role || 'employee',
+                branch: formData.branch || undefined
+            };
+            if (formData.roleId) dataToSend.roleId = formData.roleId;
+            if (modalMode === 'add') {
+                dataToSend.password = formData.password;
+                dataToSend.confirmPassword = formData.confirmPassword;
+            } else if (formData.password) {
+                dataToSend.password = formData.password;
+                dataToSend.confirmPassword = formData.confirmPassword;
+            }
             const response = modalMode === 'add'
                 ? await api.post('/users', dataToSend)
                 : await api.put(`/users/${selectedUserId}`, dataToSend);
@@ -231,7 +263,7 @@ const Users = () => {
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
                                                     <Shield size={14} className="text-gray-400" />
-                                                    {u.role || '-'}
+                                                    {roles.find(r => r._id === u.roleId)?.name || u.role || '-'}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
@@ -363,11 +395,23 @@ const Users = () => {
                                         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                                         className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
                                     >
-                                        <option value="">{t('users_page.select_role', 'Select Role')}</option>
+                                        <option value="employee">{t('users_page.employee', 'Employee')}</option>
                                         <option value="admin">{t('users_page.admin', 'Admin')}</option>
-                                        <option value="manager">{t('users_page.manager', 'Manager')}</option>
                                         <option value="accountant">{t('users_page.accountant', 'Accountant')}</option>
-                                        <option value="sales">{t('users_page.sales', 'Sales')}</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('users_page.company_role', 'Company Role')}</label>
+                                    <select
+                                        value={formData.roleId}
+                                        onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
+                                        className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
+                                    >
+                                        <option value="">{t('users_page.select_role', 'Select Role')}</option>
+                                        {roles.map((r) => (
+                                            <option key={r._id} value={r._id}>{r.name}</option>
+                                        ))}
                                     </select>
                                 </div>
 

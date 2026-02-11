@@ -15,6 +15,10 @@ const dailyRestrictionSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+    source: {
+        type: String,
+        trim: true
+    },
     totalDebit: {
         type: Number,
         required: true,

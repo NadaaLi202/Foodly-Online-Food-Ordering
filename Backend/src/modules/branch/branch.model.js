@@ -60,15 +60,19 @@ const branchSchema = new mongoose.Schema({
         required: [true, 'Company ID is required'],
         index: true
     },
+    partners: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "PartnerList"
+    }],
     partnerList: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "PartnerList",
-        required: true
+        default: null
     },
     activity: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Activity",
-        required: true
+        default: null
     },
     status: {
         type: String,

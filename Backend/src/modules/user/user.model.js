@@ -29,9 +29,19 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Company",
         required: [
-            function () { return this.role !== 'superAdmin'; },
+            function () { return this.role !== 'superAdmin' && this.systemRole !== 'superAdmin'; },
             'Company ID is required for non-superAdmin users'
         ]
+    },
+    systemRole: {
+        type: String,
+        enum: ["superAdmin", "companyOwner"],
+        default: null
+    },
+    roleId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Role",
+        default: null
     },
     role: {
         type: String,
