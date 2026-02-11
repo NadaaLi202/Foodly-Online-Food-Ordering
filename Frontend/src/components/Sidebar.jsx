@@ -129,8 +129,9 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                 { key: 'sales_reports', path: '/dashboard/reports/sales' },
                 { key: 'purchases_reports', path: '/dashboard/reports/purchases' },
                 { key: 'accounting_reports', path: '/dashboard/reports/accounting' },
-                { key: 'general_ledger', path: '/dashboard/reports/accounting/general-ledger' },
-                { key: 'customers_reports', path: '/dashboard/reports/customers' },
+                { key: 'clients_reports', path: '/dashboard/reports/clients' },
+                // { key: 'general_ledger', path: '/dashboard/reports/accounting/general-ledger' },
+                // { key: 'customers_reports', path: '/dashboard/reports/customers' },
                 { key: 'suppliers_reports', path: '/dashboard/reports/suppliers' },
                 { key: 'inventory_reports', path: '/dashboard/reports/inventory' },
             ]

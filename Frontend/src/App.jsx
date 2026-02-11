@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
 import { AuthProvider } from './context/AuthContext';
@@ -45,6 +45,42 @@ import SuperAdminDashboard from './Pages/SuperAdmin/Dashboard';
 import CompanyList from './Pages/SuperAdmin/CompanyList';
 import CompanyForm from './Pages/SuperAdmin/CompanyForm';
 import UserManagement from './Pages/SuperAdmin/UserManagement';
+
+// Reports Imports
+import SalesReportsPage from './Pages/Reports/Sales/SalesReportsPage';
+import PurchasesReportsPage from './Pages/Reports/Purchases/PurchasesReportsPage';
+import SummarySalesReport from './Pages/Reports/Sales/SummarySalesReport';
+import DetailedSalesReport from './Pages/Reports/Sales/DetailedSalesReport';
+import SummaryGrossProfitReport from './Pages/Reports/Sales/SummaryGrossProfitReport';
+import DetailedGrossProfitReport from './Pages/Reports/Sales/DetailedGrossProfitReport';
+import SummaryPurchasesReport from './Pages/Reports/Purchases/SummaryPurchasesReport';
+import DetailedPurchasesReport from './Pages/Reports/Purchases/DetailedPurchasesReport';
+import SummarySupplierPaymentsReport from './Pages/Reports/Purchases/SummarySupplierPaymentsReport';
+import DetailedSupplierPaymentsReport from './Pages/Reports/Purchases/DetailedSupplierPaymentsReport';
+import AccountingReportsPage from './Pages/Reports/Accounting/AccountingReportsPage';
+import BalanceSheetReport from './Pages/Reports/Accounting/BalanceSheetReport';
+import IncomeStatementReport from './Pages/Reports/Accounting/IncomeStatementReport';
+import TrialBalanceReport from './Pages/Reports/Accounting/TrialBalanceReport';
+import GeneralLedgerReport from './Pages/Reports/Accounting/GeneralLedgerReport';
+import SummaryTaxReport from './Pages/Reports/Accounting/SummaryTaxReport';
+import DetailedTaxReport from './Pages/Reports/Accounting/DetailedTaxReport';
+import TaxReturnReport from './Pages/Reports/Accounting/TaxReturnReport';
+import ClientsReportsPage from './Pages/Reports/Clients/ClientsReportsPage';
+import ClientGeneralLedger from './Pages/Reports/Clients/ClientGeneralLedger';
+import AgedReceivableReport from './Pages/Reports/Clients/AgedReceivableReport';
+import SuppliersReportsPage from './Pages/Reports/Suppliers/SuppliersReportsPage';
+import SupplierGeneralLedger from './Pages/Reports/Suppliers/SupplierGeneralLedger';
+import AgedPayableReport from './Pages/Reports/Suppliers/AgedPayableReport';
+import InventoryReportsPage from './Pages/Reports/Inventory/InventoryReportsPage';
+import InventoryValueReport from './Pages/Reports/Inventory/InventoryValueReport';
+import InventoryValueDetailedReport from './Pages/Reports/Inventory/InventoryValueDetailedReport';
+
+const ReportsLayout = ({ title }) => (
+  <div className="flex flex-col h-full">
+    {/* <h1 className="text-2xl font-bold px-6 py-4">{title}</h1> */}
+    <Outlet />
+  </div>
+);
 
 const PlaceholderPage = ({ title }) => (
   <div className="p-8 text-center text-gray-500 bg-white rounded-lg shadow-sm border border-gray-100">
@@ -117,6 +153,50 @@ function App() {
               <Route path="cost-centers" element={<CostCenters />} />
             </Route>
 
+            <Route path="reports">
+              <Route index element={<PlaceholderPage title="Reports" />} />
+              <Route path="sales">
+                <Route index element={<SalesReportsPage />} />
+                <Route path="summary" element={<SummarySalesReport />} />
+                <Route path="detailed" element={<DetailedSalesReport />} />
+                <Route path="gross-profit-summary" element={<SummaryGrossProfitReport />} />
+                <Route path="gross-profit-detailed" element={<DetailedGrossProfitReport />} />
+              </Route>
+              <Route path="purchases">
+                <Route index element={<PurchasesReportsPage />} />
+                <Route path="summary" element={<SummaryPurchasesReport />} />
+                <Route path="detailed" element={<DetailedPurchasesReport />} />
+                <Route path="payments-summary" element={<SummarySupplierPaymentsReport />} />
+                <Route path="payments-detailed" element={<DetailedSupplierPaymentsReport />} />
+              </Route>
+              <Route path="accounting">
+                <Route index element={<AccountingReportsPage />} />
+                <Route path="balance-sheet" element={<BalanceSheetReport />} />
+                <Route path="income-statement" element={<IncomeStatementReport />} />
+                <Route path="trial-balance" element={<TrialBalanceReport />} />
+                <Route path="general-ledger" element={<GeneralLedgerReport />} />
+                <Route path="tax-summary" element={<SummaryTaxReport />} />
+                <Route path="tax-detailed" element={<DetailedTaxReport />} />
+                <Route path="tax-return" element={<TaxReturnReport />} />
+              </Route>
+              <Route path="clients" element={<ReportsLayout title="Clients Reports" />}>
+                <Route index element={<ClientsReportsPage />} />
+                <Route path="general-ledger" element={<ClientGeneralLedger />} />
+                <Route path="aged-receivable" element={<AgedReceivableReport />} />
+              </Route>
+              <Route path="customers" element={<PlaceholderPage title="Customers Reports" />} />
+              <Route path="suppliers" element={<ReportsLayout title="Suppliers Reports" />}>
+                <Route index element={<SuppliersReportsPage />} />
+                <Route path="general-ledger" element={<SupplierGeneralLedger />} />
+                <Route path="aged-payable" element={<AgedPayableReport />} />
+              </Route>
+              <Route path="inventory" element={<ReportsLayout title="Inventory Reports" />}>
+                <Route index element={<InventoryReportsPage />} />
+                <Route path="value" element={<InventoryValueReport />} />
+                <Route path="value-detailed" element={<InventoryValueDetailedReport />} />
+              </Route>
+            </Route>
+
             <Route path="purchases">
               <Route index element={<PurchasesPage />} />
               <Route path="suppliers/:id" element={<Suppliers />} />
@@ -148,19 +228,6 @@ function App() {
               <Route index element={<Branches />} />
               <Route path="partner-lists" element={<PartnerLists />} />
               <Route path="businesses" element={<Activities />} />
-            </Route>
-
-            <Route path="reports">
-              <Route index element={<PlaceholderPage title="Reports" />} />
-              <Route path="sales" element={<PlaceholderPage title="Sales Reports" />} />
-              <Route path="purchases" element={<PlaceholderPage title="Purchases Reports" />} />
-              <Route path="accounting">
-                <Route index element={<PlaceholderPage title="Accounting Reports" />} />
-                <Route path="general-ledger" element={<PlaceholderPage title="General Ledger" />} />
-              </Route>
-              <Route path="customers" element={<PlaceholderPage title="Customers Reports" />} />
-              <Route path="suppliers" element={<PlaceholderPage title="Suppliers Reports" />} />
-              <Route path="inventory" element={<PlaceholderPage title="Inventory Reports" />} />
             </Route>
 
             <Route path="templates" element={<PlaceholderPage title="Templates" />} />

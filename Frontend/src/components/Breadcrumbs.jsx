@@ -11,6 +11,9 @@ const Breadcrumbs = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
+    // Check if on reports section (to hide action buttons)
+    const isReportsSection = location.pathname.includes('/reports');
+
     // Split pathname into segments, filter out empty strings
     const pathSegments = location.pathname.split('/').filter(segment => segment !== '');
 
@@ -47,7 +50,7 @@ const Breadcrumbs = () => {
     };
 
     const hasFilters = Array.from(searchParams.keys()).length > 0;
-    const showActions = location.pathname !== '/' && !location.pathname.endsWith('/add');
+    const showActions = !isReportsSection && location.pathname !== '/' && !location.pathname.endsWith('/add');
     const addPath = `${location.pathname}/add`;
 
     return (
@@ -110,14 +113,16 @@ const Breadcrumbs = () => {
                 </ol>
             </nav>
 
-            <button
-                type="button"
-                onClick={handleRefresh}
-                className="ms-1 p-1 text-gray-500 hover:text-gray-700 transition-all"
-                title={t('sales.common.refresh')}
-            >
-                <RefreshCw size={20} />
-            </button>
+            {!isReportsSection && (
+                <button
+                    type="button"
+                    onClick={handleRefresh}
+                    className="ms-1 p-1 text-gray-500 hover:text-gray-700 transition-all"
+                    title={t('sales.common.refresh')}
+                >
+                    <RefreshCw size={20} />
+                </button>
+            )}
 
             {showActions && (
                 <div className="ms-auto flex gap-3">
