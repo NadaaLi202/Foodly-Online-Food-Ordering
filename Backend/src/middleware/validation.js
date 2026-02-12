@@ -25,6 +25,7 @@ export const validation = (schema) => {
             await schema.validateAsync(inputs, { abortEarly: false, convert: true, allowUnknown: true });
             next();
         } catch (error) {
+            console.error('[VALIDATION ERROR]:', error.details ? error.details.map(err => err.message) : error.message);
             const message = error.details
                 ? error.details.map(err => err.message).join('; ')
                 : (error.message || 'Validation failed');
