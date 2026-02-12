@@ -104,7 +104,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
             children: [
                 { key: 'expenses', path: '/dashboard/finance/expenses' },
                 { key: 'transactions', path: '/dashboard/finance/transactions' },
-                { key: 'requisitions', path: '/dashboard/finance/requisitions' },
+                { key: 'requisitions', path: '/dashboard/finance/permissions' },
                 { key: 'safes', path: '/dashboard/finance/safes' },
                 { key: 'bank_accounts', path: '/dashboard/finance/bank-accounts' },
             ]
