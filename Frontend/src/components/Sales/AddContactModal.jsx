@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Plus, Minus, Pencil } from 'lucide-react';
 import api from '../../services/api';
 import { useTranslation } from 'react-i18next';
+import { prepareContactPayload } from '../../utils/contactUtils';
 
 const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
     const { t } = useTranslation();
@@ -100,13 +101,11 @@ const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
         if (!validate()) return;
         setLoading(true);
         setErrors({});
+
+
         try {
-            const payload = {
-                ...formData,
-                type: formData.type === 'commercial' ? 'commercial' : 'individual',
-                taxNumber: formData.type === 'commercial' ? (formData.taxNumber || '').trim() || undefined : undefined,
-                commercialRegister: formData.type === 'commercial' ? (formData.commercialRegister || '').trim() || undefined : undefined,
-            };
+            const payload = prepareContactPayload(formData);
+
             const response = await api.post('/contacts/customers', payload);
             const data = response.data;
             if (response.status === 200 || response.status === 201) {
