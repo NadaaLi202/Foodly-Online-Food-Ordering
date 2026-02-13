@@ -125,7 +125,10 @@ const addProductSchema = Joi.object({
         .min(0),
 
     isActive: Joi.boolean()
-        .default(true)
+        .default(true),
+
+    image: Joi.any().optional(),
+    imagePublicId: Joi.any().optional()
 });
 
 // Update Product validation

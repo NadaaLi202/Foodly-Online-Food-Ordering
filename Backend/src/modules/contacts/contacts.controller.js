@@ -28,9 +28,12 @@ async function getNextContactCode(companyId, module) {
 const addContact = (module) =>
     catchAsyncError(async (req, res, next) => {
         const opData = { ...req.body };
-        if (opData.code === "") delete opData.code;
-        if (opData.taxNumber === "") delete opData.taxNumber;
-        if (opData.commercialRegister === "") delete opData.commercialRegister;
+
+        // For individual contacts, remove taxNumber and commercialRegister entirely
+        if (opData.type === 'individual' || (opData.type && opData.type.trim().toLowerCase() === 'individual')) {
+            delete opData.taxNumber;
+            delete opData.commercialRegister;
+        }
 
         // Ensure companyId is set (applyCompanyFilter sets body.companyId; fallback for consistency)
         const companyId = opData.companyId ?? req.user?.companyId;
@@ -43,22 +46,27 @@ const addContact = (module) =>
             opData.code = await getNextContactCode(companyId, module);
         }
 
-        const { code, taxNumber, commercialRegister } = opData;
+        const { code, taxNumber, commercialRegister, type } = opData;
 
-        if (code) {
+        // Only check code uniqueness if user provided a custom code (not auto-generated)
+        if (code && !shouldAutoGenerateCode) {
             const codeFilter = companyId ? { code, companyId } : { code };
             const existingCode = await Contact.findOne({ ...codeFilter, deletedAt: { $eq: null } });
             if (existingCode) return next(new AppError("الكود مستخدم بالفعل", 400));
         }
-        if (taxNumber) {
-            const taxFilter = companyId ? { taxNumber, companyId } : { taxNumber };
-            const existingTax = await Contact.findOne(taxFilter);
-            if (existingTax) return next(new AppError("الرقم الضريبي مستخدم بالفعل", 400));
-        }
-        if (commercialRegister) {
-            const crFilter = companyId ? { commercialRegister, companyId } : { commercialRegister };
-            const existingCR = await Contact.findOne(crFilter);
-            if (existingCR) return next(new AppError("السجل التجاري مستخدم بالفعل", 400));
+
+        // Only check uniqueness for taxNumber and commercialRegister if type is 'commercial'
+        if (type === 'commercial') {
+            if (taxNumber) {
+                const taxFilter = companyId ? { taxNumber, companyId } : { taxNumber };
+                const existingTax = await Contact.findOne(taxFilter);
+                if (existingTax) return next(new AppError("الرقم الضريبي مستخدم بالفعل", 400));
+            }
+            if (commercialRegister) {
+                const crFilter = companyId ? { commercialRegister, companyId } : { commercialRegister };
+                const existingCR = await Contact.findOne(crFilter);
+                if (existingCR) return next(new AppError("السجل التجاري مستخدم بالفعل", 400));
+            }
         }
 
         const maxRetries = 3;
@@ -128,11 +136,21 @@ const updateContact = catchAsyncError(async (req, res, next) => {
     if (!contact || contact.deletedAt) return next(new AppError("غير موجود", 404));
 
     const opData = { ...req.body };
+
+    // Clean up empty strings
     if (opData.code === "") delete opData.code;
     if (opData.taxNumber === "") delete opData.taxNumber;
     if (opData.commercialRegister === "") delete opData.commercialRegister;
 
-    const { code, taxNumber, commercialRegister } = opData;
+    // For individual contacts, remove taxNumber and commercialRegister entirely
+    // Use new type if provided, otherwise use existing contact type
+    const contactType = opData.type || contact.type;
+    if (contactType === 'individual' || (contactType && String(contactType).trim().toLowerCase() === 'individual')) {
+        delete opData.taxNumber;
+        delete opData.commercialRegister;
+    }
+
+    const { code, taxNumber, commercialRegister, type } = opData;
     const companyId = contact.companyId; // Use existing contact's companyId for integrity
 
     // Check duplicates (ignore current record)
@@ -140,13 +158,18 @@ const updateContact = catchAsyncError(async (req, res, next) => {
         const existingCode = await Contact.findOne({ code, companyId });
         if (existingCode) return next(new AppError("الكود مستخدم بالفعل", 400));
     }
-    if (taxNumber && taxNumber !== contact.taxNumber) {
-        const existingTax = await Contact.findOne({ taxNumber, companyId });
-        if (existingTax) return next(new AppError("الرقم الضريبي مستخدم بالفعل", 400));
-    }
-    if (commercialRegister && commercialRegister !== contact.commercialRegister) {
-        const existingCR = await Contact.findOne({ commercialRegister, companyId });
-        if (existingCR) return next(new AppError("السجل التجاري مستخدم بالفعل", 400));
+
+    // Only check uniqueness for taxNumber and commercialRegister if type is 'commercial'
+    // contactType is already declared above
+    if (contactType === 'commercial') {
+        if (taxNumber && taxNumber !== contact.taxNumber) {
+            const existingTax = await Contact.findOne({ taxNumber, companyId });
+            if (existingTax) return next(new AppError("الرقم الضريبي مستخدم بالفعل", 400));
+        }
+        if (commercialRegister && commercialRegister !== contact.commercialRegister) {
+            const existingCR = await Contact.findOne({ commercialRegister, companyId });
+            if (existingCR) return next(new AppError("السجل التجاري مستخدم بالفعل", 400));
+        }
     }
 
     Object.assign(contact, opData);
