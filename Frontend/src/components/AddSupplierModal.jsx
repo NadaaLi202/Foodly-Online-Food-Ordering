@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import api from '../services/api';
+import contactsService from '../services/contactsService';
 
 const AddSupplierModal = ({ isOpen, onClose, editSupplier = null, onSave }) => {
     const { t, i18n } = useTranslation();
@@ -10,7 +10,7 @@ const AddSupplierModal = ({ isOpen, onClose, editSupplier = null, onSave }) => {
     const [submitError, setSubmitError] = useState('');
     const [formData, setFormData] = useState({
         type: 'individual',
-        code: '1-000001',
+        code: '',
         number: '',
         name: '',
         taxNumber: '',
@@ -57,7 +57,7 @@ const AddSupplierModal = ({ isOpen, onClose, editSupplier = null, onSave }) => {
         } else if (!isOpen) {
             setFormData({
                 type: 'individual',
-                code: '1-000001',
+                code: '',
                 number: '',
                 name: '',
                 taxNumber: '',
@@ -82,6 +82,7 @@ const AddSupplierModal = ({ isOpen, onClose, editSupplier = null, onSave }) => {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
+        if (submitError) setSubmitError('');
     };
 
     const toggleOption = (option) => {
@@ -106,61 +107,41 @@ const AddSupplierModal = ({ isOpen, onClose, editSupplier = null, onSave }) => {
         const updated = [...formData.additionalContacts];
         updated[index] = { ...updated[index], [field]: value };
         setFormData((prev) => ({ ...prev, additionalContacts: updated }));
+        if (submitError) setSubmitError('');
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSubmitError('');
-        if (!(formData.name || '').trim()) {
-            setSubmitError(t('purchases.suppliers.name_required'));
+
+        const validation = contactsService.validateSupplierForm(formData, t, { isEdit: !!(editSupplier?._id) });
+        if (!validation.valid) {
+            setSubmitError(validation.error);
             return;
         }
+
+        const isCreate = !editSupplier?._id;
+        const payload = contactsService.buildSupplierPayload(formData, { omitCodeForCreate: isCreate });
         setSubmitting(true);
+
         try {
-            const address = {
-                address1: formData.address1 || '',
-                address2: formData.address2 || '',
-                neighborhood: formData.district || '',
-                city: formData.city || '',
-                province: formData.state || '',
-                zipCode: formData.postalCode || '',
-                country: formData.country || '',
-            };
-            const additionalContacts = (formData.additionalContacts || []).map((ac) => ({
-                name: (ac.name || '').trim(),
-                phone: (ac.phone || '').trim() || undefined,
-                email: (ac.email || '').trim() || undefined,
-                title: (ac.title || '').trim() || undefined,
-            })).filter((ac) => ac.name);
-            const payload = {
-                name: formData.name.trim(),
-                type: formData.type === 'commercial' ? 'commercial' : 'individual',
-                code: formData.code || undefined,
-                taxNumber: formData.taxNumber || undefined,
-                commercialRegister: formData.commercialRegister || undefined,
-                phone: formData.phone || undefined,
-                mobile: formData.mobile || undefined,
-                email: formData.email || undefined,
-                notes: formData.notes || undefined,
-                initialBalance: Number(formData.initialBalance) || 0,
-                address,
-                additionalContacts,
-            };
-            let res;
-            if (editSupplier && editSupplier._id) {
-                res = await api.patch(`/contacts/${editSupplier._id}`, payload);
-            } else {
-                res = await api.post('/contacts/suppliers', payload);
-            }
-            const data = res.data;
-            if (res.status === 200 || res.status === 201) {
-                if (typeof onSave === 'function') onSave(data.contact || data);
+            const result = isCreate
+                ? await contactsService.createSupplier(payload)
+                : await contactsService.updateSupplier(editSupplier._id, payload);
+
+            if (result.success) {
+                if (typeof onSave === 'function') onSave(result.data);
                 onClose();
+                if (isCreate) {
+                    window.dispatchEvent(new CustomEvent('supplier-created'));
+                } else {
+                    window.dispatchEvent(new CustomEvent('supplier-updated'));
+                }
             } else {
-                setSubmitError(data.message || t('sales.common.error_message'));
+                setSubmitError(result.error || t('sales.common.error_message'));
             }
         } catch (err) {
-            setSubmitError(err.response?.data?.message || err.message || t('sales.common.error_message'));
+            setSubmitError(err?.message || t('sales.common.error_message'));
         } finally {
             setSubmitting(false);
         }
@@ -216,10 +197,21 @@ const AddSupplierModal = ({ isOpen, onClose, editSupplier = null, onSave }) => {
                             <div className="sm:col-span-6 xl:col-span-3">
                                 <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.code', 'Code')}</label>
                                 <div className="relative">
-                                    <input id="code" name="code" type="text" disabled value={formData.code} className={`block w-full rounded-md border-gray-300 disabled:bg-transparent shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm ${isRtl ? 'pe-10 ps-3' : 'ps-10 pe-3'}`} />
-                                    <div className={`absolute inset-y-0 flex items-center ${isRtl ? 'start-0 ps-3' : 'end-0 pe-3'} pointer-events-none text-indigo-900`}>
-                                        <Pencil className="h-4 w-4" />
-                                    </div>
+                                    <input
+                                        id="code"
+                                        name="code"
+                                        type="text"
+                                        readOnly
+                                        value={editSupplier ? (formData.code || '') : ''}
+                                        placeholder={editSupplier ? undefined : (t('purchases.suppliers.code_auto_placeholder') || 'Generated automatically')}
+                                        className={`block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm sm:text-sm ${isRtl ? 'pe-10 ps-3' : 'ps-10 pe-3'}`}
+                                        aria-label={editSupplier ? undefined : (t('purchases.suppliers.code_auto_placeholder') || 'Generated automatically')}
+                                    />
+                                    {editSupplier && (
+                                        <div className={`absolute inset-y-0 flex items-center ${isRtl ? 'start-0 ps-3' : 'end-0 pe-3'} pointer-events-none text-indigo-900`}>
+                                            <Pencil className="h-4 w-4" />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

@@ -116,6 +116,12 @@ const TransactionPage = ({ configKey }) => {
                 setView('list');
             }
             fetchList();
+            if (!selected && configKey === 'sales_invoices') {
+                window.dispatchEvent(new CustomEvent('sales-invoice-created'));
+            }
+            if (!selected && (configKey === 'purchases_invoices' || configKey === 'purchases_returns' || configKey === 'purchases_purchaseOrder')) {
+                window.dispatchEvent(new CustomEvent('purchase-document-created'));
+            }
         } catch (error) {
             console.error('Error saving:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message');

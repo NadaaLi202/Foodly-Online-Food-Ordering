@@ -27,16 +27,6 @@ const SalesReportsPage = () => {
             summaryLink: '/dashboard/reports/sales/payments-summary',
             detailedLink: '/dashboard/reports/sales/payments-detailed',
         },
-        {
-            id: 'gross_profit',
-            title: t('reports.gross_profit.title'),
-            description: t('reports.gross_profit.description'),
-            icon: TrendingUp,
-            iconBg: 'bg-amber-50',
-            iconColor: 'text-amber-600',
-            summaryLink: '/dashboard/reports/sales/gross-profit-summary',
-            detailedLink: '/dashboard/reports/sales/gross-profit-detailed',
-        },
     ];
 
     return (

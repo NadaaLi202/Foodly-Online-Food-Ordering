@@ -16,15 +16,6 @@ const ClientsReportsPage = () => {
             iconColor: 'text-green-600',
             link: '/dashboard/reports/clients/general-ledger',
         },
-        {
-            id: 'aged-receivable',
-            title: t('reports.clients.aged_receivable') || 'Aged Receivable',
-            description: t('reports.clients.aged_receivable_desc') || 'View Aged Receivable reports.',
-            icon: Calendar,
-            iconBg: 'bg-purple-50',
-            iconColor: 'text-purple-600',
-            link: '/dashboard/reports/clients/aged-receivable',
-        },
     ];
 
     return (

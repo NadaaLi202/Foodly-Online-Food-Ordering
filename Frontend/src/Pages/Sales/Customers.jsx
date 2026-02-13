@@ -247,6 +247,13 @@ export default function Customers() {
             if (response.status !== 200 && response.status !== 201) {
                 throw new Error(result.message || t('sales.common.error_message'));
             }
+            
+            // Dispatch event for real-time report updates
+            if (isEditing && currentCustomerId) {
+                window.dispatchEvent(new CustomEvent('customer-updated'));
+            } else {
+                window.dispatchEvent(new CustomEvent('customer-created'));
+            }
 
             console.log('Customer saved successfully:', result);
 

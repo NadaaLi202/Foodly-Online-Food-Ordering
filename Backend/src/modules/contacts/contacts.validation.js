@@ -3,7 +3,7 @@ import Joi from "joi";
 export const contactSchema = Joi.object({
     name: Joi.string().required(),
     type: Joi.string().valid('individual', 'commercial').default('individual'),
-    code: Joi.string().optional(),
+    code: Joi.string().allow('').optional(),
     taxNumber: Joi.when('type', { is: 'commercial', then: Joi.string().required().min(1), otherwise: Joi.string().allow('').optional() }),
     commercialRegister: Joi.when('type', { is: 'commercial', then: Joi.string().required().min(1), otherwise: Joi.string().allow('').optional() }),
     phone: Joi.string().allow('').optional(),

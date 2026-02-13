@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, ChevronRight, ChevronUp, FileSpreadsheet, FileText, Printer } from 'lucide-react';
+import { exportBalanceSheetToExcel, buildAccountingReportPdf } from '../../../utils/accountingReportsExport';
 
 const BalanceSheetReport = () => {
     const { t } = useTranslation();
@@ -87,6 +88,50 @@ const BalanceSheetReport = () => {
         }
     };
 
+    const handleExportExcel = () => {
+        exportBalanceSheetToExcel(reportData, t);
+    };
+
+    const handleExportPdf = () => {
+        const contentRows = [];
+        contentRows.push([t('reports.accounting.balance_sheet') || 'Balance Sheet']);
+        contentRows.push([t('reports.filters.to_date') || 'To Date', filters.toDate]);
+        contentRows.push([]);
+        contentRows.push([t('reports.accounting.assets') || 'Assets', fmtNum(reportData.assets?.total || 0)]);
+        if (reportData.assets?.fixed?.length > 0) {
+            reportData.assets.fixed.forEach(item => {
+                contentRows.push(['', item.name || '', fmtNum(item.amount || 0)]);
+            });
+        }
+        if (reportData.assets?.current?.length > 0) {
+            reportData.assets.current.forEach(item => {
+                contentRows.push(['', item.name || '', fmtNum(item.amount || 0)]);
+            });
+        }
+        contentRows.push([]);
+        contentRows.push([t('reports.accounting.liabilities') || 'Liabilities', fmtNum(reportData.liabilities?.total || 0)]);
+        if (reportData.liabilities?.current?.length > 0) {
+            reportData.liabilities.current.forEach(item => {
+                contentRows.push(['', item.name || '', fmtNum(item.amount || 0)]);
+            });
+        }
+        contentRows.push([]);
+        contentRows.push([t('reports.accounting.equity') || 'Equity', fmtNum(reportData.equity?.total || 0)]);
+        const blob = buildAccountingReportPdf(t('reports.accounting.balance_sheet') || 'Balance Sheet', contentRows, t);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Balance_Sheet_${new Date().toISOString().slice(0, 10)}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const handlePrint = () => {
+        window.print();
+    };
+
+    const fmtNum = (n) => (n == null || n === '' || n === undefined) ? '' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
     const renderRow = (label, amount, isHeader = false, isSubHeader = false, indent = 0, onClick = null, isOpen = false) => (
         <div
             className={`flex items-center justify-between py-2 px-4 border-b border-gray-100 ${isHeader ? 'bg-gray-100 font-bold text-gray-900' : ''} ${isSubHeader ? 'bg-gray-50 font-semibold text-gray-800' : 'text-gray-700'} hover:bg-gray-50 cursor-pointer`}
@@ -109,10 +154,17 @@ const BalanceSheetReport = () => {
     );
 
     return (
-        <div className="p-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                {/* Filters Section */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <>
+            <style>{`
+                @media print {
+                    .no-print { display: none !important; visibility: hidden !important; }
+                    body { print-color-adjust: exact; }
+                }
+            `}</style>
+            <div className="p-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    {/* Filters Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 no-print">
                     {/* To Date */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.to_date') || 'To Date'}</label>
@@ -146,31 +198,31 @@ const BalanceSheetReport = () => {
                     </div>
                 </div>
 
-                {/* View Report Button */}
-                <div className="mb-6">
-                    <button className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">{t('reports.view_report')}</button>
-                </div>
+                    {/* View Report Button */}
+                    <div className="mb-6 no-print">
+                        <button className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">{t('reports.view_report')}</button>
+                    </div>
 
-                {/* Report Header & Export */}
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                    <div className="text-sm text-gray-700 font-medium">
-                        {t('reports.accounting.balance_sheet_title') || 'Balance Sheet To Date 2026 February 9, Monday'}
+                    {/* Report Header & Export */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100 no-print">
+                        <div className="text-sm text-gray-700 font-medium">
+                            {t('reports.accounting.balance_sheet_title') || 'Balance Sheet To Date 2026 February 9, Monday'}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button onClick={handleExportExcel} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
+                                <FileSpreadsheet className="w-3.5 h-3.5" />
+                                {t('reports.export.excel')}
+                            </button>
+                            <button onClick={handleExportPdf} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition-colors border border-purple-200">
+                                <FileText className="w-3.5 h-3.5" />
+                                {t('reports.export.pdf')}
+                            </button>
+                            <button onClick={handlePrint} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-200">
+                                <Printer className="w-3.5 h-3.5" />
+                                {t('reports.export.print')}
+                            </button>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
-                            <FileSpreadsheet className="w-3.5 h-3.5" />
-                            {t('reports.export.excel')}
-                        </button>
-                        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition-colors border border-purple-200">
-                            <FileText className="w-3.5 h-3.5" />
-                            {t('reports.export.pdf')}
-                        </button>
-                        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-200">
-                            <Printer className="w-3.5 h-3.5" />
-                            {t('reports.export.print')}
-                        </button>
-                    </div>
-                </div>
 
                 {/* Report Content */}
                 <div className="border border-gray-200 rounded-lg overflow-hidden text-sm">
@@ -239,9 +291,10 @@ const BalanceSheetReport = () => {
                         <span>{reportData.equity.totalLiabilitiesAndEquity.toFixed(2)}</span>
                     </div>
 
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 

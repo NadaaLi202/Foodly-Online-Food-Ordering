@@ -1,9 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucide-react';
+import reportsService from '../../../services/reportsService';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 const SummarySupplierPaymentsReport = () => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const printRef = useRef(null);
+    const [summaryData, setSummaryData] = useState({ totalSpent: 0, totalReceived: 0, totalDue: 0 });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+
+    const isRTL = i18n.language === 'ar';
 
     // Get current month dates
     const now = new Date();
@@ -11,15 +21,15 @@ const SummarySupplierPaymentsReport = () => {
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
     const formatDate = (date) => {
-        const d = date.getDate();
-        const m = date.getMonth() + 1;
+        const d = String(date.getDate()).padStart(2, '0');
+        const m = String(date.getMonth() + 1).padStart(2, '0');
         const y = date.getFullYear();
-        return `${d}-${m}-${y}`;
+        return `${y}-${m}-${d}`; // Use standardized YYYY-MM-DD
     };
 
     const formatDisplayDate = (date) => {
-        const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-        return date.toLocaleDateString('en-US', options);
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return date.toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', options);
     };
 
     const [filters, setFilters] = useState({
@@ -36,7 +46,29 @@ const SummarySupplierPaymentsReport = () => {
 
     const handleFilterChange = (field, value) => {
         setFilters(prev => ({ ...prev, [field]: value }));
+        setError(null);
     };
+
+    const fetchReport = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const data = await reportsService.getPurchasesPaymentsSummary(filters.fromDate, filters.toDate);
+            setSummaryData({
+                totalSpent: data?.totalSpent ?? 0,
+                totalReceived: data?.totalReceived ?? 0,
+                totalDue: data?.totalDue ?? 0,
+            });
+        } catch (err) {
+            setError(err.response?.data?.message || err.message || t('reports.error_load'));
+        } finally {
+            setLoading(false);
+        }
+    }, [filters.fromDate, filters.toDate, t]);
+
+    useEffect(() => {
+        fetchReport();
+    }, [fetchReport]);
 
     const periodOptions = [
         { value: 'current_month', label: t('reports.filters.current_month') },
@@ -51,18 +83,18 @@ const SummarySupplierPaymentsReport = () => {
         { value: 'week', label: t('reports.filters.week') },
         { value: 'day', label: t('reports.filters.day') },
         { value: 'supplier', label: t('reports.filters.supplier') },
-        { value: 'treasury', label: t('reports.filters.treasury') || 'Treasury' },
+        { value: 'treasury', label: t('reports.payments.treasury') || t('reports.filters.treasury') },
     ];
 
     // Column selection options
     const availableColumns = [
-        { key: 'suppliers', label: t('reports.columns.suppliers') || 'Suppliers' },
-        { key: 'invoices', label: t('reports.columns.invoices') || 'Invoices' },
-        { key: 'pending_transactions', label: t('reports.columns.pending_transactions') || 'Pending Transactions' },
-        { key: 'partially_processed_transactions', label: t('reports.columns.partially_processed_transactions') || 'Partially Processed Transactions' },
-        { key: 'processed_transactions', label: t('reports.columns.processed_transactions') || 'Processed Transactions' },
-        { key: 'pending_amount', label: t('reports.columns.pending_amount') || 'Pending Amount' },
-        { key: 'processed_amount', label: t('reports.columns.processed_amount') || 'Processed Amount' },
+        { key: 'suppliers', label: t('reports.payments.suppliers') },
+        { key: 'invoices', label: t('reports.payments.invoices') },
+        { key: 'pending_transactions', label: t('reports.payments.pending_transactions') },
+        { key: 'partially_processed_transactions', label: t('reports.payments.partially_processed_transactions') },
+        { key: 'processed_transactions', label: t('reports.payments.processed_transactions') },
+        { key: 'pending_amount', label: t('reports.payments.pending_amount') },
+        { key: 'processed_amount', label: t('reports.payments.processed_amount') },
     ];
 
     // Default selected columns based on Image 1 (All seem to be present in table header)
@@ -87,11 +119,60 @@ const SummarySupplierPaymentsReport = () => {
 
     const tableColumns = [
         { key: 'month', label: t('reports.table.month') }, // Month is always first for Group By Month
-        ...availableColumns.filter(col => selectedColumns.includes(col.key)).map(col => ({ key: col.key, label: col.label }))
+        ...availableColumns.filter(col => selectedColumns.includes(col.key))
     ];
 
+    const handleExportExcel = () => {
+        const worksheet = XLSX.utils.json_to_sheet([{
+            'Month': filters.fromDate + ' to ' + filters.toDate,
+            [t('reports.supplier_payments.total_spent')]: summaryData.totalSpent,
+            [t('reports.supplier_payments.total_due')]: summaryData.totalDue
+        }]);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Summary Purchases");
+        XLSX.writeFile(workbook, `Summary_Purchases_Report_${filters.fromDate}_to_${filters.toDate}.xlsx`);
+    };
+
+    const handleExportPdf = () => {
+        const doc = new jsPDF();
+        const title = t('reports.supplier_payments.summary_title') || "Summary Supplier Payments Report";
+
+        doc.setFontSize(18);
+        doc.text(title, doc.internal.pageSize.width / 2, 20, { align: 'center' });
+        doc.setFontSize(12);
+        doc.text(`${t('reports.filters.from_date')}: ${filters.fromDate}  ${t('reports.filters.to_date')}: ${filters.toDate}`, doc.internal.pageSize.width / 2, 30, { align: 'center' });
+
+        doc.autoTable({
+            startY: 40,
+            head: [[t('reports.supplier_payments.total_spent'), t('reports.supplier_payments.total_due')]],
+            body: [[
+                Number(summaryData.totalSpent).toLocaleString(undefined, { minimumFractionDigits: 2 }),
+                Number(summaryData.totalDue).toLocaleString(undefined, { minimumFractionDigits: 2 })
+            ]],
+            styles: { font: 'Amiri', halign: isRTL ? 'right' : 'left' },
+            headStyles: { fillColor: [79, 70, 229] }
+        });
+
+        doc.save(`Summary_Purchases_Report_${filters.fromDate}_to_${filters.toDate}.pdf`);
+    };
+
+    const handlePrint = () => {
+        const content = printRef.current;
+        const pri = window.open('', 'PRINT', 'height=600,width=800');
+        pri.document.write('<html><head><title>Print Report</title>');
+        pri.document.write('<style>table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #ddd; padding: 8px; text-align: ' + (isRTL ? 'right' : 'left') + '; } th { background-color: #f2f2f2; } body { direction: ' + (isRTL ? 'rtl' : 'ltr') + '; font-family: sans-serif; }</style>');
+        pri.document.write('</head><body>');
+        pri.document.write('<h1>' + (t('reports.supplier_payments.summary_title') || "Summary Supplier Payments Report") + '</h1>');
+        pri.document.write('<p>' + t('reports.filters.from_date') + ': ' + filters.fromDate + ' ' + t('reports.filters.to_date') + ': ' + filters.toDate + '</p>');
+        pri.document.write(content.innerHTML);
+        pri.document.write('</body></html>');
+        pri.document.close();
+        pri.focus();
+        pri.print();
+    };
+
     return (
-        <div className="p-6">
+        <div className={`p-6 ${isRTL ? 'text-right' : 'text-left'}`}>
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 {/* Filters Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -110,8 +191,7 @@ const SummarySupplierPaymentsReport = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.from_date')}</label>
                         <div className="relative">
-                            <input type="text" value={filters.fromDate} onChange={(e) => handleFilterChange('fromDate', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="DD-MM-YYYY" />
-                            <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <input type="date" value={filters.fromDate} onChange={(e) => handleFilterChange('fromDate', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
                         </div>
                     </div>
 
@@ -119,8 +199,7 @@ const SummarySupplierPaymentsReport = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.to_date')}</label>
                         <div className="relative">
-                            <input type="text" value={filters.toDate} onChange={(e) => handleFilterChange('toDate', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="DD-MM-YYYY" />
-                            <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <input type="date" value={filters.toDate} onChange={(e) => handleFilterChange('toDate', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
                         </div>
                     </div>
 
@@ -190,7 +269,25 @@ const SummarySupplierPaymentsReport = () => {
 
                 {/* View Report Button */}
                 <div className="mb-8">
-                    <button className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">{t('reports.view_report')}</button>
+                    <button onClick={fetchReport} disabled={loading} className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50">{t('reports.view_report')}</button>
+                </div>
+
+                {error && <div className="mb-4 p-3 rounded-lg bg-red-50 text-red-700 text-sm">{error}</div>}
+
+                {/* Summary cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm border-b-4 border-b-indigo-500">
+                        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{t('reports.purchases.total_spent') || 'Total Spent'}</div>
+                        <div className="text-xl font-black text-gray-900">{Number(summaryData.totalSpent).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                    </div>
+                    <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm border-b-4 border-b-emerald-500">
+                        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{t('reports.payments.total_received') || 'Total Received'}</div>
+                        <div className="text-xl font-black text-gray-900">{Number(summaryData.totalReceived).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                    </div>
+                    <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm border-b-4 border-b-amber-500">
+                        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{t('reports.purchases.total_due') || 'Total Due'}</div>
+                        <div className="text-xl font-black text-gray-900">{Number(summaryData.totalDue).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                    </div>
                 </div>
 
                 {/* Chart Section */}
@@ -222,24 +319,25 @@ const SummarySupplierPaymentsReport = () => {
                     </div>
                 </div>
 
-                {/* Report Info and Export Section */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
                     <div className="text-sm text-gray-700">
-                        <span className="font-medium">{t('Summary Supplier Payments Report')}</span>
-                        {' '}{t('reports.filters.group_by')} {t('reports.filters.month')} {t('reports.filters.from_date')} {formatDisplayDate(firstDay)} {t('reports.filters.to_date')} {formatDisplayDate(lastDay)}
+                        <span className="font-bold text-indigo-700">{t('reports.supplier_payments.summary_title')}</span>
+                        <div className="text-xs text-gray-500 mt-1">
+                            {t('reports.filters.from_date')} {filters.fromDate} {t('reports.filters.to_date')} {filters.toDate}
+                        </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button className="inline-flex items-center gap-1.5 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors border border-green-200">
+                        <button onClick={handleExportExcel} className="inline-flex items-center gap-1.5 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors border border-green-200">
                             <FileSpreadsheet className="w-4 h-4" />
                             {t('reports.export.excel')}
                         </button>
-                        <button className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors border border-red-200">
+                        <button onClick={handleExportPdf} className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors border border-red-200">
                             <FileText className="w-4 h-4" />
                             {t('reports.export.pdf')}
                         </button>
-                        <button className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors border border-blue-200">
+                        <button onClick={handlePrint} className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors border border-blue-200">
                             <Printer className="w-4 h-4" />
-                            {t('reports.export.print')}
+                            {t('reports.print')}
                         </button>
                         <div className="relative">
                             <button onClick={() => setIsColumnDropdownOpen(!isColumnDropdownOpen)} className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white pr-10 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 flex items-center gap-2">{t('reports.select_columns')}
@@ -267,12 +365,12 @@ const SummarySupplierPaymentsReport = () => {
                 </div>
 
                 {/* Table Section */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="border border-gray-200 rounded-lg overflow-hidden" ref={printRef}>
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-200">
-                                    {tableColumns.map(col => (<th key={col.key} className="px-4 py-3 text-start text-sm font-medium text-gray-700">{col.label}</th>))}
+                                    {tableColumns.map(col => (<th key={col.key} className={`px-4 py-3 text-${isRTL ? 'right' : 'left'} text-sm font-medium text-gray-700`}>{col.label}</th>))}
                                 </tr>
                             </thead>
                             <tbody>

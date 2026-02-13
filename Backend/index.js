@@ -11,29 +11,46 @@ dotenv.config()
 console.log('Current working directory:', process.cwd());
 
 const app = express()
-const port = process.env.PORT || 8000
+// Match frontend baseURL: http://localhost:4000/api/v1
+const port = process.env.PORT || 4000
 
-app.use(cors())
+app.use(cors({ origin: true, credentials: true }))
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
     next();
 });
-app.use(express.json())
+app.use(express.json({ limit: '10mb' }))
 app.use('/uploads', express.static('uploads'))
-
-
 
 app.get('/', (req, res) => res.send('Hello World!'))
 
 routes(app)
 
+// 404 for unknown routes (must be before error handler)
+app.use((req, res) => {
+    console.warn(`[${new Date().toISOString()}] 404 - ${req.method} ${req.url}`);
+    res.status(404).json({ message: 'Not found' });
+});
+
+// Global error handler: log and return JSON (catches errors passed to next(err))
+app.use((err, req, res, next) => {
+    const status = err.statusCode || err.status || 500;
+    const message = err.message || 'Internal server error';
+    console.error(`[${new Date().toISOString()}] Error ${status} - ${req.method} ${req.url}`, message);
+    if (err.stack) console.error(err.stack);
+    res.status(status).json({ message, ...(err.response?.data && { details: err.response.data }) });
+});
+
 async function bootstrap() {
     await dbConnection()
     startBackupCron()
-    app.listen(process.env.PORT || port, () => console.log(`Example app listening on port ${port}!`))
+    app.listen(port, () => console.log(`API server listening on port ${port} (http://localhost:${port}/api/v1)`))
 }
-bootstrap()
+bootstrap().catch((err) => {
+    console.error('Bootstrap failed:', err);
+    process.exit(1);
+})
 
 process.on('unhandledRejection', (err) => {
-    console.log('unhandledRejection', err)
+    console.error('unhandledRejection', err)
 })

@@ -2,6 +2,28 @@ import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
 import Contact from "./contacts.model.js";
 
+const CODE_PREFIX = "1";
+const CODE_PATTERN = /^(\d+)-(\d+)$/;
+
+/**
+ * Generate the next sequential contact code for a company/module (e.g. 1-000001, 1-000002).
+ * Source of truth for unique codes; safe to call multiple times (re-query on each call for concurrency).
+ */
+async function getNextContactCode(companyId, module) {
+    const existing = await Contact.find(
+        { companyId, module, deletedAt: { $eq: null } },
+        { code: 1 }
+    ).lean();
+    let maxNum = 0;
+    for (const c of existing) {
+        if (c.code && CODE_PATTERN.test(c.code)) {
+            const num = parseInt(c.code.replace(CODE_PATTERN, "$2"), 10);
+            if (num > maxNum) maxNum = num;
+        }
+    }
+    return `${CODE_PREFIX}-${String(maxNum + 1).padStart(6, "0")}`;
+}
+
 // ========== ADD ==========
 const addContact = (module) =>
     catchAsyncError(async (req, res, next) => {
@@ -10,48 +32,75 @@ const addContact = (module) =>
         if (opData.taxNumber === "") delete opData.taxNumber;
         if (opData.commercialRegister === "") delete opData.commercialRegister;
 
+        // Ensure companyId is set (applyCompanyFilter sets body.companyId; fallback for consistency)
+        const companyId = opData.companyId ?? req.user?.companyId;
+        if (!companyId && req.user?.role !== "superAdmin") {
+            return next(new AppError("Company context is required to create a contact", 400));
+        }
+
+        const shouldAutoGenerateCode = !opData.code || String(opData.code).trim() === "";
+        if (shouldAutoGenerateCode) {
+            opData.code = await getNextContactCode(companyId, module);
+        }
+
         const { code, taxNumber, commercialRegister } = opData;
 
-        // Check duplicates
-        // Check duplicates within company
-        // If req.body.companyId is present (it is, explicitly or via middleware), use it.
-        const companyId = req.body.companyId;
-
         if (code) {
-            const existingCode = await Contact.findOne({ code, companyId });
+            const codeFilter = companyId ? { code, companyId } : { code };
+            const existingCode = await Contact.findOne({ ...codeFilter, deletedAt: { $eq: null } });
             if (existingCode) return next(new AppError("الكود مستخدم بالفعل", 400));
         }
         if (taxNumber) {
-            const existingTax = await Contact.findOne({ taxNumber, companyId });
+            const taxFilter = companyId ? { taxNumber, companyId } : { taxNumber };
+            const existingTax = await Contact.findOne(taxFilter);
             if (existingTax) return next(new AppError("الرقم الضريبي مستخدم بالفعل", 400));
         }
         if (commercialRegister) {
-            const existingCR = await Contact.findOne({ commercialRegister, companyId });
+            const crFilter = companyId ? { commercialRegister, companyId } : { commercialRegister };
+            const existingCR = await Contact.findOne(crFilter);
             if (existingCR) return next(new AppError("السجل التجاري مستخدم بالفعل", 400));
         }
 
-        const contact = await Contact.create({
-            ...opData,
-            module,
-            companyId, // Explicitly passed
-            createdBy: req.user?._id
-        });
-
-        res.status(201).json({
-            message: "تم الإنشاء بنجاح",
-            contact
-        });
+        const maxRetries = 3;
+        let lastError;
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                if (shouldAutoGenerateCode && attempt > 0) {
+                    opData.code = await getNextContactCode(companyId, module);
+                }
+                const contact = await Contact.create({
+                    ...opData,
+                    module,
+                    companyId,
+                    createdBy: req.user?._id
+                });
+                return res.status(201).json({
+                    message: "تم الإنشاء بنجاح",
+                    contact
+                });
+            } catch (err) {
+                lastError = err;
+                if (err.code === 11000 && err.keyPattern?.code && shouldAutoGenerateCode) {
+                    continue;
+                }
+                if (err.code === 11000) {
+                    const field = err.keyPattern?.code ? "code" : err.keyPattern?.taxNumber ? "taxNumber" : "commercialRegister";
+                    return next(new AppError(field === "code" ? "الكود مستخدم بالفعل" : field === "taxNumber" ? "الرقم الضريبي مستخدم بالفعل" : "السجل التجاري مستخدم بالفعل", 400));
+                }
+                throw err;
+            }
+        }
+        return next(new AppError(lastError?.message || "الكود مستخدم بالفعل", 400));
     });
 
 // ========== GET ALL ==========
 const getAllContacts = (module) =>
     catchAsyncError(async (req, res) => {
-        let filter = {
+        const filter = {
             module,
             deletedAt: { $eq: null },
-            ...req.companyFilter
+            ...(req.companyFilter || {})
         };
-
         const contacts = await Contact.find(filter);
         res.json({
             message: "تم جلب البيانات بنجاح",

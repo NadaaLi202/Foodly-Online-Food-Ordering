@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucide-react';
+import reportsService from '../../../services/reportsService';
 
 const DetailedPurchasesReport = () => {
     const { t } = useTranslation();
+    const [detailedData, setDetailedData] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    // Get current month dates
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -40,7 +44,58 @@ const DetailedPurchasesReport = () => {
 
     const handleFilterChange = (field, value) => {
         setFilters(prev => ({ ...prev, [field]: value }));
+        setError(null);
     };
+
+    const fetchReport = React.useCallback(async (filterOverrides) => {
+        const state = filterOverrides !== undefined ? filterOverrides : filters;
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await reportsService.getPurchasesInvoicesDetailed(state);
+            const list = res?.data ?? (Array.isArray(res) ? res : []);
+            setDetailedData(Array.isArray(list) ? list : []);
+        } catch (err) {
+            setError(err.response?.data?.message || err.message || t('reports.error_load'));
+        } finally {
+            setLoading(false);
+        }
+    }, [filters, t]);
+
+    const handleViewReport = async () => {
+        setDetailedData([]);
+        await fetchReport();
+    };
+
+    const formatCellDate = (d) => d ? new Date(d).toLocaleDateString() : '—';
+
+    const getTypeLabel = (documentType) => {
+        if (documentType === 'return') return t('reports.purchases.type_return') || 'Return';
+        if (documentType === 'purchaseOrder') return t('reports.purchases.type_order') || 'Order';
+        return t('reports.detailed_columns.type_invoice') || 'Invoice';
+    };
+
+    const getDocumentUrl = (id, documentType) => {
+        if (!id) return null;
+        if (documentType === 'return') return `/dashboard/purchases/returns?openId=${id}`;
+        if (documentType === 'purchaseOrder') return `/dashboard/purchases/purchase-orders?openId=${id}`;
+        return `/dashboard/purchases/invoices?openId=${id}`;
+    };
+
+    React.useEffect(() => {
+        fetchReport({});
+    }, []);
+
+    React.useEffect(() => {
+        const onPurchaseDocumentCreated = () => {
+            reportsService.getPurchasesInvoicesDetailed({}).then((res) => {
+                const list = res?.data ?? (Array.isArray(res) ? res : []);
+                setDetailedData(Array.isArray(list) ? list : []);
+            }).catch(() => {});
+        };
+        window.addEventListener('purchase-document-created', onPurchaseDocumentCreated);
+        return () => window.removeEventListener('purchase-document-created', onPurchaseDocumentCreated);
+    }, []);
 
     const periodOptions = [
         { value: 'current_month', label: t('reports.filters.current_month') },
@@ -76,6 +131,17 @@ const DetailedPurchasesReport = () => {
     };
 
     const tableColumns = availableColumns.filter(col => selectedColumns.includes(col.key));
+
+    const byMonth = {};
+    detailedData.forEach((row) => {
+        const m = row.month ?? '—';
+        if (!byMonth[m]) byMonth[m] = [];
+        byMonth[m].push(row);
+    });
+    const months = Object.keys(byMonth).sort();
+    const totalDiscounts = detailedData.reduce((acc, r) => acc + Number(r.discounts ?? 0), 0);
+    const totalWithoutTax = detailedData.reduce((acc, r) => acc + Number(r.totalWithoutTax ?? 0), 0);
+    const totalAmount = detailedData.reduce((acc, r) => acc + Number(r.amount ?? 0), 0);
 
     return (
         <div className="p-6">
@@ -218,7 +284,10 @@ const DetailedPurchasesReport = () => {
 
                 {/* View Report Button */}
                 <div className="mb-6">
-                    <button className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">{t('reports.view_report')}</button>
+                    <button type="button" onClick={handleViewReport} disabled={loading} className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-60">
+                        {loading ? '...' : t('reports.view_report')}
+                    </button>
+                    {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
                 </div>
 
                 {/* Report Info and Export Section */}
@@ -275,9 +344,62 @@ const DetailedPurchasesReport = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td colSpan={tableColumns.length} className="px-4 py-8 text-center text-gray-500">{t('reports.no_data')}</td>
+                                {detailedData.length > 0 ? (
+                                    <>
+                                        {months.map((month) => {
+                                            const rows = byMonth[month];
+                                            const monthDiscounts = rows.reduce((acc, r) => acc + Number(r.discounts ?? 0), 0);
+                                            const monthWithoutTax = rows.reduce((acc, r) => acc + Number(r.totalWithoutTax ?? 0), 0);
+                                            const monthAmount = rows.reduce((acc, r) => acc + Number(r.amount ?? 0), 0);
+                                            return (
+                                                <React.Fragment key={month}>
+                                                    {rows.map((row, idx) => (
+                                                        <tr key={`${month}-${idx}`} className="border-b border-gray-100 hover:bg-gray-50">
+                                                            {tableColumns.map((col) => {
+                                                                let val = '—';
+                                                                if (col.key === 'code') val = row.invoiceNumber ?? '—';
+                                                                else if (col.key === 'month') val = row.month ?? '—';
+                                                                else if (col.key === 'type') val = getTypeLabel(row.documentType || row.type);
+                                                                else if (col.key === 'issue_date') val = formatCellDate(row.date);
+                                                                else if (col.key === 'supplier') val = row.supplier ?? row.client ?? '—';
+                                                                else if (col.key === 'discounts') val = Number(row.discounts ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                                else if (col.key === 'total_without_taxes') val = Number(row.totalWithoutTax ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                                else if (col.key === 'total') val = Number(row.amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                                if (col.key === 'code' && (row._id || row.id)) {
+                                                                    const url = getDocumentUrl(row._id || row.id, row.documentType || row.type);
+                                                                    if (url) return <td key={col.key} className="px-4 py-3 text-sm"><Link to={url} className="text-indigo-600 hover:underline">{val}</Link></td>;
+                                                                }
+                                                                return <td key={col.key} className="px-4 py-3 text-sm">{val}</td>;
+                                                            })}
+                                                        </tr>
+                                                    ))}
+                                                    <tr className="bg-gray-50 border-t border-gray-200 font-semibold">
+                                                        {tableColumns.map((col) => {
+                                                            if (col.key === 'code') return <td key={col.key} className="px-4 py-3 text-sm">{t('reports.filters.month')}: {month}</td>;
+                                                            if (col.key === 'discounts') return <td key={col.key} className="px-4 py-3 text-sm">{monthDiscounts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>;
+                                                            if (col.key === 'total_without_taxes') return <td key={col.key} className="px-4 py-3 text-sm">{monthWithoutTax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>;
+                                                            if (col.key === 'total') return <td key={col.key} className="px-4 py-3 text-sm">{monthAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>;
+                                                            return <td key={col.key} className="px-4 py-3 text-sm"> </td>;
+                                                        })}
+                                                    </tr>
+                                                </React.Fragment>
+                                            );
+                                        })}
+                                        <tr className="bg-gray-50 border-t-2 border-gray-200 font-semibold">
+                                            {tableColumns.map((col) => {
+                                                if (col.key === 'code') return <td key={col.key} className="px-4 py-3 text-sm">{t('reports.detailed_columns.total')}</td>;
+                                                if (col.key === 'discounts') return <td key={col.key} className="px-4 py-3 text-sm">{totalDiscounts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>;
+                                                if (col.key === 'total_without_taxes') return <td key={col.key} className="px-4 py-3 text-sm">{totalWithoutTax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>;
+                                                if (col.key === 'total') return <td key={col.key} className="px-4 py-3 text-sm">{totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>;
+                                                return <td key={col.key} className="px-4 py-3 text-sm"> </td>;
+                                            })}
+                                        </tr>
+                                    </>
+                                ) : (
+                                    <tr>
+                                        <td colSpan={tableColumns.length} className="px-4 py-8 text-center text-gray-500">{error || t('reports.no_data')}</td>
                                 </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>

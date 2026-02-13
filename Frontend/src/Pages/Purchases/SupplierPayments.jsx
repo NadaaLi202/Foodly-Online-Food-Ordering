@@ -12,7 +12,7 @@ import { paths } from '../../utils/navigationHelpers';
 
 export default function SupplierPayments() {
     const { t, i18n } = useTranslation();
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const contactId = searchParams.get('contactId');
     const operationType = searchParams.get('operationType');
     const treasury = searchParams.get('treasury');
@@ -352,82 +352,82 @@ export default function SupplierPayments() {
                                     {viewingPayment.notes && <div><span className="text-xs font-black text-gray-400 uppercase">{t('sales.payments.notes')}</span><p className="text-sm text-gray-600">{viewingPayment.notes}</p></div>}
                                 </div>
                             ) : (
-                            <form onSubmit={handleSubmit} className="space-y-5">
-                                {responseMessage.text && (
-                                    <div className={`p-3 rounded-lg text-sm ${responseMessage.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
-                                        {responseMessage.text}
+                                <form onSubmit={handleSubmit} className="space-y-5">
+                                    {responseMessage.text && (
+                                        <div className={`p-3 rounded-lg text-sm ${responseMessage.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+                                            {responseMessage.text}
+                                        </div>
+                                    )}
+                                    <div>
+                                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.common.supplier')} <span className="text-red-500">*</span></label>
+                                        <select
+                                            name="contact"
+                                            value={formData.contact}
+                                            onChange={handleInputChange}
+                                            className={`w-full border-2 rounded-lg px-3 py-2.5 text-sm font-bold bg-white ${errors.contact ? 'border-red-500' : 'border-gray-100 focus:border-indigo-500'}`}
+                                        >
+                                            <option value="">{t('purchases.payments.select_supplier')}</option>
+                                            {suppliers.map((s) => (
+                                                <option key={s._id} value={s._id}>{s.name} {s.code ? `#${s.code}` : ''}</option>
+                                            ))}
+                                        </select>
+                                        {errors.contact && <p className="text-red-500 text-xs mt-1">{errors.contact}</p>}
                                     </div>
-                                )}
-                                <div>
-                                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.common.supplier')} <span className="text-red-500">*</span></label>
-                                    <select
-                                        name="contact"
-                                        value={formData.contact}
-                                        onChange={handleInputChange}
-                                        className={`w-full border-2 rounded-lg px-3 py-2.5 text-sm font-bold bg-white ${errors.contact ? 'border-red-500' : 'border-gray-100 focus:border-indigo-500'}`}
-                                    >
-                                        <option value="">{t('purchases.payments.select_supplier')}</option>
-                                        {suppliers.map((s) => (
-                                            <option key={s._id} value={s._id}>{s.name} {s.code ? `#${s.code}` : ''}</option>
-                                        ))}
-                                    </select>
-                                    {errors.contact && <p className="text-red-500 text-xs mt-1">{errors.contact}</p>}
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.common.date')} <span className="text-red-500">*</span></label>
-                                    <input
-                                        type="date"
-                                        name="date"
-                                        value={formData.date}
-                                        onChange={handleInputChange}
-                                        className={`w-full border-2 rounded-lg px-3 py-2.5 text-sm ${errors.date ? 'border-red-500' : 'border-gray-100 focus:border-indigo-500'}`}
-                                    />
-                                    {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.payments.operation_type')}</label>
-                                    <select
-                                        name="operationType"
-                                        value={formData.operationType}
-                                        onChange={handleInputChange}
-                                        className="w-full border-2 border-gray-100 rounded-lg px-3 py-2.5 text-sm font-bold bg-white focus:border-indigo-500"
-                                    >
-                                        <option value="receive">{t('sales.payments.receive')}</option>
-                                        <option value="spend">{t('sales.payments.spend')}</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.payments.treasury')} <span className="text-red-500">*</span></label>
-                                    <select
-                                        name="treasury"
-                                        value={formData.treasury}
-                                        onChange={handleInputChange}
-                                        className={`w-full border-2 rounded-lg px-3 py-2.5 text-sm font-bold bg-white ${errors.treasury ? 'border-red-500' : 'border-gray-100 focus:border-indigo-500'}`}
-                                    >
-                                        <option value="">{t('sales.payments.select_treasury')}</option>
-                                        <option value="main">{t('sales.payments.main_treasury')}</option>
-                                        <option value="bank">{t('sales.payments.main_bank_account')}</option>
-                                    </select>
-                                    {errors.treasury && <p className="text-red-500 text-xs mt-1">{errors.treasury}</p>}
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.payments.amount')} <span className="text-red-500">*</span></label>
-                                    <input
-                                        type="number"
-                                        name="amount"
-                                        value={formData.amount}
-                                        onChange={handleInputChange}
-                                        min="0"
-                                        step="0.01"
-                                        className={`w-full border-2 rounded-lg px-3 py-2.5 text-sm font-bold ${errors.amount ? 'border-red-500' : 'border-gray-100 focus:border-indigo-500'}`}
-                                    />
-                                    {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount}</p>}
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.payments.notes')}</label>
-                                    <textarea name="notes" value={formData.notes} onChange={handleInputChange} rows={2} className="w-full border-2 border-gray-100 rounded-lg px-3 py-2.5 text-sm focus:border-indigo-500 resize-none" />
-                                </div>
-                            </form>
+                                    <div>
+                                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.common.date')} <span className="text-red-500">*</span></label>
+                                        <input
+                                            type="date"
+                                            name="date"
+                                            value={formData.date}
+                                            onChange={handleInputChange}
+                                            className={`w-full border-2 rounded-lg px-3 py-2.5 text-sm ${errors.date ? 'border-red-500' : 'border-gray-100 focus:border-indigo-500'}`}
+                                        />
+                                        {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.payments.operation_type')}</label>
+                                        <select
+                                            name="operationType"
+                                            value={formData.operationType}
+                                            onChange={handleInputChange}
+                                            className="w-full border-2 border-gray-100 rounded-lg px-3 py-2.5 text-sm font-bold bg-white focus:border-indigo-500"
+                                        >
+                                            <option value="receive">{t('sales.payments.receive')}</option>
+                                            <option value="spend">{t('sales.payments.spend')}</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.payments.treasury')} <span className="text-red-500">*</span></label>
+                                        <select
+                                            name="treasury"
+                                            value={formData.treasury}
+                                            onChange={handleInputChange}
+                                            className={`w-full border-2 rounded-lg px-3 py-2.5 text-sm font-bold bg-white ${errors.treasury ? 'border-red-500' : 'border-gray-100 focus:border-indigo-500'}`}
+                                        >
+                                            <option value="">{t('sales.payments.select_treasury')}</option>
+                                            <option value="main">{t('sales.payments.main_treasury')}</option>
+                                            <option value="bank">{t('sales.payments.main_bank_account')}</option>
+                                        </select>
+                                        {errors.treasury && <p className="text-red-500 text-xs mt-1">{errors.treasury}</p>}
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.payments.amount')} <span className="text-red-500">*</span></label>
+                                        <input
+                                            type="number"
+                                            name="amount"
+                                            value={formData.amount}
+                                            onChange={handleInputChange}
+                                            min="0"
+                                            step="0.01"
+                                            className={`w-full border-2 rounded-lg px-3 py-2.5 text-sm font-bold ${errors.amount ? 'border-red-500' : 'border-gray-100 focus:border-indigo-500'}`}
+                                        />
+                                        {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount}</p>}
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.payments.notes')}</label>
+                                        <textarea name="notes" value={formData.notes} onChange={handleInputChange} rows={2} className="w-full border-2 border-gray-100 rounded-lg px-3 py-2.5 text-sm focus:border-indigo-500 resize-none" />
+                                    </div>
+                                </form>
                             )}
                         </div>
                         <div className="border-t border-gray-100 px-6 py-4 flex justify-end gap-3">

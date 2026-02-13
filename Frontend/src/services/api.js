@@ -1,9 +1,13 @@
 import axios from "axios";
 
-export const BASE_URL = "http://localhost:4000/api/v1";
+export const BASE_URL = "http://localhost:4001/api/v1";
 
 const api = axios.create({
     baseURL: BASE_URL,
+    headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+    },
 });
 
 /** Get current user role from localStorage (used for SuperAdmin companyId pass-through) */
@@ -58,6 +62,10 @@ api.interceptors.response.use(
     response => response,
     error => {
         const status = error.response?.status;
+        const backendMessage = error.response?.data?.message;
+        if (import.meta.env?.DEV && (status === 400 || status >= 500)) {
+            console.warn("[API Error]", error.config?.method?.toUpperCase(), error.config?.url, status, backendMessage || error.message);
+        }
         if (status === 401) {
             localStorage.clear();
             sessionStorage.removeItem("superAdminToken");
@@ -66,8 +74,6 @@ api.interceptors.response.use(
             const loginPath = from.startsWith("/super-admin") ? "/login" : "/login";
             window.location.href = `${loginPath}?redirect=${encodeURIComponent(from)}`;
         } else if (status === 403) {
-            // Authorization failure - show message, avoid hard redirect
-            const msg = error.response?.data?.message || "You are not authorized to perform this action.";
             if (typeof window !== "undefined" && !error.config?._handled403) {
                 error.config = error.config || {};
                 error.config._handled403 = true;

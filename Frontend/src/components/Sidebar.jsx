@@ -11,9 +11,6 @@ import {
     BarChart3,
     Users,
     Building2,
-    FileText,
-    Settings,
-    Headphones,
     Play,
     LogOut,
     ShieldCheck
@@ -155,9 +152,6 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                 { key: 'activities', path: '/dashboard/branches/businesses' },
             ]
         },
-        { key: 'templates', icon: FileText, path: '/dashboard/templates', hasSub: true },
-        { key: 'settings', icon: Settings, path: '/dashboard/settings', hasSub: true },
-        { key: 'support', icon: Headphones, path: '/dashboard/support' },
     ];
 
     const sidebarClasses = isMobile
@@ -173,22 +167,6 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
 
             <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto pt-2 font-sans">
                 {navItems.map((item) => {
-                    if (item.key === 'support') {
-                        return (
-                            <div key={item.key} className="pt-2 mt-auto pb-2">
-                                <a
-                                    href="https://api.whatsapp.com/send/?phone=966114977231&type=phone_number&app_absent=0"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="group w-full flex items-center px-2 py-1.5 text-sm font-semibold rounded-md text-indigo-100 bg-indigo-600 hover:bg-opacity-50 transition-colors"
-                                >
-                                    <item.icon className="me-3 flex-shrink-0 h-4 w-4 animate-flash" />
-                                    <span>{t(`sidebar.${item.key}`)}</span>
-                                </a>
-                            </div>
-                        );
-                    }
-
                     return (
                         <div key={item.key}>
                             {/* لو ليه children → زرار بس */}

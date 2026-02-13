@@ -32,9 +32,6 @@
         "branches_list": "Branches",
         "partners_lists": "Partners Lists",
         "activities": "Activities",
-        "templates": "Templates",
-        "settings": "Settings",
-        "support": "Technical Support",
         "warehouses": "Warehouses",
         "inventories": "Stock Taking",
         "journal_entries": "Journal Entries",
@@ -46,7 +43,7 @@
         "customers_reports": "Customers Reports",
         "suppliers_reports": "Suppliers Reports",
         "inventory_reports": "Inventory Reports",
-        "clients_reports": "Clients Reports",
+        "clients_reports": "Customer Reports",
         "users_reports": "Users Reports",
         "general_ledger": "General Ledger",
         "credit_notes": "Credit Notes",
@@ -65,6 +62,7 @@
     "reports": {
         "summary": "Summary",
         "detailed": "Detailed",
+        "print": "Print",
         "view_report": "View Report",
         "select_columns": "Select Columns",
         "no_data": "No data available",
@@ -74,11 +72,34 @@
         },
         "payments": {
             "title": "Payments Reports",
-            "description": "View payments reports."
-        },
-        "gross_profit": {
-            "title": "Gross Profit Reports",
-            "description": "View Gross Profit reports."
+            "description": "View payments reports.",
+            "summary_title": "Payment Summary Report",
+            "summary_desc": "Overview of collections and outstanding balances.",
+            "detailed_title": "Detailed Payments Report",
+            "detailed_desc": "View detailed transaction history for all payments.",
+            "total_received": "Total Received (Sales)",
+            "total_spent": "Total Spent (Purchases)",
+            "total_sales_due": "Total Sales Due",
+            "total_purchases_due": "Total Purchases Due",
+            "type": "Type",
+            "receive": "Collection",
+            "spend": "Payment",
+            "payment_method": "Payment Method",
+            "amount": "Amount",
+            "invoices": "Invoices",
+            "branch": "Branch",
+            "treasury": "Treasury",
+            "processed_amount": "Processed Amount",
+            "suppliers": "Suppliers",
+            "supplier_payment": "Supplier Payment",
+            "date": "Date",
+            "supplier": "Supplier",
+            "responsible_user": "Responsible User",
+            "user": "User",
+            "pending_transactions": "Pending Transactions",
+            "partially_processed_transactions": "Partially Processed Transactions",
+            "processed_transactions": "Processed Transactions",
+            "pending_amount": "Pending Amount"
         },
         "filters": {
             "period": "Period",
@@ -138,6 +159,9 @@
             "invoices": "Invoices",
             "clients": "Clients",
             "products": "Products",
+            "total_invoices": "Total Invoices",
+            "total_returns": "Total Returns",
+            "total_sales_discounts": "Total Sales Discounts",
             "sales_discounts": "Sales Discounts",
             "sales_total_without_taxes": "Sales Total Without Taxes",
             "sales_total": "Sales Total",
@@ -174,34 +198,21 @@
         },
         "detailed_sales_report": "Detailed Sales Report",
         "detailed_columns": {
-            "code": "Code",
+            "code": "Invoice Number",
+            "month": "Month",
             "type": "Type",
+            "type_invoice": "Invoice",
             "issue_date": "Issue Date",
             "client": "Client",
             "discounts": "Discounts",
             "total_without_taxes": "Total Without Taxes",
             "total": "Total"
         },
-        "gross_profit_columns": {
-            "invoices": "Invoices",
-            "partners": "Partners",
-            "products": "Products",
-            "net_sales_without_taxes": "Net Sales Without Taxes",
-            "net_sales_cost": "Net Sales Cost",
-            "gross_profit": "Gross Profit"
-        },
-        "detailed_gross_profit_columns": {
-            "code": "Code",
-            "type": "Type",
-            "partner": "Partner",
-            "branch": "Branch",
-            "total_without_taxes": "Total Without Taxes",
-            "cost": "Cost",
-            "gross_profit": "Gross Profit"
-        },
         "supplier_payments": {
             "summary_title": "Summary Supplier Payments Report",
-            "detailed_title": "Detailed Supplier Payments Report"
+            "detailed_title": "Detailed Supplier Payments Report",
+            "total_spent": "Total Spent",
+            "total_due": "Total Due"
         },
         "accounting": {
             "balance_sheet": "Balance Sheet",
@@ -259,37 +270,13 @@
         "tax_return": "Tax Return",
         "clients": {
             "client_general_ledger": "Client General Ledger",
-            "client_general_ledger_desc": "View Client General Ledger reports.",
-            "aged_receivable": "Aged Receivable",
-            "aged_receivable_desc": "View Aged Receivable reports.",
-            "aged_receivable_report": {
-                "report_title": "Aged Receivable Report",
-                "client": "Client",
-                "journal_account": "Journal Account",
-                "today": "Today",
-                "day_1_30": "Day 1-30",
-                "day_31_60": "Day 31-60",
-                "day_61_90": "Day 61-90",
-                "day_91_plus": "Day 91+",
-                "total": "Total"
-            }
+            "client_general_ledger_desc": "View Client General Ledger reports."
         },
         "suppliers": {
             "supplier_general_ledger": "Supplier General Ledger",
             "supplier_general_ledger_desc": "View Supplier General Ledger reports.",
-            "aged_payable": "Aged Payable",
-            "aged_payable_desc": "View Aged Payable reports.",
-            "aged_payable_report": {
-                "report_title": "Aged Payable Report",
-                "supplier": "Supplier",
-                "journal_account": "Journal Account",
-                "today": "Today",
-                "day_1_30": "Day 1-30",
-                "day_31_60": "Day 31-60",
-                "day_61_90": "Day 61-90",
-                "day_91_plus": "Day 91+",
-                "total": "Total"
-            }
+            "purchase_invoice": "Purchase Invoice",
+            "purchase_return": "Purchase Return"
         },
         "inventory": {
             "inventory_value": "Inventory Value Report",
@@ -796,6 +783,7 @@
         "suppliers": {
             "add_title": "Add Supplier",
             "edit_title": "Edit Supplier",
+            "code_auto_placeholder": "Generated automatically",
             "type": "Supplier Type",
             "type_individual": "Individual",
             "type_commercial": "Commercial",

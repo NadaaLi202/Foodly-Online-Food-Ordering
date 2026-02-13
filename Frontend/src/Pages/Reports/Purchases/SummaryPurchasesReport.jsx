@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown } from 'lucide-react';
+import reportsService from '../../../services/reportsService';
 
 const SummaryPurchasesReport = () => {
     const { t } = useTranslation();
+    const [summaryData, setSummaryData] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-    // Get current month dates
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -33,11 +36,46 @@ const SummaryPurchasesReport = () => {
         purchasesEmployee: '',
     });
 
-    const [chartMetric, setChartMetric] = useState('net_sales');
+    const [chartMetric, setChartMetric] = useState('net_purchases');
 
     const handleFilterChange = (field, value) => {
         setFilters(prev => ({ ...prev, [field]: value }));
+        setError(null);
     };
+
+    const handleViewReport = async () => {
+        setLoading(true);
+        setError(null);
+        setSummaryData(null);
+        try {
+            const res = await reportsService.getPurchasesSummary(filters.fromDate, filters.toDate);
+            const data = res?.data ?? res;
+            setSummaryData(Array.isArray(data) ? data : (data && typeof data === 'object' && !Array.isArray(data) ? [data] : []));
+        } catch (err) {
+            setError(err.response?.data?.message || err.message || t('reports.error_load'));
+            setSummaryData([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        let cancelled = false;
+        setLoading(true);
+        reportsService.getPurchasesSummary(filters.fromDate, filters.toDate)
+            .then((res) => {
+                const data = res?.data ?? res;
+                if (!cancelled) setSummaryData(Array.isArray(data) ? data : (data && typeof data === 'object' && !Array.isArray(data) ? [data] : []));
+            })
+            .catch((err) => {
+                if (!cancelled) {
+                    setError(err.response?.data?.message || err.message || t('reports.error_load'));
+                    setSummaryData([]);
+                }
+            })
+            .finally(() => { if (!cancelled) setLoading(false); });
+        return () => { cancelled = true; };
+    }, []);
 
     const periodOptions = [
         { value: 'current_month', label: t('reports.filters.current_month') },
@@ -55,18 +93,22 @@ const SummaryPurchasesReport = () => {
         { value: 'product', label: t('reports.filters.product') },
     ];
 
-    // Column selection options (simple)
     const availableColumns = [
         { key: 'invoices', label: t('reports.columns.invoices') },
+        { key: 'returns', label: t('reports.columns.credit_notes_total') || 'Returns' },
+        { key: 'orders', label: t('reports.purchases.orders') || 'Orders' },
         { key: 'suppliers', label: t('reports.columns.suppliers') || t('reports.table.clients') },
         { key: 'products', label: t('reports.columns.products') },
-        { key: 'purchases_total', label: t('reports.columns.purchases_total') },
-        { key: 'credit_notes_total', label: t('reports.columns.credit_notes_total') || 'Credit Notes Total' },
-        { key: 'net_purchases_discounts', label: t('reports.columns.net_purchases_discounts') || 'Net Purchases Discounts' },
-        { key: 'net_purchases', label: t('reports.columns.net_purchases') },
+        { key: 'totalInvoices', label: t('reports.columns.purchases_total') },
+        { key: 'totalReturns', label: t('reports.columns.credit_notes_total') || 'Total Returns' },
+        { key: 'totalOrders', label: t('reports.purchases.total_orders') || 'Total Orders' },
+        { key: 'totalPurchasesDiscounts', label: t('reports.purchases.total_discounts') || 'Total Purchases Discounts' },
+        { key: 'totalReturnsDiscounts', label: t('reports.purchases.total_returns_discounts') || 'Total Returns Discounts' },
+        { key: 'netPurchasesDiscounts', label: t('reports.columns.net_purchases_discounts') },
+        { key: 'netPurchases', label: t('reports.columns.net_purchases') },
     ];
 
-    const [selectedColumns, setSelectedColumns] = useState(['invoices', 'suppliers', 'products', 'purchases_total', 'credit_notes_total', 'net_purchases_discounts', 'net_purchases']);
+    const [selectedColumns, setSelectedColumns] = useState(['invoices', 'returns', 'orders', 'suppliers', 'products', 'totalInvoices', 'totalReturns', 'totalOrders', 'totalPurchasesDiscounts', 'netPurchasesDiscounts', 'netPurchases']);
     const [isColumnDropdownOpen, setIsColumnDropdownOpen] = useState(false);
 
     const toggleColumn = (columnKey) => {
@@ -81,6 +123,8 @@ const SummaryPurchasesReport = () => {
         { key: 'month', label: t('reports.table.month') },
         ...availableColumns.filter(col => selectedColumns.includes(col.key)).map(col => ({ key: col.key, label: col.label }))
     ];
+
+    const formatAmount = (n) => (n == null || Number.isNaN(Number(n))) ? '0.00' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     return (
         <div className="p-6">
@@ -223,7 +267,10 @@ const SummaryPurchasesReport = () => {
 
                 {/* View Report Button */}
                 <div className="mb-8">
-                    <button className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">{t('reports.view_report')}</button>
+                    <button type="button" onClick={handleViewReport} disabled={loading} className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-60">
+                        {loading ? '...' : t('reports.view_report')}
+                    </button>
+                    {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
                 </div>
 
                 {/* Chart Section (placeholder) */}
@@ -256,9 +303,27 @@ const SummaryPurchasesReport = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr>
-                                    <td colSpan={tableColumns.length} className="px-4 py-8 text-center text-gray-500">{t('reports.no_data')}</td>
-                                </tr>
+                                {summaryData != null && summaryData.length > 0 ? (
+                                    summaryData.map((row, idx) => (
+                                        <tr key={row.month ?? idx} className="border-b border-gray-100">
+                                            {tableColumns.map((col) => {
+                                                let val = '—';
+                                                if (col.key === 'month') val = row.month ?? '—';
+                                                else if (col.key === 'invoices') val = row.invoices ?? 0;
+                                                else if (col.key === 'returns') val = row.returns ?? 0;
+                                                else if (col.key === 'orders') val = row.orders ?? 0;
+                                                else if (col.key === 'suppliers') val = row.suppliers ?? 0;
+                                                else if (col.key === 'products') val = row.products ?? 0;
+                                                else if (['totalInvoices', 'totalReturns', 'totalOrders', 'totalPurchasesDiscounts', 'totalReturnsDiscounts', 'netPurchasesDiscounts', 'netPurchases'].includes(col.key)) val = formatAmount(row[col.key]);
+                                                return <td key={col.key} className="px-4 py-3 text-sm font-medium">{val}</td>;
+                                            })}
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={tableColumns.length} className="px-4 py-8 text-center text-gray-500">{error || t('reports.no_data')}</td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>

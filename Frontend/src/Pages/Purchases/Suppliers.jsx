@@ -249,6 +249,13 @@ export default function Suppliers() {
             if (response.status !== 200 && response.status !== 201) {
                 throw new Error(result.message || t('sales.common.error_message'));
             }
+            
+            // Dispatch event for real-time report updates
+            if (isEditing && currentSupplierId) {
+                window.dispatchEvent(new CustomEvent('supplier-updated'));
+            } else {
+                window.dispatchEvent(new CustomEvent('supplier-created'));
+            }
 
             console.log('Supplier saved successfully:', result);
 
