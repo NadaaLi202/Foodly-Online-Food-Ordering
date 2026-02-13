@@ -15,7 +15,7 @@ const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
 
     const [formData, setFormData] = useState({
         type: 'individual',
-        code: '1-000002',
+        code: '',
         name: '',
         taxNumber: '',
         commercialRegister: '',
@@ -112,6 +112,8 @@ const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
             if (response.status === 200 || response.status === 201) {
                 onSave(data.contact);
                 onClose();
+                // Dispatch event for real-time report updates
+                window.dispatchEvent(new CustomEvent('customer-created'));
             } else {
                 setErrors({ submit: data.message || t('sales.common.error_message') });
             }
@@ -173,8 +175,8 @@ const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
                             <div className="sm:col-span-6 xl:col-span-3">
                                 <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">{t('sales.customers.customer_code')}</label>
                                 <div className="relative">
-                                    <input id="code" name="code" type="text" disabled value={formData.code} className={`block w-full rounded-md border-gray-300 disabled:bg-transparent shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm ${isRtl ? 'pe-10 ps-3' : 'ps-10 pe-3'}`} />
-                                    <div className={`absolute inset-y-0 flex items-center pointer-events-none text-indigo-900 ${isRtl ? 'start-0 ps-3' : 'end-0 pe-3'}`}>
+                                    <input id="code" name="code" type="text" value={formData.code} onChange={handleInputChange} className={`block w-full rounded-md border border-gray-300 bg-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm ${isRtl ? 'pe-10 ps-3' : 'ps-10 pe-3'}`} placeholder={t('sales.customers.code_optional') || 'Optional — leave blank to auto-generate'} />
+                                    <div className={`absolute inset-y-0 flex items-center pointer-events-none text-gray-400 ${isRtl ? 'start-0 ps-3' : 'end-0 pe-3'}`}>
                                         <Pencil className="h-4 w-4" />
                                     </div>
                                 </div>

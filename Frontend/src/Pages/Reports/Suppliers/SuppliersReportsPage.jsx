@@ -8,22 +8,13 @@ const SuppliersReportsPage = () => {
 
     const reportSections = [
         {
-            id: 'supplier-general-ledger',
-            title: t('reports.suppliers.supplier_general_ledger') || 'Supplier General Ledger',
-            description: t('reports.suppliers.supplier_general_ledger_desc') || 'View Supplier General Ledger reports.',
+            id: 'detailed-suppliers',
+            title: 'كشف حساب المورد',
+            description: 'عرض تقارير كشف حساب المورد',
             icon: Users,
             iconBg: 'bg-green-50',
             iconColor: 'text-green-600',
-            link: '/dashboard/reports/suppliers/general-ledger',
-        },
-        {
-            id: 'aged-payable',
-            title: t('reports.suppliers.aged_payable') || 'Aged Payable',
-            description: t('reports.suppliers.aged_payable_desc') || 'View Aged Payable reports.',
-            icon: Calendar,
-            iconBg: 'bg-purple-50',
-            iconColor: 'text-purple-600',
-            link: '/dashboard/reports/suppliers/aged-payable',
+            link: '/dashboard/reports/suppliers/detailed',
         },
     ];
 

@@ -32,9 +32,6 @@
         "branches_list": "الفروع",
         "partners_lists": "قوائم الشركاء",
         "activities": "الأنشطة",
-        "templates": "القوالب",
-        "settings": "الإعدادات",
-        "support": "الدعم الفني",
         "warehouses": "المستودعات",
         "inventories": "عمليات الجرد",
         "journal_entries": "قيود اليومية",
@@ -44,6 +41,7 @@
         "purchases_reports": "تقارير المشتريات",
         "accounting_reports": "تقارير المحاسبة",
         "customers_reports": "تقارير العملاء",
+        "clients_reports": "تقارير العملاء",
         "suppliers_reports": "تقارير الموردين",
         "inventory_reports": "تقارير المخزون",
         "users_reports": "تقارير المستخدمين",
@@ -64,6 +62,7 @@
     "reports": {
         "summary": "ملخص",
         "detailed": "تفصيلي",
+        "print": "طباعة",
         "view_report": "عرض التقرير",
         "select_columns": "اختر الأعمدة",
         "no_data": "لا توجد بيانات",
@@ -71,13 +70,40 @@
             "title": "تقارير المبيعات",
             "description": "عرض تقارير المبيعات."
         },
+        "purchases": {
+            "title": "تقارير المشتريات",
+            "description": "عرض تقارير المشتريات"
+        },
         "payments": {
             "title": "تقارير المدفوعات",
-            "description": "عرض تقارير المدفوعات."
-        },
-        "gross_profit": {
-            "title": "تقارير إجمالي الربح",
-            "description": "عرض تقارير إجمالي الربح."
+            "description": "عرض تقارير المدفوعات.",
+            "summary_title": "تقرير ملخص المدفوعات",
+            "summary_desc": "نظرة عامة على المبالغ المحصلة والمبالغ المستحقة.",
+            "detailed_title": "تقرير المدفوعات التفصيلي",
+            "detailed_desc": "عرض سجل المعاملات التفصيلي لجميع المدفوعات.",
+            "total_received": "إجمالي المحصل (مبيعات)",
+            "total_spent": "إجمالي المدفوع (مشتريات)",
+            "total_sales_due": "إجمالي مستحقات المبيعات",
+            "total_purchases_due": "إجمالي مستحقات المشتريات",
+            "type": "النوع",
+            "receive": "تحصيل",
+            "spend": "دفع",
+            "payment_method": "طريقة الدفع",
+            "amount": "المبلغ",
+            "invoices": "الفواتير",
+            "branch": "الفرع",
+            "treasury": "الخزينة",
+            "processed_amount": "المبلغ المعالج",
+            "suppliers": "الموردين",
+            "supplier_payment": "دفعة مورد",
+            "date": "التاريخ",
+            "supplier": "المورد",
+            "responsible_user": "المستخدم المسؤول",
+            "user": "المستخدم",
+            "pending_transactions": "معاملات معلقة",
+            "partially_processed_transactions": "معالجة جزئياً",
+            "processed_transactions": "معاملات تمت معالجتها",
+            "pending_amount": "مبلغ معلق"
         },
         "filters": {
             "period": "الفترة",
@@ -137,6 +163,9 @@
             "invoices": "الفواتير",
             "clients": "العملاء",
             "products": "المنتجات",
+            "total_invoices": "إجمالي الفواتير",
+            "total_returns": "إجمالي المرتجعات",
+            "total_sales_discounts": "إجمالي خصومات المبيعات",
             "sales_discounts": "خصومات المبيعات",
             "sales_total_without_taxes": "إجمالي المبيعات بدون ضرائب",
             "sales_total": "إجمالي المبيعات",
@@ -173,34 +202,22 @@
         },
         "detailed_sales_report": "تقرير المبيعات التفصيلي",
         "detailed_columns": {
-            "code": "الكود",
+            "code": "رقم الفاتورة",
+            "month": "الشهر",
             "type": "النوع",
+            "type_invoice": "فاتورة",
             "issue_date": "تاريخ الإصدار",
             "client": "العميل",
             "discounts": "الخصومات",
-            "total_without_taxes": "الإجمالي بدون ضرائب",
-            "total": "الإجمالي"
-        },
-        "gross_profit_columns": {
-            "invoices": "الفواتير",
-            "partners": "الشركاء",
-            "products": "المنتجات",
-            "net_sales_without_taxes": "صافي المبيعات بدون ضرائب",
-            "net_sales_cost": "تكلفة صافي المبيعات",
-            "gross_profit": "إجمالي الربح"
-        },
-        "detailed_gross_profit_columns": {
-            "code": "الكود",
-            "type": "النوع",
-            "partner": "الشريك",
-            "branch": "الفرع",
-            "total_without_taxes": "الإجمالي بدون ضرائب",
-            "cost": "التكلفة",
-            "gross_profit": "إجمالي الربح"
+            "total_without_taxes": "الإجمالي بدون الضرائب",
+            "total": "الإجمالي",
+            "totals": "المجموع"
         },
         "supplier_payments": {
             "summary_title": "ملخص تقرير مدفوعات الموردين",
-            "detailed_title": "تقرير مدفوعات الموردين التفصيلي"
+            "detailed_title": "تقرير مدفوعات الموردين التفصيلي",
+            "total_spent": "إجمالي المدفوع",
+            "total_due": "إجمالي المستحق"
         },
         "accounting": {
             "balance_sheet": "الميزانية العمومية",
@@ -257,42 +274,18 @@
         },
         "tax_return": "الإقرار الضريبي",
         "clients": {
-            "client_general_ledger": "حساب الأستاذ العام للعميل",
-            "client_general_ledger_desc": "عرض تقارير حساب الأستاذ العام للعميل.",
-            "aged_receivable": "تقادم الذمم المدينة",
-            "aged_receivable_desc": "عرض تقارير تقادم الذمم المدينة.",
-            "aged_receivable_report": {
-                "report_title": "تقرير تقادم الذمم المدينة",
-                "client": "العميل",
-                "journal_account": "حساب اليومية",
-                "today": "اليوم",
-                "day_1_30": "يوم 1-30",
-                "day_31_60": "يوم 31-60",
-                "day_61_90": "يوم 61-90",
-                "day_91_plus": "يوم 91+",
-                "total": "الإجمالي"
-            }
+            "client_general_ledger": "كشف حساب العميل",
+            "client_general_ledger_desc": "عرض تقارير كشف حساب العميل."
         },
         "suppliers": {
-            "supplier_general_ledger": "حساب الأستاذ العام للمورد",
-            "supplier_general_ledger_desc": "عرض تقارير حساب الأستاذ العام للمورد.",
-            "aged_payable": "تقادم الذمم الدائنة",
-            "aged_payable_desc": "عرض تقارير تقادم الذمم الدائنة.",
-            "aged_payable_report": {
-                "report_title": "تقرير تقادم الذمم الدائنة",
-                "supplier": "المورد",
-                "journal_account": "حساب اليومية",
-                "today": "اليوم",
-                "day_1_30": "يوم 1-30",
-                "day_31_60": "يوم 31-60",
-                "day_61_90": "يوم 61-90",
-                "day_91_plus": "يوم 91+",
-                "total": "الإجمالي"
-            }
+            "supplier_general_ledger": "كشف حساب المورد",
+            "supplier_general_ledger_desc": "عرض تقارير كشف حساب المورد.",
+            "purchase_invoice": "فاتورة مشتريات",
+            "purchase_return": "مرتجع مشتريات"
         },
         "inventory": {
             "inventory_value": "تقرير قيمة المخزون",
-            "inventory_value_desc": "عرض تقرير قيمة المخزون عتماداً على متوسط التكلفة أو سعر الشراء.",
+            "inventory_value_desc": "عرض تقرير قيمة المخزون عاتماداً على متوسط التكلفة أو سعر الشراء.",
             "inventory_value_detailed": "تقرير قيمة المخزون المفصل",
             "inventory_value_detailed_desc": "عرض تفاصيل تغيرات قيمة المخزون خلال فترة محددة لكل منتج.",
             "inventory_value_report": {
@@ -758,6 +751,7 @@
         "suppliers": {
             "add_title": "إضافة مورد",
             "edit_title": "تعديل المورد",
+            "code_auto_placeholder": "يتم التوليد تلقائياً",
             "type": "نوع المورد",
             "type_individual": "فردي",
             "type_commercial": "تجاري",

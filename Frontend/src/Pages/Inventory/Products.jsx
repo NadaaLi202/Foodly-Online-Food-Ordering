@@ -219,6 +219,13 @@ const Products = () => {
             setEditingProduct(null);
             fetchProducts();
             resetForm();
+            // Dispatch event for real-time report updates
+            if (editingProduct) {
+                window.dispatchEvent(new CustomEvent('product-updated'));
+            } else {
+                window.dispatchEvent(new CustomEvent('product-created'));
+            }
+            window.dispatchEvent(new CustomEvent('inventory-updated'));
 
         } catch (error) {
             console.error('Error saving product:', error);

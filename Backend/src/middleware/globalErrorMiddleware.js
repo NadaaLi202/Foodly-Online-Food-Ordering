@@ -2,7 +2,12 @@ import multer from "multer";
 import mongoose from "mongoose";
 
 export const globalErrorMiddleware = (err, req, res, next) => {
-    console.error('[ERROR] Global Error Handler:', err);
+    const statusCode = err.statusCode || err.status || 500;
+    if (statusCode >= 500) {
+        console.error('[ERROR] Global Error Handler:', err);
+    } else {
+        console.warn(`[${statusCode}] ${req.method} ${req.url} -`, err.message);
+    }
 
     // Handle Multer errors (file size, etc.) with clean messages
     if (err instanceof multer.MulterError) {
@@ -27,6 +32,6 @@ export const globalErrorMiddleware = (err, req, res, next) => {
         return res.status(400).json({ message: `Invalid value for ${err.path}: ${err.value}`, statusCode: 400 });
     }
 
-    const statusCode = err.statusCode || 500;
-    res.status(statusCode).json({ message: err.message || "Internal server error", statusCode });
+    const code = err.statusCode || err.status || 500;
+    res.status(code).json({ message: err.message || "Internal server error", statusCode: code });
 };

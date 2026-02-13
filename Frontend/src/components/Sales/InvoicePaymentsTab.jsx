@@ -94,6 +94,8 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
             setFormData({ date: new Date().toISOString().split('T')[0], amount: '', treasury: 'main', operationType: 'receive', referenceNumber: '', notes: '' });
             fetchPayments();
             onRefreshInvoice?.();
+            // Dispatch event for real-time report updates
+            window.dispatchEvent(new CustomEvent('payment-created'));
         } catch (err) {
             toast.error(err.response?.data?.message || t('sales.common.error_message'));
         } finally {

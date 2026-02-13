@@ -51,8 +51,8 @@ import SalesReportsPage from './Pages/Reports/Sales/SalesReportsPage';
 import PurchasesReportsPage from './Pages/Reports/Purchases/PurchasesReportsPage';
 import SummarySalesReport from './Pages/Reports/Sales/SummarySalesReport';
 import DetailedSalesReport from './Pages/Reports/Sales/DetailedSalesReport';
-import SummaryGrossProfitReport from './Pages/Reports/Sales/SummaryGrossProfitReport';
-import DetailedGrossProfitReport from './Pages/Reports/Sales/DetailedGrossProfitReport';
+import SummaryPaymentsReport from './Pages/Reports/Sales/SummaryPaymentsReport';
+import DetailedPaymentsReport from './Pages/Reports/Sales/DetailedPaymentsReport';
 import SummaryPurchasesReport from './Pages/Reports/Purchases/SummaryPurchasesReport';
 import DetailedPurchasesReport from './Pages/Reports/Purchases/DetailedPurchasesReport';
 import SummarySupplierPaymentsReport from './Pages/Reports/Purchases/SummarySupplierPaymentsReport';
@@ -67,10 +67,8 @@ import DetailedTaxReport from './Pages/Reports/Accounting/DetailedTaxReport';
 import TaxReturnReport from './Pages/Reports/Accounting/TaxReturnReport';
 import ClientsReportsPage from './Pages/Reports/Clients/ClientsReportsPage';
 import ClientGeneralLedger from './Pages/Reports/Clients/ClientGeneralLedger';
-import AgedReceivableReport from './Pages/Reports/Clients/AgedReceivableReport';
 import SuppliersReportsPage from './Pages/Reports/Suppliers/SuppliersReportsPage';
-import SupplierGeneralLedger from './Pages/Reports/Suppliers/SupplierGeneralLedger';
-import AgedPayableReport from './Pages/Reports/Suppliers/AgedPayableReport';
+import DetailedSuppliersReport from './Pages/Reports/Suppliers/DetailedSuppliersReport';
 import InventoryReportsPage from './Pages/Reports/Inventory/InventoryReportsPage';
 import InventoryValueReport from './Pages/Reports/Inventory/InventoryValueReport';
 import InventoryValueDetailedReport from './Pages/Reports/Inventory/InventoryValueDetailedReport';
@@ -159,8 +157,8 @@ function App() {
                 <Route index element={<SalesReportsPage />} />
                 <Route path="summary" element={<SummarySalesReport />} />
                 <Route path="detailed" element={<DetailedSalesReport />} />
-                <Route path="gross-profit-summary" element={<SummaryGrossProfitReport />} />
-                <Route path="gross-profit-detailed" element={<DetailedGrossProfitReport />} />
+                <Route path="payments-summary" element={<SummaryPaymentsReport />} />
+                <Route path="payments-detailed" element={<DetailedPaymentsReport />} />
               </Route>
               <Route path="purchases">
                 <Route index element={<PurchasesReportsPage />} />
@@ -182,13 +180,11 @@ function App() {
               <Route path="clients" element={<ReportsLayout title="Clients Reports" />}>
                 <Route index element={<ClientsReportsPage />} />
                 <Route path="general-ledger" element={<ClientGeneralLedger />} />
-                <Route path="aged-receivable" element={<AgedReceivableReport />} />
               </Route>
               <Route path="customers" element={<PlaceholderPage title="Customers Reports" />} />
               <Route path="suppliers" element={<ReportsLayout title="Suppliers Reports" />}>
                 <Route index element={<SuppliersReportsPage />} />
-                <Route path="general-ledger" element={<SupplierGeneralLedger />} />
-                <Route path="aged-payable" element={<AgedPayableReport />} />
+                <Route path="detailed" element={<DetailedSuppliersReport />} />
               </Route>
               <Route path="inventory" element={<ReportsLayout title="Inventory Reports" />}>
                 <Route index element={<InventoryReportsPage />} />
@@ -196,43 +192,39 @@ function App() {
                 <Route path="value-detailed" element={<InventoryValueDetailedReport />} />
               </Route>
             </Route>
+          </Route>
 
-            <Route path="purchases">
-              <Route index element={<PurchasesPage />} />
-              <Route path="suppliers/:id" element={<Suppliers />} />
-              <Route path="invoices" element={<PurchaseInvoices />} />
-              <Route path="invoices/add" element={<PurchaseInvoices />} />
-              <Route path="credit-notes" element={<PurchaseCreditNotes />} />
-              <Route path="credit-notes/add" element={<PurchaseCreditNotes />} />
-              <Route path="purchase-orders" element={<PurchaseOrders />} />
-              <Route path="returns" element={<PurchaseReturns />} />
-              <Route path="requests" element={<PurchaseRequests />} />
-              <Route path="suppliers" element={<Suppliers />} />
-              <Route path="payments" element={<SupplierPayments />} />
-            </Route>
+          <Route path="purchases">
+            <Route index element={<PurchasesPage />} />
+            <Route path="suppliers/:id" element={<Suppliers />} />
+            <Route path="invoices" element={<PurchaseInvoices />} />
+            <Route path="invoices/add" element={<PurchaseInvoices />} />
+            <Route path="credit-notes" element={<PurchaseCreditNotes />} />
+            <Route path="credit-notes/add" element={<PurchaseCreditNotes />} />
+            <Route path="purchase-orders" element={<PurchaseOrders />} />
+            <Route path="returns" element={<PurchaseReturns />} />
+            <Route path="requests" element={<PurchaseRequests />} />
+            <Route path="suppliers" element={<Suppliers />} />
+            <Route path="payments" element={<SupplierPayments />} />
+          </Route>
 
-            <Route path="finance">
-              <Route path="expenses" element={<Expenses />} />
-              <Route path="transactions" element={<Transactions />} />
-              <Route path="requisitions" element={<Requisitions />} />
-              <Route path="safes" element={<Safes />} />
-              <Route path="bank-accounts" element={<BankAccounts />} />
-            </Route>
+          <Route path="finance">
+            <Route path="expenses" element={<Expenses />} />
+            <Route path="transactions" element={<Transactions />} />
+            <Route path="requisitions" element={<Requisitions />} />
+            <Route path="safes" element={<Safes />} />
+            <Route path="bank-accounts" element={<BankAccounts />} />
+          </Route>
 
-            <Route path="users">
-              <Route index element={<Contacts />} />
-              <Route path="roles" element={<Roles />} />
-            </Route>
+          <Route path="users">
+            <Route index element={<Contacts />} />
+            <Route path="roles" element={<Roles />} />
+          </Route>
 
-            <Route path="branches">
-              <Route index element={<Branches />} />
-              <Route path="partner-lists" element={<PartnerLists />} />
-              <Route path="businesses" element={<Activities />} />
-            </Route>
-
-            <Route path="templates" element={<PlaceholderPage title="Templates" />} />
-            <Route path="settings" element={<PlaceholderPage title="Settings" />} />
-            <Route path="support" element={<PlaceholderPage title="Technical Support" />} />
+          <Route path="branches">
+            <Route index element={<Branches />} />
+            <Route path="partner-lists" element={<PartnerLists />} />
+            <Route path="businesses" element={<Activities />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

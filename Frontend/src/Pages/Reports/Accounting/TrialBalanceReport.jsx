@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, ChevronRight, FileSpreadsheet, FileText, Printer } from 'lucide-react';
+import { exportTrialBalanceToExcel, buildTrialBalancePdf } from '../../../utils/accountingReportsExport';
 
 const TrialBalanceReport = () => {
     const { t } = useTranslation();
@@ -84,6 +85,55 @@ const TrialBalanceReport = () => {
         end: { debit: 100.00, credit: 100.00 }
     };
 
+    // Transform data for export (convert to API format structure)
+    const transformDataForExport = () => {
+        const transform = (items) => {
+            return items.map(item => ({
+                name: item.label,
+                code: item.id,
+                type: item.type,
+                level: 0,
+                initialDebit: item.initial?.debit || 0,
+                initialCredit: item.initial?.credit || 0,
+                transactionDebit: item.transaction?.debit || 0,
+                transactionCredit: item.transaction?.credit || 0,
+                endDebit: item.end?.debit || 0,
+                endCredit: item.end?.credit || 0,
+                children: item.children ? transform(item.children) : []
+            }));
+        };
+        return transform(initialData);
+    };
+
+    const exportTotals = {
+        initialDebit: totals.initial.debit,
+        initialCredit: totals.initial.credit,
+        transactionDebit: totals.transaction.debit,
+        transactionCredit: totals.transaction.credit,
+        endDebit: totals.end.debit,
+        endCredit: totals.end.credit
+    };
+
+    const handleExportExcel = () => {
+        const exportData = transformDataForExport();
+        exportTrialBalanceToExcel(exportData, exportTotals, t);
+    };
+
+    const handleExportPdf = () => {
+        const exportData = transformDataForExport();
+        const dateRange = `${t('reports.filters.from_date')} ${filters.fromDate} ${t('reports.filters.to_date')} ${filters.toDate}`;
+        const blob = buildTrialBalancePdf(exportData, exportTotals, t, t('reports.accounting.trial_balance') || 'Trial Balance', dateRange);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Trial_Balance_${new Date().toISOString().slice(0, 10)}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const handlePrint = () => {
+        window.print();
+    };
 
     const renderRow = (item, indent = 0) => {
         const isOpen = expandedSections[item.id];
@@ -118,10 +168,17 @@ const TrialBalanceReport = () => {
     };
 
     return (
-        <div className="p-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <>
+            <style>{`
+                @media print {
+                    .no-print { display: none !important; visibility: hidden !important; }
+                    body { print-color-adjust: exact; }
+                }
+            `}</style>
+            <div className="p-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 {/* Filters Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 no-print">
                     {/* Period */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.period')}</label>
@@ -175,25 +232,25 @@ const TrialBalanceReport = () => {
                 </div>
 
                 {/* View Report Button */}
-                <div className="mb-6">
+                <div className="mb-6 no-print">
                     <button className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">{t('reports.view_report')}</button>
                 </div>
 
                 {/* Report Header & Export */}
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100 no-print">
                     <div className="text-sm text-gray-700 font-medium">
                         {t('reports.accounting.trial_balance_title') || 'Trial Balance From Date 2026 February 1, Sunday To Date 2026 February 28, Saturday'}
                     </div>
                     <div className="flex items-center gap-2">
-                        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
+                        <button onClick={handleExportExcel} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
                             <FileSpreadsheet className="w-3.5 h-3.5" />
                             {t('reports.export.excel')}
                         </button>
-                        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition-colors border border-purple-200">
+                        <button onClick={handleExportPdf} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition-colors border border-purple-200">
                             <FileText className="w-3.5 h-3.5" />
                             {t('reports.export.pdf')}
                         </button>
-                        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-200">
+                        <button onClick={handlePrint} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-200">
                             <Printer className="w-3.5 h-3.5" />
                             {t('reports.export.print')}
                         </button>
@@ -235,8 +292,9 @@ const TrialBalanceReport = () => {
                     </table>
                 </div>
 
+                </div>
             </div>
-        </div>
+        </>
     );
 };
 

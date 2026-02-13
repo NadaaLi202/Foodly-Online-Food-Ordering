@@ -28,6 +28,7 @@ export const validation = (schema) => {
             const message = error.details
                 ? error.details.map(err => err.message).join('; ')
                 : (error.message || 'Validation failed');
+            console.warn(`[Validation 400] ${req.method} ${req.url} -`, message);
             res.status(400).json({ message });
         }
     }
