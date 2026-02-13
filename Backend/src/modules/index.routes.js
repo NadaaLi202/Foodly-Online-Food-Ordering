@@ -29,6 +29,7 @@ import safeRouter from "./Safes/safe.routes.js"
 import companyRouter from "./companies/company.routes.js"
 import roleRouter from "./role/role.routes.js"
 import reportsRouter from "./reports/reports.routes.js"
+import financialTransactionRouter from "./FinancialTransactions/financialTransaction.routes.js"
 import { backupRouter } from "../backups/backup.routes.js"
 
 export function routes(app) {
@@ -61,6 +62,7 @@ export function routes(app) {
     app.use("/api/v1/expenses", expenseRouter)
     app.use("/api/v1/bank-accounts", bankAccountRouter)
     app.use("/api/v1/safes", safeRouter)
+    app.use("/api/v1/financial-transactions", financialTransactionRouter)
     app.use("/api/v1/companies", companyRouter)
     app.use("/api/v1/backups", backupRouter)
 

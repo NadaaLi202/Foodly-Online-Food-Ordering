@@ -2,7 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Search, RefreshCw, Info } from 'lucide-react';
 
-const Requisitions = () => {
+const Permissions = () => {
     const { t } = useTranslation();
 
     return (
@@ -35,4 +35,4 @@ const Requisitions = () => {
     );
 };
 
-export default Requisitions;
+export default Permissions;

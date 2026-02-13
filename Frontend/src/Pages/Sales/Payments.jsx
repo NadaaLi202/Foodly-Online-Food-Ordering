@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Plus, RefreshCw, X, MoreVertical, Eye, FileDown } from 'lucide-react';
+import { Plus, RefreshCw, X, MoreVertical, Eye, FileDown, Copy, Trash2, Edit2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { QRCodeCanvas } from 'qrcode.react';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
 import ClientLink from '../../components/navigation/ClientLink';
@@ -204,15 +206,48 @@ export default function Payments() {
         setLoading(true);
         try {
             const res = await api.get(`/payments/${payment._id}`);
-            setViewingPayment(res.data.payment);
+            const fullPayment = res.data.payment;
+            setViewingPayment(fullPayment);
             setEditingPayment(null);
             setIsModalOpen(true);
         } catch (err) {
-            console.error(err);
+            console.error('Error fetching payment details:', err);
+            toast.error(t('sales.common.error_message'));
         } finally {
             setLoading(false);
+            setMenuOpenId(null);
         }
-        setMenuOpenId(null);
+    };
+
+    const handleDuplicate = async (payment) => {
+        setLoading(true);
+        try {
+            // Fetch latest data to ensure consistency
+            const res = await api.get(`/payments/${payment._id}`);
+            const source = res.data.payment;
+
+            const duplicateData = {
+                date: new Date().toISOString().split('T')[0],
+                contact: source.contact?._id || source.contact,
+                operationType: source.operationType,
+                treasury: source.treasury,
+                amount: source.amount,
+                notes: (source.notes || '') + (i18n.language === 'ar' ? ' (نسخة)' : ' (Copy)'),
+                module: source.module || 'sales'
+            };
+
+            const response = await api.post('/payments', duplicateData);
+            if (response.status === 201) {
+                toast.success(i18n.language === 'ar' ? 'تم التكرار بنجاح' : 'Duplicated successfully');
+                fetchPayments(); // Refresh list immediately
+            }
+        } catch (err) {
+            console.error('Duplication failed:', err);
+            toast.error(t('sales.common.error_message'));
+        } finally {
+            setLoading(false);
+            setMenuOpenId(null);
+        }
     };
 
     const handleDelete = async (id) => {
@@ -228,8 +263,9 @@ export default function Payments() {
             setTotal(prev => Math.max(0, prev - 1));
             setDeleteModal({ open: false, paymentId: null });
             if (viewingPayment?._id === deleteModal.paymentId) handleCancel();
+            toast.success(i18n.language === 'ar' ? 'تم الحذف بنجاح' : 'Deleted successfully');
         } catch (err) {
-            alert(err.response?.data?.message || t('sales.common.error_message'));
+            toast.error(err.response?.data?.message || t('sales.common.error_message'));
         } finally {
             setDeleteLoading(false);
         }
@@ -299,7 +335,11 @@ export default function Payments() {
                             </thead>
                             <tbody className="divide-y divide-gray-50">
                                 {payments.map((payment) => (
-                                    <tr key={payment._id} className="hover:bg-indigo-50/30 transition-all group">
+                                    <tr
+                                        key={payment._id}
+                                        className="hover:bg-indigo-50/30 cursor-pointer transition-all group"
+                                        onClick={() => openViewModal(payment)}
+                                    >
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-gray-600">{paymentId(payment)}</td>
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-gray-500">
                                             {payment.date ? new Date(payment.date).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US') : '—'}
@@ -328,18 +368,26 @@ export default function Payments() {
                                             {menuOpenId === payment._id && (
                                                 <>
                                                     <div className="fixed inset-0 z-10" onClick={() => setMenuOpenId(null)} />
-                                                    <div className={`absolute top-full mt-1 z-20 py-1 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[140px] ${i18n.language === 'ar' ? 'left-0' : 'right-0'}`}>
-                                                        <button type="button" onClick={() => openViewModal(payment)} className="flex items-center gap-2 w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
-                                                            <Eye size={16} />{t('sales.common.view')}
+                                                    <div className={`absolute top-full mt-1 z-20 py-1 bg-white border border-gray-200 rounded-lg shadow-lg min-w-[150px] ${i18n.language === 'ar' ? 'left-0' : 'right-0'}`}>
+                                                        <button type="button" onClick={(e) => { e.stopPropagation(); openViewModal(payment); }} className="flex items-center gap-2 w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                                            <Eye size={16} className="text-indigo-600" />
+                                                            <span>{t('sales.common.view')}</span>
                                                         </button>
-                                                        <button type="button" onClick={() => openEditModal(payment)} className="flex items-center gap-2 w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
-                                                            {t('sales.common.edit')}
+                                                        <button type="button" onClick={(e) => { e.stopPropagation(); openEditModal(payment); }} className="flex items-center gap-2 w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                                            <Edit2 size={16} className="text-green-600" />
+                                                            <span>{t('sales.common.edit')}</span>
                                                         </button>
-                                                        <button type="button" onClick={() => handleDownloadPDF(payment)} className="flex items-center gap-2 w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50">
-                                                            <FileDown size={16} />{t('sales.payments.download_pdf')}
+                                                        <button type="button" onClick={(e) => { e.stopPropagation(); handleDuplicate(payment); }} className="flex items-center gap-2 w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                                            <Copy size={16} className="text-blue-600" />
+                                                            <span>{t('sales.common.duplicate')}</span>
                                                         </button>
-                                                        <button type="button" onClick={() => handleDelete(payment._id)} className="flex items-center gap-2 w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50">
-                                                            {t('sales.common.delete')}
+                                                        <button type="button" onClick={(e) => { e.stopPropagation(); handleDownloadPDF(payment); }} className="flex items-center gap-2 w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+                                                            <FileDown size={16} className="text-amber-600" />
+                                                            <span>{t('sales.payments.download_pdf')}</span>
+                                                        </button>
+                                                        <button type="button" onClick={(e) => { e.stopPropagation(); handleDelete(payment._id); }} className="flex items-center gap-2 w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                                            <Trash2 size={16} />
+                                                            <span>{t('sales.common.delete')}</span>
                                                         </button>
                                                     </div>
                                                 </>
@@ -387,6 +435,23 @@ export default function Payments() {
                                         </div>
                                     )}
                                     {viewingPayment.notes && <div><span className="text-xs font-black text-gray-400 uppercase">{t('sales.payments.notes')}</span><p className="text-sm text-gray-600">{viewingPayment.notes}</p></div>}
+
+                                    <div className="pt-4 flex justify-center">
+                                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col items-center gap-2">
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('sales.invoices.qr_code')}</span>
+                                            <QRCodeCanvas
+                                                value={JSON.stringify({
+                                                    ref: paymentId(viewingPayment),
+                                                    amount: viewingPayment.amount,
+                                                    customer: contactName(viewingPayment),
+                                                    date: viewingPayment.date
+                                                })}
+                                                size={120}
+                                                level="M"
+                                                includeMargin
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
                             ) : (
                                 <form onSubmit={handleSubmit} className="space-y-5">

@@ -115,12 +115,54 @@ const Expenses = () => {
             return;
         }
 
+        // ✅ File type validation
+        const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', 'xlsx'];
+        for (const file of uploadedFiles) {
+            const extension = file.name.split('.').pop().toLowerCase();
+            if (!allowedExtensions.includes(extension)) {
+                alert(i18n.language === 'ar'
+                    ? `نوع الملف ${extension} غير مسموح به. يرجى استخدام PDF أو الصور أو Word أو Excel.`
+                    : `File type ${extension} is not allowed. Use PDF, images, Word or Excel.`);
+                return;
+            }
+        }
+
         setLoading(true);
 
         try {
+            // Create FormData object to handle both text fields and file uploads
+            const formDataToSend = new FormData();
+
+            // Append basic form fields
+            formDataToSend.append('code', formData.code || '');
+            formDataToSend.append('date', formData.date);
+            formDataToSend.append('wallet', formData.wallet);
+            formDataToSend.append('account', formData.account || '');
+            formDataToSend.append('amount', formData.amount);
+            formDataToSend.append('taxes', formData.taxes || '0');
+            formDataToSend.append('description', formData.description || '');
+
+            // Append existing attachments (for updates)
+            if (formData.attachments && formData.attachments.length > 0) {
+                formDataToSend.append('existingAttachments', JSON.stringify(formData.attachments));
+            }
+
+            // Append new uploaded files
+            if (uploadedFiles && uploadedFiles.length > 0) {
+                uploadedFiles.forEach((file) => {
+                    formDataToSend.append('attachments', file);
+                });
+            }
+
+            const config = {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            };
+
             const response = editingExpense
-                ? await api.put(`/expenses/${editingExpense._id}`, formDataToSend)
-                : await api.post('/expenses', formDataToSend);
+                ? await api.put(`/expenses/${editingExpense._id}`, formDataToSend, config)
+                : await api.post('/expenses', formDataToSend, config);
 
             if (response.status === 200 || response.status === 201) {
                 alert(i18n.language === 'ar'
@@ -139,7 +181,8 @@ const Expenses = () => {
             }
         } catch (error) {
             console.error('Error saving expense:', error);
-            alert(i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error');
+            const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error');
+            alert(msg);
         } finally {
             setLoading(false);
         }

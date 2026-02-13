@@ -31,13 +31,13 @@ import PartnerLists from './Pages/Branches/PartnerLists';
 import Activities from './Pages/Branches/Activities';
 import Expenses from './Pages/Finance/Expenses';
 import Transactions from './Pages/Finance/Transactions';
-import Requisitions from './Pages/Finance/Requisitions';
+import PermissionsFinance from './Pages/Finance/Permissions';
 import Safes from './Pages/Finance/Safes';
 import BankAccounts from './Pages/Finance/BankAccounts';
 import Contacts from './Pages/Users/Contacts';
 import Roles from './Pages/Users/Roles';
 import LandingPage from './Pages/LandingPage';
-import Login from './Pages/Login';
+import Login from './Pages/login';
 import Register from './Pages/Register';
 import CompanyLogin from './Pages/CompanyLogin';
 // SuperAdmin
