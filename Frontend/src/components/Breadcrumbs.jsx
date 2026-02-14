@@ -124,7 +124,7 @@ const Breadcrumbs = () => {
                 </button>
             )}
 
-            {showActions && (
+            {/* {showActions && (
                 <div className="ms-auto flex gap-3">
                     {hasFilters ? (
                         <div className="isolate inline-flex rounded-md shadow-sm">
@@ -173,7 +173,7 @@ const Breadcrumbs = () => {
                         </Link>
                     </div>
                 </div>
-            )}
+            )} */}
 
             <SearchFilterPopup
                 isOpen={isFilterOpen}
