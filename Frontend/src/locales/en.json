@@ -70,6 +70,11 @@
             "title": "Sales Reports",
             "description": "View sales reports."
         },
+        "purchases": {
+            "title": "Purchases Reports",
+            "description": "View purchases reports"
+        },
+        "accounting_reports_desc": "Financial statements and ledger analysis",
         "payments": {
             "title": "Payments Reports",
             "description": "View payments reports.",
@@ -350,6 +355,7 @@
         "start_suppliers": "Get started by creating a new Suppliers"
     },
     "finance": {
+        "tile_desc": "Record and manage company expenses and transactions",
         "add_transaction": "Add Transaction",
         "receipt": "Receipt",
         "disbursement": "Disbursement",
@@ -537,6 +543,7 @@
         },
         "invoices": {
             "title": "Invoices",
+            "tile_desc": "Manage and create sales invoices",
             "add_invoice": "Add Invoice",
             "invoice_details": "Invoice Details",
             "invoice_number": "Invoice Number",
@@ -596,6 +603,7 @@
         },
         "returns": {
             "title": "Sales Returns",
+            "tile_desc": "Process sales returns and credit notes",
             "add_return": "Add Sales Return",
             "return_number": "Return Number",
             "returned": "Returned",
@@ -605,6 +613,7 @@
         },
         "quotations": {
             "title": "Quotations",
+            "tile_desc": "Create and manage sales quotations",
             "add_quotation": "Add Quotation",
             "quotation_number": "Quotation Number",
             "no_quotations": "No quotations found",
@@ -613,6 +622,7 @@
         },
         "customers": {
             "title": "Customers",
+            "tile_desc": "Manage client database and accounts",
             "update": "Update",
             "add_customer": "Add Customer",
             "edit_customer": "Edit Customer",
@@ -698,6 +708,7 @@
         },
         "payments": {
             "title": "Client Payments",
+            "tile_desc": "Track customer payments and collections",
             "add_payment": "Add Customer Payment",
             "edit_payment": "Edit Customer Payment",
             "treasury": "Treasury",
@@ -744,7 +755,9 @@
         }
     },
     "purchases": {
+        "tile_desc": "Track your spending and suppliers",
         "invoices": {
+            "tile_desc": "Manage supplier purchase invoices",
             "no_invoices": "No purchase invoices yet.",
             "start_creating": "Start by creating your first purchase invoice.",
             "add_invoice": "Add Purchase Invoice",
@@ -755,6 +768,7 @@
             "add_title": "Add Purchase Invoice"
         },
         "purchase_orders": {
+            "tile_desc": "Create and track purchase orders",
             "no_orders": "No purchase orders yet.",
             "start_creating": "Start by creating your first purchase order.",
             "add_order": "Add Purchase Order",
@@ -763,9 +777,11 @@
             "order_number_placeholder": "PO-26-1-000001"
         },
         "credit_notes": {
+            "tile_desc": "Process supplier credit notes",
             "add_title": "Add Purchase Credit Note"
         },
         "payments": {
+            "tile_desc": "Track payments to suppliers",
             "no_payments": "No supplier payments found",
             "start_payments": "Start by creating supplier payments",
             "add_payment": "Add Supplier Payment",
@@ -773,6 +789,7 @@
             "select_supplier": "Select supplier"
         },
         "returns": {
+            "tile_desc": "Handle purchase returns",
             "no_returns": "No purchase returns found",
             "start_returns": "Start by creating purchase returns",
             "add_return": "Add Purchase Return",
@@ -781,6 +798,7 @@
             "return_number_placeholder": "PRET-26-1-000001"
         },
         "suppliers": {
+            "tile_desc": "Manage supplier database and contacts",
             "add_title": "Add Supplier",
             "edit_title": "Edit Supplier",
             "code_auto_placeholder": "Generated automatically",
@@ -801,6 +819,7 @@
     "stocked": {
         "products": {
             "title": "Products",
+            "tile_desc": "Manage product catalog and pricing",
             "add_product": "Add Product",
             "product_name": "Name",
             "code": "Code",
@@ -831,6 +850,7 @@
         },
         "categories": {
             "title": "Categories",
+            "tile_desc": "Organize products into categories",
             "add_category": "Add Product Category",
             "category_name": "Name",
             "description": "Description",
@@ -842,6 +862,7 @@
         },
         "operations": {
             "title": "Operations",
+            "tile_desc": "Track inventory movements",
             "inventory": "Inventory",
             "inventory_operations": "Inventory Operations",
             "stock": "Stock",
@@ -870,6 +891,7 @@
         },
         "permissions": {
             "title": "Permissions",
+            "tile_desc": "Inventory transfer and adjustment permissions",
             "add_permission": "Add Permission",
             "number": "Number",
             "type": "Type",
@@ -901,6 +923,7 @@
         },
         "warehouses": {
             "title": "Warehouses",
+            "tile_desc": "Manage storage locations",
             "add_warehouse": "Add Warehouse",
             "edit_warehouse": "Edit Warehouse",
             "warehouse_name": "Name",
@@ -916,6 +939,7 @@
         },
         "inventories": {
             "title": "Stock-takes",
+            "tile_desc": "Perform inventory audits and counts",
             "add_inventory": "Add Stock-take",
             "inventory_name": "Inventory",
             "date": "Date",
@@ -927,6 +951,7 @@
     "accounting": {
         "journal_entries": {
             "title": "Journal Entries",
+            "tile_desc": "Create and manage manual journal entries",
             "add_entry": "Add Journal Entry",
             "view_entry": "View Journal Entry",
             "no_entries": "No journal entries found",
@@ -990,6 +1015,7 @@
         },
         "chart_of_accounts": {
             "title": "Chart of Accounts",
+            "tile_desc": "Setup and organize financial accounts",
             "add_account": "Add Account",
             "type": "Type",
             "main_account": "Main Account",
@@ -1044,6 +1070,7 @@
     },
     "partner_lists_page": {
         "title": "Partner Lists",
+        "tile_desc": "Manage partner and associate lists",
         "add_partner_list": "Add Partner List",
         "edit_partner_list": "Edit Partner List",
         "partner_list_name": "Name",
@@ -1058,6 +1085,7 @@
     },
     "activities_page": {
         "title": "Activities",
+        "tile_desc": "Track business activities and logs",
         "add_activity": "Add Activity",
         "edit_activity": "Edit Activity",
         "activity_name": "Name",
@@ -1072,6 +1100,7 @@
     },
     "users_page": {
         "title": "Users",
+        "tile_desc": "Manage system users and access",
         "add_user": "Add New User",
         "edit_user": "Edit User",
         "no_users": "No users found",
@@ -1105,6 +1134,7 @@
     },
     "roles_page": {
         "title": "Roles",
+        "tile_desc": "Define user permissions and roles",
         "add_role": "Add Role",
         "edit_role": "Edit Role",
         "role_name": "Role Name",

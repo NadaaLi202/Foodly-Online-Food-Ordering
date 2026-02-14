@@ -41,6 +41,13 @@ import LandingPage from './Pages/LandingPage';
 import Login from './Pages/login';
 import Register from './Pages/Register';
 import CompanyLogin from './Pages/CompanyLogin';
+import SalesMainPage from './Pages/Sales/SalesMainPage';
+import InventoryMainPage from './Pages/Inventory/InventoryMainPage';
+import PurchasesMainPage from './Pages/Purchases/PurchasesMainPage';
+import FinanceMainPage from './Pages/Finance/FinanceMainPage';
+import AccountingMainPage from './Pages/Accounting/AccountingMainPage';
+import UsersMainPage from './Pages/Users/UsersMainPage';
+import BranchesMainPage from './Pages/Branches/BranchesMainPage';
 // SuperAdmin
 import SuperAdminDashboard from './Pages/SuperAdmin/Dashboard';
 import CompanyList from './Pages/SuperAdmin/CompanyList';
@@ -73,6 +80,7 @@ import DetailedSuppliersReport from './Pages/Reports/Suppliers/DetailedSuppliers
 import InventoryReportsPage from './Pages/Reports/Inventory/InventoryReportsPage';
 import InventoryValueReport from './Pages/Reports/Inventory/InventoryValueReport';
 import InventoryValueDetailedReport from './Pages/Reports/Inventory/InventoryValueDetailedReport';
+import ReportsMainPage from './Pages/Reports/ReportsMainPage';
 
 const ReportsLayout = ({ title }) => (
   <div className="flex flex-col h-full">
@@ -129,6 +137,7 @@ function App() {
             <Route index element={<DashboardPage />} />
 
             <Route path="sales">
+              <Route index element={<SalesMainPage />} />
               <Route path="invoices" element={<Invoices />} />
               <Route path="returns" element={<Returns />} />
               <Route path="quotations" element={<Quotations />} />
@@ -138,6 +147,7 @@ function App() {
             </Route>
 
             <Route path="inventory">
+              <Route index element={<InventoryMainPage />} />
               <Route path="products" element={<Products />} />
               <Route path="categories" element={<Categories />} />
               <Route path="operations" element={<Operations />} />
@@ -147,13 +157,15 @@ function App() {
             </Route>
 
             <Route path="accounting">
+              <Route index element={<AccountingMainPage />} />
               <Route path="journal-entries" element={<JournalEntries />} />
               <Route path="chart-of-accounts" element={<ChartOfAccounts />} />
               <Route path="cost-centers" element={<CostCenters />} />
             </Route>
 
             <Route path="reports">
-              <Route index element={<PlaceholderPage title="Reports" />} />
+              <Route index element={<ReportsMainPage />} />
+
               <Route path="sales">
                 <Route index element={<SalesReportsPage />} />
                 <Route path="summary" element={<SummarySalesReport />} />
@@ -195,7 +207,8 @@ function App() {
             </Route>
 
             <Route path="purchases">
-              <Route index element={<PurchasesPage />} />
+              <Route index element={<PurchasesMainPage />} />
+              <Route path="dashboard" element={<PurchasesPage />} />
               <Route path="suppliers/:id" element={<Suppliers />} />
               <Route path="invoices" element={<PurchaseInvoices />} />
               <Route path="invoices/add" element={<PurchaseInvoices />} />
@@ -209,6 +222,7 @@ function App() {
             </Route>
 
             <Route path="finance">
+              <Route index element={<FinanceMainPage />} />
               <Route path="expenses" element={<Expenses />} />
               <Route path="transactions" element={<Transactions />} />
               <Route path="permissions" element={<PermissionsFinance />} />
@@ -217,13 +231,15 @@ function App() {
             </Route>
 
             <Route path="users">
-              <Route index element={<Users />} />
-              <Route index element={<Contacts />} />
+              <Route index element={<UsersMainPage />} />
+              <Route path="list" element={<Users />} />
+              <Route path="contacts" element={<Contacts />} />
               <Route path="roles" element={<Roles />} />
             </Route>
 
             <Route path="branches">
-              <Route index element={<Branches />} />
+              <Route index element={<BranchesMainPage />} />
+              <Route path="list" element={<Branches />} />
               <Route path="partner-lists" element={<PartnerLists />} />
               <Route path="businesses" element={<Activities />} />
             </Route>

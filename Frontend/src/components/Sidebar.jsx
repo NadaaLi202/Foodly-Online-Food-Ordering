@@ -61,6 +61,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
         {
             key: 'sales',
             icon: ShoppingCart,
+            path: '/dashboard/sales',
             hasSub: true,
             children: [
                 { key: 'invoices', path: '/dashboard/sales/invoices' },
@@ -71,7 +72,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
             ]
         },
         {
-            key: 'inventory', icon: Package, hasSub: true, children: [
+            key: 'inventory', icon: Package, path: '/dashboard/inventory', hasSub: true, children: [
                 { key: 'products', path: '/dashboard/inventory/products' },
                 { key: 'categories', path: '/dashboard/inventory/categories' },
                 { key: 'operations', path: '/dashboard/inventory/operations' },
@@ -83,6 +84,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
         {
             key: 'purchases',
             icon: Truck,
+            path: '/dashboard/purchases',
             hasSub: true,
             children: [
                 { key: 'invoices', path: '/dashboard/purchases/invoices' },
@@ -97,6 +99,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
         {
             key: 'finance',
             icon: Banknote,
+            path: '/dashboard/finance',
             hasSub: true,
             children: [
                 { key: 'expenses', path: '/dashboard/finance/expenses' },
@@ -136,18 +139,20 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
         {
             key: 'users',
             icon: Users,
+            path: '/dashboard/users',
             hasSub: true,
             children: [
-                { key: 'users', path: '/dashboard/users' },
+                { key: 'users', path: '/dashboard/users/list' },
                 { key: 'roles', path: '/dashboard/users/roles' }
             ]
         },
         {
             key: 'branches',
             icon: Building2,
+            path: '/dashboard/branches',
             hasSub: true,
             children: [
-                { key: 'branches_list', path: '/dashboard/branches' },
+                { key: 'branches_list', path: '/dashboard/branches/list' },
                 { key: 'partners_lists', path: '/dashboard/branches/partner-lists' },
                 { key: 'activities', path: '/dashboard/branches/businesses' },
             ]
@@ -171,20 +176,30 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                         <div key={item.key}>
                             {/* لو ليه children → زرار بس */}
                             {item.hasSub ? (
-                                <button
-                                    onClick={() => setOpenMenu(openMenu === item.key ? null : item.key)}
-                                    className="group w-full flex items-center ps-2 pe-1 py-1.5 text-start text-sm font-semibold rounded-md text-indigo-100 hover:bg-indigo-600 hover:bg-opacity-75 transition-colors"
-                                >
-                                    <item.icon className="me-3 flex-shrink-0 h-5 w-5" strokeWidth={1.5} />
-                                    <span className="flex-1">{item.label || t(`sidebar.${item.key}`)}</span>
-
-                                    <Play
-                                        className={`rtl:rotate-180 ms-3 h-4 w-4 flex-shrink-0 transition-transform duration-150 ease-in-out text-current ${openMenu === item.key ? 'rotate-90' : ''
-                                            }`}
-                                        size={16}
-                                        fill="currentColor"
-                                    />
-                                </button>
+                                <div className="flex flex-col">
+                                    <div className={`flex items-center rounded-md transition-colors ${location.pathname === item.path ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-600 hover:bg-opacity-75'}`}>
+                                        <NavLink
+                                            to={item.path}
+                                            className="flex-1 flex items-center ps-2 py-1.5 text-start text-sm font-semibold"
+                                        >
+                                            <item.icon className="me-3 flex-shrink-0 h-5 w-5" strokeWidth={1.5} />
+                                            <span className="flex-1">{item.label || t(`sidebar.${item.key}`)}</span>
+                                        </NavLink>
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setOpenMenu(openMenu === item.key ? null : item.key);
+                                            }}
+                                            className="px-2 py-1.5"
+                                        >
+                                            <Play
+                                                className={`rtl:rotate-180 h-4 w-4 flex-shrink-0 transition-transform duration-150 ease-in-out text-current ${openMenu === item.key ? 'rotate-90' : ''}`}
+                                                size={16}
+                                                fill="currentColor"
+                                            />
+                                        </button>
+                                    </div>
+                                </div>
                             ) : (
                                 /* لو مفيش children → NavLink زي ما هو */
                                 <NavLink
