@@ -109,19 +109,19 @@ const JournalEntries = () => {
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
         const validFiles = [];
-        
+
         for (const file of files) {
             const fileType = file.type;
             const isValidType = fileType.startsWith('image/') || fileType === 'application/pdf';
-            
+
             if (!isValidType) {
                 toast.error(t('accounting.journal_entries.invalid_file_type', 'Only images and PDF files are allowed'));
                 continue;
             }
-            
+
             validFiles.push(file);
         }
-        
+
         // Backend only accepts one file, so take the first one
         if (validFiles.length > 0) {
             setAttachments([validFiles[0]]);
@@ -259,13 +259,13 @@ const JournalEntries = () => {
         try {
             const response = await journalEntryService.getJournalEntryById(entry._id);
             const entryData = response.restriction || response;
-            
+
             setEditingEntry(entryData);
             setEntryNumber(entryData.number || '');
             setEntryDate(entryData.date ? new Date(entryData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
             setSource(entryData.source || '');
             setDescription(entryData.description || '');
-            
+
             // Set rows from entry data (allow single or multiple)
             if (entryData.entries && entryData.entries.length > 0) {
                 const formattedRows = entryData.entries.map((entryRow, index) => ({
@@ -279,7 +279,7 @@ const JournalEntries = () => {
             } else {
                 setRows([{ id: 1, account: '', description: '', debit: '', credit: '' }]);
             }
-            
+
             // Don't set attachment file (browser restriction), but keep reference
             setAttachments([]);
             setIsModalOpen(true);
@@ -299,7 +299,7 @@ const JournalEntries = () => {
 
     const confirmDelete = async () => {
         if (!deleteModal.entryId) return;
-        
+
         setDeleteLoading(true);
         try {
             await journalEntryService.deleteJournalEntry(deleteModal.entryId);
@@ -323,6 +323,18 @@ const JournalEntries = () => {
     const handleModalClose = () => {
         setIsModalOpen(false);
         resetForm();
+    };
+
+    const handleOpenModal = async () => {
+        setIsModalOpen(true);
+        if (!editingEntry) {
+            try {
+                const response = await journalEntryService.getNextNumber();
+                setEntryNumber(response.nextNumber);
+            } catch (error) {
+                console.error('Error fetching next entry number:', error);
+            }
+        }
     };
 
     // View journal entry details
@@ -537,7 +549,7 @@ const JournalEntries = () => {
                             </div>
                         </div>
                     </div>
-                    <button 
+                    <button
                         onClick={fetchEntries}
                         disabled={loading}
                         className="text-gray-400 hover:text-gray-600 transition-colors bg-white p-2 rounded-md border border-gray-100 shadow-sm disabled:opacity-50"
@@ -548,11 +560,11 @@ const JournalEntries = () => {
 
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="flex items-center gap-2 bg-[#4F46E5] text-white px-4 h-10 rounded-md hover:bg-indigo-700 transition-colors font-semibold shadow-sm text-sm"
+                        onClick={handleOpenModal}
+                        className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold transition-all duration-300 shadow-lg shadow-indigo-100 active:scale-95 whitespace-nowrap"
                     >
-                        <Plus size={18} strokeWidth={3} />
-                        <span>{t('topbar.add')}</span>
+                        <Plus size={20} />
+                        <span>{t('accounting.journal_entries.add_entry')}</span>
                     </button>
 
                     <div className="relative h-10">
@@ -595,7 +607,7 @@ const JournalEntries = () => {
                                 <tr>
                                     <th className="px-6 py-4">{t('accounting.journal_entries.daily_entry_number')}</th>
                                     <th className="px-6 py-4">{t('accounting.journal_entries.date')}</th>
-                                    <th className="px-6 py-4">{t('accounting.journal_entries.source')}</th>
+
                                     <th className="px-6 py-4 text-center">{t('accounting.journal_entries.total')}</th>
                                     <th className="px-6 py-4 text-center">{t('topbar.actions')}</th>
                                 </tr>
@@ -613,22 +625,22 @@ const JournalEntries = () => {
                                             </button>
                                         </td>
                                         <td className="px-6 py-4 text-gray-600">{entry.date}</td>
-                                        <td className="px-6 py-4 text-gray-700">{entry.source || entry.description || '—'}</td>
+
                                         <td className="px-6 py-4 text-center font-bold text-gray-900">{entry.total.toFixed(2)}</td>
                                         <td className="px-6 py-4 flex items-center justify-center gap-3">
-                                            <button 
+                                            <button
                                                 onClick={() => handleView(entry)}
                                                 className="text-indigo-600 hover:text-indigo-800 font-bold"
                                             >
                                                 {t('topbar.view')}
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleEdit(entry)}
                                                 className="text-blue-500 hover:text-blue-700 font-bold"
                                             >
                                                 {t('accounting.chart_of_accounts.edit')}
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleDelete(entry._id)}
                                                 className="text-red-500 hover:text-red-700 font-bold"
                                             >
@@ -668,10 +680,11 @@ const JournalEntries = () => {
                             {/* Entry Info Row */}
                             <div className="grid grid-cols-2 gap-8 mb-8">
                                 <div className="space-y-1.5">
-                                    <label className="block text-sm font-bold text-gray-600 px-1 text-start">{t('accounting.journal_entries.daily_entry_number')}</label>
+                                    <label className="block text-sm font-bold text-gray-600 px-1 text-start">
+                                        {t('accounting.journal_entries.daily_entry_number')}
+                                    </label>
                                     <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg h-11 px-3 group">
                                         <div className="flex-1 flex items-center gap-2">
-                                            <Edit3 size={18} className="text-indigo-500" />
                                             <span className="text-gray-500 font-medium">{entryNumber}</span>
                                         </div>
                                     </div>
@@ -704,17 +717,7 @@ const JournalEntries = () => {
                                 </div>
                             </div>
 
-                            {/* Source */}
-                            <div className="mb-8">
-                                <label className="block text-sm font-bold text-gray-600 px-1 text-start mb-1.5">{t('accounting.journal_entries.source')}</label>
-                                <input
-                                    type="text"
-                                    value={source}
-                                    onChange={(e) => setSource(e.target.value)}
-                                    placeholder={t('accounting.journal_entries.source_placeholder', 'e.g. Financial Receipt #1')}
-                                    className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg text-gray-700 outline-none focus:border-indigo-500"
-                                />
-                            </div>
+
 
                             {/* Table Container */}
                             <div className="border border-gray-200 rounded-lg overflow-hidden mb-6">
@@ -917,7 +920,7 @@ const JournalEntries = () => {
                             >
                                 {t('sales.common.cancel')}
                             </button>
-                            <button 
+                            <button
                                 onClick={handleSubmit}
                                 disabled={loading}
                                 className="px-8 py-2 bg-[#10B981] text-white font-bold rounded-md hover:bg-emerald-600 transition-colors shadow-sm disabled:opacity-50"
@@ -999,10 +1002,7 @@ const JournalEntries = () => {
                                     <span className="text-xs font-bold text-gray-500 uppercase block">{t('accounting.journal_entries.document')}</span>
                                     <p className="text-sm text-gray-800">—</p>
                                 </div>
-                                <div className="px-3 py-2 rounded-lg bg-sky-50 border border-sky-200">
-                                    <span className="text-xs font-bold text-sky-700 uppercase block">{t('accounting.journal_entries.source')}</span>
-                                    <p className="text-sm text-gray-800">{viewForm.source || viewingEntry.source || viewingEntry.description || '—'}</p>
-                                </div>
+
                             </div>
                         </div>
                         <div className="p-6 overflow-y-auto flex-1">
@@ -1036,16 +1036,7 @@ const JournalEntries = () => {
                                     </div>
                                 </div>
                             </div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-bold text-gray-600 mb-1.5">{t('accounting.journal_entries.source')}</label>
-                                <input
-                                    type="text"
-                                    value={viewForm.source}
-                                    onChange={(e) => setViewForm(prev => ({ ...prev, source: e.target.value }))}
-                                    placeholder={t('accounting.journal_entries.source_placeholder')}
-                                    className="w-full h-11 px-3 bg-white border border-gray-200 rounded-lg text-gray-700 outline-none focus:border-indigo-500"
-                                />
-                            </div>
+
                             {/* Entries table: editable rows with Add / Remove / Totals */}
                             <div className="border border-gray-200 rounded-lg overflow-hidden mb-6">
                                 <table className="w-full border-collapse text-sm">
@@ -1209,10 +1200,10 @@ const JournalEntries = () => {
             )}
 
             {/* Delete Confirmation Modal */}
-            <ConfirmDeleteModal 
-                isOpen={deleteModal.open} 
-                onClose={() => setDeleteModal({ open: false, entryId: null })} 
-                onConfirm={confirmDelete} 
+            <ConfirmDeleteModal
+                isOpen={deleteModal.open}
+                onClose={() => setDeleteModal({ open: false, entryId: null })}
+                onConfirm={confirmDelete}
                 loading={deleteLoading}
             />
         </div>

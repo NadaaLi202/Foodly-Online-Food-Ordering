@@ -7,12 +7,26 @@ const addUser = catchAsyncError(async (req, res, next) => {
     // Remove confirmPassword before processing (should not be stored)
     const { confirmPassword, ...userData } = req.body;
 
+    // Default type to 'user' if not provided
+    userData.type = userData.type || 'user';
+
+    // Handle Employee specific logic
+    if (userData.type === 'employee') {
+        // If email is missing for employee, generate a placeholder to satisfy unique index
+        if (!userData.email) {
+            const uniqueId = Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+            userData.email = `emp_${uniqueId}@system.local`;
+        }
+    }
+
     const { email } = userData;
 
-    // Check if user exists
-    let foundUser = await userModel.findOne({ email });
-    if (foundUser) {
-        return next(new AppError('User already exist', 409));
+    // Check if user exists (only if email was provided or generated)
+    if (email) {
+        let foundUser = await userModel.findOne({ email });
+        if (foundUser) {
+            return next(new AppError('User already exist', 409));
+        }
     }
 
     // Validate companyId for non-superAdmin users

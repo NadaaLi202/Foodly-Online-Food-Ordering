@@ -115,4 +115,36 @@ const deleteRestriction = catchAsyncError(async (req, res, next) => {
     res.status(200).json({ message: 'Restriction deleted successfully', restriction });
 });
 
-export { addRestriction, getAllRestrictions, getRestrictionById, updateRestriction, deleteRestriction };
+const getNextNumber = catchAsyncError(async (req, res, next) => {
+    const companyId = req.user?.companyId;
+    if (!companyId) {
+        return next(new AppError("Journal entries require a company context.", 403));
+    }
+
+    const date = new Date();
+    const year = String(date.getFullYear()).slice(-2);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const prefix = `${year}-${month}-`;
+
+    // Find the last entry for this company with this prefix
+    const lastEntry = await dailyRestrictionModel.findOne({
+        companyId,
+        number: new RegExp(`^${prefix}`)
+    }).sort({ number: -1 });
+
+    let nextSequence = 1;
+    if (lastEntry && lastEntry.number) {
+        const parts = lastEntry.number.split('-');
+        if (parts.length === 3) {
+            const lastNum = parseInt(parts[2]);
+            if (!isNaN(lastNum)) {
+                nextSequence = lastNum + 1;
+            }
+        }
+    }
+
+    const nextNumber = `${prefix}${String(nextSequence).padStart(6, '0')}`;
+    res.status(200).json({ message: 'Next number generated', nextNumber });
+});
+
+export { addRestriction, getAllRestrictions, getRestrictionById, updateRestriction, deleteRestriction, getNextNumber };

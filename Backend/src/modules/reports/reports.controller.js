@@ -4,8 +4,8 @@ import * as reportsService from "./reports.service.js";
 export const getSalesSummary = catchAsyncError(async (req, res) => {
     const { startDate, endDate } = req.query;
     const companyFilter = req.companyFilter || {};
-    const data = await reportsService.getSalesSummary(startDate, endDate, companyFilter);
-    res.status(200).json({ message: "OK", data });
+    const result = await reportsService.getSalesSummary(startDate, endDate, companyFilter);
+    res.status(200).json({ message: "OK", ...result });
 });
 
 export const getSalesDetailed = catchAsyncError(async (req, res) => {
@@ -63,8 +63,8 @@ export const getProfitDetailed = catchAsyncError(async (req, res) => {
 export const getPurchasesSummary = catchAsyncError(async (req, res) => {
     const { startDate, endDate } = req.query;
     const companyFilter = req.companyFilter || {};
-    const data = await reportsService.getPurchasesSummary(startDate, endDate, companyFilter);
-    res.status(200).json({ message: "OK", data });
+    const result = await reportsService.getPurchasesSummary(startDate, endDate, companyFilter);
+    res.status(200).json({ message: "OK", ...result });
 });
 
 export const getPurchasesInvoicesDetailed = catchAsyncError(async (req, res) => {

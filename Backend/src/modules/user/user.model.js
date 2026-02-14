@@ -12,16 +12,28 @@ const userSchema = new mongoose.Schema({
         maxLength: [30, 'User name must be at most 30 characters long']
     },
 
+    type: {
+        type: String,
+        enum: ["user", "employee"],
+        default: "user",
+        required: true
+    },
     email: {
         type: String,
-        required: true,
+        required: [
+            function () { return this.type === 'user'; },
+            'Email is required for users'
+        ],
         trim: true,
         lowercase: true,
     },
 
     password: {
         type: String,
-        required: true,
+        required: [
+            function () { return this.type === 'user'; },
+            'Password is required for users'
+        ],
         minLength: [6, 'User password must be at least 6 characters long'],
         maxLength: [30, 'User password must be at most 30 characters long']
     },
@@ -47,7 +59,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ["superAdmin", "admin", "accountant", "employee"],
         default: "employee",
-        required: true
+        required: false
     },
     image: {
         type: String,

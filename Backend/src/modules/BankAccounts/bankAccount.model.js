@@ -31,6 +31,10 @@ const bankAccountSchema = new mongoose.Schema(
             type: Boolean,
             default: false
         },
+        enablePaymentPermissions: {
+            type: Boolean,
+            default: false
+        },
         balance: {
             type: Number,
             default: 0

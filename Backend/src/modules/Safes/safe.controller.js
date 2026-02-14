@@ -18,13 +18,18 @@ export const addSafe = catchAsyncError(async (req, res, next) => {
         }
     }
 
-    const safe = new safeModel(req.body);
-    await safe.save();
+    try {
+        const safe = new safeModel(req.body);
+        await safe.save();
 
-    res.status(201).json({
-        message: "تم إضافة الخزنة بنجاح",
-        safe
-    });
+        res.status(201).json({
+            message: "تم إضافة الخزنة بنجاح",
+            safe
+        });
+    } catch (error) {
+        console.error('Mongoose Save Error:', error);
+        return next(new AppError(error.message, 400));
+    }
 });
 
 // ================= Get All =================

@@ -7,6 +7,7 @@ const addBankAccountSchema = Joi.object({
     users: Joi.array().items(Joi.string().hex().length(24)),
     custodians: Joi.array().items(Joi.string()),
     enableReceiptPermissions: Joi.boolean(),
+    enablePaymentPermissions: Joi.boolean(),
     balance: Joi.number().min(0)
 });
 
@@ -17,6 +18,7 @@ const updateBankAccountSchema = Joi.object({
     users: Joi.array().items(Joi.string().hex().length(24)),
     custodians: Joi.array().items(Joi.string()),
     enableReceiptPermissions: Joi.boolean(),
+    enablePaymentPermissions: Joi.boolean(),
     balance: Joi.number().min(0)
 });
 

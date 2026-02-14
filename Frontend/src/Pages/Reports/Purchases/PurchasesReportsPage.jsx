@@ -14,7 +14,7 @@ const PurchasesReportsPage = () => {
             icon: FileText,
             iconBg: 'bg-indigo-50',
             iconColor: 'text-indigo-500',
-            summaryLink: '/dashboard/reports/purchases/summary',
+            summaryLink: '/dashboard/reports/purchases/detailed?tab=summary',
             detailedLink: '/dashboard/reports/purchases/detailed',
         },
         {
@@ -24,7 +24,7 @@ const PurchasesReportsPage = () => {
             icon: CreditCard,
             iconBg: 'bg-amber-50',
             iconColor: 'text-amber-500',
-            summaryLink: '/dashboard/reports/purchases/payments-summary',
+            summaryLink: '/dashboard/reports/purchases/payments-detailed?tab=summary',
             detailedLink: '/dashboard/reports/purchases/payments-detailed',
         },
     ];

@@ -25,10 +25,16 @@ const deleteJournalEntry = async (id) => {
     return response.data;
 };
 
+const getNextNumber = async () => {
+    const response = await api.get('/daily-restrictions/next-number');
+    return response.data;
+};
+
 export default {
     getAllJournalEntries,
     getJournalEntryById,
     createJournalEntry,
     updateJournalEntry,
     deleteJournalEntry,
+    getNextNumber,
 };
