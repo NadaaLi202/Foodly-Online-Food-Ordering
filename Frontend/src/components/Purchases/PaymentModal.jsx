@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, User, DollarSign, FileText, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { X, Calendar, User, DollarSign, FileText, CheckCircle, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
-import { formatCurrency } from '../../utils/currencyFormatter';
 
 const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
     const { t, i18n } = useTranslation();
@@ -25,7 +24,6 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
     });
 
     const [errors, setErrors] = useState({});
-    const [linkedInvoice, setLinkedInvoice] = useState(null);
 
     // Load Suppliers on mount
     useEffect(() => {
@@ -45,7 +43,6 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
                 amount: payment.amount || '',
                 notes: payment.notes || ''
             });
-            setLinkedInvoice(payment.invoice); // Set linked invoice data
         } else {
             // Reset for Add Mode
             setFormData({
@@ -56,7 +53,6 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
                 amount: '',
                 notes: ''
             });
-            setLinkedInvoice(null);
         }
         setErrors({});
     }, [payment, isOpen]);
@@ -153,225 +149,198 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4 font-sans text-gray-800" dir={isRtl ? 'rtl' : 'ltr'}>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4 font-sans text-slate-800 animate-in fade-in duration-300" dir={isRtl ? 'rtl' : 'ltr'}>
+            <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-slate-100 ring-1 ring-slate-200/50">
 
                 {/* Header */}
-                <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <div className="px-10 py-7 border-b border-slate-50 flex justify-between items-center bg-gradient-to-r from-slate-50 to-white">
                     <div>
-                        <h2 className="text-xl font-black text-gray-800 flex items-center gap-2">
-                            {payment ? t('purchases.payments.view_payment') : t('purchases.payments.add_payment')}
-                        </h2>
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="w-2 h-6 bg-indigo-600 rounded-full"></div>
+                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+                                {payment ? t('purchases.payments.view_payment') : t('purchases.payments.add_payment')}
+                            </h2>
+                        </div>
                         {payment && (
-                            <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
-                                <span className="font-mono bg-gray-200 px-2 py-0.5 rounded text-gray-700 font-bold">#{payment.referenceNumber || payment._id.slice(-6)}</span>
-                                <span>•</span>
-                                <span>{payment.date ? new Date(payment.date).toLocaleDateString() : ''}</span>
+                            <div className="flex items-center gap-3 text-sm text-slate-400 font-medium">
+                                <span className="font-mono bg-slate-100 px-2 py-0.5 rounded text-slate-600">#{payment.referenceNumber || payment._id.slice(-6)}</span>
+                                <span className="opacity-30">•</span>
+                                <span className="flex items-center gap-1"><Calendar size={14} /> {payment.date ? new Date(payment.date).toLocaleDateString() : ''}</span>
                             </div>
                         )}
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-5">
                         {payment && getStatusBadge()}
-                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100">
+                        <button onClick={onClose} className="group relative text-slate-400 hover:text-slate-600 transition-all p-2 rounded-xl hover:bg-slate-100/80 active:scale-95">
                             <X size={24} />
                         </button>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-8">
-                    <form id="payment-form" onSubmit={handleSubmit}>
-                        {/* Top Cards Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                            {/* Supplier Card */}
-                            <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
-                                <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
-                                    <User size={20} />
-                                </div>
-                                <div className="flex-1">
-                                    <label className="text-xs font-bold text-blue-800 uppercase tracking-wide mb-1 block">
-                                        {t('purchases.invoices.supplier')}
-                                    </label>
-                                    <select
-                                        name="contact"
-                                        value={formData.contact}
-                                        onChange={handleInputChange}
-                                        disabled={!!payment} // Disable supplier change on edit? Usually safer.
-                                        className="w-full bg-transparent border-none p-0 text-sm font-bold text-gray-800 focus:ring-0 cursor-pointer disabled:cursor-default"
-                                    >
-                                        <option value="">{t('purchases.payments.select_supplier')}</option>
-                                        {suppliers.map(s => (
-                                            <option key={s._id} value={s._id}>{s.name}</option>
-                                        ))}
-                                    </select>
-                                    {errors.contact && <p className="text-red-500 text-xs mt-1">{errors.contact}</p>}
-                                </div>
-                            </div>
+                <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                    <form id="payment-form" onSubmit={handleSubmit} className="space-y-10">
+                        {/* Summary Cards Integration */}
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-10">
 
-                            {/* Payment Info Card */}
-                            <div className="bg-purple-50/50 border border-purple-100 rounded-xl p-4 flex items-start gap-3">
-                                <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
-                                    <FileText size={20} />
-                                </div>
-                                <div className="flex-1">
-                                    <label className="text-xs font-bold text-purple-800 uppercase tracking-wide mb-1 block">
-                                        {t('sales.payments.operation_type')}
-                                    </label>
-                                    <select
-                                        name="operationType"
-                                        value={formData.operationType}
-                                        onChange={handleInputChange}
-                                        className="w-full bg-transparent border-none p-0 text-sm font-bold text-gray-800 focus:ring-0 cursor-pointer"
-                                    >
-                                        <option value="spend">{t('sales.payments.spend')}</option>
-                                        <option value="receive">{t('sales.payments.receive')}</option>
-                                    </select>
-                                </div>
-                            </div>
+                            {/* Left Column: Form Fields */}
+                            <div className="md:col-span-12 space-y-8">
 
-                            {/* Treasury Card */}
-                            <div className="bg-emerald-50/50 border border-emerald-100 rounded-xl p-4 flex items-start gap-3">
-                                <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
-                                    <DollarSign size={20} />
-                                </div>
-                                <div className="flex-1">
-                                    <label className="text-xs font-bold text-emerald-800 uppercase tracking-wide mb-1 block">
-                                        {t('sales.payments.treasury')}
-                                    </label>
-                                    <select
-                                        name="treasury"
-                                        value={formData.treasury}
-                                        onChange={handleInputChange}
-                                        className="w-full bg-transparent border-none p-0 text-sm font-bold text-gray-800 focus:ring-0 cursor-pointer"
-                                    >
-                                        <option value="main">{t('sales.payments.main_treasury')}</option>
-                                        <option value="bank">{t('sales.payments.main_bank_account')}</option>
-                                    </select>
-                                    {errors.treasury && <p className="text-red-500 text-xs mt-1">{errors.treasury}</p>}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Main Form Details */}
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                            <div className="md:col-span-8 space-y-6">
-                                {/* Amount & Date Row */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">
-                                            {t('sales.common.date')} <span className="text-red-500">*</span>
-                                        </label>
-                                        <div className="relative">
-                                            <input
-                                                type="date"
-                                                name="date"
-                                                value={formData.date}
-                                                onChange={handleInputChange}
-                                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-                                            />
-                                            <Calendar className={`absolute top-2.5 ${isRtl ? 'right-3' : 'left-3'} text-gray-400`} size={18} />
-                                        </div>
-                                        {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">
-                                            {t('sales.common.amount')} <span className="text-red-500">*</span>
-                                        </label>
-                                        <div className="relative">
-                                            <input
-                                                type="number"
-                                                name="amount"
-                                                value={formData.amount}
-                                                onChange={handleInputChange}
-                                                min="0"
-                                                step="0.01"
-                                                placeholder="0.00"
-                                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-black text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-                                            />
-                                            <DollarSign className={`absolute top-2.5 ${isRtl ? 'right-3' : 'left-3'} text-gray-400`} size={18} />
-                                        </div>
-                                        {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount}</p>}
-                                    </div>
-                                </div>
-
-                                {/* Linked Invoice Table */}
-                                <div className="mt-8">
-                                    <h3 className="text-sm font-black text-gray-800 uppercase tracking-wide mb-4 flex items-center gap-2">
-                                        <FileText size={16} className="text-indigo-600" />
-                                        {t('sales.payments.linked_invoice') || "Linked Invoice"}
+                                {/* Transaction Details Section */}
+                                <section>
+                                    <h3 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                                        <div className="w-4 h-px bg-indigo-200"></div>
+                                        {t('sales.common.transaction_details') || "Transaction Details"}
                                     </h3>
-
-                                    {linkedInvoice ? (
-                                        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                                            <table className="min-w-full divide-y divide-gray-100">
-                                                <thead className="bg-gray-50">
-                                                    <tr>
-                                                        <th className={`px-4 py-3 text-${isRtl ? 'right' : 'left'} text-xs font-bold text-gray-500 uppercase`}>{t('sales.common.invoice')}</th>
-                                                        <th className={`px-4 py-3 text-${isRtl ? 'right' : 'left'} text-xs font-bold text-gray-500 uppercase`}>{t('sales.common.date')}</th>
-                                                        <th className={`px-4 py-3 text-${isRtl ? 'right' : 'left'} text-xs font-bold text-gray-500 uppercase`}>{t('sales.common.total')}</th>
-                                                        <th className={`px-4 py-3 text-${isRtl ? 'right' : 'left'} text-xs font-bold text-gray-500 uppercase flex items-center gap-1`}>
-                                                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                                            {t('sales.common.paid')}
-                                                        </th>
-                                                        <th className={`px-4 py-3 text-${isRtl ? 'right' : 'left'} text-xs font-bold text-gray-500 uppercase flex items-center gap-1`}>
-                                                            <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                                                            {t('sales.common.remaining')}
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-50">
-                                                    <tr className="hover:bg-indigo-50/10 transition-colors">
-                                                        <td className="px-4 py-3 text-sm font-bold text-gray-800">
-                                                            {linkedInvoice.transactionNumber}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm text-gray-600">
-                                                            {linkedInvoice.issueDate ? new Date(linkedInvoice.issueDate).toLocaleDateString() : (linkedInvoice.date ? new Date(linkedInvoice.date).toLocaleDateString() : '-')}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm font-bold text-gray-800">
-                                                            {formatCurrency(linkedInvoice.totalAmount)}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm font-medium text-green-600">
-                                                            {formatCurrency(linkedInvoice.paidAmount || 0)}
-                                                        </td>
-                                                        <td className="px-4 py-3 text-sm font-medium text-red-600">
-                                                            {formatCurrency(linkedInvoice.remainingAmount || 0)}
-                                                        </td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Supplier Select */}
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-bold text-slate-700 flex items-center gap-2 px-1">
+                                                <User size={16} className="text-slate-400" />
+                                                {t('purchases.invoices.supplier')}
+                                            </label>
+                                            <div className="relative group">
+                                                <select
+                                                    name="contact"
+                                                    value={formData.contact}
+                                                    onChange={handleInputChange}
+                                                    disabled={!!payment}
+                                                    className="w-full h-12 bg-slate-50/50 border border-slate-200 rounded-2xl px-4 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all disabled:opacity-60 disabled:bg-slate-100 cursor-pointer appearance-none"
+                                                >
+                                                    <option value="">{t('purchases.payments.select_supplier')}</option>
+                                                    {suppliers.map(s => (
+                                                        <option key={s._id} value={s._id}>{s.name}</option>
+                                                    ))}
+                                                </select>
+                                                <div className={`absolute top-1/2 -translate-y-1/2 ${isRtl ? 'left-4' : 'right-4'} pointer-events-none text-slate-400 group-focus-within:text-indigo-500 transition-colors`}>
+                                                    <Clock size={16} className="rotate-90" />
+                                                </div>
+                                            </div>
+                                            {errors.contact && <p className="text-red-500 text-[10px] font-bold uppercase tracking-wider mt-1 px-1">{errors.contact}</p>}
                                         </div>
-                                    ) : (
-                                        <div className="border border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50">
-                                            <AlertCircle size={32} className="mb-2 opacity-50" />
-                                            <p className="text-sm font-medium">{t('sales.payments.no_linked_invoice') || "No linked invoice"}</p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
 
-                            {/* Sidebar / Notes */}
-                            <div className="md:col-span-4">
-                                <label className="block text-sm font-bold text-gray-700 mb-2">
-                                    {t('sales.common.notes')}
-                                </label>
-                                <textarea
-                                    name="notes"
-                                    value={formData.notes}
-                                    onChange={handleInputChange}
-                                    rows={8}
-                                    className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all resize-none shadow-inner"
-                                    placeholder={t('sales.common.notes_placeholder') || "Add any notes here..."}
-                                />
+                                        {/* Date Input */}
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-bold text-slate-700 flex items-center gap-2 px-1">
+                                                <Calendar size={16} className="text-slate-400" />
+                                                {t('sales.common.date')}
+                                            </label>
+                                            <div className="relative group">
+                                                <input
+                                                    type="date"
+                                                    name="date"
+                                                    value={formData.date}
+                                                    onChange={handleInputChange}
+                                                    className="w-full h-12 bg-slate-50/50 border border-slate-200 rounded-2xl px-12 text-sm font-semibold text-slate-900 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all"
+                                                />
+                                                <Calendar className={`absolute top-1/2 -translate-y-1/2 ${isRtl ? 'right-4' : 'left-4'} text-slate-400 group-focus-within:text-indigo-500 transition-colors`} size={18} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* Financial Details Section */}
+                                <section>
+                                    <h3 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                                        <div className="w-4 h-px bg-indigo-200"></div>
+                                        {t('sales.common.financial_info') || "Financial Information"}
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        {/* Operation Type */}
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-bold text-slate-700 flex items-center gap-2 px-1">
+                                                <FileText size={16} className="text-slate-400" />
+                                                {t('sales.payments.operation_type')}
+                                            </label>
+                                            <div className="flex p-1 bg-slate-100 rounded-2xl">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleInputChange({ target: { name: 'operationType', value: 'spend' } })}
+                                                    className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${formData.operationType === 'spend' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                                >
+                                                    {t('sales.payments.spend')}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleInputChange({ target: { name: 'operationType', value: 'receive' } })}
+                                                    className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${formData.operationType === 'receive' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                                >
+                                                    {t('sales.payments.receive')}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Treasury/Wallet */}
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-bold text-slate-700 flex items-center gap-2 px-1">
+                                                <DollarSign size={16} className="text-slate-400" />
+                                                {t('sales.payments.treasury')}
+                                            </label>
+                                            <select
+                                                name="treasury"
+                                                value={formData.treasury}
+                                                onChange={handleInputChange}
+                                                className="w-full h-12 bg-slate-50/50 border border-slate-200 rounded-2xl px-4 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all appearance-none cursor-pointer"
+                                            >
+                                                <option value="main">{t('sales.payments.main_treasury')}</option>
+                                                <option value="bank">{t('sales.payments.main_bank_account')}</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Amount */}
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-bold text-slate-700 flex items-center gap-2 px-1">
+                                                <DollarSign size={16} className="text-emerald-500" />
+                                                {t('sales.common.amount')}
+                                            </label>
+                                            <div className="relative group">
+                                                <input
+                                                    type="number"
+                                                    name="amount"
+                                                    value={formData.amount}
+                                                    onChange={handleInputChange}
+                                                    placeholder="0.00"
+                                                    className="w-full h-12 bg-emerald-50/30 border border-emerald-200/50 rounded-2xl px-12 text-lg font-black text-emerald-700 placeholder:text-emerald-200 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:bg-white transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                />
+                                                <div className={`absolute top-1/2 -translate-y-1/2 ${isRtl ? 'right-4' : 'left-4'} text-emerald-500 group-focus-within:scale-110 transition-transform`}>
+                                                    <DollarSign size={20} />
+                                                </div>
+                                            </div>
+                                            {errors.amount && <p className="text-red-500 text-[10px] font-bold uppercase tracking-wider mt-1 px-1">{errors.amount}</p>}
+                                        </div>
+                                    </div>
+                                </section>
+
+                                {/* Notes Section */}
+                                <section>
+                                    <h3 className="text-xs font-black text-indigo-600 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                                        <div className="w-4 h-px bg-indigo-200"></div>
+                                        {t('sales.common.notes')}
+                                    </h3>
+                                    <div className="relative group">
+                                        <textarea
+                                            name="notes"
+                                            value={formData.notes}
+                                            onChange={handleInputChange}
+                                            rows={3}
+                                            placeholder={t('sales.common.notes_placeholder') || "Write something..."}
+                                            className="w-full p-6 bg-slate-50/50 border border-slate-200 rounded-[2rem] text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all resize-none placeholder:text-slate-300"
+                                        />
+                                        <div className={`absolute bottom-6 ${isRtl ? 'left-6' : 'right-6'} text-slate-300 group-focus-within:text-indigo-300 transition-colors`}>
+                                            <FileText size={20} />
+                                        </div>
+                                    </div>
+                                </section>
                             </div>
                         </div>
                     </form>
                 </div>
 
                 {/* Footer */}
-                <div className="px-8 py-5 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
+                <div className="px-10 py-7 border-t border-slate-50 bg-slate-50/30 flex justify-end items-center gap-4">
                     <button
                         onClick={onClose}
                         type="button"
-                        className="px-6 py-2.5 rounded-xl border border-gray-300 text-gray-600 font-bold hover:bg-gray-100 transition-colors text-sm"
+                        className="px-6 py-3 rounded-[1.25rem] border border-slate-200 text-slate-500 font-bold hover:bg-slate-50 hover:text-slate-700 transition-all text-sm active:scale-95"
                     >
                         {t('sales.common.cancel')}
                     </button>
@@ -379,10 +348,17 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
                         onClick={handleSubmit}
                         disabled={loading}
                         type="button"
-                        className="px-8 py-2.5 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-colors text-sm shadow-lg shadow-indigo-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
+                        className="relative group overflow-hidden px-10 py-3 rounded-[1.25rem] bg-indigo-600 text-white font-black hover:bg-indigo-700 transition-all text-sm shadow-xl shadow-indigo-200 disabled:opacity-70 disabled:grayscale active:scale-95"
                     >
-                        {loading && <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div>}
-                        {t('sales.common.save')}
+                        <div className="relative flex items-center gap-2 z-10">
+                            {loading ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div>
+                            ) : (
+                                <CheckCircle size={18} />
+                            )}
+                            {t('sales.common.save')}
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     </button>
                 </div>
 

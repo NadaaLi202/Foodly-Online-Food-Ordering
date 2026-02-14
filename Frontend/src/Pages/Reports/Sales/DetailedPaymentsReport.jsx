@@ -123,18 +123,7 @@ const DetailedPaymentsReport = () => {
     };
 
     const handlePrint = () => {
-        const content = printRef.current;
-        const pri = window.open('', 'PRINT', 'height=600,width=800');
-        pri.document.write('<html><head><title>Print Report</title>');
-        pri.document.write('<style>table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #ddd; padding: 8px; text-align: ' + (isRTL ? 'right' : 'left') + '; } th { background-color: #f2f2f2; } body { direction: ' + (isRTL ? 'rtl' : 'ltr') + '; font-family: sans-serif; }</style>');
-        pri.document.write('</head><body>');
-        pri.document.write('<h1>' + (t('reports.payments.detailed_title') || "Detailed Payments Report") + '</h1>');
-        pri.document.write('<p>' + t('reports.filters.from_date') + ': ' + filters.startDate + ' ' + t('reports.filters.to_date') + ': ' + filters.endDate + '</p>');
-        pri.document.write(content.innerHTML);
-        pri.document.write('</body></html>');
-        pri.document.close();
-        pri.focus();
-        pri.print();
+        window.print();
     };
 
     const formatCurrency = (val) => {

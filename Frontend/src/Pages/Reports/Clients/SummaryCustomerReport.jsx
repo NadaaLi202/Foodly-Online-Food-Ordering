@@ -116,12 +116,6 @@ const SummaryCustomerReport = () => {
 
     return (
         <>
-            <style>{`
-                @media print {
-                    .no-print { display: none !important; visibility: hidden !important; }
-                    body { print-color-adjust: exact; }
-                }
-            `}</style>
             <div className="p-6">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     {/* Filters Section */}

@@ -13,7 +13,7 @@ import {
     updateInventoryOperationSchema
 } from "./inventoryOperation.validation.js";
 
-import { uploadMultiFiles } from "../../middleware/uploadFiles.js";
+import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadFiles.js";
 import { protectedRoutes } from "../auth/auth.controller.js";
 import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
@@ -23,13 +23,13 @@ router.use(protectedRoutes, applyCompanyFilter);
 
 router
     .route("/")
-    .post(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), validation(addInventoryOperationSchema), applyCompanyFilter, addInventoryOperation)
+    .post(uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 5 }]), validation(addInventoryOperationSchema), applyCompanyFilter, addInventoryOperation)
     .get(getAllInventoryOperations);
 
 router
     .route("/:id")
     .get(getInventoryOperationById)
-    .put(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), validation(updateInventoryOperationSchema), applyCompanyFilter, updateInventoryOperation)
+    .put(uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 5 }]), validation(updateInventoryOperationSchema), applyCompanyFilter, updateInventoryOperation)
     .delete(deleteInventoryOperation);
 
 export default router;

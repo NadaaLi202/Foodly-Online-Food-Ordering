@@ -10,8 +10,11 @@ import {
     Lock
 } from "lucide-react";
 import api from "../services/api";
+import { useTranslation } from "react-i18next";
 
 export default function Register() {
+    const { t, i18n } = useTranslation();
+    const isRtl = i18n.language === 'ar';
     const navigate = useNavigate();
     const [form, setForm] = useState({
         name: "",
@@ -32,7 +35,7 @@ export default function Register() {
         e.preventDefault();
 
         if (form.password !== form.confirmPassword) {
-            alert("Passwords do not match");
+            alert(t('auth.passwords_mismatch'));
             return;
         }
 
@@ -52,84 +55,89 @@ export default function Register() {
 
         try {
             const res = await api.post("/auth/signup", requestBody);
-            const data = res.data;
             setLoading(false);
 
-            alert("Account created successfully! Please sign in.");
+            alert(t('auth.account_created'));
             navigate('/login');
 
         } catch (error) {
             setLoading(false);
             console.error(error);
-            const errorMessage = error.response?.data?.message || "Registration failed";
+            const errorMessage = error.response?.data?.message || t('auth.registration_failed');
             alert(errorMessage);
         }
     };
 
     return (
-        <div className="min-h-screen bg-white flex relative overflow-hidden font-sans text-left" dir="ltr">
+        <div className={`min-h-screen bg-white flex relative overflow-hidden font-sans ${isRtl ? 'text-right' : 'text-left'}`} dir={isRtl ? 'rtl' : 'ltr'}>
 
             {/* Left Side - Form */}
             <div className="w-full lg:w-1/2 flex flex-col justify-between p-8 relative z-10 bg-white overflow-y-auto">
-                <div>
+                <div className={isRtl ? 'text-right' : 'text-left'}>
                     <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-colors text-sm font-bold">
-                        <ArrowLeft className="w-4 h-4" />
-                        Back to Home
+                        <ArrowLeft className={`w-4 h-4 ${isRtl ? 'rotate-180' : ''}`} />
+                        {t('auth.back_home', 'Back to Home')}
                     </Link>
                 </div>
 
                 <div className="max-w-md w-full mx-auto mt-10">
                     <div className="mb-8">
-                        <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200 mb-6">
+                        <div className={`w-12 h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200 mb-6 ${isRtl ? 'mr-0' : 'ml-0'}`}>
                             <BarChart3 className="text-white w-7 h-7" />
                         </div>
-                        <h1 className="text-4xl font-black text-gray-900 mb-2">Create Account</h1>
-                        <p className="text-gray-500">Create your account to get started.</p>
+                        <h1 className="text-4xl font-black text-gray-900 mb-2">{t('auth.create_account')}</h1>
+                        <p className="text-gray-500">{t('auth.get_started_desc')}</p>
                     </div>
 
                     <form className="space-y-4" onSubmit={handleSubmit}>
                         <div>
-                            <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest text-left">Full Name</label>
+                            <label className={`block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest ${isRtl ? 'text-right' : 'text-left'}`}>
+                                {t('auth.full_name')}
+                            </label>
                             <div className="relative">
-                                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                <User className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5`} />
                                 <input
                                     required
                                     name="name"
                                     type="text"
                                     value={form.name}
                                     onChange={handleChange}
-                                    placeholder="John Doe"
-                                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl text-gray-900 font-bold focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                    placeholder={t('auth.full_name_placeholder')}
+                                    className={`w-full ${isRtl ? 'pr-12 pl-4 text-right' : 'pl-12 pr-4 text-left'} py-3 bg-gray-50 border-2 border-gray-100 rounded-xl text-gray-900 font-bold focus:outline-none focus:border-indigo-500 focus:bg-white transition-all`}
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest text-left">Email Address</label>
+                            <label className={`block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest ${isRtl ? 'text-right' : 'text-left'}`}>
+                                {t('auth.email_address')}
+                            </label>
                             <div className="relative">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                <Mail className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5`} />
                                 <input
                                     required
                                     name="email"
                                     type="email"
                                     value={form.email}
                                     onChange={handleChange}
-                                    placeholder="name@company.com"
-                                    className="w-full pl-12 pr-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl text-gray-900 font-bold focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                    placeholder={t('auth.email_placeholder')}
+                                    className={`w-full ${isRtl ? 'pr-12 pl-4 text-right' : 'pl-12 pr-4 text-left'} py-3 bg-gray-50 border-2 border-gray-100 rounded-xl text-gray-900 font-bold focus:outline-none focus:border-indigo-500 focus:bg-white transition-all`}
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest text-left">Phone Number</label>
-                            <div className="flex gap-2">
+                            <label className={`block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest ${isRtl ? 'text-right' : 'text-left'}`}>
+                                {t('auth.phone_number')}
+                            </label>
+                            <div className={`flex gap-2 ${isRtl ? 'flex-row-reverse' : ''}`}>
                                 <div className="relative w-1/3">
-                                    <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                    <Globe className={`absolute ${isRtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4`} />
                                     <select
                                         name="countryCode"
                                         value={form.countryCode}
                                         onChange={handleChange}
-                                        className="w-full pl-9 pr-2 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl text-gray-900 font-bold focus:outline-none focus:border-indigo-500 bg-white appearance-none"
+                                        className={`w-full ${isRtl ? 'pr-9 pl-2 text-right' : 'pl-9 pr-2 text-left'} py-3 bg-gray-50 border-2 border-gray-100 rounded-xl text-gray-900 font-bold focus:outline-none focus:border-indigo-500 bg-white appearance-none`}
                                     >
                                         <option value="+20">+20</option>
                                         <option value="+966">+966</option>
@@ -139,14 +147,14 @@ export default function Register() {
                                     </select>
                                 </div>
                                 <div className="relative flex-1">
-                                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                    <Phone className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5`} />
                                     <input
                                         name="phone"
                                         type="text"
                                         value={form.phone}
                                         onChange={handleChange}
-                                        placeholder="123 456 7890"
-                                        className="w-full pl-12 pr-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl text-gray-900 font-bold focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                        placeholder={t('auth.phone_placeholder')}
+                                        className={`w-full ${isRtl ? 'pr-12 pl-4 text-right' : 'pl-12 pr-4 text-left'} py-3 bg-gray-50 border-2 border-gray-100 rounded-xl text-gray-900 font-bold focus:outline-none focus:border-indigo-500 focus:bg-white transition-all`}
                                     />
                                 </div>
                             </div>
@@ -154,39 +162,43 @@ export default function Register() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest text-left">Password</label>
+                                <label className={`block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest ${isRtl ? 'text-right' : 'text-left'}`}>
+                                    {t('auth.password')}
+                                </label>
                                 <div className="relative">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                    <Lock className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5`} />
                                     <input
                                         required
                                         type="password"
                                         name="password"
                                         value={form.password}
                                         onChange={handleChange}
-                                        placeholder="••••••••"
-                                        className="w-full pl-12 pr-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl text-gray-900 font-bold focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                        placeholder={t('auth.password_placeholder')}
+                                        className={`w-full ${isRtl ? 'pr-12 pl-4 text-right' : 'pl-12 pr-4 text-left'} py-3 bg-gray-50 border-2 border-gray-100 rounded-xl text-gray-900 font-bold focus:outline-none focus:border-indigo-500 focus:bg-white transition-all`}
                                     />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest text-left">Confirm Password</label>
+                                <label className={`block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest ${isRtl ? 'text-right' : 'text-left'}`}>
+                                    {t('auth.confirm_password')}
+                                </label>
                                 <div className="relative">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                    <Lock className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5`} />
                                     <input
                                         required
                                         type="password"
                                         name="confirmPassword"
                                         value={form.confirmPassword}
                                         onChange={handleChange}
-                                        placeholder="••••••••"
-                                        className="w-full pl-12 pr-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-xl text-gray-900 font-bold focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                        placeholder={t('auth.password_placeholder')}
+                                        className={`w-full ${isRtl ? 'pr-12 pl-4 text-right' : 'pl-12 pr-4 text-left'} py-3 bg-gray-50 border-2 border-gray-100 rounded-xl text-gray-900 font-bold focus:outline-none focus:border-indigo-500 focus:bg-white transition-all`}
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        <p className="text-xs text-gray-500 mt-4 leading-relaxed">
-                            By clicking "Create Account", you agree to our Terms of Service and Privacy Policy.
+                        <p className={`text-xs text-gray-500 mt-4 leading-relaxed ${isRtl ? 'text-right' : 'text-left'}`}>
+                            {t('auth.terms_privacy')}
                         </p>
 
                         <button
@@ -194,14 +206,14 @@ export default function Register() {
                             disabled={loading}
                             className="w-full bg-indigo-600 text-white rounded-xl py-4 font-bold text-lg hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-2 mt-6"
                         >
-                            {loading ? "Creating Account..." : "Create Account"}
+                            {loading ? t('auth.creating_account') : t('auth.create_account')}
                         </button>
                     </form>
 
                     <p className="text-center mt-8 text-gray-500 font-medium pb-8">
-                        Already have an account?{" "}
+                        {t('auth.already_have_account')}{" "}
                         <Link to="/login" className="text-indigo-600 font-bold hover:underline">
-                            Sign in
+                            {t('auth.signin')}
                         </Link>
                     </p>
                 </div>
@@ -215,17 +227,17 @@ export default function Register() {
                 </div>
 
                 <div className="relative z-10 max-w-lg p-10 text-white text-center">
-                    <h2 className="text-4xl font-black mb-6">Scale faster with Dafater.</h2>
+                    <h2 className="text-4xl font-black mb-6">{t('auth.scale_faster')}</h2>
                     <div className="space-y-6 text-left">
                         {[
-                            "Automated bookkeeping and reports",
-                            "Inventory tracking across locations",
-                            "Seamless invoicing and payments",
-                            "Multi-user collaboration"
+                            t('auth.features.automated_bookkeeping'),
+                            t('auth.features.inventory_tracking'),
+                            t('auth.features.seamless_invoicing'),
+                            t('auth.features.collaboration')
                         ].map((feature, i) => (
-                            <div key={i} className="flex items-center gap-4 p-4 bg-white/10 backdrop-blur rounded-xl border border-white/10">
+                            <div key={i} className={`flex items-center gap-4 p-4 bg-white/10 backdrop-blur rounded-xl border border-white/10 ${isRtl ? 'flex-row-reverse' : ''}`}>
                                 <div className="w-8 h-8 rounded-full bg-green-400 flex items-center justify-center text-indigo-900 font-bold">✓</div>
-                                <span className="font-bold text-lg">{feature}</span>
+                                <span className={`font-bold text-lg ${isRtl ? 'text-right' : 'text-left'}`}>{feature}</span>
                             </div>
                         ))}
                     </div>

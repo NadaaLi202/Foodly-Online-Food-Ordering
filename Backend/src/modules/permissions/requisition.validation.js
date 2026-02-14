@@ -4,7 +4,7 @@ const requisitionItemSchema = Joi.object({
     product: Joi.string().hex().length(24).required().messages({
         "any.required": "المنتج مطلوب"
     }),
-    quantity: Joi.number().min(0.0001).required().messages({
+    quantity: Joi.number().min(1).required().messages({
         "any.required": "الكمية مطلوبة",
         "number.min": "الكمية يجب أن تكون أكبر من صفر"
     })

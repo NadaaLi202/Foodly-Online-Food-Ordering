@@ -1,0 +1,113 @@
+@media print {
+  /* 1. Reset Global Layout Constraints */
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    font-size: 10pt; /* Standard print font size */
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 2. Hide Non-Essential UI Elements */
+  aside,
+  header,
+  nav,
+  footer,
+  .no-print,
+  button,
+  .sticky,
+  .fixed:not(.print-only) {
+    display: none !important;
+  }
+
+  /* 3. Force Layout Expansion */
+  .flex.min-h-screen,
+  .flex-1.flex.flex-col.h-screen {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+    min-height: auto !important;
+    max-height: none !important;
+    position: static !important;
+  }
+
+  .flex-1.overflow-x-hidden.overflow-y-auto {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* 4. Report Root Containers */
+  [id$="-report-root"],
+  .report-content {
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    position: static !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* 5. Tables & Grids */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+    margin-bottom: 2em !important;
+  }
+
+  table thead {
+    display: table-header-group !important; /* Repeat header on each page */
+  }
+
+  table tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    border-bottom: 1px solid #eee !important;
+  }
+
+  table td, table th {
+    word-break: break-word !important;
+    padding: 8px !important;
+  }
+
+  /* 6. Prevent Cuts in Cards or Sections */
+  .grid, .flex {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  section, .card {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-bottom: 1em !important;
+  }
+
+  /* 7. RTL Support */
+  [dir="rtl"] {
+    direction: rtl !important;
+    text-align: right !important;
+  }
+
+  [dir="rtl"] .ml-auto { margin-right: auto; margin-left: 0; }
+  [dir="rtl"] .mr-auto { margin-left: auto; margin-right: 0; }
+
+  /* 8. Fix visibility issues with visibility:hidden hacks (cleaning up common report logic) */
+  * {
+    visibility: visible !important;
+  }
+
+  /* Optional: Page setup */
+  @page {
+    size: A4 auto;
+    margin: 1cm;
+  }
+}

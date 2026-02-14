@@ -43,7 +43,10 @@ export const addInventoryExchangeSchema = Joi.object({
     date: Joi.any().optional(),
     totalAmount: Joi.any().optional(),
     description: Joi.string().allow("", null).optional(),
-    attachments: Joi.array().items(Joi.string()).optional(),
+    attachments: Joi.array().items(Joi.object({
+        secure_url: Joi.string().required(),
+        public_id: Joi.string().required()
+    })).optional(),
     createdBy: Joi.string().hex().length(24).optional()
 }).unknown(true);
 
@@ -63,7 +66,10 @@ export const updateInventoryExchangeSchema = Joi.object({
 
     account: Joi.string().allow(""),
     description: Joi.string().allow(""),
-    attachments: Joi.array().items(Joi.string()),
+    attachments: Joi.array().items(Joi.object({
+        secure_url: Joi.string().required(),
+        public_id: Joi.string().required()
+    })).optional(),
 
     id: Joi.string()
         .hex()

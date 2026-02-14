@@ -20,7 +20,11 @@ export const addOperationSchema = Joi.object({
     ).allow(null, ""),
     date: Joi.any().optional(),
     account: Joi.string().allow("", null).optional(),
-    totalAmount: Joi.any().optional()
+    totalAmount: Joi.any().optional(),
+    attachments: Joi.array().items(Joi.object({
+        secure_url: Joi.string().required(),
+        public_id: Joi.string().required()
+    })).optional(),
 }).unknown(true);
 
 // Update Operation
@@ -34,6 +38,10 @@ export const updateOperationSchema = Joi.object({
         .messages({
             "any.only": "نوع العملية غير صحيح"
         }),
+    attachments: Joi.array().items(Joi.object({
+        secure_url: Joi.string().required(),
+        public_id: Joi.string().required()
+    })).optional(),
 
     id: Joi.string()
         .hex()

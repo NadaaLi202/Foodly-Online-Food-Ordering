@@ -10,7 +10,7 @@ const requisitionItemSchema = new mongoose.Schema(
         quantity: {
             type: Number,
             required: true,
-            min: 0.0001
+            min: 1
         }
     },
     { _id: true }

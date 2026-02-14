@@ -20,7 +20,7 @@ import {
 } from "./stockAdd.validation.js";
 
 import { validation } from "../../middleware/validation.js";
-import { uploadMultiFiles } from "../../middleware/uploadFiles.js";
+import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadFiles.js";
 import { protectedRoutes } from "../auth/auth.controller.js";
 import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
@@ -30,12 +30,12 @@ router.use(protectedRoutes, applyCompanyFilter);
 
 // StockAdd routes
 router.route("/")
-    .post(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), validation(addStockAddSchema), applyCompanyFilter, addStockAdd)
+    .post(uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 5 }]), validation(addStockAddSchema), applyCompanyFilter, addStockAdd)
     .get(getAllStockAdds);
 
 router.route("/:id")
     .get(getStockAddById)
-    .put(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), validation(updateStockAddSchema), applyCompanyFilter, updateStockAdd)
+    .put(uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 5 }]), validation(updateStockAddSchema), applyCompanyFilter, updateStockAdd)
     .delete(deleteStockAdd);
 
 // StockAddItem routes

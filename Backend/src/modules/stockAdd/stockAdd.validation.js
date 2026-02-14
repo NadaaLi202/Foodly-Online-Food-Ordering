@@ -23,7 +23,10 @@ export const addStockAddSchema = Joi.object({
     description: Joi.string().allow("", null).optional(),
     date: Joi.any().optional(),
     totalAmount: Joi.any().optional(),
-    attachments: Joi.array().items(Joi.string()).optional(),
+    attachments: Joi.array().items(Joi.object({
+        secure_url: Joi.string().required(),
+        public_id: Joi.string().required()
+    })).optional(),
     createdBy: Joi.string().hex().length(24).optional()
 }).unknown(true);
 
@@ -42,7 +45,10 @@ export const updateStockAddSchema = Joi.object({
     date: Joi.date().allow(null, ""),
     totalAmount: Joi.number().allow(null, ""),
     description: Joi.string(),
-    attachments: Joi.array().items(Joi.string()),
+    attachments: Joi.array().items(Joi.object({
+        secure_url: Joi.string().required(),
+        public_id: Joi.string().required()
+    })).optional(),
     createdBy: Joi.string().hex().length(24).messages({
         "string.hex": "ID المستخدم غير صحيح",
         "string.length": "ID المستخدم غير صحيح"
