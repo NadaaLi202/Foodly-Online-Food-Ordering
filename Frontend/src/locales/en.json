@@ -583,7 +583,7 @@
             "qr_code": "QR Code",
             "responsible": "Responsible",
             "user_label": "User",
-            "journal_entry_number": "Journal Entry No.",
+            "journal_entry_number": "Number",
             "number_label": "Number",
             "client_required": "Client *",
             "invoice_level_discount": "Invoice Level Discount",
@@ -965,7 +965,7 @@
             "auto_entry_info": "The date or lines of an automatically created journal entry cannot be updated directly; you can update its source instead.",
             "start_creating": "Start creating journal entries",
             "entry_number": "Number",
-            "daily_entry_number": "Journal Entry Number",
+            "daily_entry_number": "Number",
             "date": "Date",
             "reference": "Reference",
             "debit": "Debit",
@@ -1103,7 +1103,8 @@
         "name": "Name",
         "type": "Type",
         "email": "Email",
-        "role": "Role",
+        "phone_number": "Mobile Number",
+        "role": "Job Role",
         "branch": "Branch",
         "admin": "Employee",
         "user": "User",
@@ -1117,7 +1118,14 @@
         "manager": "Manager",
         "accountant": "Accountant",
         "sales": "Sales",
-        "select_branch": "Select Branch"
+        "select_branch": "Select Branch",
+        "validation": {
+            "name_required": "Name is required",
+            "email_required": "Email is required",
+            "role_required": "Role is required",
+            "branch_required": "Branch is required",
+            "password_required": "Password is required"
+        }
     },
     "roles_page": {
         "title": "Roles",

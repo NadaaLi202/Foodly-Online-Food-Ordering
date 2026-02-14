@@ -14,9 +14,11 @@ import {
     UserCircle
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 import userService from '../../services/userService';
 import rolesService from '../../services/rolesService';
+import branchService from '../../services/branchService';
 
 const Users = () => {
     const { t, i18n } = useTranslation();
@@ -25,13 +27,16 @@ const Users = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
     const [selectedUserId, setSelectedUserId] = useState(null);
+    const [errors, setErrors] = useState([]);
 
     const [searchTerm, setSearchTerm] = useState('');
+    const [branches, setBranches] = useState([]);
     const [roles, setRoles] = useState([]);
     const [formData, setFormData] = useState({
         name: '',
         type: 'user',
         email: '',
+        phone: '',
         password: '',
         confirmPassword: '',
         role: 'employee',
@@ -56,15 +61,19 @@ const Users = () => {
     }, []);
 
     useEffect(() => {
-        const loadRoles = async () => {
+        const loadInitialData = async () => {
             try {
-                const data = await rolesService.getAllRoles();
-                setRoles(data.roles || data || []);
+                const [rolesData, branchesData] = await Promise.all([
+                    rolesService.getAllRoles(),
+                    branchService.getAllBranches()
+                ]);
+                setRoles(rolesData.roles || rolesData || []);
+                setBranches(branchesData.branches || branchesData || []);
             } catch (err) {
-                console.error('Error fetching roles:', err);
+                console.error('Error fetching initial data:', err);
             }
         };
-        loadRoles();
+        loadInitialData();
     }, []);
 
     const handleOpenModal = (mode, user = null) => {
@@ -75,6 +84,7 @@ const Users = () => {
                 name: user.name || '',
                 type: user.type || 'user',
                 email: user.email || '',
+                phone: user.phone || '',
                 password: '',
                 confirmPassword: '',
                 role: user.role || 'employee',
@@ -87,6 +97,7 @@ const Users = () => {
                 name: '',
                 type: 'user',
                 email: '',
+                phone: '',
                 password: '',
                 confirmPassword: '',
                 role: 'employee',
@@ -100,12 +111,33 @@ const Users = () => {
     const handleSave = async (e) => {
         e.preventDefault();
 
-        // Validate passwords match for new users or when password is being changed
-        if (modalMode === 'add' || formData.password) {
-            if (formData.password !== formData.confirmPassword) {
-                alert(t('users_page.password_mismatch', 'Passwords do not match'));
-                return;
+        // Form Validation
+        // Form Validation
+        const newErrors = [];
+        if (!formData.name.trim()) newErrors.push(t('users_page.validation.name_required', 'Name is required'));
+
+        if (formData.type === 'user') {
+            if (!formData.email.trim()) newErrors.push(t('users_page.validation.email_required', 'Email is required'));
+            if (!formData.roleId) newErrors.push(t('users_page.validation.role_required', 'Role is required'));
+            if (!formData.branch) newErrors.push(t('users_page.validation.branch_required', 'Branch is required'));
+        }
+
+        if (formData.type === 'user') {
+            if (modalMode === 'add') {
+                if (!formData.password) newErrors.push(t('users_page.validation.password_required', 'Password is required'));
+                if (formData.password !== formData.confirmPassword) {
+                    newErrors.push(t('users_page.password_mismatch', 'Passwords do not match'));
+                }
+            } else if (formData.password) {
+                if (formData.password !== formData.confirmPassword) {
+                    newErrors.push(t('users_page.password_mismatch', 'Passwords do not match'));
+                }
             }
+        }
+
+        if (newErrors.length > 0) {
+            setErrors(newErrors);
+            return;
         }
 
         setLoading(true);
@@ -113,6 +145,7 @@ const Users = () => {
             const dataToSend = {
                 name: formData.name,
                 email: formData.email,
+                phone: formData.phone,
                 type: formData.type,
                 role: formData.role || 'employee',
                 branch: formData.branch || undefined
@@ -130,24 +163,30 @@ const Users = () => {
                 : await api.put(`/users/${selectedUserId}`, dataToSend);
 
             if (response.status === 200 || response.status === 201) {
+                toast.success(modalMode === 'add' ? t('sales.common.success_message') : t('sales.common.success_message'));
                 setIsModalOpen(false);
                 fetchUsers();
             }
         } catch (error) {
             console.error('Error saving user:', error);
+            const msg = error.response?.data?.message || t('sales.common.error_message');
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
     };
 
     const handleDelete = async (id) => {
-        if (!confirm(t('sales.common.confirm_delete', 'Are you sure you want to delete?'))) return;
+        // We'll use confirmation later if needed, for now keep logic or Use confirm modal if exists
+        if (!confirm(t('sales.common.confirm_delete', 'Are you sure?'))) return;
         setLoading(true);
         try {
-            const response = await api.delete(`/users/${id}`);
-            if (response.status === 200) fetchUsers();
+            await api.delete(`/users/${id}`);
+            toast.success(t('sales.common.success_message'));
+            fetchUsers();
         } catch (error) {
             console.error('Error deleting user:', error);
+            toast.error(t('sales.common.error_message'));
         } finally {
             setLoading(false);
         }
@@ -294,144 +333,173 @@ const Users = () => {
                     <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden animate-in fade-in zoom-in duration-300">
                         <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                             <div className="flex items-center gap-3">
-                                <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg">
-                                    <UsersIcon size={24} />
-                                </div>
                                 <h2 className="text-xl font-bold text-gray-900">
-                                    {modalMode === 'add' ? t('users_page.add_user', 'Add New User') : t('users_page.edit_user', 'Edit User')}
+                                    {modalMode === 'add' ? t('users_page.add_user') : t('users_page.edit_user')}
                                 </h2>
                             </div>
-                            <X onClick={() => setIsModalOpen(false)} className="text-gray-400 cursor-pointer hover:text-gray-900 transition-colors" />
+                            <X onClick={() => { setIsModalOpen(false); setErrors([]); }} className="text-gray-400 cursor-pointer hover:text-gray-900 transition-colors" />
                         </div>
 
-                        <form onSubmit={handleSave} className="p-8 space-y-6">
+                        <form onSubmit={handleSave} className="p-8 space-y-6 overflow-y-auto max-h-[70vh]">
+                            {errors.length > 0 && (
+                                <div className="p-4 bg-red-50 border-r-4 border-red-500 rounded-md mb-4">
+                                    <ul className="list-disc list-inside text-red-600 text-sm font-bold space-y-1">
+                                        {errors.map((err, idx) => <li key={idx} className="text-start">{err}</li>)}
+                                    </ul>
+                                </div>
+                            )}
+
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('users_page.name', 'Name')} *</label>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2 text-start">
+                                        {t('users_page.name')} <span className="text-red-500">*</span>
+                                    </label>
                                     <input
                                         required
                                         type="text"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                        placeholder={t('users_page.name', 'Name')}
+                                        className={`w-full h-11 px-4 border border-gray-200 rounded-lg outline-none focus:border-indigo-500 transition-all text-start bg-white`}
+                                        placeholder=""
                                     />
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('users_page.type', 'Type')} *</label>
-                                    <div className="flex gap-4">
-                                        <label className="flex items-center gap-2 cursor-pointer flex-1 p-4 bg-gray-50 rounded-2xl border-2 border-transparent hover:border-indigo-200 transition-all">
+                                <div className="flex items-center gap-6">
+                                    <label className="text-sm font-bold text-gray-700">{t('users_page.type')}</label>
+                                    <div className="flex items-center gap-4">
+                                        <label className="flex items-center gap-2 cursor-pointer">
                                             <input
                                                 type="radio"
                                                 name="type"
                                                 value="user"
                                                 checked={formData.type === 'user'}
                                                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                                className="w-4 h-4 text-indigo-600"
+                                                className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
                                             />
-                                            <Shield size={16} className="text-blue-600" />
-                                            <span className="font-semibold text-gray-700">{t('users_page.user', 'User')}</span>
+                                            <span className="text-sm font-semibold text-gray-700">{t('users_page.user')}</span>
                                         </label>
-                                        <label className="flex items-center gap-2 cursor-pointer flex-1 p-4 bg-gray-50 rounded-2xl border-2 border-transparent hover:border-indigo-200 transition-all">
+                                        <label className="flex items-center gap-2 cursor-pointer">
                                             <input
                                                 type="radio"
                                                 name="type"
-                                                value="admin"
-                                                checked={formData.type === 'admin'}
+                                                value="employee"
+                                                checked={formData.type === 'employee'}
                                                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                                className="w-4 h-4 text-indigo-600"
+                                                className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
                                             />
-                                            <Shield size={16} className="text-purple-600" />
-                                            <span className="font-semibold text-gray-700">{t('users_page.admin', 'Admin')}</span>
+                                            <span className="text-sm font-semibold text-gray-700">{t('users_page.employee', 'Employee')}</span>
                                         </label>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('users_page.email', 'Email')} *</label>
-                                    <input
-                                        required
-                                        type="email"
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                        placeholder="user@example.com"
-                                    />
-                                </div>
+                                {formData.type === 'user' && (
+                                    <div>
+                                        <label className="block text-sm font-bold text-gray-700 mb-2 text-start">
+                                            {t('users_page.email')} <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            required
+                                            type="email"
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            className="w-full h-11 px-4 border border-gray-200 rounded-lg outline-none focus:border-indigo-500 transition-all text-start bg-white"
+                                            placeholder=""
+                                        />
+                                    </div>
+                                )}
 
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                                        {t('users_page.password', 'Password')} {modalMode === 'add' ? '*' : `(${t('users_page.leave_empty', 'leave empty to keep current')})`}
-                                    </label>
-                                    <input
-                                        required={modalMode === 'add'}
-                                        type="password"
-                                        value={formData.password}
-                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                        className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                        placeholder="••••••••"
-                                    />
-                                </div>
+                                {formData.type === 'user' && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2 text-start">{t('users_page.phone_number')}</label>
+                                            <input
+                                                type="text"
+                                                value={formData.phone}
+                                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                                className="w-full h-11 px-4 border border-gray-200 rounded-lg outline-none focus:border-indigo-500 transition-all text-start bg-white"
+                                                placeholder=""
+                                            />
+                                        </div>
 
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                                        {t('users_page.confirm_password', 'Confirm Password')} {modalMode === 'add' ? '*' : `(${t('users_page.leave_empty', 'leave empty to keep current')})`}
-                                    </label>
-                                    <input
-                                        required={modalMode === 'add'}
-                                        type="password"
-                                        value={formData.confirmPassword}
-                                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                                        className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                        placeholder="••••••••"
-                                    />
-                                </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2 text-start">
+                                                {t('users_page.password')} {modalMode === 'add' && <span className="text-red-500">*</span>}
+                                            </label>
+                                            <input
+                                                required={modalMode === 'add'}
+                                                type="password"
+                                                value={formData.password}
+                                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                                className="w-full h-11 px-4 border border-gray-200 rounded-lg outline-none focus:border-indigo-500 transition-all text-start bg-white font-mono"
+                                                placeholder="••••••••"
+                                            />
+                                        </div>
 
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('users_page.role', 'Role')}</label>
-                                    <select
-                                        value={formData.role}
-                                        onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                                        className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                    >
-                                        <option value="employee">{t('users_page.employee', 'Employee')}</option>
-                                        <option value="admin">{t('users_page.admin', 'Admin')}</option>
-                                        <option value="accountant">{t('users_page.accountant', 'Accountant')}</option>
-                                    </select>
-                                </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2 text-start">
+                                                {t('users_page.confirm_password')} {modalMode === 'add' && <span className="text-red-500">*</span>}
+                                            </label>
+                                            <input
+                                                required={modalMode === 'add'}
+                                                type="password"
+                                                value={formData.confirmPassword}
+                                                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                                className="w-full h-11 px-4 border border-gray-200 rounded-lg outline-none focus:border-indigo-500 transition-all text-start bg-white font-mono"
+                                                placeholder="••••••••"
+                                            />
+                                        </div>
 
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('users_page.company_role', 'Company Role')}</label>
-                                    <select
-                                        value={formData.roleId}
-                                        onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
-                                        className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                    >
-                                        <option value="">{t('users_page.select_role', 'Select Role')}</option>
-                                        {roles.map((r) => (
-                                            <option key={r._id} value={r._id}>{r.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2 text-start">
+                                                {t('users_page.role')} <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                required
+                                                value={formData.roleId}
+                                                onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
+                                                className="w-full h-11 px-4 border border-gray-200 rounded-lg outline-none focus:border-indigo-500 transition-all text-start bg-white appearance-none"
+                                            >
+                                                <option value="">{t('users_page.select_role')}</option>
+                                                <option value="manager">{t('users_page.manager')}</option>
+                                                {roles.map((r) => <option key={r._id} value={r._id}>{r.name}</option>)}
+                                            </select>
+                                        </div>
 
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-2">{t('users_page.branch', 'Branch')}</label>
-                                    <select
-                                        value={formData.branch}
-                                        onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                                        className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
-                                    >
-                                        <option value="">{t('users_page.select_branch', 'Select Branch')}</option>
-                                        <option value="main">{t('topbar.main_branch')}</option>
-                                    </select>
-                                </div>
+                                        <div>
+                                            <label className="block text-sm font-bold text-gray-700 mb-2 text-start">
+                                                {t('users_page.branch')} <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                required
+                                                value={formData.branch}
+                                                onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
+                                                className="w-full h-11 px-4 border border-gray-200 rounded-lg outline-none focus:border-indigo-500 transition-all text-start bg-white appearance-none"
+                                            >
+                                                <option value="">{t('users_page.select_branch')}</option>
+                                                <option value="main">{t('topbar.main_branch')}</option>
+                                                {branches.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}
+                                            </select>
+                                        </div>
+                                    </>
+                                )}
+
+
                             </div>
 
-                            <div className="flex gap-4 pt-4">
-                                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 p-4 border-2 border-gray-100 rounded-2xl font-bold text-gray-600 hover:bg-gray-50 transition-colors">{t('sales.common.cancel')}</button>
-                                <button type="submit" disabled={loading} className="flex-1 p-4 bg-emerald-500 text-white rounded-2xl font-bold shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all">
+                            <div className="flex gap-3 pt-4 justify-end">
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="px-8 py-2.5 bg-[#10B981] text-white rounded-lg font-bold hover:bg-emerald-600 transition-all disabled:opacity-50 shadow-sm"
+                                >
                                     {loading ? '...' : t('sales.common.save')}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsModalOpen(false); setErrors([]); }}
+                                    className="px-8 py-2.5 border border-gray-300 rounded-lg font-bold text-gray-600 hover:bg-gray-50 transition-colors bg-white shadow-sm"
+                                >
+                                    {t('sales.common.cancel')}
                                 </button>
                             </div>
                         </form>

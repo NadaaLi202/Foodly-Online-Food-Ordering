@@ -287,8 +287,13 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
     };
 
     return (
+<<<<<<< productImage/individualBusiness
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 font-sans backdrop-blur-sm">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
+=======
+        <div className="fixed inset-0 backdrop-blur-md bg-black/20 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
+>>>>>>> main
                 {/* Modal Header */}
                 <div className="bg-white px-8 py-5 flex items-center justify-between border-b border-gray-100 flex-shrink-0">
                     <h2 className="text-xl font-bold text-gray-800">
