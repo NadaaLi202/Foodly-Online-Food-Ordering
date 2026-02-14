@@ -75,6 +75,7 @@
             "title": "تقارير المشتريات",
             "description": "عرض تقارير المشتريات"
         },
+        "accounting_reports_desc": "القوائم المالية وتحليل التقارير",
         "payments": {
             "title": "تقارير المدفوعات",
             "description": "عرض تقارير المدفوعات.",
@@ -356,6 +357,7 @@
         "start_suppliers": "ابدأ بإضافة موردين جدد"
     },
     "finance": {
+        "tile_desc": "تسجيل وإدارة مصروفات الشركة ومعاملاتها",
         "add_transaction": "إضافة عملية",
         "receipt": "عملية قبض مالية",
         "disbursement": "عملية صرف مالية",
@@ -551,6 +553,7 @@
         },
         "invoices": {
             "title": "الفواتير",
+            "tile_desc": "إدارة وإنشاء فواتير المبيعات",
             "add_invoice": "إضافة فاتورة",
             "invoice_details": "تفاصيل الفاتورة",
             "invoice_number": "رقم الفاتورة",
@@ -626,6 +629,7 @@
         },
         "quotations": {
             "title": "عروض الأسعار",
+            "tile_desc": "إنشاء وإدارة عروض أسعار المبيعات",
             "add_quotation": "إضافة عرض سعر",
             "edit_quotation": "تعديل عرض السعر",
             "view_quotation": "عرض عرض السعر",
@@ -765,7 +769,9 @@
         }
     },
     "purchases": {
+        "tile_desc": "تتبع نفقاتك ومورديك",
         "invoices": {
+            "tile_desc": "إدارة فواتير مشتريات الموردين",
             "no_invoices": "لا توجد فواتير مشتريات بعد.",
             "start_creating": "ابدأ بإنشاء أول فاتورة مشتريات.",
             "add_invoice": "إضافة فاتورة مشتريات",
@@ -776,6 +782,7 @@
             "add_title": "إضافة فاتورة مشتريات"
         },
         "purchase_orders": {
+            "tile_desc": "إنشاء وتتبع أوامر الشراء",
             "no_orders": "لا توجد أوامر شراء بعد.",
             "start_creating": "ابدأ بإنشاء أول أمر شراء.",
             "add_order": "إضافة أمر شراء",
@@ -784,9 +791,11 @@
             "order_number_placeholder": "PO-26-1-000001"
         },
         "credit_notes": {
+            "tile_desc": "معالجة الإشعارات الدائنة للموردين",
             "add_title": "إضافة إشعار دائن مشتريات"
         },
         "payments": {
+            "tile_desc": "تتبع المدفوعات للموردين",
             "no_payments": "لا توجد مدفوعات موردين",
             "start_payments": "ابدأ بإنشاء مدفوعات الموردين",
             "add_payment": "إضافة عملية دفع مورد",
@@ -794,6 +803,7 @@
             "select_supplier": "اختر المورد"
         },
         "returns": {
+            "tile_desc": "التعامل مع مرتجعات المشتريات",
             "no_returns": "لا توجد مرتجعات مشتريات",
             "start_returns": "ابدأ بإنشاء مرتجعات المشتريات",
             "add_return": "إضافة مرتجع مشتريات",
@@ -810,6 +820,7 @@
             "start_requests": "ابدأ بإنشاء طلبات شراء"
         },
         "suppliers": {
+            "tile_desc": "إدارة قاعدة بيانات الموردين وجهات الاتصال",
             "add_title": "إضافة مورد",
             "edit_title": "تعديل المورد",
             "code_auto_placeholder": "يتم التوليد تلقائياً",
@@ -839,6 +850,7 @@
     "stocked": {
         "products": {
             "title": "المنتجات",
+            "tile_desc": "إدارة كتالوج المنتجات والتسعير",
             "add_product": "إضافة منتج",
             "product_name": "الاسم",
             "code": "الكود",
@@ -869,6 +881,7 @@
         },
         "categories": {
             "title": "التصنيفات",
+            "tile_desc": "تنظيم المنتجات في تصنيفات",
             "add_category": "إضافة تصنيف منتج",
             "category_name": "الاسم",
             "description": "الوصف",
@@ -880,6 +893,7 @@
         },
         "operations": {
             "title": "العمليات",
+            "tile_desc": "تتبع حركات المخزون",
             "inventory": "المخزون",
             "inventory_operations": "عمليات المخزون",
             "stock": "المخزون",
@@ -908,6 +922,7 @@
         },
         "permissions": {
             "title": "الأذونات",
+            "tile_desc": "أذونات تحويل وتسوية المخزون",
             "add_permission": "إضافة إذن",
             "number": "الرقم",
             "type": "النوع",
@@ -965,6 +980,7 @@
     "accounting": {
         "journal_entries": {
             "title": "قيود اليومية",
+            "tile_desc": "إنشاء وإدارة قيود اليومية اليدوية",
             "add_entry": "إضافة قيد يومية",
             "view_entry": "عرض قيد يومية",
             "no_entries": "لا يوجد قيود يومية",
@@ -1082,6 +1098,7 @@
     },
     "partner_lists_page": {
         "title": "قوائم الشركاء",
+        "tile_desc": "إدارة قوائم الشركاء والزملاء",
         "add_partner_list": "إضافة قائمة شركاء",
         "edit_partner_list": "تعديل قائمة شركاء",
         "partner_list_name": "الاسم",
@@ -1096,6 +1113,7 @@
     },
     "activities_page": {
         "title": "الأنشطة",
+        "tile_desc": "تتبع الأنشطة التجارية والسجلات",
         "add_activity": "إضافة نشاط",
         "edit_activity": "تعديل نشاط",
         "activity_name": "الاسم",
@@ -1110,6 +1128,7 @@
     },
     "users_page": {
         "title": "المستخدمين",
+        "tile_desc": "إدارة مستخدمي النظام والوصول",
         "add_user": "إضافة مستخدم جديد",
         "edit_user": "تعديل مستخدم",
         "no_users": "لم يتم العثور على مستخدمين",
@@ -1143,6 +1162,7 @@
     },
     "roles_page": {
         "title": "الأدوار",
+        "tile_desc": "تحديد أذونات وأدوار المستخدمين",
         "add_role": "إضافة دور",
         "edit_role": "تعديل دور",
         "role_name": "اسم الدور",
