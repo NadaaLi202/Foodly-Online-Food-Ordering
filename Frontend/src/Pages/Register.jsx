@@ -1,3 +1,14 @@
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import {
+    ArrowLeft,
+    BarChart3,
+    User,
+    Mail,
+    Globe,
+    Phone,
+    Lock
+} from "lucide-react";
 import api from "../services/api";
 
 export default function Register() {
