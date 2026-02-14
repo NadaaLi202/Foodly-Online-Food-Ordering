@@ -36,7 +36,7 @@ const AddPurchaseInvoiceModal = ({ isOpen, onClose }) => {
         <div className="fixed inset-0 z-50 overflow-y-auto">
             <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
                 {/* Backdrop */}
-                <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose}></div>
+                <div className="fixed inset-0 backdrop-blur-md bg-black/20 transition-opacity" onClick={onClose}></div>
 
                 {/* Modal Panel */}
                 <div className="relative transform rounded-lg bg-gray-100 text-start shadow-xl transition-all w-full my-8 max-w-7xl z-10">

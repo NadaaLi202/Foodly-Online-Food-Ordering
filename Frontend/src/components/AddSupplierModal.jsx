@@ -152,7 +152,7 @@ const AddSupplierModal = ({ isOpen, onClose, editSupplier = null, onSave }) => {
     const isRtl = i18n.language === 'ar';
 
     return (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4">
+        <div className="fixed inset-0 backdrop-blur-md bg-black/20 flex items-center justify-center z-[60] p-4">
             <div className="relative transform rounded-xl bg-white text-start shadow-xl transition-all w-full my-8 max-w-6xl max-h-[90vh] overflow-hidden flex flex-col" dir={isRtl ? 'rtl' : 'ltr'}>
                 {/* Header - match reference */}
                 <div className="border-b border-gray-200 bg-white px-6 py-4 flex-shrink-0">
