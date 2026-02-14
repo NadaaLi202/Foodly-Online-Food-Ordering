@@ -121,7 +121,7 @@ const getAllPayments = (module) =>
         const [payments, total] = await Promise.all([
             Payment.find(query)
                 .populate('contact', 'name email phone')
-                .populate('invoice', 'transactionNumber totalAmount paidAmount remainingAmount')
+                .populate('invoice', 'transactionNumber totalAmount paidAmount remainingAmount issueDate')
                 .sort(sortOpt)
                 .skip(skip)
                 .limit(limit)
@@ -144,7 +144,7 @@ const getAllPayments = (module) =>
 const getPaymentById = catchAsyncError(async (req, res, next) => {
     const payment = await Payment.findOne({ _id: req.params.id, ...req.companyFilter })
         .populate('contact', 'name email phone')
-        .populate('invoice', 'transactionNumber totalAmount');
+        .populate('invoice', 'transactionNumber totalAmount issueDate');
 
     if (!payment || payment.deletedAt) {
         return next(new AppError("غير موجود", 404));
@@ -176,7 +176,7 @@ const updatePayment = catchAsyncError(async (req, res, next) => {
 
     await payment.save();
     await payment.populate('contact', 'name email phone');
-    await payment.populate('invoice', 'transactionNumber totalAmount');
+    await payment.populate('invoice', 'transactionNumber totalAmount issueDate');
 
     res.json({
         message: "تم التعديل بنجاح",
@@ -213,7 +213,7 @@ const downloadPaymentPDF = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
     let payment = await Payment.findOne({ _id: id, deletedAt: null, ...req.companyFilter })
         .populate('contact', 'name email phone')
-        .populate('invoice', 'transactionNumber totalAmount paidAmount remainingAmount')
+        .populate('invoice', 'transactionNumber totalAmount paidAmount remainingAmount issueDate')
         .lean();
     if (!payment && req.user?.role === 'superAdmin') {
         payment = await Payment.findOne({ _id: id, deletedAt: null })

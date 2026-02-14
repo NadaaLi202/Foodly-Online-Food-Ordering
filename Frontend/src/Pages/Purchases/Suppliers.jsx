@@ -43,8 +43,6 @@ export default function Suppliers() {
     const [menuOpenId, setMenuOpenId] = useState(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [supplierToDelete, setSupplierToDelete] = useState(null);
-    const [viewFormData, setViewFormData] = useState(null);
-    const [viewContactMethods, setViewContactMethods] = useState({ phone: true, email: true, address: true });
     const [isSavingView, setIsSavingView] = useState(false);
 
     const [contactMethods, setContactMethods] = useState({
@@ -249,7 +247,7 @@ export default function Suppliers() {
             if (response.status !== 200 && response.status !== 201) {
                 throw new Error(result.message || t('sales.common.error_message'));
             }
-            
+
             // Dispatch event for real-time report updates
             if (isEditing && currentSupplierId) {
                 window.dispatchEvent(new CustomEvent('supplier-updated'));
@@ -340,51 +338,13 @@ export default function Suppliers() {
                 const c = data.contact;
                 const addr = c.address || {};
                 setViewContact(c);
-                setViewFormData({
-                    name: c.name || '',
-                    type: c.type === 'commercial' ? 'commercial' : 'individual',
-                    code: c.code || '',
-                    taxNumber: c.taxNumber || '',
-                    commercialRegister: c.commercialRegister || '',
-                    mobile: c.mobile || '',
-                    phone: c.phone || '',
-                    email: c.email || '',
-                    notes: c.notes || '',
-                    initialBalance: c.initialBalance ?? 0,
-                    address1: addr.address1 || '',
-                    address2: addr.address2 || '',
-                    city: addr.city || '',
-                    neighborhood: addr.neighborhood || '',
-                    province: addr.province || '',
-                    zipCode: addr.zipCode || '',
-                    country: addr.country || '',
-                    additionalContacts: Array.isArray(c.additionalContacts) ? c.additionalContacts.map(ac => ({ name: ac.name || '', phone: ac.phone || '', email: ac.email || '', title: ac.title || '' })) : []
-                });
                 setViewContactMethods(c.contactMethods ? { phone: c.contactMethods.phone !== false, email: c.contactMethods.email !== false, address: c.contactMethods.address !== false } : { phone: true, email: true, address: true });
                 setViewTab('summary');
             } else {
                 setViewContact(supplier);
-                const addr = supplier.address || {};
-                setViewFormData({
-                    name: supplier.name || '',
-                    type: supplier.type === 'commercial' ? 'commercial' : 'individual',
-                    code: supplier.code || '',
-                    taxNumber: supplier.taxNumber || '',
-                    commercialRegister: supplier.commercialRegister || '',
-                    mobile: supplier.mobile || '',
-                    phone: supplier.phone || '',
-                    email: supplier.email || '',
-                    notes: supplier.notes || '',
-                    initialBalance: supplier.initialBalance ?? 0,
-                    address1: addr.address1 || '',
-                    address2: addr.address2 || '',
-                    city: addr.city || '',
-                    neighborhood: addr.neighborhood || '',
-                    province: addr.province || '',
-                    zipCode: addr.zipCode || '',
-                    country: addr.country || '',
-                    additionalContacts: Array.isArray(supplier.additionalContacts) ? supplier.additionalContacts.map(ac => ({ name: ac.name || '', phone: ac.phone || '', email: ac.email || '', title: ac.title || '' })) : []
-                });
+                // When viewing from list directly (without full fetch), ensure we have structure if needed
+                // But for read-only view, we can just display what we have.
+                setViewTab('summary');
             }
         } catch (err) {
             console.error(err);
@@ -431,67 +391,17 @@ export default function Suppliers() {
         }
     };
 
-    const handleViewFormChange = (e) => {
-        const { name, value } = e.target;
-        if (['address1', 'address2', 'city', 'neighborhood', 'province', 'zipCode', 'country'].includes(name)) {
-            setViewFormData(prev => ({ ...prev, [name]: value }));
-        } else {
-            setViewFormData(prev => ({ ...prev, [name]: value }));
-        }
-    };
 
-    const handleViewContactMethodChange = (method) => {
-        setViewContactMethods(prev => ({ ...prev, [method]: !prev[method] }));
-    };
+    const handleEditFromView = () => {
+        if (viewContact) {
+            // Close view modal
+            const contactToEdit = viewContact;
+            setViewContact(null);
+            setViewTab('summary');
+            setSelectedSupplierId(null);
 
-    const handleSaveView = async () => {
-        if (!viewFormData || !viewContact) return;
-        setIsSavingView(true);
-        try {
-            const type = (viewFormData.type === 'commercial' ? 'commercial' : 'individual');
-            const address = {
-                address1: viewFormData.address1 || '',
-                address2: viewFormData.address2 || '',
-                neighborhood: viewFormData.neighborhood || '',
-                city: viewFormData.city || '',
-                province: viewFormData.province || '',
-                zipCode: viewFormData.zipCode || '',
-                country: viewFormData.country || ''
-            };
-            const additionalContacts = (viewFormData.additionalContacts || []).map(ac => ({
-                name: (ac.name || '').trim(),
-                phone: (ac.phone || '').trim() || undefined,
-                email: (ac.email || '').trim() || undefined,
-                title: (ac.title || '').trim() || undefined
-            })).filter(ac => ac.name);
-
-            const dataToSend = {
-                name: viewFormData.name,
-                type,
-                code: viewFormData.code || undefined,
-                taxNumber: viewFormData.taxNumber || undefined,
-                commercialRegister: viewFormData.commercialRegister || undefined,
-                phone: viewFormData.phone || undefined,
-                mobile: viewFormData.mobile || undefined,
-                email: viewFormData.email || undefined,
-                notes: viewFormData.notes || undefined,
-                initialBalance: Number(viewFormData.initialBalance) || 0,
-                address,
-                additionalContacts
-            };
-
-            const res = await api.patch(`/contacts/${viewContact._id}`, dataToSend);
-            const result = res.data;
-            if (res.status === 200) {
-                await openViewModal({ _id: viewContact._id });
-                fetchSuppliers();
-            } else {
-                alert(result.message || t('sales.common.error_message'));
-            }
-        } catch (err) {
-            alert(t('sales.common.error_message'));
-        } finally {
-            setIsSavingView(false);
+            // Open edit modal
+            getSupplierById(contactToEdit._id);
         }
     };
 
@@ -675,13 +585,14 @@ export default function Suppliers() {
                 )}
             </div>
             {/* View Supplier Modal - with tabs Summary / Invoices / Payments */}
-            {viewContact && viewFormData && (() => {
+            {viewContact && (() => {
+                const addr = viewContact.address || {};
                 return (
                     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                             <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                                 <h2 className={`text-xl font-bold text-gray-800 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.view_supplier')}</h2>
-                                <button type="button" onClick={() => { setViewContact(null); setViewFormData(null); setViewTab('summary'); setSelectedSupplierId(null); if (supplierIdFromUrl) navigate('/dashboard/purchases/suppliers'); }} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
+                                <button type="button" onClick={() => { setViewContact(null); setViewTab('summary'); setSelectedSupplierId(null); if (supplierIdFromUrl) navigate('/dashboard/purchases/suppliers'); }} className="text-gray-400 hover:text-gray-600"><X size={24} /></button>
                             </div>
                             {/* Tabs */}
                             <div className="border-b border-gray-100 flex gap-0">
@@ -709,152 +620,112 @@ export default function Suppliers() {
                                 </div>
                             </div>
                             <div className="flex-1 overflow-y-auto p-6">
-                                {viewTab === 'summary' && viewFormData && (
-                                    <form className="space-y-6">
-                                        {/* Type - Radio buttons */}
-                                        <div>
-                                            <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.type')}</label>
-                                            <div className="flex gap-4 flex-wrap">
-                                                <label className="flex items-center gap-2 cursor-pointer">
-                                                    <input type="radio" name="viewType" value="individual" checked={viewFormData.type === 'individual'} onChange={(e) => setViewFormData({ ...viewFormData, type: e.target.value })} className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
-                                                    <span className="text-sm">{t('sales.suppliers.individual')}</span>
-                                                </label>
-                                                <label className="flex items-center gap-2 cursor-pointer">
-                                                    <input type="radio" name="viewType" value="commercial" checked={viewFormData.type === 'commercial'} onChange={(e) => setViewFormData({ ...viewFormData, type: e.target.value })} className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
-                                                    <span className="text-sm">{t('sales.suppliers.commercial')}</span>
-                                                </label>
-                                            </div>
-                                        </div>
-                                        {/* Code & Name */}
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {viewTab === 'summary' && (
+                                    <div className="space-y-6">
+                                        {/* Type */}
+                                        <div className="flex gap-6 items-center border-b border-gray-100 pb-4">
                                             <div>
-                                                <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.supplier_code')}</label>
-                                                <input type="text" name="code" value={viewFormData.code} onChange={handleViewFormChange} readOnly className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg bg-gray-50 text-sm" />
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('sales.suppliers.type')}</p>
+                                                <p className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                                                    <span className={`w-2 h-2 rounded-full ${viewContact.type === 'commercial' ? 'bg-blue-500' : 'bg-green-500'}`}></span>
+                                                    {viewContact.type === 'commercial' ? t('sales.suppliers.commercial') : t('sales.suppliers.individual')}
+                                                </p>
                                             </div>
                                             <div>
-                                                <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.supplier_name')} <span className="text-red-500">*</span></label>
-                                                <input type="text" name="name" value={viewFormData.name} onChange={handleViewFormChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500" />
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('sales.suppliers.supplier_code')}</p>
+                                                <p className="text-sm font-mono bg-gray-100 px-2 py-0.5 rounded text-gray-700 select-all">{viewContact.code || viewContact._id}</p>
                                             </div>
                                         </div>
-                                        {/* Tax Number & Commercial Register - only for Commercial */}
-                                        {viewFormData.type === 'commercial' && (
-                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                                        {/* Main Info Grid */}
+                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-y-6 gap-x-8">
+                                            <div className="col-span-1 lg:col-span-2">
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('sales.suppliers.supplier_name')}</p>
+                                                <p className="text-lg font-bold text-gray-900">{viewContact.name}</p>
+                                            </div>
+
+                                            {viewContact.type === 'commercial' && (
+                                                <>
+                                                    <div>
+                                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('sales.suppliers.tax_number')}</p>
+                                                        <p className="text-sm font-medium text-gray-800">{viewContact.taxNumber || '—'}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('sales.suppliers.commercial_register')}</p>
+                                                        <p className="text-sm font-medium text-gray-800">{viewContact.commercialRegister || '—'}</p>
+                                                    </div>
+                                                </>
+                                            )}
+
+                                            <div className="col-span-1 lg:col-span-2">
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('sales.common.notes')}</p>
+                                                <p className="text-sm text-gray-600 whitespace-pre-line leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                                    {viewContact.notes || t('sales.common.no_notes')}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Contact Details Section */}
+                                        <div className="pt-6 border-t border-gray-200">
+                                            <h3 className={`text-base font-bold text-gray-900 mb-4 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.contact_details')}</h3>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                                                 <div>
-                                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.tax_number')} <span className="text-red-500">*</span></label>
-                                                    <input type="text" name="taxNumber" value={viewFormData.taxNumber} onChange={handleViewFormChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500" />
+                                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('sales.suppliers.phone')}</p>
+                                                    {viewContact.phone ? (
+                                                        <a href={`tel:${viewContact.phone}`} className="text-sm font-medium text-indigo-600 hover:underline">{viewContact.phone}</a>
+                                                    ) : <span className="text-sm text-gray-400">—</span>}
                                                 </div>
                                                 <div>
-                                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.commercial_register')} <span className="text-red-500">*</span></label>
-                                                    <input type="text" name="commercialRegister" value={viewFormData.commercialRegister} onChange={handleViewFormChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500" />
+                                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('sales.suppliers.mobile')}</p>
+                                                    {viewContact.mobile ? (
+                                                        <a href={`tel:${viewContact.mobile}`} className="text-sm font-medium text-indigo-600 hover:underline">{viewContact.mobile}</a>
+                                                    ) : <span className="text-sm text-gray-400">—</span>}
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t('sales.suppliers.email')}</p>
+                                                    {viewContact.email ? (
+                                                        <a href={`mailto:${viewContact.email}`} className="text-sm font-medium text-indigo-600 hover:underline">{viewContact.email}</a>
+                                                    ) : <span className="text-sm text-gray-400">—</span>}
+                                                </div>
+                                            </div>
+
+                                            {/* Address */}
+                                            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                                                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('sales.suppliers.address')}</p>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
+                                                    {addr.address1 && <p><span className="text-gray-400 w-20 inline-block">{t('sales.suppliers.address1')}:</span> {addr.address1}</p>}
+                                                    {addr.address2 && <p><span className="text-gray-400 w-20 inline-block">{t('sales.suppliers.address2')}:</span> {addr.address2}</p>}
+                                                    {addr.city && <p><span className="text-gray-400 w-20 inline-block">{t('sales.suppliers.city')}:</span> {addr.city}</p>}
+                                                    {addr.neighborhood && <p><span className="text-gray-400 w-20 inline-block">{t('sales.suppliers.neighborhood')}:</span> {addr.neighborhood}</p>}
+                                                    {addr.province && <p><span className="text-gray-400 w-20 inline-block">{t('sales.suppliers.province')}:</span> {addr.province}</p>}
+                                                    {addr.zipCode && <p><span className="text-gray-400 w-20 inline-block">{t('sales.suppliers.zip_code')}:</span> {addr.zipCode}</p>}
+                                                    {addr.country && <p><span className="text-gray-400 w-20 inline-block">{t('sales.suppliers.country')}:</span> {addr.country}</p>}
+
+                                                    {!addr.address1 && !addr.city && <p className="text-gray-400 italic">{t('sales.common.no_address')}</p>}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Additional Contact Persons */}
+                                        {viewContact.additionalContacts && viewContact.additionalContacts.length > 0 && (
+                                            <div className="pt-6 border-t border-gray-200">
+                                                <h3 className={`text-base font-bold text-gray-900 mb-4 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.additional_contacts')}</h3>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {viewContact.additionalContacts.map((ac, index) => (
+                                                        <div key={index} className="p-4 border border-gray-200 rounded-lg bg-white shadow-sm">
+                                                            <p className="font-bold text-gray-900 mb-1">{ac.name}</p>
+                                                            {ac.title && <p className="text-xs text-gray-500 uppercase mb-2">{ac.title}</p>}
+                                                            <div className="space-y-1">
+                                                                {ac.phone && <p className="text-xs text-gray-600 flex items-center gap-2"><span className="w-12 text-gray-400">{t('sales.suppliers.phone')}</span> {ac.phone}</p>}
+                                                                {ac.email && <p className="text-xs text-gray-600 flex items-center gap-2"><span className="w-12 text-gray-400">{t('sales.suppliers.email')}</span> {ac.email}</p>}
+                                                            </div>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         )}
-                                        {/* Notes */}
-                                        <div>
-                                            <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.common.notes')}</label>
-                                            <textarea name="notes" value={viewFormData.notes} onChange={handleViewFormChange} rows={3} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 resize-none" />
-                                        </div>
-                                        {/* Contact Details */}
-                                        <div>
-                                            <label className={`block text-sm font-semibold text-gray-700 mb-3 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.contact_methods')}</label>
-                                            <div className="flex items-center gap-2 flex-wrap mb-3">
-                                                <button type="button" className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg" aria-label="Edit"><Pencil size={18} /></button>
-                                                <label className="flex items-center gap-2 cursor-pointer">
-                                                    <input type="checkbox" checked={viewContactMethods.phone} onChange={() => handleViewContactMethodChange('phone')} className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" />
-                                                    <span className="text-sm">{t('sales.suppliers.phone')}</span>
-                                                </label>
-                                                <label className="flex items-center gap-2 cursor-pointer">
-                                                    <input type="checkbox" checked={viewContactMethods.email} onChange={() => handleViewContactMethodChange('email')} className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" />
-                                                    <span className="text-sm">{t('sales.suppliers.email')}</span>
-                                                </label>
-                                                <label className="flex items-center gap-2 cursor-pointer">
-                                                    <input type="checkbox" checked={viewContactMethods.address} onChange={() => handleViewContactMethodChange('address')} className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500" />
-                                                    <span className="text-sm">{t('sales.suppliers.address')}</span>
-                                                </label>
-                                            </div>
-                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                                <div>
-                                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.phone')}</label>
-                                                    <input type="text" name="phone" value={viewFormData.phone} onChange={handleViewFormChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500" />
-                                                </div>
-                                                <div>
-                                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.mobile')}</label>
-                                                    <input type="text" name="mobile" value={viewFormData.mobile} onChange={handleViewFormChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500" />
-                                                </div>
-                                                <div>
-                                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.email')}</label>
-                                                    <input type="email" name="email" value={viewFormData.email} onChange={handleViewFormChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500" />
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-                                                <div>
-                                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.address1')}</label>
-                                                    <input type="text" name="address1" value={viewFormData.address1} onChange={handleViewFormChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500" />
-                                                </div>
-                                                <div>
-                                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.address2')}</label>
-                                                    <input type="text" name="address2" value={viewFormData.address2} onChange={handleViewFormChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500" />
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                                                <div>
-                                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.city')}</label>
-                                                    <input type="text" name="city" value={viewFormData.city} onChange={handleViewFormChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500" />
-                                                </div>
-                                                <div>
-                                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.neighborhood')}</label>
-                                                    <input type="text" name="neighborhood" value={viewFormData.neighborhood} onChange={handleViewFormChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500" />
-                                                </div>
-                                                <div>
-                                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.province')}</label>
-                                                    <input type="text" name="province" value={viewFormData.province} onChange={handleViewFormChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500" />
-                                                </div>
-                                                <div>
-                                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.zip_code')}</label>
-                                                    <input type="text" name="zipCode" value={viewFormData.zipCode} onChange={handleViewFormChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500" />
-                                                </div>
-                                            </div>
-                                            <div className="mt-4">
-                                                <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.country')}</label>
-                                                <select name="country" value={viewFormData.country} onChange={handleViewFormChange} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 bg-white">
-                                                    <option value="">{t('sales.common.choose')}</option>
-                                                    <option value="saudi">{i18n.language === 'ar' ? 'السعودية' : 'Saudi Arabia'}</option>
-                                                    <option value="egypt">{i18n.language === 'ar' ? 'مصر' : 'Egypt'}</option>
-                                                    <option value="uae">{i18n.language === 'ar' ? 'الإمارات' : 'UAE'}</option>
-                                                    <option value="kuwait">{i18n.language === 'ar' ? 'الكويت' : 'Kuwait'}</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        {/* Additional Contact Persons */}
-                                        <div>
-                                            <p className={`text-base font-semibold text-gray-700 mb-3 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.additional_contacts')}</p>
-                                            {(viewFormData.additionalContacts || []).map((ac, index) => (
-                                                <div key={index} className="flex flex-wrap items-start gap-3 mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50/50">
-                                                    <button type="button" onClick={() => {
-                                                        const updated = viewFormData.additionalContacts.filter((_, i) => i !== index);
-                                                        setViewFormData({ ...viewFormData, additionalContacts: updated });
-                                                    }} className="flex-shrink-0 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600" aria-label="Remove"><Minus size={16} /></button>
-                                                    <div className="flex-1 min-w-[200px]">
-                                                        <label className={`block text-sm font-semibold text-gray-700 mb-1 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.suppliers.contact_name')}</label>
-                                                        <input type="text" value={ac.name} onChange={(e) => {
-                                                            const list = [...viewFormData.additionalContacts];
-                                                            list[index] = { ...list[index], name: e.target.value };
-                                                            setViewFormData({ ...viewFormData, additionalContacts: list });
-                                                        }} className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg" placeholder={t('sales.suppliers.contact_name')} />
-                                                    </div>
-                                                    <div className="flex gap-4 flex-wrap">
-                                                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" className="w-4 h-4 text-blue-600 rounded" readOnly checked /><span className="text-sm">{t('sales.suppliers.phone')}</span></label>
-                                                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" className="w-4 h-4 text-blue-600 rounded" readOnly /><span className="text-sm">{t('sales.suppliers.email')}</span></label>
-                                                        <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" className="w-4 h-4 text-blue-600 rounded" readOnly /><span className="text-sm">{t('sales.suppliers.address')}</span></label>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            <button type="button" onClick={() => setViewFormData({ ...viewFormData, additionalContacts: [...(viewFormData.additionalContacts || []), { name: '', phone: '', email: '', title: '' }] })} className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700">
-                                                <Plus size={18} />
-                                                {t('sales.suppliers.add_new_contact')}
-                                            </button>
-                                        </div>
-                                    </form>
+                                    </div>
                                 )}
                                 {viewTab === 'invoices' && (
                                     <div className="flex flex-col items-center justify-center py-12 text-gray-500">
@@ -868,11 +739,12 @@ export default function Suppliers() {
                                 )}
                             </div>
                             <div className={`border-t border-gray-200 px-6 py-4 flex justify-start gap-3 bg-white sticky bottom-0 ${i18n.language === 'ar' ? 'flex-row' : 'flex-row-reverse'}`}>
-                                <button type="button" onClick={() => { setViewContact(null); setViewFormData(null); setSelectedSupplierId(null); setViewTab('summary'); if (supplierIdFromUrl) navigate('/dashboard/purchases/suppliers'); }} className="border border-gray-300 text-gray-700 px-6 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold">
+                                <button type="button" onClick={() => { setViewContact(null); setSelectedSupplierId(null); setViewTab('summary'); if (supplierIdFromUrl) navigate('/dashboard/purchases/suppliers'); }} className="border border-gray-300 text-gray-700 px-6 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold">
                                     {t('sales.common.close')}
                                 </button>
-                                <button type="button" onClick={handleSaveView} disabled={isSavingView || !viewFormData} className="bg-green-600 text-white px-6 py-2.5 rounded-lg hover:bg-green-700 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed">
-                                    {isSavingView ? t('sales.common.saving') : t('sales.common.save')}
+                                <button type="button" onClick={handleEditFromView} className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg hover:bg-indigo-700 font-semibold flex items-center gap-2">
+                                    <Pencil size={18} />
+                                    {t('sales.suppliers.edit_supplier')}
                                 </button>
                             </div>
                         </div>

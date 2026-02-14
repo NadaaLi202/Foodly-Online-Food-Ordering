@@ -540,7 +540,12 @@
             "initial_balance": "الرصيد الافتتاحي",
             "credit_limit": "حد الائتمان",
             "update": "تحديث",
-            "save_changes": "حفظ التغييرات"
+            "save_changes": "حفظ التغييرات",
+            "choose_product": "اختر المنتج",
+            "description_placeholder": "أدخل الوصف",
+            "safe": "الخزنة / الحساب",
+            "before_tax": "(قبل الضريبة)",
+            "choose_client": "اختر العميل"
         },
         "invoices": {
             "title": "الفواتير",
@@ -602,7 +607,9 @@
             "pdf_empty": "تعذر التقاط محتوى الفاتورة. حاول مرة أخرى.",
             "pdf_tainted": "فشل التصدير (قيود الصور). حاول بدون صور خارجية.",
             "pdf_content_not_ready": "المحتوى غير جاهز. انتظر ثم حاول مرة أخرى.",
-            "pdf_capture_failed": "تعذر التقاط الفاتورة. حاول مرة أخرى أو استخدم الطباعة."
+            "pdf_capture_failed": "تعذر التقاط الفاتورة. حاول مرة أخرى أو استخدم الطباعة.",
+            "issue_invoice": "إصدار الفاتورة",
+            "at_least_one_item": "يجب إضافة بند واحد على الأقل"
         },
         "returns": {
             "title": "فواتير مرتجعات",
@@ -792,6 +799,14 @@
             "view_return": "عرض المرتجع",
             "return_number_placeholder": "PRET-26-1-000001"
         },
+        "requests": {
+            "add_request": "إضافة طلب شراء",
+            "edit_request": "تعديل طلب الشراء",
+            "view_request": "عرض طلب الشراء",
+            "request_number_placeholder": "PREQ-26-1-000001",
+            "no_requests": "لا توجد طلبات شراء",
+            "start_requests": "ابدأ بإنشاء طلبات شراء"
+        },
         "suppliers": {
             "add_title": "إضافة مورد",
             "edit_title": "تعديل المورد",
@@ -807,7 +822,16 @@
             "save": "حفظ",
             "update": "تحديث",
             "cancel": "إلغاء",
-            "delete": "حذف"
+            "delete": "حذف",
+            "address1": "العنوان الأول",
+            "address2": "العنوان الثاني",
+            "district": "حي",
+            "city": "مدينة",
+            "postal_code": "رمز بريدي",
+            "province": "محافظة",
+            "country": "دولة",
+            "choose_country": "اختر",
+            "job_title": "المسمى الوظيفي"
         }
     },
     "stocked": {

@@ -161,9 +161,9 @@ const contactSchema = new mongoose.Schema({
 
 }, { timestamps: true });
 
-contactSchema.index({ code: 1, companyId: 1 }, { unique: true, sparse: true });
-contactSchema.index({ taxNumber: 1, companyId: 1 }, { unique: true, sparse: true });
-contactSchema.index({ commercialRegister: 1, companyId: 1 }, { unique: true, sparse: true });
+contactSchema.index({ code: 1, companyId: 1 }, { unique: true, partialFilterExpression: { code: { $exists: true } } });
+contactSchema.index({ taxNumber: 1, companyId: 1 }, { unique: true, partialFilterExpression: { taxNumber: { $exists: true } } });
+contactSchema.index({ commercialRegister: 1, companyId: 1 }, { unique: true, partialFilterExpression: { commercialRegister: { $exists: true } } });
 
 
 // Pre-save

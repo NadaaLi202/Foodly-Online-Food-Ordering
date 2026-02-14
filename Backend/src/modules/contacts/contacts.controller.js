@@ -1,6 +1,7 @@
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
 import Contact from "./contacts.model.js";
+import Transaction from "../transaction/transaction.model.js";
 
 const CODE_PREFIX = "1";
 const CODE_PATTERN = /^(\d+)-(\d+)$/;
@@ -27,6 +28,8 @@ async function getNextContactCode(companyId, module) {
 // ========== ADD ==========
 const addContact = (module) =>
     catchAsyncError(async (req, res, next) => {
+
+
         const opData = { ...req.body };
 
         // For individual contacts, remove taxNumber and commercialRegister entirely
@@ -76,6 +79,9 @@ const addContact = (module) =>
                 if (shouldAutoGenerateCode && attempt > 0) {
                     opData.code = await getNextContactCode(companyId, module);
                 }
+
+
+
                 const contact = await Contact.create({
                     ...opData,
                     module,
@@ -88,6 +94,7 @@ const addContact = (module) =>
                 });
             } catch (err) {
                 lastError = err;
+                console.error('AddContact Error:', err.message, err.code, err.keyPattern);
                 if (err.code === 11000 && err.keyPattern?.code && shouldAutoGenerateCode) {
                     continue;
                 }
@@ -172,6 +179,14 @@ const updateContact = catchAsyncError(async (req, res, next) => {
         }
     }
 
+    // Handle address update safely - merge with existing or replace if full object provided
+    // Ideally frontend sends full object. We will assign opData properties.
+    if (opData.address) {
+        contact.address = { ...contact.address, ...opData.address };
+        delete opData.address; // Handled manually
+    }
+
+    // Assign other fields
     Object.assign(contact, opData);
     contact.lastModifiedBy = req.user?._id;
 
@@ -185,7 +200,26 @@ const updateContact = catchAsyncError(async (req, res, next) => {
 
 // ========== DELETE ==========
 const deleteContact = catchAsyncError(async (req, res, next) => {
-    const contact = await Contact.findOneAndDelete({ _id: req.params.id, ...req.companyFilter });
+    // Check for existing transactions first
+    const hasTransactions = await Transaction.findOne({
+        contact: req.params.id,
+        deletedAt: null,
+        companyId: req.user?.companyId
+    });
+
+    if (hasTransactions) {
+        return next(new AppError("لا يمكن حذف المورد لوجود تعاملات (فواتير/طلبات) مرتبطة به. يمكنك أرشفته بدلاً من ذلك.", 400));
+    }
+
+    // Perform Soft Delete
+    const contact = await Contact.findOneAndUpdate(
+        { _id: req.params.id, ...req.companyFilter },
+        {
+            deletedAt: new Date(),
+            deletedBy: req.user?._id
+        },
+        { new: true }
+    );
 
     if (!contact) return next(new AppError("غير موجود", 404));
 

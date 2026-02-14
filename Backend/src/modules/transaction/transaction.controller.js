@@ -205,7 +205,7 @@ const deleteOne = catchAsyncError(async (req, res, next) => {
 const docTypeLabel = (module, documentType) => {
     const labels = {
         sales: { invoice: "Invoice", return: "Return", quotation: "Quotation" },
-        purchases: { invoice: "Purchase Invoice", return: "Purchase Return", purchaseOrder: "Purchase Order" }
+        purchases: { invoice: "Purchase Invoice", return: "Purchase Return", purchaseOrder: "Purchase Order", request: "Purchase Request" }
     };
     return labels[module]?.[documentType] || "Document";
 };

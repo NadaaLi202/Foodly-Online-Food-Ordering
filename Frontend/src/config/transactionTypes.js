@@ -91,6 +91,21 @@ export const getTransactionConfig = (key) => {
             filenamePrefix: 'PurchaseReturn',
             numberPlaceholderKey: 'purchases.returns.return_number_placeholder',
         },
+        purchases_requests: {
+            listUrl: '/transactions/purchases/requests',
+            createUrl: '/transactions/purchases/requests',
+            getOneUrl: (id) => `/transactions/${id}`,
+            contactType: 'suppliers',
+            clientLabelKey: 'purchases.invoices.supplier',
+            localePrefix: 'purchases.requests',
+            noItemsKey: 'purchases.requests.no_requests',
+            startKey: 'purchases.requests.start_requests',
+            addTitleKey: 'purchases.requests.add_request', // You might need to add this key to locales if missing
+            editTitleKey: 'purchases.requests.edit_request', // You might need to add this key to locales if missing
+            viewTitleKey: 'purchases.requests.view_request', // You might need to add this key to locales if missing
+            filenamePrefix: 'PurchaseRequest',
+            numberPlaceholderKey: 'purchases.requests.request_number_placeholder', // You might need to add this key to locales if missing
+        },
     };
     return configs[key] || configs.sales_invoices;
 };
