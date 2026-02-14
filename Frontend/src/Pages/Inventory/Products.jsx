@@ -35,6 +35,12 @@ const Products = () => {
         taxRate: 14
     });
 
+    const getImageUrl = (imagePath) => {
+        if (!imagePath) return null;
+        if (imagePath.startsWith('http')) return imagePath;
+        return `${BASE_URL}${imagePath}`;
+    };
+
 
     // Fetch products from API
     const fetchProducts = async (search = '') => {
@@ -205,11 +211,15 @@ const Products = () => {
                 formDataToSend.append('image', uploadedImage);
             }
 
-            // Axios automatically handles FormData content-type
+            // Axios automatically handles FormData content-type IF the default is not force-set to JSON
+            // We set it to undefined here to allow Axios to set the correct multipart header with boundary
             const response = await api({
                 method,
                 url,
-                data: formDataToSend
+                data: formDataToSend,
+                headers: {
+                    'Content-Type': undefined
+                }
             });
 
             alert(i18n.language === 'ar'
@@ -263,7 +273,7 @@ const Products = () => {
 
         // Set image preview if product has an image
         if (product.image) {
-            setImagePreview(`${BASE_URL}${product.image}`);
+            setImagePreview(getImageUrl(product.image));
         } else {
             setImagePreview(null);
         }
@@ -388,7 +398,7 @@ const Products = () => {
                                             <div className="flex items-center">
                                                 {product.image ? (
                                                     <img
-                                                        src={`${BASE_URL}${product.image}`}
+                                                        src={getImageUrl(product.image)}
                                                         alt={product.name}
                                                         className="h-10 w-10 flex-shrink-0 rounded-lg object-cover"
                                                         onError={(e) => {

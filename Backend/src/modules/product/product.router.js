@@ -10,10 +10,10 @@ const productRouter = express.Router();
 
 productRouter.use(protectedRoutes, applyCompanyFilter);
 
-productRouter.post('/', uploadSingleFile(['image'], 'image'), validation(addProductSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), addProduct)
+productRouter.post('/', uploadSingleFile(['image/'], 'image'), validation(addProductSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), addProduct)
 productRouter.get('/', allowedTo("superAdmin", "admin", "accountant", "employee"), getAllProducts)
 productRouter.get('/:id', allowedTo("superAdmin", "admin", "accountant", "employee"), getProductById)
-productRouter.put('/:id', uploadSingleFile(['image'], 'image'), validation(updateProductSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), updateProduct)
+productRouter.put('/:id', uploadSingleFile(['image/'], 'image'), validation(updateProductSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), updateProduct)
 productRouter.delete('/:id', allowedTo("superAdmin", "admin"), deleteProduct)
 
 export default productRouter;

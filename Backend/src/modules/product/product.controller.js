@@ -17,11 +17,24 @@ const addProduct = catchAsyncError(async (req, res, next) => {
     }
     // For others, middleware sets req.body.companyId = req.user.companyId
 
+    // Clean image field if it's an unexpected object (prevent CastError)
+    if (productData.image && typeof productData.image !== 'string') {
+        delete productData.image;
+    }
+
     // Add image path if file was uploaded
     if (req.file) {
+        console.log('[DEBUG] Image file received:', {
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size
+        });
         const result = await uploadToCloudinary(req.file.buffer, 'products');
+        console.log('[DEBUG] Cloudinary upload result:', result);
         productData.image = result.secure_url;
         productData.imagePublicId = result.public_id;
+    } else {
+        console.log('[DEBUG] No image file received (req.file is undefined)');
     }
 
     const product = new productModel(productData);
@@ -61,15 +74,28 @@ const updateProduct = catchAsyncError(async (req, res, next) => {
 
     const updateData = { ...req.body };
 
+    // Clean image field if it's an unexpected object (prevent CastError)
+    if (updateData.image && typeof updateData.image !== 'string') {
+        delete updateData.image;
+    }
+
     // Handle image update
     if (req.file) {
+        console.log('[DEBUG] Image file received for update:', {
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size
+        });
         // Delete old image if exists
         if (existingProduct.imagePublicId) {
             await deleteFromCloudinary(existingProduct.imagePublicId);
         }
         const result = await uploadToCloudinary(req.file.buffer, 'products');
+        console.log('[DEBUG] Cloudinary update result:', result);
         updateData.image = result.secure_url;
         updateData.imagePublicId = result.public_id;
+    } else {
+        console.log('[DEBUG] No image file received for update');
     }
 
     let product = await productModel.findOneAndUpdate(

@@ -218,6 +218,7 @@ function App() {
 
             <Route path="users">
               <Route index element={<Users />} />
+              <Route index element={<Contacts />} />
               <Route path="roles" element={<Roles />} />
             </Route>
 

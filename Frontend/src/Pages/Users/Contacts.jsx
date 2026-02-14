@@ -3,6 +3,7 @@ import { Plus, Search, RefreshCw, X, Phone, MapPin, Mail, User, Building, FileTe
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
+import { prepareContactPayload } from '../../utils/contactUtils';
 
 const Contacts = () => {
     const { t, i18n } = useTranslation();
@@ -17,6 +18,7 @@ const Contacts = () => {
     // Form State
     const [formData, setFormData] = useState({
         name: '',
+        type: 'individual',
         phone: '',
         email: '',
         address: '',
@@ -74,6 +76,16 @@ const Contacts = () => {
         // Phone is optional but if provided should be valid-ish? backend doesn't seem to enforce strict regex
         if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = i18n.language === 'ar' ? 'بريد إلكتروني غير صالح' : 'Invalid email';
 
+        // Conditional validation based on type
+        if (formData.type === 'commercial') {
+            if (!formData.taxNumber || !formData.taxNumber.trim()) {
+                newErrors.taxNumber = t('sales.common.required');
+            }
+            if (!formData.commercialRecord || !formData.commercialRecord.trim()) {
+                newErrors.commercialRecord = t('sales.common.required');
+            }
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -85,6 +97,7 @@ const Contacts = () => {
             setSelectedContactId(contact._id);
             setFormData({
                 name: contact.name || '',
+                type: contact.type || 'individual',
                 phone: contact.phone || '',
                 email: contact.email || '',
                 address: contact.address || '',
@@ -97,6 +110,7 @@ const Contacts = () => {
         } else {
             setFormData({
                 name: '',
+                type: 'individual',
                 phone: '',
                 email: '',
                 address: '',
@@ -137,10 +151,14 @@ const Contacts = () => {
             // Let's send type just in case, though the route `/contacts/customers` calls `createCustomer` which likely sets type.
             // Actually, the previous code didn't send 'type', so the endpoint handles it.
 
-            const payload = {
-                ...formData,
-                type: activeModule // Just to be safe, though route likely handles it
-            };
+
+            const payload = prepareContactPayload(formData);
+            // activeModule is handled by the endpoint URL (/customers or /suppliers), so no need to send it in body if controller/route handles it.
+            // But checking previous code, it was sending `type: activeModule`. This was likely wrong or mapped to something else? 
+            // In backend routes validation, type enum is individual/commercial. contactSchema requires module enum customer/supplier.
+            // The controller injects module. So we just need to send type (individual/commercial).
+
+            // Clean payload is ready.
 
             await api({
                 method,
@@ -370,6 +388,41 @@ const Contacts = () => {
                                         {errors.name && <p className="text-red-500 text-xs mt-1 font-bold">{errors.name}</p>}
                                     </div>
 
+                                    {/* Contact Type Selector */}
+                                    <div className="col-span-2">
+                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                            {i18n.language === 'ar' ? 'نوع العميل' : 'Contact Type'}
+                                        </label>
+                                        <div className="flex gap-4">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="type"
+                                                    value="individual"
+                                                    checked={formData.type === 'individual'}
+                                                    onChange={handleInputChange}
+                                                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                                                />
+                                                <span className="font-bold text-gray-700">
+                                                    {i18n.language === 'ar' ? 'فردي' : 'Individual'}
+                                                </span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="type"
+                                                    value="commercial"
+                                                    checked={formData.type === 'commercial'}
+                                                    onChange={handleInputChange}
+                                                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500"
+                                                />
+                                                <span className="font-bold text-gray-700">
+                                                    {i18n.language === 'ar' ? 'تجاري' : 'Commercial'}
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                                             {t('sales.customers.phone')}
@@ -402,29 +455,33 @@ const Contacts = () => {
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                                             {t('sales.customers.tax_number')}
+                                            {formData.type === 'commercial' && <span className="text-red-500 ml-1">*</span>}
                                         </label>
                                         <input
                                             type="text"
                                             name="taxNumber"
                                             value={formData.taxNumber}
                                             onChange={handleInputChange}
-                                            className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                            className={`w-full bg-gray-50 border-2 ${errors.taxNumber ? 'border-red-500' : 'border-gray-100'} rounded-xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all`}
                                             placeholder="3xxxxxxxxxxxxx"
                                         />
+                                        {errors.taxNumber && <p className="text-red-500 text-xs mt-1 font-bold">{errors.taxNumber}</p>}
                                     </div>
 
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                                             {t('sales.customers.commercial_record')}
+                                            {formData.type === 'commercial' && <span className="text-red-500 ml-1">*</span>}
                                         </label>
                                         <input
                                             type="text"
                                             name="commercialRecord"
                                             value={formData.commercialRecord}
                                             onChange={handleInputChange}
-                                            className="w-full bg-gray-50 border-2 border-gray-100 rounded-xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                                            className={`w-full bg-gray-50 border-2 ${errors.commercialRecord ? 'border-red-500' : 'border-gray-100'} rounded-xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all`}
                                             placeholder="1xxxxxxxxx"
                                         />
+                                        {errors.commercialRecord && <p className="text-red-500 text-xs mt-1 font-bold">{errors.commercialRecord}</p>}
                                     </div>
 
                                     <div className="col-span-2">
