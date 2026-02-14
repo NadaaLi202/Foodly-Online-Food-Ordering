@@ -35,6 +35,7 @@ import PermissionsFinance from './Pages/Finance/Permissions';
 import Safes from './Pages/Finance/Safes';
 import BankAccounts from './Pages/Finance/BankAccounts';
 import Contacts from './Pages/Users/Contacts';
+import Users from './Pages/Users/Users';
 import Roles from './Pages/Users/Roles';
 import LandingPage from './Pages/LandingPage';
 import Login from './Pages/login';
@@ -216,6 +217,7 @@ function App() {
             </Route>
 
             <Route path="users">
+              <Route index element={<Users />} />
               <Route index element={<Contacts />} />
               <Route path="roles" element={<Roles />} />
             </Route>

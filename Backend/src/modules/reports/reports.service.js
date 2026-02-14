@@ -113,7 +113,17 @@ export async function getSalesSummary(startDate, endDate, companyFilter) {
         };
     });
 
-    return data;
+    const grandTotals = {
+        totalInvoices: data.reduce((acc, r) => acc + r.totalInvoices, 0),
+        totalReturns: data.reduce((acc, r) => acc + r.totalReturns, 0),
+        totalSalesDiscounts: data.reduce((acc, r) => acc + r.totalSalesDiscounts, 0),
+        netSalesDiscounts: data.reduce((acc, r) => acc + r.netSalesDiscounts, 0),
+        netSales: data.reduce((acc, r) => acc + r.netSales, 0),
+        totalPaid: data.reduce((acc, r) => acc + r.totalPaid, 0),
+        totalRemaining: data.reduce((acc, r) => acc + r.totalRemaining, 0),
+    };
+
+    return { data, grandTotals };
 }
 
 /**
@@ -188,7 +198,7 @@ export async function getPurchasesSummary(startDate, endDate, companyFilter) {
         ]),
     ].sort();
 
-    return months.map((month) => {
+    const data = months.map((month) => {
         const inv = (invByMonth || []).find((r) => r._id === month) || {};
         const ret = returnMap[month] || {};
         const ord = orderMap[month] || {};
@@ -219,6 +229,17 @@ export async function getPurchasesSummary(startDate, endDate, companyFilter) {
             netPurchases,
         };
     });
+
+    const grandTotals = {
+        totalInvoices: data.reduce((acc, r) => acc + r.totalInvoices, 0),
+        totalReturns: data.reduce((acc, r) => acc + r.totalReturns, 0),
+        totalOrders: data.reduce((acc, r) => acc + r.totalOrders, 0),
+        totalPurchasesDiscounts: data.reduce((acc, r) => acc + r.totalPurchasesDiscounts, 0),
+        netPurchasesDiscounts: data.reduce((acc, r) => acc + r.netPurchasesDiscounts, 0),
+        netPurchases: data.reduce((acc, r) => acc + r.netPurchases, 0),
+    };
+
+    return { data, grandTotals };
 }
 
 /**

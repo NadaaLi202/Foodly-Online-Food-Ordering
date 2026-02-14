@@ -146,7 +146,7 @@ const Branches = () => {
         if (!(formData.name || '').trim()) newErrors.push(t('branches_page.validation.name_required'));
         if (!(formData.code || '').trim()) newErrors.push(t('branches_page.validation.code_required'));
         if (!formData.country) newErrors.push(t('branches_page.validation.country_required'));
-        if (!Array.isArray(formData.partners) || formData.partners.length === 0) newErrors.push(t('branches_page.validation.partners_required'));
+        if (!formData.partners || (Array.isArray(formData.partners) && formData.partners.length === 0)) newErrors.push(t('branches_page.validation.partners_required'));
         if (!formData.activity) newErrors.push(t('branches_page.validation.activity_required'));
         setErrors(newErrors);
         return newErrors.length === 0;
@@ -224,7 +224,12 @@ const Branches = () => {
         if (!validateForm()) return;
         setSubmitLoading(true);
         try {
-            const partners = Array.isArray(formData.partners) ? formData.partners.filter(Boolean) : [];
+            let partners = [];
+            if (Array.isArray(formData.partners)) {
+                partners = formData.partners.filter(Boolean);
+            } else if (formData.partners) {
+                partners = [formData.partners];
+            }
             const payload = {
                 name: formData.name.trim(),
                 code: formData.code.trim(),
@@ -275,7 +280,7 @@ const Branches = () => {
             country: branch.country || 'EG',
             phone: branch.phone || '',
             commercialRegister: branch.commercialRegister || '',
-            partners,
+            partners: partnerIds.length > 0 ? partnerIds[0] : (fallbackPartner || ''),
             activity: branch.activity?._id ?? branch.activity ?? '',
             status: branch.status || 'active',
         });
@@ -368,28 +373,31 @@ const Branches = () => {
                 <table className="w-full text-sm text-start">
                     <thead className="bg-gray-50 text-gray-600 font-bold border-b border-gray-100">
                         <tr>
-                            
                             <th className="px-6 py-4 text-start">{t('branches_page.title')}</th>
                             <th className="px-6 py-4 text-start">{t('branches_page.activity')}</th>
                             <th className="px-6 py-4 text-start">{t('branches_page.partners_list')}</th>
+                            <th className="px-6 py-4 text-start">{t('common.actions', 'Actions')}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                         {loading ? (
                             <tr>
-                                <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                                     {t('sales.common.loading', 'Loading...')}
                                 </td>
                             </tr>
                         ) : filteredBranches.length === 0 ? (
                             <tr>
-                                <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                                     {searchTerm ? t('sales.common.no_results', 'No results found') : t('branches_page.no_branches_yet', 'No branches yet. Add a branch to get started.')}
                                 </td>
                             </tr>
                         ) : (
                             filteredBranches.map((branch) => (
                                 <tr key={branch._id} className="hover:bg-gray-50/80 transition-colors group">
+                                    <td className="px-6 py-4 text-gray-700 font-bold">{branch.name} {branch.code ? `#${branch.code}` : ''}</td>
+                                    <td className="px-6 py-4 text-gray-600">{getActivityName(branch.activity?._id ?? branch.activity)}</td>
+                                    <td className="px-6 py-4 text-gray-600">{getPartnerListName(branch.partnerList?._id ?? branch.partnerList ?? (branch.partners?.[0]?._id ?? branch.partners?.[0]))}</td>
                                     <td className="px-6 py-4 flex items-center gap-2">
                                         <button
                                             type="button"
@@ -416,9 +424,6 @@ const Branches = () => {
                                             {t('accounting.chart_of_accounts.delete')}
                                         </button>
                                     </td>
-                                    <td className="px-6 py-4 text-gray-700 font-bold">{branch.name} {branch.code ? `#${branch.code}` : ''}</td>
-                                    <td className="px-6 py-4 text-gray-600">{getActivityName(branch.activity?._id ?? branch.activity)}</td>
-                                    <td className="px-6 py-4 text-gray-600">{getPartnerListName(branch.partnerList?._id ?? branch.partnerList ?? (branch.partners?.[0]?._id ?? branch.partners?.[0]))}</td>
                                 </tr>
                             ))
                         )}
@@ -572,32 +577,21 @@ const Branches = () => {
                                         <label className="block text-sm font-bold text-gray-700 text-start">
                                             {t('branches_page.partners_list')} <span className="text-red-500">*</span>
                                         </label>
-                                        <div className="min-h-[44px] max-h-40 overflow-y-auto border border-gray-200 rounded-lg px-3 py-2 bg-white focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500">
-                                            {partnerLists.length === 0 ? (
-                                                <p className="text-xs text-amber-600 py-1 text-start">{t('branches_page.no_partner_lists_hint', 'No partner lists yet. Add one from Partners Lists page.')}</p>
-                                            ) : (
-                                                partnerLists.map((pl) => {
-                                                    const isDefault = !pl.name || /default|افتراض|الافتراضية/i.test(pl.name);
-                                                    const label = isDefault ? t('branches_page.default_partners') : pl.name;
-                                                    const checked = Array.isArray(formData.partners) && formData.partners.includes(pl._id);
-                                                    return (
-                                                        <label key={pl._id} className="flex items-center gap-2 py-1.5 cursor-pointer hover:bg-gray-50 rounded px-1 -mx-1">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={checked}
-                                                                onChange={() => {
-                                                                    const current = Array.isArray(formData.partners) ? formData.partners : [];
-                                                                    const next = checked ? current.filter((id) => id !== pl._id) : [...current, pl._id];
-                                                                    setFormData({ ...formData, partners: next });
-                                                                }}
-                                                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                                            />
-                                                            <span className="text-gray-700 text-sm">{label}</span>
-                                                        </label>
-                                                    );
-                                                })
-                                            )}
-                                        </div>
+                                        <select
+                                            value={Array.isArray(formData.partners) ? formData.partners[0] || '' : formData.partners || ''}
+                                            onChange={(e) => setFormData({ ...formData, partners: e.target.value ? [e.target.value] : [] })}
+                                            className="w-full h-11 px-4 border border-gray-200 rounded-lg focus:outline-none focus:border-indigo-500 text-gray-700 text-start appearance-none bg-white"
+                                        >
+                                            <option value="">{t('branches_page.choose')}</option>
+                                            {partnerLists.map((pl) => {
+                                                const isDefault = !pl.name || /default|افتراض|الافتراضية/i.test(pl.name);
+                                                const label = isDefault ? t('branches_page.default_partners') : pl.name;
+                                                return <option key={pl._id} value={pl._id}>{label}</option>;
+                                            })}
+                                        </select>
+                                        {partnerLists.length === 0 && (
+                                            <p className="text-xs text-amber-600 mt-1 text-start">{t('branches_page.no_partner_lists_hint', 'No partner lists yet. Add one from Partners Lists page.')}</p>
+                                        )}
                                     </div>
                                     <div className="space-y-1.5">
                                         <label className="block text-sm font-bold text-gray-700 text-start">

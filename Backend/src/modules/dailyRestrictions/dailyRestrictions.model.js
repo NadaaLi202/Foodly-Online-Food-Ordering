@@ -62,6 +62,37 @@ const dailyRestrictionSchema = new mongoose.Schema({
     timestamps: true
 });
 
+dailyRestrictionSchema.pre('save', async function (next) {
+    if (!this.number) {
+        try {
+            const date = this.date || new Date();
+            const year = String(date.getFullYear()).slice(-2);
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const prefix = `${year}-${month}-`;
+
+            const lastEntry = await this.constructor.findOne({
+                companyId: this.companyId,
+                number: new RegExp(`^${prefix}`)
+            }).sort({ number: -1 });
+
+            let nextSequence = 1;
+            if (lastEntry && lastEntry.number) {
+                const parts = lastEntry.number.split('-');
+                if (parts.length === 3) {
+                    const lastNum = parseInt(parts[2]);
+                    if (!isNaN(lastNum)) {
+                        nextSequence = lastNum + 1;
+                    }
+                }
+            }
+            this.number = `${prefix}${String(nextSequence).padStart(6, '0')}`;
+        } catch (error) {
+            return next(error);
+        }
+    }
+    next();
+});
+
 dailyRestrictionSchema.index({ number: 1, companyId: 1 }, { unique: true });
 
 export const dailyRestrictionModel = mongoose.model('DailyRestriction', dailyRestrictionSchema);

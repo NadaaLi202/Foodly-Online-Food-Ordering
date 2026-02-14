@@ -15,7 +15,7 @@ const entryItemSchema = Joi.object({
 });
 
 export const addRestrictionSchema = Joi.object({
-    number: Joi.string().required().trim(),
+    number: Joi.string().optional().trim(),
     date: Joi.date().required(),
     description: Joi.string().allow('').optional(),
     source: Joi.string().allow('').optional().trim(),

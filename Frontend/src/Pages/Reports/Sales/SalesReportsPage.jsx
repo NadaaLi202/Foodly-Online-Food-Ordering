@@ -14,7 +14,7 @@ const SalesReportsPage = () => {
             icon: FileText,
             iconBg: 'bg-orange-50',
             iconColor: 'text-orange-500',
-            summaryLink: '/dashboard/reports/sales/summary',
+            summaryLink: '/dashboard/reports/sales/detailed?tab=summary',
             detailedLink: '/dashboard/reports/sales/detailed',
         },
         {
@@ -24,7 +24,7 @@ const SalesReportsPage = () => {
             icon: CreditCard,
             iconBg: 'bg-purple-50',
             iconColor: 'text-purple-500',
-            summaryLink: '/dashboard/reports/sales/payments-summary',
+            summaryLink: '/dashboard/reports/sales/payments-detailed?tab=summary',
             detailedLink: '/dashboard/reports/sales/payments-detailed',
         },
     ];
