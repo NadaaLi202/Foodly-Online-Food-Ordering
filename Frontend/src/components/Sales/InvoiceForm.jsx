@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AddContactModal from './AddContactModal';
+import AddSupplierModal from '../AddSupplierModal';
 import AttachmentsSection from '../AttachmentsSection';
 import api from '../../services/api';
 import { SUPPORTED_CURRENCIES } from '../../utils/currencyFormatter';
@@ -144,8 +145,6 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                 newItems[index].description = product.description || '';
             } else {
                 newItems[index].productId = '';
-                // Optional: clear description/price if user types something random? 
-                // For now just clearing ID is key for validation
             }
         }
 
@@ -199,6 +198,16 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
 
         const total = subtotal + totalTax - invDiscountAmount;
         return { subtotal, totalTax, total, invDiscountAmount };
+    };
+
+    const totals = calculateTotals();
+
+    const handlePaidInFullChange = (e) => {
+        if (e.target.checked) {
+            setFormData({ ...formData, paidAmount: totals.total });
+        } else {
+            setFormData({ ...formData, paidAmount: 0 });
+        }
     };
 
     const handleDeleteExistingAttachment = async (index) => {
@@ -277,14 +286,17 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
         onSave(formDataToSend);
     };
 
-    const totals = calculateTotals();
-
     return (
+<<<<<<< productImage/individualBusiness
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 font-sans backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
+=======
         <div className="fixed inset-0 backdrop-blur-md bg-black/20 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
+>>>>>>> main
                 {/* Modal Header */}
-                <div className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-10 font-sans">
-                    <h2 className="text-lg font-black text-gray-800">
+                <div className="bg-white px-8 py-5 flex items-center justify-between border-b border-gray-100 flex-shrink-0">
+                    <h2 className="text-xl font-bold text-gray-800">
                         {invoice ? editTitle : addTitle}
                     </h2>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -293,26 +305,35 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                 </div>
 
                 {/* Modal Body */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6 font-sans">
-                    <form id="invoice-form" onSubmit={handleSubmit} className="space-y-6">
-                        {/* Top Info */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div>
-                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">
+                <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                    <form id="invoice-form" onSubmit={handleSubmit} className="space-y-8">
+                        {/* Top Info Row: Number - Issue Date - Due Date */}
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+                            {/* Invoice Number */}
+                            <div className="md:col-span-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
                                     {t('sales.invoices.invoice_number')}
                                 </label>
-                                <input
-                                    type="text"
-                                    name="invoiceNumber"
-                                    value={formData.invoiceNumber}
-                                    onChange={handleInputChange}
-                                    className={`w-full border-2 ${errors.invoiceNumber ? 'border-red-500' : 'border-gray-100'} rounded-lg px-3 py-2 text-sm font-bold text-gray-700 focus:outline-none focus:border-indigo-500 transition-colors`}
-                                    placeholder={numberPlaceholder}
-                                />
-                                {errors.invoiceNumber && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.invoiceNumber}</p>}
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        name="invoiceNumber"
+                                        value={formData.invoiceNumber}
+                                        onChange={handleInputChange}
+                                        className={`w-full bg-gray-50 border ${errors.invoiceNumber ? 'border-red-500' : 'border-gray-200'} rounded-lg px-4 py-2.5 text-sm font-bold text-gray-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-left`}
+                                        placeholder={numberPlaceholder}
+                                        dir="ltr"
+                                    />
+                                    <div className={`absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400`}>
+                                        <Pencil size={14} />
+                                    </div>
+                                </div>
+                                {errors.invoiceNumber && <p className="text-red-500 text-xs mt-1 font-bold">{errors.invoiceNumber}</p>}
                             </div>
-                            <div>
-                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">
+
+                            {/* Issue Date */}
+                            <div className="md:col-span-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
                                     {t('sales.invoices.issue_date')}
                                 </label>
                                 <input
@@ -320,11 +341,13 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                                     name="issueDate"
                                     value={formData.issueDate}
                                     onChange={handleInputChange}
-                                    className="w-full border-2 border-gray-100 rounded-lg px-3 py-2 text-sm font-bold text-gray-700 focus:outline-none focus:border-indigo-500 transition-colors"
+                                    className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                                 />
                             </div>
-                            <div>
-                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">
+
+                            {/* Due Date */}
+                            <div className="md:col-span-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
                                     {t('sales.invoices.due_date')}
                                 </label>
                                 <input
@@ -332,99 +355,70 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                                     name="dueDate"
                                     value={formData.dueDate}
                                     onChange={handleInputChange}
-                                    className="w-full border-2 border-gray-100 rounded-lg px-3 py-2 text-sm font-bold text-gray-700 focus:outline-none focus:border-indigo-500 transition-colors"
+                                    className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                                 />
                             </div>
                         </div>
 
-                        {/* Client Selection */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Client/Supplier Row */}
+                        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
                             <div>
-                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">
-                                    {clientLabel}
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    {clientLabel} <span className="text-red-500">*</span>
                                 </label>
-                                <div className="flex gap-2">
-                                    <select
-                                        name="clientId"
-                                        value={formData.clientId}
-                                        onChange={handleClientChange}
-                                        className={`flex-1 border-2 ${errors.clientId ? 'border-red-500' : 'border-gray-100'} rounded-lg px-3 py-2 text-sm font-bold text-gray-700 focus:outline-none focus:border-indigo-500 bg-white transition-colors`}
-                                    >
-                                        <option value="">{t('sales.common.select')}</option>
-                                        {clients.map(client => (
-                                            <option key={client._id} value={client._id}>{client.name}</option>
-                                        ))}
-                                    </select>
+                                <div className="flex gap-3">
+                                    <div className="relative flex-1">
+                                        <select
+                                            name="clientId"
+                                            value={formData.clientId}
+                                            onChange={handleClientChange}
+                                            className={`w-full appearance-none bg-white border ${errors.clientId ? 'border-red-500' : 'border-gray-200'} rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all`}
+                                        >
+                                            <option value="">{t('sales.common.choose_client') || t('sales.common.select')}</option>
+                                            {clients.map(client => (
+                                                <option key={client._id} value={client._id}>{client.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
                                     <button
                                         type="button"
                                         onClick={() => setShowAddContactModal(true)}
-                                        className="bg-indigo-50 text-indigo-600 border-2 border-indigo-100 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-all flex items-center gap-1.5 text-xs font-black"
+                                        className="bg-indigo-50 text-indigo-600 border border-indigo-100 px-5 py-2.5 rounded-lg hover:bg-indigo-100 transition-all flex items-center gap-2 text-sm font-bold whitespace-nowrap"
                                     >
-                                        <Plus size={14} />
-                                        <span>{t('sales.common.add_client')}</span>
+                                        <Plus size={16} />
+                                        <span>{t('sales.common.new')}</span>
                                     </button>
                                 </div>
-                                {errors.clientId && <p className="text-red-500 text-[10px] mt-1 font-bold">{errors.clientId}</p>}
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">
-                                    {t('sales.common.warehouse')}
-                                </label>
-                                <select
-                                    name="warehouse"
-                                    value={formData.warehouse}
-                                    onChange={handleInputChange}
-                                    className="w-full border-2 border-gray-100 rounded-lg px-3 py-2 text-sm font-bold text-gray-700 focus:outline-none focus:border-indigo-500 bg-white transition-colors"
-                                >
-                                    <option value="">{t('sales.common.select_warehouse')}</option>
-                                    <option value="main">{t('sales.common.main_warehouse')}</option>
-                                    <option value="secondary">{t('sales.common.secondary_warehouse')}</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest">
-                                    {t('currency')}
-                                </label>
-                                <select
-                                    name="currency"
-                                    value={formData.currency || 'EGP'}
-                                    onChange={handleInputChange}
-                                    className="w-full border-2 border-gray-100 rounded-lg px-3 py-2 text-sm font-bold text-gray-700 focus:outline-none focus:border-indigo-500 bg-white transition-colors"
-                                >
-                                    {SUPPORTED_CURRENCIES.map(code => (
-                                        <option key={code} value={code}>{t(`currencies.${code}`)}</option>
-                                    ))}
-                                </select>
+                                {errors.clientId && <p className="text-red-500 text-xs mt-1 font-bold">{errors.clientId}</p>}
                             </div>
                         </div>
 
                         {/* Items Table */}
-                        <div className="border border-gray-100 rounded-xl overflow-hidden font-sans shadow-sm">
+                        <div className="border border-gray-200 rounded-lg overflow-hidden">
                             <table className="w-full border-collapse">
-                                <thead className="bg-gray-50/50">
+                                <thead className="bg-gray-50 border-b border-gray-200">
                                     <tr>
-                                        <th className={`px-4 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-[10px] font-black text-gray-400 uppercase tracking-widest`}>{t('sales.common.product')}</th>
-                                        <th className={`px-4 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-[10px] font-black text-gray-400 uppercase tracking-widest`}>{t('sales.common.description')}</th>
-                                        <th className="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest w-24">{t('sales.common.quantity')}</th>
-                                        <th className="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest w-28">{t('sales.common.price')}</th>
-                                        <th className="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest w-32">{t('sales.common.discount')}</th>
-                                        <th className="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest w-24">{t('sales.common.tax')}</th>
-                                        <th className="px-4 py-3 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest w-32">{t('sales.common.total')}</th>
+                                        <th className={`px-4 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-sm font-bold text-gray-600`}>{t('sales.common.product')} <span className="text-red-500">*</span></th>
+                                        <th className={`px-4 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} text-sm font-bold text-gray-600`}>{t('sales.common.description')}</th>
+                                        <th className="px-4 py-3 text-center text-sm font-bold text-gray-600 w-24">{t('sales.common.quantity')}</th>
+                                        <th className="px-4 py-3 text-center text-sm font-bold text-gray-600 w-28">{t('sales.common.price')}</th>
+                                        <th className="px-4 py-3 text-center text-sm font-bold text-gray-600 w-32">{t('sales.common.discount')}</th>
+                                        <th className="px-4 py-3 text-center text-sm font-bold text-gray-600 w-24">{t('sales.common.tax')}</th>
+                                        <th className="px-4 py-3 text-center text-sm font-bold text-gray-600 w-32">{t('sales.common.total')}</th>
                                         <th className="px-4 py-3 w-10"></th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-50">
+                                <tbody className="divide-y divide-gray-100 bg-white">
                                     {formData.items.map((item, index) => (
-                                        <tr key={index} className="group hover:bg-gray-50/50 transition-colors">
-                                            <td className="p-3">
+                                        <tr key={index} className="group hover:bg-gray-50/50">
+                                            <td className="p-3 align-top">
                                                 <input
                                                     list={`products-${index}`}
                                                     type="text"
                                                     value={item.productName}
                                                     onChange={(e) => handleItemChange(index, 'productName', e.target.value)}
-                                                    className={`w-full border-2 ${errors[`item_product_${index}`] ? 'border-red-500' : 'border-transparent group-hover:border-gray-100'} rounded-lg p-2 text-sm font-bold text-gray-700 bg-transparent focus:bg-white focus:border-indigo-500 focus:outline-none transition-all`}
-                                                    placeholder={t('sales.common.product')}
+                                                    className={`w-full border ${errors[`item_product_${index}`] ? 'border-red-500' : 'border-gray-200'} rounded px-3 py-2 text-sm text-gray-700 placeholder-gray-400 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all`}
+                                                    placeholder={t('sales.common.choose_product')}
                                                 />
                                                 <datalist id={`products-${index}`}>
                                                     {products.map(p => (
@@ -432,72 +426,70 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                                                     ))}
                                                 </datalist>
                                             </td>
-                                            <td className="p-3">
+                                            <td className="p-3 align-top">
                                                 <input
                                                     type="text"
                                                     value={item.description}
                                                     onChange={(e) => handleItemChange(index, 'description', e.target.value)}
-                                                    className="w-full border-2 border-transparent group-hover:border-gray-100 rounded-lg p-2 text-sm font-medium text-gray-500 bg-transparent focus:bg-white focus:border-indigo-500 focus:outline-none transition-all"
-                                                    placeholder={t('sales.common.description')}
+                                                    className="w-full border border-gray-200 rounded px-3 py-2 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all"
+                                                    placeholder={t('sales.common.description_placeholder')}
                                                 />
                                             </td>
-                                            <td className="p-3">
+                                            <td className="p-3 align-top">
                                                 <input
                                                     type="number"
                                                     value={item.quantity}
                                                     onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                                                    className="w-full border-2 border-transparent group-hover:border-gray-100 rounded-lg p-2 text-sm font-bold text-gray-700 text-center bg-transparent focus:bg-white focus:border-indigo-500 focus:outline-none transition-all"
+                                                    className="w-full border border-gray-200 rounded px-3 py-2 text-sm text-gray-700 text-center focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all"
                                                     min="1"
                                                 />
                                             </td>
-                                            <td className="p-3">
+                                            <td className="p-3 align-top">
                                                 <input
                                                     type="number"
                                                     value={item.price}
                                                     onChange={(e) => handleItemChange(index, 'price', e.target.value)}
-                                                    className="w-full border-2 border-transparent group-hover:border-gray-100 rounded-lg p-2 text-sm font-bold text-gray-700 text-center bg-transparent focus:bg-white focus:border-indigo-500 focus:outline-none transition-all"
+                                                    className="w-full border border-gray-200 rounded px-3 py-2 text-sm text-gray-700 text-center focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all"
                                                     min="0"
                                                 />
                                             </td>
-                                            <td className="p-3">
-                                                <div className="flex items-center gap-1">
-                                                    <select
-                                                        value={item.discountType}
-                                                        onChange={(e) => handleItemChange(index, 'discountType', e.target.value)}
-                                                        className="border-none bg-indigo-50 text-indigo-600 rounded p-1.5 text-[10px] font-black focus:ring-0"
-                                                    >
-                                                        <option value="%">%</option>
-                                                        <option value="fixed">{t('sales.common.fixed')}</option>
-                                                    </select>
+                                            <td className="p-3 align-top">
+                                                <div className="flex items-center gap-1 border border-gray-200 rounded overflow-hidden">
                                                     <input
                                                         type="number"
                                                         value={item.discount}
                                                         onChange={(e) => handleItemChange(index, 'discount', e.target.value)}
-                                                        className="w-full border-2 border-transparent group-hover:border-gray-100 rounded-lg p-2 text-sm font-bold text-gray-700 text-center bg-transparent focus:bg-white focus:border-indigo-500 focus:outline-none transition-all"
+                                                        className="w-full px-2 py-2 text-sm text-gray-700 text-center focus:outline-none"
                                                         min="0"
                                                     />
+                                                    <select
+                                                        value={item.discountType}
+                                                        onChange={(e) => handleItemChange(index, 'discountType', e.target.value)}
+                                                        className="bg-gray-50 border-l border-r border-gray-200 text-gray-600 text-xs font-bold px-1 py-2 focus:outline-none"
+                                                    >
+                                                        <option value="%">%</option>
+                                                        <option value="fixed">{currencySymbols[formData.currency] || formData.currency || '$'}</option>
+                                                    </select>
                                                 </div>
                                             </td>
-                                            <td className="p-3">
-                                                <div className="flex items-center gap-1 justify-center">
-                                                    <input
-                                                        type="number"
-                                                        value={item.tax}
-                                                        onChange={(e) => handleItemChange(index, 'tax', e.target.value)}
-                                                        className="w-12 border-2 border-transparent group-hover:border-gray-100 rounded-lg p-2 text-sm font-bold text-gray-700 text-center bg-transparent focus:bg-white focus:border-indigo-500 focus:outline-none transition-all"
-                                                        min="0"
-                                                    />
-                                                    <span className="text-[10px] font-black text-gray-300">%</span>
-                                                </div>
+                                            <td className="p-3 align-top">
+                                                <select
+                                                    value={item.tax}
+                                                    onChange={(e) => handleItemChange(index, 'tax', e.target.value)}
+                                                    className="w-full border border-gray-200 rounded px-2 py-2 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"
+                                                >
+                                                    <option value="0">{t('sales.common.exempt')}</option>
+                                                    <option value="14">14%</option>
+                                                </select>
                                             </td>
-                                            <td className="p-3 text-center text-sm font-black text-gray-800">
+                                            <td className="p-3 align-top text-center font-bold text-gray-800 pt-4">
                                                 {(currencySymbols[formData.currency] || formData.currency || 'EGP')} {calculateItemTotal(item).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </td>
-                                            <td className="p-3 text-center">
+                                            <td className="p-3 align-top text-center pt-3">
                                                 <button
                                                     type="button"
                                                     onClick={() => removeItem(index)}
-                                                    className="text-gray-300 hover:text-red-500 transition-colors"
+                                                    className="text-gray-400 hover:text-red-500 transition-colors"
                                                     disabled={formData.items.length === 1}
                                                 >
                                                     <Trash2 size={16} />
@@ -507,91 +499,184 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+
+                        {/* Add Item Button */}
+                        <div className="flex justify-end">
                             <button
                                 type="button"
                                 onClick={addItem}
-                                className="w-full py-4 bg-gray-50/50 text-indigo-600 hover:bg-indigo-50/50 flex items-center justify-center gap-2 text-sm font-black transition-all border-t border-gray-50"
+                                className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-all flex items-center gap-2 text-sm font-bold shadow-sm"
                             >
-                                <Plus size={16} />
+                                <Plus size={18} />
                                 {t('sales.common.add_item')}
                             </button>
                         </div>
 
-                        {/* Bottom Sections */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                            <div className="space-y-6 font-sans">
-                                {/* Tabs */}
-                                <div className="flex gap-6 border-b border-gray-100">
+                        {/* Totals Summary */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-gray-100 pt-6">
+
+                            {/* Left Side: Tabs for Payment, Warehouse, etc */}
+                            <div className="space-y-4">
+                                <div className="flex gap-8 border-b border-gray-200">
                                     {[
                                         { id: 'payment', label: t('sales.common.payment_details') },
-                                        { id: 'discount', label: t('sales.common.discount') }
+                                        { id: 'discount', label: t('sales.common.discount') },
+                                        { id: 'warehouse', label: t('sales.common.warehouse') },
                                     ].map(tab => (
                                         <button
                                             key={tab.id}
                                             type="button"
                                             onClick={() => setFormData({ ...formData, activeTab: tab.id })}
-                                            className={`pb-3 px-1 text-xs font-black uppercase tracking-widest transition-all ${formData.activeTab === tab.id ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-gray-300 hover:text-gray-500'}`}
+                                            className={`pb-3 text-sm font-bold transition-all border-b-2 ${formData.activeTab === tab.id ? 'text-indigo-600 border-indigo-600' : 'text-gray-500 border-transparent hover:text-gray-700'}`}
                                         >
                                             {tab.label}
                                         </button>
                                     ))}
                                 </div>
-                                <div className="min-h-[120px]">
+
+                                <div className="pt-4 min-h-[100px]">
                                     {formData.activeTab === 'payment' && (
-                                        <div className="grid grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                            <div>
-                                                <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">{t('sales.common.payment_method')}</label>
-                                                <select
-                                                    name="paymentMethod"
-                                                    value={formData.paymentMethod}
-                                                    onChange={handleInputChange}
-                                                    className="w-full border-2 border-gray-100 rounded-lg p-2 text-sm font-bold text-gray-700 focus:border-indigo-500 focus:outline-none bg-white transition-colors"
-                                                >
-                                                    <option value="cash">{t('sales.common.cash')}</option>
-                                                    <option value="card">{t('sales.common.card')}</option>
-                                                    <option value="bank">{t('sales.common.bank')}</option>
-                                                </select>
+                                        <div className="space-y-4 animate-in fade-in">
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-sm font-medium text-gray-700">{t('sales.invoices.paid_amount')}</label>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="checkbox"
+                                                        id="paidFull"
+                                                        className="rounded text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                                                        onChange={handlePaidInFullChange}
+                                                        checked={parseFloat(formData.paidAmount) >= totals.total && totals.total > 0}
+                                                    />
+                                                    <label htmlFor="paidFull" className="text-xs text-gray-600 cursor-pointer">{t('sales.common.fully_paid')}</label>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">{t('sales.invoices.paid_amount')}</label>
-                                                <input
-                                                    type="number"
-                                                    name="paidAmount"
-                                                    value={formData.paidAmount}
-                                                    onChange={handleInputChange}
-                                                    className="w-full border-2 border-gray-100 rounded-lg p-2 text-sm font-bold text-gray-700 focus:border-indigo-500 focus:outline-none transition-colors"
-                                                    min="0"
-                                                />
+                                            <input
+                                                type="number"
+                                                name="paidAmount"
+                                                value={formData.paidAmount}
+                                                onChange={handleInputChange}
+                                                className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-bold text-gray-700 focus:border-indigo-500 focus:outline-none"
+                                                min="0"
+                                            />
+
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {/* Payment Method */}
+                                                <div>
+                                                    <label className="block text-xs text-gray-500 mb-1">{t('sales.common.payment_method')}</label>
+                                                    <select
+                                                        name="paymentMethod"
+                                                        value={formData.paymentMethod}
+                                                        onChange={handleInputChange}
+                                                        className="w-full border border-gray-200 rounded-lg p-2 text-sm text-gray-700 focus:outline-none"
+                                                    >
+                                                        <option value="cash">{t('sales.common.cash')}</option>
+                                                        <option value="card">{t('sales.common.card')}</option>
+                                                        <option value="bank">{t('sales.common.bank')}</option>
+                                                    </select>
+                                                </div>
+                                                {/* Treasury placeholder */}
+                                                <div>
+                                                    <label className="block text-xs text-gray-500 mb-1">{t('sales.common.safe')}</label>
+                                                    <select className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm text-gray-500 focus:outline-none" disabled>
+                                                        <option>{t('sales.common.main_treasury')}</option>
+                                                    </select>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
+
                                     {formData.activeTab === 'discount' && (
-                                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                                            <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">{t('sales.invoices.invoice_discount')}</label>
-                                            <div className="flex gap-2 max-w-sm">
-                                                <select
-                                                    value={formData.invoiceDiscountType}
-                                                    onChange={(e) => setFormData({ ...formData, invoiceDiscountType: e.target.value })}
-                                                    className="border-2 border-gray-100 rounded-lg p-2 bg-indigo-50 text-indigo-600 font-black text-xs focus:ring-0"
-                                                >
-                                                    <option value="%">%</option>
-                                                    <option value="fixed">{t('sales.common.fixed')}</option>
-                                                </select>
-                                                <input
-                                                    type="number"
-                                                    name="invoiceDiscount"
-                                                    value={formData.invoiceDiscount}
-                                                    onChange={handleInputChange}
-                                                    className="flex-1 border-2 border-gray-100 rounded-lg p-2 text-sm font-bold text-gray-700 focus:border-indigo-500 focus:outline-none transition-colors"
-                                                    min="0"
-                                                />
+                                        <div className="space-y-4 animate-in fade-in">
+                                            <div className="flex gap-4 items-end">
+                                                <div className="flex-1">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('sales.invoices.invoice_discount')}</label>
+                                                    <input
+                                                        type="number"
+                                                        name="invoiceDiscount"
+                                                        value={formData.invoiceDiscount}
+                                                        onChange={handleInputChange}
+                                                        className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-bold text-gray-700 focus:border-indigo-500 focus:outline-none"
+                                                        min="0"
+                                                    />
+                                                </div>
+                                                <div className="w-24">
+                                                    <select
+                                                        value={formData.invoiceDiscountType}
+                                                        onChange={(e) => setFormData({ ...formData, invoiceDiscountType: e.target.value })}
+                                                        className="w-full border border-gray-200 rounded-lg p-2.5 text-sm bg-gray-50 text-gray-700 focus:outline-none"
+                                                    >
+                                                        <option value="%">%</option>
+                                                        <option value="fixed">{t('sales.common.fixed')}</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {formData.activeTab === 'warehouse' && (
+                                        <div className="space-y-4 animate-in fade-in">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('sales.common.warehouse')}</label>
+                                                    <select
+                                                        name="warehouse"
+                                                        value={formData.warehouse}
+                                                        onChange={handleInputChange}
+                                                        className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-bold text-gray-700 focus:border-indigo-500 focus:outline-none bg-white"
+                                                    >
+                                                        <option value="">{t('sales.common.select_warehouse')}</option>
+                                                        <option value="main">{t('sales.common.main_warehouse')}</option>
+                                                        <option value="secondary">{t('sales.common.secondary_warehouse')}</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('currency')}</label>
+                                                    <select
+                                                        name="currency"
+                                                        value={formData.currency || 'EGP'}
+                                                        onChange={handleInputChange}
+                                                        className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-bold text-gray-700 focus:border-indigo-500 focus:outline-none bg-white"
+                                                    >
+                                                        {SUPPORTED_CURRENCIES.map(code => (
+                                                            <option key={code} value={code}>{t(`currencies.${code}`)}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
                                 </div>
+                            </div>
 
-                                {/* Attachments & Notes — side by side per screenshot */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+                            {/* Right Side: Totals Summary */}
+                            <div className="bg-gray-50 rounded-xl p-6 h-fit space-y-3">
+                                <div className="flex justify-between text-sm text-gray-600">
+                                    <span>{t('sales.common.subtotal')} <span className="text-xs text-gray-400">{t('sales.common.before_tax')}</span></span>
+                                    <span className="font-bold">{(currencySymbols[formData.currency] || formData.currency || 'EGP')} {totals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="flex justify-between text-sm text-gray-600">
+                                    <span>{t('sales.common.tax')}</span>
+                                    <span className="font-bold text-gray-800">{(currencySymbols[formData.currency] || formData.currency || 'EGP')} {totals.totalTax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="flex justify-between text-sm text-gray-600">
+                                    <span>{t('sales.common.discount')}</span>
+                                    <span className="font-bold text-red-500">- {(currencySymbols[formData.currency] || formData.currency || 'EGP')} {totals.invDiscountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="pt-3 border-t border-gray-200 flex justify-between items-center mt-2">
+                                    <span className="text-lg font-bold text-gray-800">{t('sales.common.total')}</span>
+                                    <span className="text-2xl font-black text-indigo-700">{(currencySymbols[formData.currency] || formData.currency || 'EGP')} {totals.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Attachments and Notes */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-gray-100 pt-6">
+
+                            {/* Attachments with better styling container */}
+                            <div className="space-y-2">
+                                <h3 className="text-sm font-bold text-gray-700 mb-2">{t('sales.common.attachments')}</h3>
+                                <div className="p-4 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50">
                                     <AttachmentsSection
                                         uploadedFiles={uploadedFiles}
                                         onFilesChange={setUploadedFiles}
@@ -599,80 +684,82 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                                         onDeleteExisting={handleDeleteExistingAttachment}
                                         documentId={invoice?._id}
                                     />
-                                    <div>
-                                        <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">
-                                            {t('sales.common.notes')}
-                                        </label>
-                                        <textarea
-                                            name="notes"
-                                            value={formData.notes}
-                                            onChange={handleInputChange}
-                                            className="w-full border-2 border-gray-100 rounded-lg p-3 text-sm font-bold text-gray-700 focus:border-indigo-500 focus:outline-none transition-colors min-h-[120px]"
-                                            rows="4"
-                                            placeholder={t('sales.common.notes')}
-                                        />
-                                    </div>
                                 </div>
                             </div>
 
-                            {/* Totals Summary — symbol from selected currency */}
-                            <div className="bg-indigo-50/30 rounded-2xl p-6 space-y-4 font-sans border border-indigo-50">
-                                <div className="flex justify-between text-xs font-bold text-gray-500 italic">
-                                    <span>{t('sales.common.subtotal')}</span>
-                                    <span>{(currencySymbols[formData.currency] || formData.currency || 'EGP')} {totals.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                </div>
-                                <div className="flex justify-between text-xs font-bold text-gray-500 italic">
-                                    <span>{t('sales.common.tax')}</span>
-                                    <span>{(currencySymbols[formData.currency] || formData.currency || 'EGP')} {totals.totalTax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                </div>
-                                {totals.invDiscountAmount > 0 && (
-                                    <div className="flex justify-between text-xs font-bold text-red-400 italic">
-                                        <span>{t('sales.common.discount')}</span>
-                                        <span>-{(currencySymbols[formData.currency] || formData.currency || 'EGP')} {totals.invDiscountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                    </div>
-                                )}
-                                <div className="pt-4 border-t border-indigo-100/50 flex justify-between items-center">
-                                    <span className="text-sm font-black text-gray-800 uppercase tracking-widest">{t('sales.common.total')}</span>
-                                    <span className="text-2xl font-black text-indigo-600 tracking-tighter">{(currencySymbols[formData.currency] || formData.currency || 'EGP')} {totals.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                                </div>
+                            {/* Notes Section with min-height */}
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-2">
+                                    {t('sales.common.notes')}
+                                </label>
+                                <textarea
+                                    name="notes"
+                                    value={formData.notes}
+                                    onChange={handleInputChange}
+                                    className="w-full border border-gray-200 rounded-lg p-3 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none transition-colors min-h-[150px] resize-none bg-white"
+                                    placeholder={t('sales.common.notes_placeholder')}
+                                />
                             </div>
                         </div>
                     </form>
                 </div>
 
-                {/* Modal Footer */}
-                <div className="bg-white border-t border-gray-100 px-6 py-5 flex justify-end gap-3 font-sans">
+                {/* Footer Actions */}
+                <div className="bg-white border-t border-gray-100 px-8 py-4 flex items-center justify-end gap-3 flex-shrink-0">
                     <button
                         type="button"
                         onClick={onClose}
-                        className="px-6 py-2.5 border-2 border-gray-100 text-gray-400 rounded-xl hover:bg-gray-50 hover:text-gray-600 transition-all text-xs font-black uppercase tracking-widest"
+                        className="px-6 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-all text-sm font-bold shadow-sm"
                     >
                         {t('sales.common.cancel')}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleSubmit}
+                        className="px-6 py-2.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 transition-all text-sm font-bold shadow-sm"
+                    >
+                        {t('sales.common.save_draft')}
                     </button>
                     <button
                         form="invoice-form"
                         type="submit"
                         disabled={loading}
-                        className="px-8 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 text-xs font-black uppercase tracking-widest flex items-center gap-2"
+                        className="px-8 py-2.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-all shadow-md text-sm font-bold flex items-center gap-2"
                     >
-                        {loading ? t('sales.common.saving') : t('sales.invoices.save_invoice')}
+                        {loading ? t('sales.common.saving') : t('sales.invoices.issue_invoice')}
                     </button>
                 </div>
             </div>
+
             {/* Add Contact Modal */}
-            <AddContactModal
-                isOpen={showAddContactModal}
-                onClose={() => setShowAddContactModal(false)}
-                onSave={(newContact) => {
-                    setClients(prev => [...prev, newContact]);
-                    setFormData(prev => ({
-                        ...prev,
-                        clientId: newContact._id,
-                        clientName: newContact.name
-                    }));
-                }}
-                i18n={i18n}
-            />
+            {contactType === 'suppliers' ? (
+                <AddSupplierModal
+                    isOpen={showAddContactModal}
+                    onClose={() => setShowAddContactModal(false)}
+                    onSave={(newContact) => {
+                        setClients(prev => [...prev, newContact]);
+                        setFormData(prev => ({
+                            ...prev,
+                            clientId: newContact._id,
+                            clientName: newContact.name
+                        }));
+                    }}
+                />
+            ) : (
+                <AddContactModal
+                    isOpen={showAddContactModal}
+                    onClose={() => setShowAddContactModal(false)}
+                    onSave={(newContact) => {
+                        setClients(prev => [...prev, newContact]);
+                        setFormData(prev => ({
+                            ...prev,
+                            clientId: newContact._id,
+                            clientName: newContact.name
+                        }));
+                    }}
+                    i18n={i18n}
+                />
+            )}
         </div>
     );
 };

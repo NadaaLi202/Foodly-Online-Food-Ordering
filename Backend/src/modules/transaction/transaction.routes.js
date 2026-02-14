@@ -61,6 +61,11 @@ router.post("/purchases/purchaseOrder", uploadMultiFiles(ATTACHMENT_MIMETYPES, [
 router.get("/purchases/purchaseOrder", allowedTo("superAdmin", "admin", "accountant", "employee"), getAllTransactions("purchases", "purchaseOrder"));
 
 
+// Purchase Requests
+router.post("/purchases/requests", uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 5 }]), parseJsonFields(['items']), validation(transactionSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), createTransaction("purchases", "request"));
+router.get("/purchases/requests", allowedTo("superAdmin", "admin", "accountant", "employee"), getAllTransactions("purchases", "request"));
+
+
 // ================= SHARED (PDF download — must be before catch-all 404) =================
 router.get("/:id/download", allowedTo("superAdmin", "admin", "accountant", "employee"), downloadInvoicePDF);
 router.route("/:id")

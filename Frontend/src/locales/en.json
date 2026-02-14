@@ -533,7 +533,12 @@
             "initial_balance": "Initial Balance",
             "credit_limit": "Credit Limit",
             "update": "Update",
-            "save_changes": "Save Changes"
+            "save_changes": "Save Changes",
+            "choose_product": "Choose Product",
+            "description_placeholder": "Enter description",
+            "safe": "Safe / Account",
+            "before_tax": "(before tax)",
+            "choose_client": "Choose Client"
         },
         "invoices": {
             "title": "Invoices",
@@ -592,7 +597,9 @@
             "pdf_empty": "Could not capture invoice content. Try again.",
             "pdf_tainted": "Export failed (image restriction). Try without external images.",
             "pdf_content_not_ready": "Content not ready. Please wait and try again.",
-            "pdf_capture_failed": "Could not capture the invoice. Try again or use Print instead."
+            "pdf_capture_failed": "Could not capture the invoice. Try again or use Print instead.",
+            "issue_invoice": "Issue Invoice",
+            "at_least_one_item": "At least one item is required"
         },
         "returns": {
             "title": "Sales Returns",
@@ -780,6 +787,14 @@
             "view_return": "View Purchase Return",
             "return_number_placeholder": "PRET-26-1-000001"
         },
+        "requests": {
+            "add_request": "Add Purchase Request",
+            "edit_request": "Edit Purchase Request",
+            "view_request": "View Purchase Request",
+            "request_number_placeholder": "PREQ-26-1-000001",
+            "no_requests": "No Purchase Requests Found",
+            "start_requests": "Start by creating purchase requests"
+        },
         "suppliers": {
             "add_title": "Add Supplier",
             "edit_title": "Edit Supplier",
@@ -795,7 +810,16 @@
             "save": "Save",
             "update": "Update",
             "cancel": "Cancel",
-            "delete": "Delete"
+            "delete": "Delete",
+            "address1": "Address 1",
+            "address2": "Address 2",
+            "district": "District",
+            "city": "City",
+            "postal_code": "Postal Code",
+            "province": "State/Province",
+            "country": "Country",
+            "choose_country": "Choose",
+            "job_title": "Job Title"
         }
     },
     "stocked": {

@@ -54,7 +54,8 @@ const AddSupplierModal = ({ isOpen, onClose, editSupplier = null, onSave }) => {
                 country: editSupplier.address?.country ?? '',
                 additionalContacts: editSupplier.additionalContacts?.length ? editSupplier.additionalContacts : [],
             }));
-        } else if (!isOpen) {
+        } else if (isOpen) {
+            // Reset form
             setFormData({
                 type: 'individual',
                 code: '',
@@ -76,8 +77,44 @@ const AddSupplierModal = ({ isOpen, onClose, editSupplier = null, onSave }) => {
                 country: '',
                 additionalContacts: [],
             });
+            // Fetch next code
+            fetchNextCode();
         }
     }, [isOpen, editSupplier]);
+
+    const fetchNextCode = async () => {
+        try {
+            const suppliers = await contactsService.getSuppliers();
+            let maxNum = 0;
+            // Assuming code format is "1-XXXXXX" or similar. Adjust regex if needed.
+            // Based on backend logic: 1-000001
+            const regex = /^(\d+)-(\d+)$/;
+
+            // Filter suppliers with valid code format (optional, mostly relevant if codes are consistent)
+            // If existing suppliers list is empty, start from 1.
+            if (suppliers && suppliers.length > 0) {
+                suppliers.forEach(s => {
+                    if (s.code && regex.test(s.code)) {
+                        const match = s.code.match(regex);
+                        if (match) {
+                            const num = parseInt(match[2], 10);
+                            if (num > maxNum) maxNum = num;
+                        }
+                    }
+                });
+            }
+
+            // Simple prediction: increment max found
+            const nextNum = maxNum + 1;
+            // Replicate backend format: 1-000001
+            const nextCode = `1-${String(nextNum).padStart(6, '0')}`;
+
+            setFormData(prev => ({ ...prev, code: nextCode }));
+
+        } catch (error) {
+            console.error("Failed to predict next supplier code", error);
+        }
+    }
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -121,7 +158,12 @@ const AddSupplierModal = ({ isOpen, onClose, editSupplier = null, onSave }) => {
         }
 
         const isCreate = !editSupplier?._id;
-        const payload = contactsService.buildSupplierPayload(formData, { omitCodeForCreate: isCreate });
+        // If code matches the auto-generated format, we can omit it to let backend handle it, 
+        // OR send it if backend respects it. Backend logic says:
+        // "if (!omitCodeForCreate) payload.code = formData.code"
+        // And backend controller checks uniqueness.
+        // We will send it to ensure what user sees is what they get.
+        const payload = contactsService.buildSupplierPayload(formData, { omitCodeForCreate: false });
         setSubmitting(true);
 
         try {
@@ -152,220 +194,317 @@ const AddSupplierModal = ({ isOpen, onClose, editSupplier = null, onSave }) => {
     const isRtl = i18n.language === 'ar';
 
     return (
+<<<<<<< productImage/individualBusiness
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4 font-sans">
+=======
         <div className="fixed inset-0 backdrop-blur-md bg-black/20 flex items-center justify-center z-[60] p-4">
+>>>>>>> main
             <div className="relative transform rounded-xl bg-white text-start shadow-xl transition-all w-full my-8 max-w-6xl max-h-[90vh] overflow-hidden flex flex-col" dir={isRtl ? 'rtl' : 'ltr'}>
-                {/* Header - match reference */}
+                {/* Header */}
                 <div className="border-b border-gray-200 bg-white px-6 py-4 flex-shrink-0">
                     <div className="flex flex-wrap items-center justify-between sm:flex-nowrap">
                         <div>
-                            <h3 className="text-lg font-medium leading-6 text-gray-900">
+                            <h3 className="text-xl font-bold leading-6 text-gray-800">
                                 {editSupplier ? t('purchases.suppliers.edit_title') : t('purchases.suppliers.add_title')}
                             </h3>
                         </div>
                         <div className="flex-shrink-0">
-                            <button type="button" onClick={onClose} className="flex rounded-md bg-white text-gray-400 hover:text-gray-500 p-1">
+                            <button type="button" onClick={onClose} className="flex rounded-md bg-white text-gray-400 hover:text-gray-500 p-1 focus:outline-none">
                                 <X className="h-5 w-5" />
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6 divide-y divide-gray-300 px-6 py-5 flex-1 overflow-y-auto">
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto bg-gray-50/30">
                     {submitError && (
-                        <div className="p-3 rounded-md bg-red-50 text-red-700 text-sm">
+                        <div className="mx-6 mt-4 p-3 rounded-md bg-red-50 text-red-700 text-sm">
                             {submitError}
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Left column */}
-                        <div className="grid content-start grid-cols-1 sm:grid-cols-6 gap-y-2 gap-x-4">
-                            <div className="sm:col-span-3">
-                                <label className="block text-sm font-medium text-gray-700">{t('purchases.suppliers.type')}</label>
-                                <div className="mt-2 flex items-center space-x-7 rtl:space-x-reverse">
-                                    <div className="flex items-center">
-                                        <input id="individual" name="type" type="radio" value="individual" checked={formData.type === 'individual'} onChange={handleInputChange} className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-transparent" />
-                                        <label htmlFor="individual" className={`block text-sm font-medium text-gray-700 ${isRtl ? 'ms-2' : 'ml-2'}`}>{t('purchases.suppliers.type_individual')}</label>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <input id="commercial" name="type" type="radio" value="commercial" checked={formData.type === 'commercial'} onChange={handleInputChange} className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-transparent" />
-                                        <label htmlFor="commercial" className={`block text-sm font-medium text-gray-700 ${isRtl ? 'ms-2' : 'ml-2'}`}>{t('purchases.suppliers.type_commercial')}</label>
-                                    </div>
-                                </div>
-                            </div>
+                    <div className="p-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* RIGHT COLUMN (Create visual "Right" for RTL, but logically typically 1st in DOM for RTL or handled via grid order. 
+                                Wait, design shows: "Contact Data" on LEFT (in RTL), "Name/Code" on RIGHT (in RTL). 
+                                In RTL: 1st column is Right. 2nd is Left.
+                                
+                                SCREENSHOT ANALYSIS (RTL):
+                                Right Side: Code, Type (Individual/Commercial), Name, Initial Balance, Notes.
+                                Left Side: Contact Details Header, Checkboxes, Phone, Mobile, Email, Address Fields.
+                                
+                                Correction from Plan:
+                                Screenshot (RTL) shows:
+                                Right Column (Form Main Info):
+                                - Type (Radio)
+                                - Code
+                                - Name
+                                - Tax/Register (if commercial)
+                                - Opening Balance
+                                - Notes
+                                
+                                Left Column (Contact Info):
+                                - Contact Details Header
+                                - Checkboxes (Phone, Email, Address)
+                                - Phone, Mobile
+                                - Email
+                                - Address Fields (Address1, Address2, District, City, Zip, Province, Country)
+                                
+                                Let's implement this order.
+                             */}
 
-                            <div className="sm:col-span-6 xl:col-span-3">
-                                <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.code', 'Code')}</label>
-                                <div className="relative">
-                                    <input
-                                        id="code"
-                                        name="code"
-                                        type="text"
-                                        readOnly
-                                        value={editSupplier ? (formData.code || '') : ''}
-                                        placeholder={editSupplier ? undefined : (t('purchases.suppliers.code_auto_placeholder') || 'Generated automatically')}
-                                        className={`block w-full rounded-md border-gray-300 bg-gray-50 shadow-sm sm:text-sm ${isRtl ? 'pe-10 ps-3' : 'ps-10 pe-3'}`}
-                                        aria-label={editSupplier ? undefined : (t('purchases.suppliers.code_auto_placeholder') || 'Generated automatically')}
-                                    />
-                                    {editSupplier && (
-                                        <div className={`absolute inset-y-0 flex items-center ${isRtl ? 'start-0 ps-3' : 'end-0 pe-3'} pointer-events-none text-indigo-900`}>
-                                            <Pencil className="h-4 w-4" />
+                            {/* Primary Info Column (Right in RTL, Left in LTR if dir=rtl flips it naturally) */}
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-12 gap-4 items-center">
+                                    <div className="col-span-8">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('purchases.suppliers.type')}</label>
+                                        <div className="flex items-center gap-6">
+                                            <div className="flex items-center cursor-pointer">
+                                                <input
+                                                    id="individual"
+                                                    name="type"
+                                                    type="radio"
+                                                    value="individual"
+                                                    checked={formData.type === 'individual'}
+                                                    onChange={handleInputChange}
+                                                    className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                />
+                                                <label htmlFor="individual" className={`cursor-pointer block text-sm text-gray-700 ${isRtl ? 'me-4 ms-2' : 'ms-2 me-4'}`}>{t('purchases.suppliers.type_individual')}</label>
+                                            </div>
+                                            <div className="flex items-center cursor-pointer">
+                                                <input
+                                                    id="commercial"
+                                                    name="type"
+                                                    type="radio"
+                                                    value="commercial"
+                                                    checked={formData.type === 'commercial'}
+                                                    onChange={handleInputChange}
+                                                    className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                                />
+                                                <label htmlFor="commercial" className={`cursor-pointer block text-sm text-gray-700 ${isRtl ? 'me-4 ms-2' : 'ms-2 me-4'}`}>{t('purchases.suppliers.type_commercial')}</label>
+                                            </div>
                                         </div>
-                                    )}
+                                    </div>
+
+                                    <div className="col-span-4">
+                                        <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.code')}</label>
+                                        <div className="relative rounded-md shadow-sm">
+                                            <input
+                                                id="code"
+                                                name="code"
+                                                type="text"
+                                                value={formData.code || ''}
+                                                onChange={handleInputChange}
+                                                className={`block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-gray-50 text-center font-mono ${isRtl ? 'pe-8 ps-3' : 'ps-8 pe-3'}`}
+                                            />
+                                            <div className={`absolute inset-y-0 flex items-center ${isRtl ? 'start-0 ps-3' : 'end-0 pe-3'} pointer-events-none text-gray-400`}>
+                                                <Pencil className="h-3 w-3" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.name')} <span className="text-red-500">*</span></label>
+                                    <input
+                                        id="name"
+                                        name="name"
+                                        type="text"
+                                        value={formData.name}
+                                        onChange={handleInputChange}
+                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                    />
+                                </div>
+
+                                {formData.type === 'commercial' && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.suppliers.tax_number')}</label>
+                                            <input name="taxNumber" type="text" value={formData.taxNumber} onChange={handleInputChange} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.suppliers.commercial_register')}</label>
+                                            <input name="commercialRegister" type="text" value={formData.commercialRegister} onChange={handleInputChange} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.initial_balance')}</label>
+                                    <input name="initialBalance" type="number" value={formData.initialBalance} onChange={handleInputChange} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                </div>
+
+                                <div>
+                                    <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.notes')}</label>
+                                    <textarea
+                                        id="notes"
+                                        name="notes"
+                                        rows={4}
+                                        value={formData.notes}
+                                        onChange={handleInputChange}
+                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm resize-none"
+                                    />
                                 </div>
                             </div>
 
-                            <div className="sm:col-span-6">
-                                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.name', 'Name')} <span className="font-bold text-red-600">*</span></label>
-                                <input id="name" name="name" type="text" value={formData.name} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                            </div>
-
-                            {formData.type === 'commercial' && (
-                                <>
-                                    <div className="sm:col-span-3">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.suppliers.tax_number', 'Tax Number')}</label>
-                                        <input name="taxNumber" type="text" value={formData.taxNumber} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                                    </div>
-                                    <div className="sm:col-span-3">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.suppliers.commercial_register', 'Commercial Register')}</label>
-                                        <input name="commercialRegister" type="text" value={formData.commercialRegister} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                                    </div>
-                                </>
-                            )}
-
-                            <div className="sm:col-span-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.initial_balance', 'Opening Balance')}</label>
-                                <input name="initialBalance" type="text" value={formData.initialBalance} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                            </div>
-
-                            <div className="sm:col-span-6">
-                                <label htmlFor="notes" className="block text-sm font-medium text-gray-700">{t('sales.common.notes', 'Notes')}</label>
-                                <div className="mt-1">
-                                    <textarea id="notes" name="notes" rows={3} value={formData.notes} onChange={handleInputChange} className="block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                            {/* Secondary Info Column (Contact Options) */}
+                            <div className="space-y-4">
+                                <div className="border-b border-gray-200 pb-2 mb-4">
+                                    <h3 className="text-base font-bold text-gray-900">{t('purchases.suppliers.contact_details')}</h3>
                                 </div>
+
+                                <div className="flex flex-wrap gap-6 mb-4">
+                                    <label className="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked={showOptions.phone} onChange={() => toggleOption('phone')} className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" />
+                                        <span className={`text-sm font-medium text-gray-700 ${isRtl ? 'me-2' : 'ms-2'}`}>{t('sales.common.phone')}</span>
+                                    </label>
+                                    <label className="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked={showOptions.email} onChange={() => toggleOption('email')} className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" />
+                                        <span className={`text-sm font-medium text-gray-700 ${isRtl ? 'me-2' : 'ms-2'}`}>{t('sales.common.email')}</span>
+                                    </label>
+                                    <label className="inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" checked={showOptions.address} onChange={() => toggleOption('address')} className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50" />
+                                        <span className={`text-sm font-medium text-gray-700 ${isRtl ? 'me-2' : 'ms-2'}`}>{t('sales.common.address')}</span>
+                                    </label>
+                                </div>
+
+                                {showOptions.phone && (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-1">{t('sales.common.phone')}</label>
+                                            <input name="phone" type="tel" value={formData.phone} onChange={handleInputChange} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-1">{t('sales.common.mobile')}</label>
+                                            <input name="mobile" type="tel" value={formData.mobile} onChange={handleInputChange} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {showOptions.email && (
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">{t('sales.common.email')}</label>
+                                        <input name="email" type="email" value={formData.email} onChange={handleInputChange} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                    </div>
+                                )}
+
+                                {showOptions.address && (
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-1">{t('purchases.suppliers.address1')}</label>
+                                            <input name="address1" type="text" value={formData.address1} onChange={handleInputChange} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-1">{t('purchases.suppliers.address2')}</label>
+                                            <input name="address2" type="text" value={formData.address2} onChange={handleInputChange} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-500 mb-1">{t('purchases.suppliers.district')}</label>
+                                                <input name="district" type="text" value={formData.district} onChange={handleInputChange} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-500 mb-1">{t('purchases.suppliers.city')}</label>
+                                                <input name="city" type="text" value={formData.city} onChange={handleInputChange} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-500 mb-1">{t('purchases.suppliers.province')}</label>
+                                                <input name="state" type="text" value={formData.state} onChange={handleInputChange} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-500 mb-1">{t('purchases.suppliers.postal_code')}</label>
+                                                <input name="postalCode" type="text" value={formData.postalCode} onChange={handleInputChange} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-500 mb-1">{t('purchases.suppliers.country')}</label>
+                                            <select name="country" value={formData.country} onChange={handleInputChange} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                                <option value="">{t('purchases.suppliers.choose_country')}</option>
+                                                {/* Add actual country list if needed, using simple strings provided by locales or static */}
+                                                <option value="Egypt">{t('sales.common.egypt_country') || 'مصر'}</option>
+                                                <option value="Saudi Arabia">{t('sales.common.saudi_arabia') || 'السعودية'}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
-                        {/* Right column - Contact Information */}
-                        <div className="grid content-start grid-cols-1 gap-y-2 gap-x-4 sm:grid-cols-6">
-                            <div className="sm:col-span-6">
-                                <h3 className="text-lg font-medium text-gray-900">{t('purchases.suppliers.contact_details')}</h3>
-                                <div className={`mt-2 flex gap-x-5 flex-wrap`}>
-                                    <div className="flex items-center">
-                                        <input id="opt-phone" type="checkbox" checked={showOptions.phone} onChange={() => toggleOption('phone')} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                        <label htmlFor="opt-phone" className={`align-middle text-gray-700 font-medium ${isRtl ? 'ms-1' : 'ml-1'}`}>{t('sales.common.phone')}</label>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <input id="opt-email" type="checkbox" checked={showOptions.email} onChange={() => toggleOption('email')} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                        <label htmlFor="opt-email" className={`align-middle text-gray-700 font-medium ${isRtl ? 'ms-1' : 'ml-1'}`}>{t('sales.common.email')}</label>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <input id="opt-address" type="checkbox" checked={showOptions.address} onChange={() => toggleOption('address')} className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                        <label htmlFor="opt-address" className={`align-middle text-gray-700 font-medium ${isRtl ? 'ms-1' : 'ml-1'}`}>{t('sales.common.address')}</label>
-                                    </div>
-                                </div>
-
-                                <div className="grid content-start grid-cols-1 sm:grid-cols-6 gap-y-2 gap-x-4 mt-4">
-                                    {showOptions.phone && (
-                                        <>
-                                            <div className="sm:col-span-3">
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.phone')}</label>
-                                                <input name="phone" type="tel" value={formData.phone} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                                            </div>
-                                            <div className="sm:col-span-3">
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.mobile')}</label>
-                                                <input name="mobile" type="tel" value={formData.mobile} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                                            </div>
-                                        </>
-                                    )}
-                                    {showOptions.email && (
-                                        <div className="sm:col-span-6">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.email')}</label>
-                                            <input name="email" type="email" value={formData.email} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                                        </div>
-                                    )}
-                                    {showOptions.address && (
-                                        <>
-                                            <div className="sm:col-span-6">
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.address_line1', 'Address 1')}</label>
-                                                <input name="address1" type="text" value={formData.address1} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                                            </div>
-                                            <div className="sm:col-span-6">
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.address_line2', 'Address 2')}</label>
-                                                <input name="address2" type="text" value={formData.address2} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                                            </div>
-                                            <div className="sm:col-span-3">
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.district', 'District')}</label>
-                                                <input name="district" type="text" value={formData.district} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                                            </div>
-                                            <div className="sm:col-span-3">
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.city', 'City')}</label>
-                                                <input name="city" type="text" value={formData.city} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                                            </div>
-                                            <div className="sm:col-span-3">
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.postal_code', 'Postal Code')}</label>
-                                                <input name="postalCode" type="text" value={formData.postalCode} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                                            </div>
-                                            <div className="sm:col-span-3">
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.suppliers.province', 'Province')}</label>
-                                                <input name="state" type="text" value={formData.state} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                                            </div>
-                                            <div className="sm:col-span-3">
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.country', 'Country')}</label>
-                                                <select name="country" value={formData.country} onChange={handleInputChange} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                                                    <option value="">{t('sales.common.choose')}</option>
-                                                </select>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Additional Contacts */}
-                            <div className="sm:col-span-6 pt-6 border-t border-gray-200">
-                                <h3 className="text-lg font-medium text-gray-900">{t('purchases.suppliers.additional_contacts')}</h3>
-                            </div>
-                            <div className="sm:col-span-6">
-                                <button type="button" onClick={addAdditionalContact} className="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-3 py-2 text-sm font-medium leading-4 text-white shadow-sm hover:bg-indigo-700">
-                                    <Plus className={`h-4 w-4 ${isRtl ? 'ms-2 -me-0.5' : '-ms-0.5 me-2'}`} />
+                        {/* Additional Contacts Section */}
+                        <div className="mt-8 pt-6 border-t border-gray-200">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-base font-bold text-gray-900">{t('purchases.suppliers.additional_contacts')}</h3>
+                                <button type="button" onClick={addAdditionalContact} className="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-3 py-1.5 text-sm font-medium leading-4 text-white shadow-sm hover:bg-indigo-700 focus:outline-none">
+                                    <Plus className={`h-4 w-4 ${isRtl ? 'me-1' : 'ms-1'}`} />
                                     {t('purchases.suppliers.add_contact')}
                                 </button>
                             </div>
-                            <div className="sm:col-span-6 space-y-4">
+
+                            <div className="space-y-3">
                                 {formData.additionalContacts.map((contact, index) => (
-                                    <div key={index} className="flex flex-wrap items-start gap-4 p-4 bg-white rounded-md border border-gray-200">
-                                        <button type="button" onClick={() => removeAdditionalContact(index)} className="flex-shrink-0 w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600" aria-label={t('purchases.suppliers.delete')}>
-                                            <Minus size={14} strokeWidth={3} />
+                                    <div key={index} className="flex flex-wrap items-center gap-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                        <button type="button" onClick={() => removeAdditionalContact(index)} className="flex-shrink-0 text-red-500 hover:text-red-700 p-1">
+                                            <Minus size={16} />
                                         </button>
-                                        <div className="flex-1 min-w-[200px] space-y-3">
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.suppliers.contact_name', 'Contact Name')}</label>
-                                                <input type="text" value={contact.name} onChange={(e) => handleAdditionalContactChange(index, 'name', e.target.value)} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.common.phone')}</label>
-                                                    <input type="text" value={contact.phone} onChange={(e) => handleAdditionalContactChange(index, 'phone', e.target.value)} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('sales.suppliers.job_title', 'Job Title')}</label>
-                                                    <input type="text" value={contact.title} onChange={(e) => handleAdditionalContactChange(index, 'title', e.target.value)} className="rounded-md bg-white block w-full border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
-                                                </div>
-                                            </div>
+                                        <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-3">
+                                            <input
+                                                type="text"
+                                                placeholder={t('sales.suppliers.contact_name')}
+                                                value={contact.name}
+                                                onChange={(e) => handleAdditionalContactChange(index, 'name', e.target.value)}
+                                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder={t('sales.common.phone')}
+                                                value={contact.phone}
+                                                onChange={(e) => handleAdditionalContactChange(index, 'phone', e.target.value)}
+                                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                            />
+                                            <input
+                                                type="email"
+                                                placeholder={t('sales.common.email')}
+                                                value={contact.email}
+                                                onChange={(e) => handleAdditionalContactChange(index, 'email', e.target.value)}
+                                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder={t('purchases.suppliers.job_title')}
+                                                value={contact.title}
+                                                onChange={(e) => handleAdditionalContactChange(index, 'title', e.target.value)}
+                                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                                            />
                                         </div>
                                     </div>
                                 ))}
+                                {formData.additionalContacts.length === 0 && (
+                                    <p className="text-gray-400 text-sm italic py-2">{t('sales.common.no_additional_contacts') || 'No additional contacts added.'}</p>
+                                )}
                             </div>
                         </div>
                     </div>
 
-                    {/* Footer - match reference: Cancel (white) + Save (emerald/green) */}
-                    <div className="flex gap-x-2 justify-end pt-4">
-                        <button type="button" onClick={onClose} className="rounded-md border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 shadow-sm hover:bg-gray-50 text-sm">
+                    {/* Footer */}
+                    <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none"
+                        >
                             {t('purchases.suppliers.cancel')}
                         </button>
-                        <button type="submit" disabled={submitting} className="inline-flex gap-1 rounded-md border border-transparent bg-emerald-500 px-4 py-2 font-medium text-white shadow-sm hover:bg-emerald-600 text-sm disabled:opacity-70 disabled:cursor-not-allowed">
-                            {submitting ? t('sales.common.saving') : (editSupplier ? t('purchases.suppliers.update') : t('purchases.suppliers.save'))}
+                        <button
+                            type="submit"
+                            disabled={submitting}
+                            className="inline-flex justify-center rounded-md border border-transparent bg-emerald-500 px-8 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-600 focus:outline-none disabled:opacity-50"
+                        >
+                            {submitting ? t('sales.common.saving') : t('purchases.suppliers.save')}
                         </button>
                     </div>
                 </form>

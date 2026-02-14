@@ -86,8 +86,6 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
             hasSub: true,
             children: [
                 { key: 'invoices', path: '/dashboard/purchases/invoices' },
-                { key: 'credit_notes', path: '/dashboard/purchases/credit-notes' },
-                { key: 'purchase_orders', path: '/dashboard/purchases/purchase-orders' },
                 { key: 'purchase_returns', path: '/dashboard/purchases/returns' },
                 { key: 'purchase_requests', path: '/dashboard/purchases/requests' },
                 { key: 'suppliers', path: '/dashboard/purchases/suppliers' },
@@ -114,7 +112,6 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
             children: [
                 { key: 'journal_entries', path: '/dashboard/accounting/journal-entries' },
                 { key: 'chart_of_accounts', path: '/dashboard/accounting/chart-of-accounts' },
-                { key: 'cost_centers', path: '/dashboard/accounting/cost-centers' },
             ]
         },
         {

@@ -42,6 +42,16 @@ export function buildSupplierPayload(formData, options = {}) {
         address,
         additionalContacts,
     };
+
+    // Remove tax/commercial fields completely for individual type
+    if (payload.type === 'individual') {
+        delete payload.taxNumber;
+        delete payload.commercialRegister;
+    } else {
+        // For commercial, remove if empty (though validation should catch this)
+        if (!payload.taxNumber) delete payload.taxNumber;
+        if (!payload.commercialRegister) delete payload.commercialRegister;
+    }
     if (!omitCodeForCreate) {
         payload.code = (formData.code || "").trim() || undefined;
     }

@@ -77,7 +77,7 @@ const transactionSchema = new mongoose.Schema({
 
     documentType: {
         type: String,
-        enum: ['invoice', 'return', 'quotation', 'purchaseOrder'],
+        enum: ['invoice', 'return', 'quotation', 'purchaseOrder', 'request'],
         required: true,
         default: 'invoice'
     },
