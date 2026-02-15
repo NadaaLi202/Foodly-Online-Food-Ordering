@@ -284,14 +284,6 @@ const SalesReport = () => {
 
     return (
         <>
-            <style>{`
-                @media print {
-                    body * { visibility: hidden; }
-                    #sales-report-root, #sales-report-root * { visibility: visible; }
-                    #sales-report-root { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; }
-                    #sales-report-root .no-print { display: none !important; visibility: hidden !important; }
-                }
-            `}</style>
             <div className={`p-6 ${isRTL ? 'text-right' : 'text-left'}`} id="sales-report-root">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     {/* Header with Tabs */}

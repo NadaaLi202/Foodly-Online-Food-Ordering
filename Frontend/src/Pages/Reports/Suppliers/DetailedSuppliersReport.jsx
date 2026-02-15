@@ -158,14 +158,6 @@ const DetailedSuppliersReport = () => {
 
     return (
         <>
-            <style>{`
-                @media print {
-                    body * { visibility: hidden; }
-                    #detailed-suppliers-report-root, #detailed-suppliers-report-root * { visibility: visible; }
-                    #detailed-suppliers-report-root { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; }
-                    #detailed-suppliers-report-root .no-print { display: none !important; visibility: hidden !important; }
-                }
-            `}</style>
             <div className="p-6" id="detailed-suppliers-report-root">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     {/* Filters Section */}

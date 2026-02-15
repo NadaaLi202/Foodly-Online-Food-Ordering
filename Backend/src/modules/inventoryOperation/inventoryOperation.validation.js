@@ -21,7 +21,11 @@ export const addInventoryOperationSchema = Joi.object({
       product: Joi.string().hex().length(24).required(),
       quantity: Joi.number().min(0).required()
     })
-  ).optional()
+  ).optional(),
+  attachments: Joi.array().items(Joi.object({
+    secure_url: Joi.string().required(),
+    public_id: Joi.string().required()
+  })).optional()
 }).unknown(true);
 
 // Update Inventory Operation
@@ -41,5 +45,9 @@ export const updateInventoryOperationSchema = Joi.object({
   totalAmount: Joi.number().allow(null, "").optional(),
   date: Joi.date().allow(null, "").optional(),
 
-  description: Joi.string().trim().optional()
+  description: Joi.string().trim().optional(),
+  attachments: Joi.array().items(Joi.object({
+    secure_url: Joi.string().required(),
+    public_id: Joi.string().required()
+  })).optional()
 });

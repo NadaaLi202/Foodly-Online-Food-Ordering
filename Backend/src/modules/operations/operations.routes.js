@@ -13,7 +13,7 @@ import {
     updateOperationSchema
 } from "./operations.validation.js";
 import { validation } from "../../middleware/validation.js";
-import { uploadMultiFiles } from "../../middleware/uploadFiles.js";
+import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadFiles.js";
 import { allowedTo, protectedRoutes } from "../auth/auth.controller.js";
 import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
@@ -23,13 +23,13 @@ router.use(protectedRoutes, applyCompanyFilter);
 
 router
     .route("/")
-    .post(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), validation(addOperationSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), addOperation)
+    .post(uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 5 }]), validation(addOperationSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), addOperation)
     .get(allowedTo("superAdmin", "admin", "accountant", "employee"), getAllOperations);
 
 router
     .route("/:id")
     .get(allowedTo("superAdmin", "admin", "accountant", "employee"), getOperationById)
-    .put(uploadMultiFiles(['image'], [{ name: 'attachments', maxCount: 5 }]), validation(updateOperationSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), updateOperation)
+    .put(uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 5 }]), validation(updateOperationSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), updateOperation)
     .delete(allowedTo("superAdmin", "admin"), deleteOperation);
 
 export default router;

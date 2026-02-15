@@ -134,10 +134,10 @@ const Permissions = () => {
         const payload = { ...rest, type: type || 'financial' };
         if (type === 'inventory_in' || type === 'inventory_out') {
             const validItems = (items || [])
-                .filter((row) => row.product && Number(row.quantity) > 0)
+                .filter((row) => row.product && Number(row.quantity) >= 1)
                 .map((row) => ({ product: row.product, quantity: Number(row.quantity) }));
             if (!validItems.length) {
-                toast.error(t('stocked.permissions.items_required', 'Add at least one item with product and quantity'));
+                toast.error(t('stocked.permissions.items_required', 'Add at least one item with product and quantity of 1 or more'));
                 return;
             }
             payload.items = validItems;
@@ -510,13 +510,13 @@ const Permissions = () => {
                                                         <label className="block text-xs text-gray-500 mb-1">{t('sales.common.quantity')}</label>
                                                         <input
                                                             type="number"
-                                                            min="0"
-                                                            step="any"
+                                                            min="1"
+                                                            step="1"
                                                             value={row.quantity}
                                                             onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                                                             className="w-full p-3 bg-white border border-gray-200 rounded-lg outline-none focus:border-indigo-500"
                                                             required={isInventoryType}
-                                                            max={addFormData.type === 'inventory_out' && row.product ? getAvailableQuantity(row.product) : undefined}
+                                                            max={addFormData.type === 'inventory_out' && row.product && getAvailableQuantity(row.product) > 0 ? getAvailableQuantity(row.product) : undefined}
                                                         />
                                                     </div>
                                                     <button

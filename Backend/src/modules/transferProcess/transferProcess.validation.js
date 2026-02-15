@@ -46,7 +46,10 @@ export const addTransferProcessSchema = Joi.object({
     description: Joi.string().allow("", null).optional(),
 
     attachments: Joi.array()
-        .items(Joi.string())
+        .items(Joi.object({
+            secure_url: Joi.string().required(),
+            public_id: Joi.string().required()
+        }))
         .optional()
 }).unknown(true);
 
@@ -95,6 +98,9 @@ export const updateTransferProcessSchema = Joi.object({
     description: Joi.string().allow("").optional(),
 
     attachments: Joi.array()
-        .items(Joi.string())
+        .items(Joi.object({
+            secure_url: Joi.string().required(),
+            public_id: Joi.string().required()
+        }))
         .optional()
 });

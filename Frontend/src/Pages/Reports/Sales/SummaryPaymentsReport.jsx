@@ -92,22 +92,7 @@ const SummaryPaymentsReport = () => {
     };
 
     const handlePrint = () => {
-        const pri = window.open('', 'PRINT', 'height=600,width=800');
-        pri.document.write('<html><head><title>Print Report</title>');
-        pri.document.write('<style>table { width: 100%; border-collapse: collapse; margin-top: 20px; } th, td { border: 1px solid #ddd; padding: 12px; text-align: ' + (isRTL ? 'right' : 'left') + '; } th { background-color: #f8fafc; color: #64748b; font-size: 12px; font-weight: 900; text-transform: uppercase; } body { direction: ' + (isRTL ? 'rtl' : 'ltr') + '; font-family: sans-serif; padding: 40px; color: #1e293b; }</style>');
-        pri.document.write('</head><body>');
-        pri.document.write('<h1 style="font-size: 24px; font-weight: 900; margin-bottom: 8px;">' + t('reports.payments.summary_title') + '</h1>');
-        pri.document.write('<p style="color: #64748b; font-weight: 500;">' + t('reports.filters.from_date') + ': ' + filters.startDate + ' ' + t('reports.filters.to_date') + ': ' + filters.endDate + '</p>');
-
-        pri.document.write('<table>');
-        pri.document.write('<thead><tr><th>' + t('reports.payments.total_received') + '</th><th>' + t('reports.payments.total_spent') + '</th><th>' + t('reports.payments.total_sales_due') + '</th><th>' + t('reports.payments.total_purchases_due') + '</th></tr></thead>');
-        pri.document.write('<tbody><tr><td>' + formatCurrency(summaryData?.totalReceived || 0) + '</td><td>' + formatCurrency(summaryData?.totalSpent || 0) + '</td><td>' + formatCurrency(summaryData?.totalSalesDue || 0) + '</td><td>' + formatCurrency(summaryData?.totalPurchasesDue || 0) + '</td></tr></tbody>');
-        pri.document.write('</table>');
-
-        pri.document.write('</body></html>');
-        pri.document.close();
-        pri.focus();
-        pri.print();
+        window.print();
     };
 
     const cards = [

@@ -1239,5 +1239,185 @@
     },
     "validation": {
         "required": "This field is required"
+    },
+    "auth": {
+        "welcome_back": "Welcome back",
+        "signin_details": "Please enter your details to sign in.",
+        "email_address": "Email Address",
+        "password": "Password",
+        "remember_me": "Remember me",
+        "forgot_password": "Forgot Password?",
+        "signing_in": "Signing in...",
+        "signin": "Sign in",
+        "no_account": "Don't have an account?",
+        "signup_free": "Sign up for free",
+        "copyright": "© {{year}} Dafater Inc.",
+        "create_account": "Create Account",
+        "get_started_desc": "Create your account to get started.",
+        "full_name": "Full Name",
+        "full_name_placeholder": "John Doe",
+        "email_placeholder": "name@company.com",
+        "phone_number": "Phone Number",
+        "phone_placeholder": "123 456 7890",
+        "confirm_password": "Confirm Password",
+        "password_placeholder": "••••••••",
+        "terms_privacy": "By clicking \"Create Account\", you agree to our Terms of Service and Privacy Policy.",
+        "creating_account": "Creating Account...",
+        "already_have_account": "Already have an account?",
+        "passwords_mismatch": "Passwords do not match",
+        "account_created": "Account created successfully! Please sign in.",
+        "registration_failed": "Registration failed",
+        "scale_faster": "Scale faster with Dafater.",
+        "signin_hero_title": "Manage your business with confidence.",
+        "signin_hero_desc": "Join over 10,000+ businesses that trust Dafater for their accounting needs.",
+        "testimonial": {
+            "name": "John Doe",
+            "role": "CEO, TechStart Inc.",
+            "text": "\"Dafater has completely transformed how we handle our finances. The automated insights are a game changer.\""
+        },
+        "features": {
+            "automated_bookkeeping": "Automated bookkeeping and reports",
+            "inventory_tracking": "Inventory tracking across locations",
+            "seamless_invoicing": "Seamless invoicing and payments",
+            "collaboration": "Multi-user collaboration"
+        }
+    },
+    "landing": {
+        "nav": {
+            "features": "Features",
+            "why_us": "Why Us",
+            "pricing": "Pricing",
+            "log_in": "Log in",
+            "sign_up_free": "Sign up free",
+            "sign_out": "Sign Out",
+            "settings": "Settings",
+            "notifications": "Notifications"
+        },
+        "demo": {
+            "invoice_paid": "Invoice Paid",
+            "growth": "Growth",
+            "growth_boost": "+124% Boost"
+        },
+        "hero": {
+            "ai_powered": "✨ AI-Powered Analytics Platform",
+            "accounting": "Accounting",
+            "made_simple": "Made Simple",
+            "description": "Manage invoices, track inventory, and analyze your business finances—all in one intelligent platform built for modern businesses.",
+            "get_started": "Get Started",
+            "watch_demo": "Watch Demo"
+        },
+        "stats": {
+            "revenue": "Revenue",
+            "invoices": "Invoices",
+            "growth": "Growth",
+            "active_users": "Active Users",
+            "processed_annually": "Processed Annually",
+            "uptime": "Uptime",
+            "support": "Support"
+        },
+        "features": {
+            "title": "Features",
+            "header": "Everything you need to grow",
+            "subheader": "Powerful tools designed specifically for modern accounting needs",
+            "cloud": {
+                "title": "Cloud-Based Platform",
+                "desc": "Access your accounts anywhere, anytime with enterprise-grade cloud infrastructure."
+            },
+            "security": {
+                "title": "Bank-Grade Security",
+                "desc": "Military-grade encryption with compliance certifications for total peace of mind."
+            },
+            "analytics": {
+                "title": "Real-time Analytics",
+                "desc": "Powerful dashboards with instant insights into your business performance."
+            },
+            "ai": {
+                "title": "AI-Powered Insights",
+                "desc": "Smart recommendations and automation to save time on routine tasks."
+            },
+            "collaboration": {
+                "title": "Team Collaboration",
+                "desc": "Work together seamlessly with role-based access and real-time updates."
+            },
+            "reporting": {
+                "title": "Smart Reporting",
+                "desc": "Generate professional reports automatically with customizable formats."
+            }
+        },
+        "benefits": {
+            "tag": "Why Dafater",
+            "title": "Built for the future of business",
+            "desc": "Join thousands of businesses that have transformed their operations with Dafater's intelligent accounting solution.",
+            "automated_tasks": "Automate repetitive tasks and focus on growth",
+            "faster_insights": "Get insights faster with AI-powered analytics",
+            "scale_without_limits": "Scale without limits—from startup to enterprise",
+            "integrate_seamlessly": "Integrate with your favorite tools seamlessly"
+        },
+        "pricing": {
+            "tag": "Pricing",
+            "title": "Simple, transparent pricing",
+            "desc": "Choose the perfect plan for your business needs",
+            "most_popular": "MOST POPULAR",
+            "get_started": "Get Started",
+            "month": "/month",
+            "plans": {
+                "starter": {
+                    "name": "Starter",
+                    "price": "$29",
+                    "desc": "Perfect for small businesses"
+                },
+                "professional": {
+                    "name": "Professional",
+                    "price": "$79",
+                    "desc": "For growing businesses"
+                },
+                "enterprise": {
+                    "name": "Enterprise",
+                    "price": "Custom",
+                    "desc": "For large organizations"
+                }
+            },
+            "features_starter": [
+                "Up to 100 invoices/month",
+                "Basic analytics",
+                "Email support",
+                "Cloud storage 10GB"
+            ],
+            "features_professional": [
+                "Unlimited invoices",
+                "Advanced analytics",
+                "Priority support",
+                "Cloud storage 100GB",
+                "Team collaboration",
+                "API access"
+            ],
+            "features_enterprise": [
+                "Everything in Pro",
+                "Custom integrations",
+                "Dedicated support",
+                "Unlimited storage",
+                "Advanced security",
+                "Training included"
+            ]
+        },
+        "cta": {
+            "title": "Ready to transform your business?",
+            "desc": "Join thousands of businesses automating their accounting with Dafater.",
+            "get_started": "Get Started",
+            "schedule_demo": "Schedule Demo"
+        },
+        "footer": {
+            "slogan": "Your accounting, simplified & smarter.",
+            "product": "Product",
+            "company": "Company",
+            "legal": "Legal",
+            "about": "About",
+            "blog": "Blog",
+            "careers": "Careers",
+            "privacy": "Privacy",
+            "terms": "Terms",
+            "contact": "Contact",
+            "rights": "All rights reserved."
+        }
     }
 }

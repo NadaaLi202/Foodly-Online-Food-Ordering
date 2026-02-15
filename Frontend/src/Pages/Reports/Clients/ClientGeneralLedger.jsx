@@ -117,17 +117,7 @@ const ClientGeneralLedger = () => {
     };
 
     const handlePrint = () => {
-        if (!printRef.current) return;
-        const printContent = printRef.current.innerHTML;
-        const win = window.open('', '_blank');
-        win.document.write(`
-            <!DOCTYPE html><html dir="rtl"><head><title>${t('reports.clients.client_general_ledger') || 'Customer Statement'}</title>
-            <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2/dist/tailwind.min.css" rel="stylesheet">
-            <style>@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }</style>
-            </head><body class="p-6 font-sans">${printContent}</body></html>`);
-        win.document.close();
-        win.focus();
-        setTimeout(() => { win.print(); win.close(); }, 300);
+        window.print();
     };
 
     const typeLabel = (type) => {
@@ -214,7 +204,7 @@ const ClientGeneralLedger = () => {
 
                 {/* View Report Button */}
                 <div className="mb-6">
-                    <button 
+                    <button
                         onClick={handleViewReport}
                         disabled={loading}
                         className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
@@ -237,21 +227,21 @@ const ClientGeneralLedger = () => {
                             {t('reports.clients.client_general_ledger') || 'Customer Statement'}
                         </div>
                         <div className="flex items-center gap-2">
-                            <button 
+                            <button
                                 onClick={handleExportExcel}
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200"
                             >
                                 <FileSpreadsheet className="w-3.5 h-3.5" />
                                 {t('reports.export.excel') || 'Excel'}
                             </button>
-                            <button 
+                            <button
                                 onClick={handleExportPdf}
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition-colors border border-purple-200"
                             >
                                 <FileText className="w-3.5 h-3.5" />
                                 {t('reports.export.pdf') || 'PDF'}
                             </button>
-                            <button 
+                            <button
                                 onClick={handlePrint}
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-200"
                             >

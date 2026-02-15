@@ -17,6 +17,7 @@ import api from '../../services/api';
 const Warehouses = () => {
     const { t, i18n } = useTranslation();
     const [warehouses, setWarehouses] = useState([]);
+    const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
@@ -44,9 +45,24 @@ const Warehouses = () => {
         }
     };
 
+    const fetchUsers = async () => {
+        try {
+            const response = await api.get('/users');
+            setUsers(response.data.users || response.data || []);
+        } catch (error) {
+            console.error('Error fetching users:', error);
+        }
+    };
+
     useEffect(() => {
         fetchWarehouses();
     }, []);
+
+    useEffect(() => {
+        if (isModalOpen) {
+            fetchUsers();
+        }
+    }, [isModalOpen]);
 
     const handleOpenModal = (mode, warehouse = null) => {
         setModalMode(mode);
@@ -56,7 +72,7 @@ const Warehouses = () => {
                 name: warehouse.name || '',
                 account: warehouse.account || '',
                 branch: warehouse.branch || '',
-                users: Array.isArray(warehouse.users) && warehouse.users.length > 0 ? warehouse.users[0] : (warehouse.users || ''), // Handle array/string mismatch if any
+                users: Array.isArray(warehouse.users) && warehouse.users.length > 0 ? (warehouse.users[0]._id || warehouse.users[0]) : '',
                 enableReceiving: warehouse.enableReceiving || false,
                 enableIssuing: warehouse.enableIssuing || false
             });
@@ -84,11 +100,14 @@ const Warehouses = () => {
 
         try {
             const payload = { ...formData };
+            console.log('Warehouse payload before processing:', payload);
             if (!payload.users || payload.users === '') {
                 delete payload.users;
             } else if (typeof payload.users === 'string') {
-                payload.users = [payload.users]; // Backend expects an array of ObjectIds or strings
+                payload.users = [payload.users]; // Backend expects an array of ObjectIds
             }
+            console.log('Warehouse payload after processing:', payload);
+            console.log('Users field:', payload.users, 'Type:', typeof payload.users);
 
             await api({
                 method,
@@ -318,8 +337,11 @@ const Warehouses = () => {
                                         className={`w-full p-4 bg-gray-50 border-2 border-transparent rounded-2xl outline-none focus:bg-white focus:border-indigo-500 transition-all text-${i18n.language === 'ar' ? 'right' : 'left'}`}
                                     >
                                         <option value="">{t('stocked.warehouses.select_branches_or_users')}</option>
-                                        <option value="admin">Admin</option>
-                                        <option value="manager">Manager</option>
+                                        {users.map((user) => (
+                                            <option key={user._id} value={user._id}>
+                                                {user.name || user.email}
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
 

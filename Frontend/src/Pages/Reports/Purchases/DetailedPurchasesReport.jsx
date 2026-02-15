@@ -279,14 +279,6 @@ const PurchasesReport = () => {
 
     return (
         <>
-            <style>{`
-                @media print {
-                    body * { visibility: hidden; }
-                    #purchases-report-root, #purchases-report-root * { visibility: visible; }
-                    #purchases-report-root { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; }
-                    #purchases-report-root .no-print { display: none !important; visibility: hidden !important; }
-                }
-            `}</style>
             <div className={`p-6 ${isRTL ? 'text-right' : 'text-left'}`} id="purchases-report-root">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 no-print">
