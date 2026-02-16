@@ -523,6 +523,7 @@ const Operations = () => {
                 </div>
             </div>
 
+
             {/* Content */}
             <div className="p-4 sm:p-6">
                 {loading && !isModalOpen ? (
@@ -613,6 +614,7 @@ const Operations = () => {
                             </button>
                         </div>
 
+
                         {/* Modal Body - Scrollable */}
                         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
                             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
@@ -636,21 +638,17 @@ const Operations = () => {
                                         </select>
                                     </div>
 
-                            {/* Modal Body - Scrollable */}
-                            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-                                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-                                    {/* Row 1: Warehouse, Account, Date */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {/* From Warehouse */}
+                                    {/* To Warehouse (for transfer) */}
+                                    {operationType === 'transfer' && (
                                         <div>
                                             <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                {operationType === 'transfer' ? t('stocked.operations.from_warehouse') : t('stocked.operations.warehouse')} <span className="text-red-500">*</span>
+                                                {t('stocked.operations.to_warehouse')} <span className="text-red-500">*</span>
                                             </label>
                                             <select
-                                                name="warehouse"
-                                                value={formData.warehouse}
+                                                name="toWarehouse"
+                                                value={formData.toWarehouse}
                                                 onChange={handleInputChange}
-                                                className={`w-full border-2 ${errors.warehouse ? 'border-red-500' : 'border-gray-200'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-green-500 bg-white`}
+                                                className={`w-full border-2 ${errors.toWarehouse ? 'border-red-500' : 'border-gray-200'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-green-500 bg-white`}
                                             >
                                                 <option value="">{t('stocked.operations.select_warehouse')}</option>
                                                 {warehouses.map((wh) => (
@@ -658,223 +656,204 @@ const Operations = () => {
                                                 ))}
                                             </select>
                                         </div>
+                                    )}
 
-                                        {/* To Warehouse (for transfer) */}
-                                        {operationType === 'transfer' && (
-                                            <div>
-                                                <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                    {t('stocked.operations.to_warehouse')} <span className="text-red-500">*</span>
-                                                </label>
-                                                <select
-                                                    name="toWarehouse"
-                                                    value={formData.toWarehouse}
-                                                    onChange={handleInputChange}
-                                                    className={`w-full border-2 ${errors.toWarehouse ? 'border-red-500' : 'border-gray-200'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-green-500 bg-white`}
-                                                >
-                                                    <option value="">{t('stocked.operations.select_warehouse')}</option>
-                                                    {warehouses.map((wh) => (
-                                                        <option key={wh._id} value={wh._id}>{wh.name}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        )}
-
-                                        {/* Account (for add operation) */}
-                                        {operationType === 'add' && (
-                                            <div>
-                                                <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                    {t('stocked.operations.account')}
-                                                </label>
-                                                <select
-                                                    name="account"
-                                                    value={formData.account}
-                                                    onChange={handleInputChange}
-                                                    className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-green-500 bg-white`}
-                                                >
-                                                    <option value="">{t('stocked.operations.select_account')}</option>
-                                                    {accounts.map((acc) => (
-                                                        <option key={acc._id} value={acc._id}>{acc.name} {acc.code}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        )}
-
-                                        {/* Date */}
+                                    {/* Account (for add operation) */}
+                                    {operationType === 'add' && (
                                         <div>
                                             <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                {t('stocked.operations.date')}
+                                                {t('stocked.operations.account')}
+                                            </label>
+                                            <select
+                                                name="account"
+                                                value={formData.account}
+                                                onChange={handleInputChange}
+                                                className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-green-500 bg-white`}
+                                            >
+                                                <option value="">{t('stocked.operations.select_account')}</option>
+                                                {accounts.map((acc) => (
+                                                    <option key={acc._id} value={acc._id}>{acc.name} {acc.code}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {/* Date */}
+                                    <div>
+                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                            {t('stocked.operations.date')}
+                                        </label>
+                                        <input
+                                            type="date"
+                                            name="date"
+                                            value={formData.date}
+                                            onChange={handleInputChange}
+                                            className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-green-500`}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Products Section */}
+                                <div>
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-2">
+                                        <label className={`text-sm font-semibold text-gray-700 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                            {t('stocked.operations.product')} <span className="text-red-500">*</span>
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={addItem}
+                                            className="flex items-center gap-1 bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 text-sm"
+                                        >
+                                            <Plus size={14} />
+                                            {t('stocked.operations.add_product')}
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {formData.items.map((item, index) => (
+                                            <div key={index} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                                                <div className="sm:col-span-6">
+                                                    <label className={`block text-xs text-gray-500 mb-1 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                                        {t('stocked.operations.product')}
+                                                    </label>
+                                                    <select
+                                                        value={item.product}
+                                                        onChange={(e) => handleItemChange(index, 'product', e.target.value)}
+                                                        className={`w-full border-2 ${errors.items && index === 0 ? 'border-red-500' : 'border-gray-200'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-green-500 bg-white`}
+                                                    >
+                                                        <option value="">{t('stocked.operations.select_product')}</option>
+                                                        {products.map((prod) => (
+                                                            <option key={prod._id} value={prod._id}>{prod.name}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="sm:col-span-4">
+                                                    <label className={`block text-xs text-gray-500 mb-1 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                                        {t('stocked.operations.quantity')}
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        value={item.quantity}
+                                                        onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                                                        placeholder="0"
+                                                        min="0"
+                                                        className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-green-500`}
+                                                    />
+                                                </div>
+                                                <div className="sm:col-span-2">
+                                                    {formData.items.length > 1 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeItem(index)}
+                                                            className="text-red-500 hover:text-red-700 p-2 w-full sm:w-auto"
+                                                        >
+                                                            <X size={18} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Total (for add operation) */}
+                                {operationType === 'add' && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                                {t('stocked.operations.total')}
                                             </label>
                                             <input
-                                                type="date"
-                                                name="date"
-                                                value={formData.date}
+                                                type="number"
+                                                name="total"
+                                                value={formData.total}
                                                 onChange={handleInputChange}
+                                                placeholder="0.00"
+                                                min="0"
+                                                step="0.01"
                                                 className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-green-500`}
                                             />
                                         </div>
                                     </div>
+                                )}
 
-                                    {/* Products Section */}
+                                {/* Description and Attachments */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    {/* Attachments */}
                                     <div>
-                                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-2">
-                                            <label className={`text-sm font-semibold text-gray-700 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                {t('stocked.operations.product')} <span className="text-red-500">*</span>
-                                            </label>
-                                            <button
-                                                type="button"
-                                                onClick={addItem}
-                                                className="flex items-center gap-1 bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 text-sm"
-                                            >
-                                                <Plus size={14} />
-                                                {t('stocked.operations.add_product')}
-                                            </button>
-                                        </div>
-
-                                        <div className="space-y-3">
-                                            {formData.items.map((item, index) => (
-                                                <div key={index} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
-                                                    <div className="sm:col-span-6">
-                                                        <label className={`block text-xs text-gray-500 mb-1 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                            {t('stocked.operations.product')}
-                                                        </label>
-                                                        <select
-                                                            value={item.product}
-                                                            onChange={(e) => handleItemChange(index, 'product', e.target.value)}
-                                                            className={`w-full border-2 ${errors.items && index === 0 ? 'border-red-500' : 'border-gray-200'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-green-500 bg-white`}
-                                                        >
-                                                            <option value="">{t('stocked.operations.select_product')}</option>
-                                                            {products.map((prod) => (
-                                                                <option key={prod._id} value={prod._id}>{prod.name}</option>
-                                                            ))}
-                                                        </select>
+                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                            {t('stocked.operations.attachments')}
+                                        </label>
+                                        <input
+                                            type="file"
+                                            multiple
+                                            onChange={handleFileUpload}
+                                            className="hidden"
+                                            id="file-upload"
+                                        />
+                                        <label
+                                            htmlFor="file-upload"
+                                            onDragOver={handleDragOver}
+                                            onDrop={handleDrop}
+                                            className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-8 text-center hover:border-green-500 cursor-pointer transition-colors block"
+                                        >
+                                            <div className="text-gray-400 mb-2">📎</div>
+                                            <p className="text-sm text-gray-500">
+                                                <span className="text-green-600">{t('sales.common.click_to_upload')}</span> {t('sales.common.or_drag')}
+                                            </p>
+                                        </label>
+                                        {formData.attachments.length > 0 && (
+                                            <div className="mt-2 space-y-1">
+                                                {formData.attachments.map((file, index) => (
+                                                    <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded text-sm">
+                                                        <span className="truncate max-w-[150px] sm:max-w-[200px]">{file.name}</span>
+                                                        <button type="button" onClick={() => removeAttachment(index)} className="text-red-500">
+                                                            <X size={14} />
+                                                        </button>
                                                     </div>
-                                                    <div className="sm:col-span-4">
-                                                        <label className={`block text-xs text-gray-500 mb-1 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                            {t('stocked.operations.quantity')}
-                                                        </label>
-                                                        <input
-                                                            type="number"
-                                                            value={item.quantity}
-                                                            onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                                                            placeholder="0"
-                                                            min="0"
-                                                            className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-green-500`}
-                                                        />
-                                                    </div>
-                                                    <div className="sm:col-span-2">
-                                                        {formData.items.length > 1 && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => removeItem(index)}
-                                                                className="text-red-500 hover:text-red-700 p-2 w-full sm:w-auto"
-                                                            >
-                                                                <X size={18} />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Total (for add operation) */}
-                                    {operationType === 'add' && (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                    {t('stocked.operations.total')}
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    name="total"
-                                                    value={formData.total}
-                                                    onChange={handleInputChange}
-                                                    placeholder="0.00"
-                                                    min="0"
-                                                    step="0.01"
-                                                    className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-green-500`}
-                                                />
+                                                ))}
                                             </div>
-                                        </div>
-                                    )}
-
-                                    {/* Description and Attachments */}
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                        {/* Attachments */}
-                                        <div>
-                                            <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                {t('stocked.operations.attachments')}
-                                            </label>
-                                            <input
-                                                type="file"
-                                                multiple
-                                                onChange={handleFileUpload}
-                                                className="hidden"
-                                                id="file-upload"
-                                            />
-                                            <label
-                                                htmlFor="file-upload"
-                                                onDragOver={handleDragOver}
-                                                onDrop={handleDrop}
-                                                className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-8 text-center hover:border-green-500 cursor-pointer transition-colors block"
-                                            >
-                                                <div className="text-gray-400 mb-2">📎</div>
-                                                <p className="text-sm text-gray-500">
-                                                    <span className="text-green-600">{t('sales.common.click_to_upload')}</span> {t('sales.common.or_drag')}
-                                                </p>
-                                            </label>
-                                            {formData.attachments.length > 0 && (
-                                                <div className="mt-2 space-y-1">
-                                                    {formData.attachments.map((file, index) => (
-                                                        <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded text-sm">
-                                                            <span className="truncate max-w-[150px] sm:max-w-[200px]">{file.name}</span>
-                                                            <button type="button" onClick={() => removeAttachment(index)} className="text-red-500">
-                                                                <X size={14} />
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Description */}
-                                        <div>
-                                            <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                {t('stocked.operations.description')}
-                                            </label>
-                                            <textarea
-                                                name="description"
-                                                value={formData.description}
-                                                onChange={handleInputChange}
-                                                rows="4"
-                                                className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-green-500 resize-none`}
-                                                placeholder={t('stocked.operations.description')}
-                                            />
-                                        </div>
+                                        )}
                                     </div>
-                                </form>
-                            </div>
 
-                            {/* Modal Footer */}
-                            <div className="bg-white border-t border-gray-200 px-4 sm:px-6 py-4 flex flex-col-reverse sm:flex-row items-center justify-start gap-3 sticky bottom-0">
-                                <button
-                                    onClick={handleSubmit}
-                                    disabled={loading}
-                                    className="w-full sm:w-auto bg-green-600 text-white px-6 py-2.5 rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {loading ? t('sales.common.saving') : t('sales.common.save')}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => { setIsModalOpen(false); resetForm(); }}
-                                    className="w-full sm:w-auto border-2 border-gray-300 text-gray-700 px-6 py-2.5 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
-                                >
-                                    {t('sales.common.cancel')}
-                                </button>
-                            </div>
+                                    {/* Description */}
+                                    <div>
+                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                            {t('stocked.operations.description')}
+                                        </label>
+                                        <textarea
+                                            name="description"
+                                            value={formData.description}
+                                            onChange={handleInputChange}
+                                            rows="4"
+                                            className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-green-500 resize-none`}
+                                            placeholder={t('stocked.operations.description')}
+                                        />
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="bg-white border-t border-gray-200 px-4 sm:px-6 py-4 flex flex-col-reverse sm:flex-row items-center justify-start gap-3 sticky bottom-0">
+                            <button
+                                onClick={handleSubmit}
+                                disabled={loading}
+                                className="w-full sm:w-auto bg-green-600 text-white px-6 py-2.5 rounded-lg hover:bg-green-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {loading ? t('sales.common.saving') : t('sales.common.save')}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => { setIsModalOpen(false); resetForm(); }}
+                                className="w-full sm:w-auto border-2 border-gray-300 text-gray-700 px-6 py-2.5 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+                            >
+                                {t('sales.common.cancel')}
+                            </button>
                         </div>
                     </div>
-                )
+                </div>
+            )
             }
 
             {/* Overlay to close dropdown */}
