@@ -9,8 +9,8 @@ const PurchasesReportsPage = () => {
     const reportSections = [
         {
             id: 'purchases',
-            title: t('sidebar.purchases_reports') || t('purchases'),
-            description: t('reports.purchases.description') || t('purchases'),
+            title: t('sidebar.purchases_reports'),
+            description: t('reports.purchases.description'),
             icon: FileText,
             iconBg: 'bg-indigo-50',
             iconColor: 'text-indigo-500',

@@ -67,13 +67,21 @@
         "view_report": "عرض التقرير",
         "select_columns": "اختر الأعمدة",
         "no_data": "لا توجد بيانات",
+        "error_load": "خطأ في تحميل التقرير",
+        "loading": "جاري التحميل",
+        "purchase_reports": "تقارير المشتريات",
+        "sales_reports": "تقارير المبيعات",
         "sales": {
             "title": "تقارير المبيعات",
             "description": "عرض تقارير المبيعات."
         },
         "purchases": {
             "title": "تقارير المشتريات",
-            "description": "عرض تقارير المشتريات"
+            "description": "عرض تقارير المشتريات",
+            "type_return": "مرتجع",
+            "type_order": "طلب شراء",
+            "total_spent": "إجمالي المدفوع",
+            "total_due": "إجمالي المستحق"
         },
         "accounting_reports_desc": "القوائم المالية وتحليل التقارير",
         "payments": {
@@ -142,6 +150,7 @@
             "method": "الطريقة",
             "interval": "الفاصل الزمني (الأيام)",
             "invoices": "فواتير",
+            "purchases_employee": "موظف المشتريات",
             "unspecified": "غير محدد"
         },
         "table": {
@@ -167,6 +176,14 @@
             "products": "المنتجات",
             "total_invoices": "إجمالي الفواتير",
             "total_returns": "إجمالي المرتجعات",
+            "returns": "المرتجعات",
+            "orders": "الطلبيات",
+            "suppliers": "الموردين",
+            "total_orders": "إجمالي الطلبيات",
+            "total_paid": "إجمالي المدفوع",
+            "total_remaining": "إجمالي المتبقي",
+            "total_purchases_discounts": "إجمالي خصومات المشتريات",
+            "total_returns_discounts": "إجمالي خصومات المرتجعات",
             "total_sales_discounts": "إجمالي خصومات المبيعات",
             "sales_discounts": "خصومات المبيعات",
             "sales_total_without_taxes": "إجمالي المبيعات بدون ضرائب",
@@ -277,7 +294,12 @@
         "tax_return": "الإقرار الضريبي",
         "clients": {
             "client_general_ledger": "كشف حساب العميل",
-            "client_general_ledger_desc": "عرض تقارير كشف حساب العميل."
+            "client_general_ledger_desc": "عرض تقارير كشف حساب العميل.",
+            "summary_report": "تقرير ملخص العملاء",
+            "total_invoices": "إجمالي الفواتير",
+            "total_returns": "إجمالي المرتجعات",
+            "total_payments_received": "إجمالي المدفوعات المستلمة",
+            "total_outstanding": "إجمالي المستحقات"
         },
         "suppliers": {
             "supplier_general_ledger": "كشف حساب المورد",

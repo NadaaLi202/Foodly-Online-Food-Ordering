@@ -94,10 +94,10 @@ const BalanceSheetReport = () => {
 
     const handleExportPdf = () => {
         const contentRows = [];
-        contentRows.push([t('reports.accounting.balance_sheet') || 'Balance Sheet']);
-        contentRows.push([t('reports.filters.to_date') || 'To Date', filters.toDate]);
+        contentRows.push([t('reports.accounting.balance_sheet')]);
+        contentRows.push([t('reports.filters.to_date'), filters.toDate]);
         contentRows.push([]);
-        contentRows.push([t('reports.accounting.assets') || 'Assets', fmtNum(reportData.assets?.total || 0)]);
+        contentRows.push([t('reports.accounting.assets'), fmtNum(reportData.assets?.total || 0)]);
         if (reportData.assets?.fixed?.length > 0) {
             reportData.assets.fixed.forEach(item => {
                 contentRows.push(['', item.name || '', fmtNum(item.amount || 0)]);
@@ -109,15 +109,15 @@ const BalanceSheetReport = () => {
             });
         }
         contentRows.push([]);
-        contentRows.push([t('reports.accounting.liabilities') || 'Liabilities', fmtNum(reportData.liabilities?.total || 0)]);
+        contentRows.push([t('reports.accounting.liabilities'), fmtNum(reportData.liabilities?.total || 0)]);
         if (reportData.liabilities?.current?.length > 0) {
             reportData.liabilities.current.forEach(item => {
                 contentRows.push(['', item.name || '', fmtNum(item.amount || 0)]);
             });
         }
         contentRows.push([]);
-        contentRows.push([t('reports.accounting.equity') || 'Equity', fmtNum(reportData.equity?.total || 0)]);
-        const blob = buildAccountingReportPdf(t('reports.accounting.balance_sheet') || 'Balance Sheet', contentRows, t);
+        contentRows.push([t('reports.accounting.equity'), fmtNum(reportData.equity?.total || 0)]);
+        const blob = buildAccountingReportPdf(t('reports.accounting.balance_sheet'), contentRows, t);
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -161,7 +161,7 @@ const BalanceSheetReport = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 no-print">
                         {/* To Date */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.to_date') || 'To Date'}</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.to_date')}</label>
                             <div className="relative">
                                 <input type="text" value={filters.toDate} onChange={(e) => handleFilterChange('toDate', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
                                 <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -170,11 +170,11 @@ const BalanceSheetReport = () => {
 
                         {/* Displayed Accounts */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.displayed_accounts') || 'Displayed Accounts'}</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.displayed_accounts')}</label>
                             <div className="relative">
                                 <select value={filters.displayedAccounts} onChange={(e) => handleFilterChange('displayedAccounts', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="all">{t('reports.filters.all_accounts') || 'All Accounts'}</option>
-                                    <option value="with_transactions">{t('reports.filters.with_transactions') || 'Accounts With Transactions'}</option>
+                                    <option value="all">{t('reports.filters.all_accounts')}</option>
+                                    <option value="with_transactions">{t('reports.filters.with_transactions')}</option>
                                 </select>
                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                             </div>
@@ -185,7 +185,7 @@ const BalanceSheetReport = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.branches')}</label>
                             <div className="relative">
                                 <select value={filters.branch} onChange={(e) => handleFilterChange('branch', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="all">{t('reports.filters.all_branches') || 'All Branches'}</option>
+                                    <option value="all">{t('reports.filters.all_branches')}</option>
                                 </select>
                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                             </div>
@@ -200,7 +200,7 @@ const BalanceSheetReport = () => {
                     {/* Report Header & Export */}
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100 no-print">
                         <div className="text-sm text-gray-700 font-medium">
-                            {t('reports.accounting.balance_sheet_title') || 'Balance Sheet To Date 2026 February 9, Monday'}
+                            {t('reports.accounting.balance_sheet_title')}
                         </div>
                         <div className="flex items-center gap-2">
                             <button onClick={handleExportExcel} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
@@ -221,67 +221,67 @@ const BalanceSheetReport = () => {
                     {/* Report Content */}
                     <div className="border border-gray-200 rounded-lg overflow-hidden text-sm">
                         {/* Assets */}
-                        {renderRow(t('reports.accounting.assets') || 'Assets #1', reportData.assets.total, true, false, 0, () => toggleSection('assets'), expandedSections['assets'])}
+                        {renderRow(t('reports.accounting.assets'), reportData.assets.total, true, false, 0, () => toggleSection('assets'), expandedSections['assets'])}
 
                         {expandedSections['assets'] && (
                             <>
                                 {/* Fixed Assets */}
-                                {renderRow(t('reports.accounting.fixed_assets') || 'Fixed Assets #11', reportData.assets.fixed.total, false, true, 1, () => toggleSection('assets-fixed'), expandedSections['assets-fixed'])}
+                                {renderRow(t('reports.accounting.fixed_assets'), reportData.assets.fixed.total, false, true, 1, () => toggleSection('assets-fixed'), expandedSections['assets-fixed'])}
                                 {expandedSections['assets-fixed'] && reportData.assets.fixed.items.map(item =>
                                     renderRow(`${item.name} #${item.code}`, item.amount, false, false, 2)
                                 )}
 
                                 {/* Current Assets */}
-                                {renderRow(t('reports.accounting.current_assets') || 'Current Assets #12', reportData.assets.current.total, false, true, 1, () => toggleSection('assets-current'), expandedSections['assets-current'])}
+                                {renderRow(t('reports.accounting.current_assets'), reportData.assets.current.total, false, true, 1, () => toggleSection('assets-current'), expandedSections['assets-current'])}
                                 {expandedSections['assets-current'] && reportData.assets.current.items.map(item =>
                                     renderRow(`${item.name} #${item.code}`, item.amount, false, false, 2)
                                 )}
                             </>
                         )}
                         <div className="bg-gray-200 px-4 py-2 flex justify-between font-bold text-gray-900 border-t border-gray-300">
-                            <span>{t('reports.accounting.total_assets') || 'Total Assets'}</span>
+                            <span>{t('reports.accounting.total_assets')}</span>
                             <span>{reportData.assets.total.toFixed(2)}</span>
                         </div>
 
                         <div className="h-4 bg-gray-50 border-t border-b border-gray-200"></div>
 
                         {/* Liabilities */}
-                        {renderRow(t('reports.accounting.liabilities') || 'Liabilities #2', reportData.liabilities.total, true, false, 0, () => toggleSection('liabilities'), expandedSections['liabilities'])}
+                        {renderRow(t('reports.accounting.liabilities'), reportData.liabilities.total, true, false, 0, () => toggleSection('liabilities'), expandedSections['liabilities'])}
                         {expandedSections['liabilities'] && (
                             <>
                                 {/* Current Liabilities */}
-                                {renderRow(t('reports.accounting.current_liabilities') || 'Current Liabilities #21', reportData.liabilities.current.total, false, true, 1, () => toggleSection('liabilities-current'), expandedSections['liabilities-current'])}
+                                {renderRow(t('reports.accounting.current_liabilities'), reportData.liabilities.current.total, false, true, 1, () => toggleSection('liabilities-current'), expandedSections['liabilities-current'])}
                                 {expandedSections['liabilities-current'] && reportData.liabilities.current.items.map(item =>
                                     renderRow(`${item.name} #${item.code}`, item.amount, false, false, 2)
                                 )}
 
                                 {/* Long Term Liabilities */}
-                                {renderRow(t('reports.accounting.long_term_liabilities') || 'Long Term Liabilities #22', reportData.liabilities.longTerm.total, false, true, 1, () => toggleSection('liabilities-longterm'), expandedSections['liabilities-longterm'])}
+                                {renderRow(t('reports.accounting.long_term_liabilities'), reportData.liabilities.longTerm.total, false, true, 1, () => toggleSection('liabilities-longterm'), expandedSections['liabilities-longterm'])}
                             </>
                         )}
                         <div className="bg-gray-200 px-4 py-2 flex justify-between font-bold text-gray-900 border-t border-gray-300">
-                            <span>{t('reports.accounting.total_liabilities') || 'Total Liabilities'}</span>
+                            <span>{t('reports.accounting.total_liabilities')}</span>
                             <span>{reportData.liabilities.total.toFixed(2)}</span>
                         </div>
 
                         <div className="h-4 bg-gray-50 border-t border-b border-gray-200"></div>
 
                         {/* Equity */}
-                        {renderRow(t('reports.accounting.equity') || 'Equity #3', reportData.equity.total, true, false, 0, () => toggleSection('equity'), expandedSections['equity'])}
+                        {renderRow(t('reports.accounting.equity'), reportData.equity.total, true, false, 0, () => toggleSection('equity'), expandedSections['equity'])}
                         {expandedSections['equity'] && reportData.equity.items.map(item =>
                             renderRow(`${item.name} #${item.code}`, item.amount, false, false, 1)
                         )}
 
                         <div className="bg-gray-100 px-4 py-2 flex justify-between font-semibold text-gray-800 border-b border-gray-200">
-                            <span>{t('reports.accounting.unallocated_profit_loss') || 'Unallocated Profit/Loss'}</span>
+                            <span>{t('reports.accounting.unallocated_profit_loss')}</span>
                             <span>{reportData.equity.unallocatedProfitLoss.toFixed(2)}</span>
                         </div>
                         <div className="bg-gray-100 px-4 py-2 flex justify-between font-semibold text-gray-800 border-b border-gray-200">
-                            <span>{t('reports.accounting.total_equity') || 'Total Equity'}</span>
+                            <span>{t('reports.accounting.total_equity')}</span>
                             <span>{reportData.equity.totalEquity.toFixed(2)}</span>
                         </div>
                         <div className="bg-gray-200 px-4 py-2 flex justify-between font-bold text-gray-900 border-t border-gray-300">
-                            <span>{t('reports.accounting.total_liabilities_and_equity') || 'Total Liabilities and Equity'}</span>
+                            <span>{t('reports.accounting.total_liabilities_and_equity')}</span>
                             <span>{reportData.equity.totalLiabilitiesAndEquity.toFixed(2)}</span>
                         </div>
 

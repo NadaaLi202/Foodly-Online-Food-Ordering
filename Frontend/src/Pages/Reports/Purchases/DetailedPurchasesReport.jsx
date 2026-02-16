@@ -217,15 +217,15 @@ const PurchasesReport = () => {
         { value: 'month', label: t('reports.filters.month') },
         { value: 'week', label: t('reports.filters.week') },
         { value: 'day', label: t('reports.filters.day') },
-        { value: 'supplier', label: t('reports.filters.supplier') || 'Supplier' },
-        { value: 'product', label: t('reports.filters.product') || 'Product' },
+        { value: 'supplier', label: t('reports.filters.supplier') },
+        { value: 'product', label: t('reports.filters.product') },
     ];
 
     const availableDetailedColumns = [
         { key: 'code', label: t('reports.detailed_columns.code') },
         { key: 'type', label: t('reports.detailed_columns.type') },
         { key: 'issue_date', label: t('reports.detailed_columns.issue_date') },
-        { key: 'supplier', label: t('reports.detailed_columns.client') || 'Supplier' },
+        { key: 'supplier', label: t('reports.detailed_columns.client') },
         { key: 'discounts', label: t('reports.detailed_columns.discounts') },
         { key: 'total_without_taxes', label: t('reports.detailed_columns.total_without_taxes') },
         { key: 'total', label: t('reports.detailed_columns.total') },
@@ -234,16 +234,16 @@ const PurchasesReport = () => {
 
     const availableSummaryColumns = [
         { key: 'invoices', label: t('reports.columns.invoices') },
-        { key: 'returns', label: t('reports.columns.returns') || 'Returns' },
-        { key: 'orders', label: t('reports.columns.orders') || 'Orders' },
-        { key: 'suppliers', label: t('reports.columns.suppliers') || 'Suppliers' },
+        { key: 'returns', label: t('reports.columns.returns') },
+        { key: 'orders', label: t('reports.columns.orders') },
+        { key: 'suppliers', label: t('reports.columns.suppliers') },
         { key: 'products', label: t('reports.columns.products') },
         { key: 'total_invoices', label: t('reports.columns.total_invoices') },
         { key: 'total_returns', label: t('reports.columns.total_returns') },
-        { key: 'total_orders', label: t('reports.columns.total_orders') || 'Total Orders' },
-        { key: 'total_purchases_discounts', label: t('reports.columns.total_purchases_discounts') || 'Total Discounts' },
-        { key: 'net_purchases_discounts', label: t('reports.columns.net_purchases_discounts') || 'Net Discounts' },
-        { key: 'net_purchases', label: t('reports.columns.net_purchases') || 'Net Purchases' },
+        { key: 'total_orders', label: t('reports.columns.total_orders') },
+        { key: 'total_purchases_discounts', label: t('reports.columns.total_purchases_discounts') },
+        { key: 'net_purchases_discounts', label: t('reports.columns.net_purchases_discounts') },
+        { key: 'net_purchases', label: t('reports.columns.net_purchases') },
     ];
     const [selectedSummaryColumns, setSelectedSummaryColumns] = useState(availableSummaryColumns.map(c => c.key));
 
@@ -266,11 +266,11 @@ const PurchasesReport = () => {
                     <p className="text-xl font-black text-red-900">{formatAmount(grandTotals.totalReturns)}</p>
                 </div>
                 <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
-                    <p className="text-xs font-bold text-amber-600 uppercase mb-1">{t('reports.columns.total_orders') || 'Total Orders'}</p>
+                    <p className="text-xs font-bold text-amber-600 uppercase mb-1">{t('reports.columns.total_orders')}</p>
                     <p className="text-xl font-black text-amber-900">{formatAmount(grandTotals.totalOrders)}</p>
                 </div>
                 <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                    <p className="text-xs font-bold text-blue-600 uppercase mb-1">{t('reports.columns.net_purchases') || 'Net Purchases'}</p>
+                    <p className="text-xs font-bold text-blue-600 uppercase mb-1">{t('reports.columns.net_purchases')}</p>
                     <p className="text-xl font-black text-blue-900">{formatAmount(grandTotals.netPurchases)}</p>
                 </div>
             </div>
@@ -335,7 +335,7 @@ const PurchasesReport = () => {
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-6 p-4 bg-gray-50 rounded-lg no-print">
                         <div className="flex items-center gap-4">
                             <button onClick={handleViewReport} disabled={loading} className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 transition-colors">
-                                {loading ? '...' : t('reports.view_report')}
+                                {loading ? t('reports.loading') : t('reports.view_report')}
                             </button>
                             {error && <span className="text-sm text-red-600">{error}</span>}
                         </div>
@@ -392,9 +392,9 @@ const PurchasesReport = () => {
                                                         let val = '—';
                                                         if (col.key === 'code') val = row.invoiceNumber ?? '—';
                                                         else if (col.key === 'type') {
-                                                            if (row.documentType === 'return') val = t('reports.purchases.type_return') || 'Return';
-                                                            else if (row.documentType === 'purchaseOrder') val = t('reports.purchases.type_order') || 'Order';
-                                                            else val = t('reports.detailed_columns.type_invoice') || 'Invoice';
+                                                            if (row.documentType === 'return') val = t('reports.purchases.type_return');
+                                                            else if (row.documentType === 'purchaseOrder') val = t('reports.purchases.type_order');
+                                                            else val = t('reports.detailed_columns.type_invoice');
                                                         }
                                                         else if (col.key === 'issue_date') val = row.date ? new Date(row.date).toLocaleDateString() : '—';
                                                         else if (col.key === 'supplier') val = row.supplier ?? row.client ?? '—';

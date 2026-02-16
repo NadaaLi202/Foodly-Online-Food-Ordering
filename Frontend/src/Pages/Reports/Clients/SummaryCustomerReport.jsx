@@ -173,7 +173,7 @@ const SummaryCustomerReport = () => {
                             disabled={loading}
                             className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
                         >
-                            {loading ? t('reports.loading') || 'Loading...' : t('reports.view_report')}
+                            {loading ? t('reports.loading') : t('reports.view_report')}
                         </button>
                     </div>
 
@@ -187,7 +187,7 @@ const SummaryCustomerReport = () => {
                     {/* Report Header & Export */}
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100 no-print">
                         <div className="text-sm text-gray-700 font-medium">
-                            {t('reports.customers.summary_report') || 'Customer Summary Report'}
+                            {t('reports.clients.summary_report')}
                         </div>
                         <div className="flex items-center gap-2">
                             <button onClick={handleExportExcel} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
@@ -209,19 +209,19 @@ const SummaryCustomerReport = () => {
                     {summaryData && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <div className="text-sm text-blue-600 font-medium mb-1">{t('reports.customers.total_invoices') || 'Total Invoices'}</div>
+                                <div className="text-sm text-blue-600 font-medium mb-1">{t('reports.clients.total_invoices')}</div>
                                 <div className="text-2xl font-bold text-blue-900">{formatAmount(summaryData.totalInvoices || 0)}</div>
                             </div>
                             <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                                <div className="text-sm text-orange-600 font-medium mb-1">{t('reports.customers.total_returns') || 'Total Returns'}</div>
+                                <div className="text-sm text-orange-600 font-medium mb-1">{t('reports.clients.total_returns')}</div>
                                 <div className="text-2xl font-bold text-orange-900">{formatAmount(summaryData.totalReturns || 0)}</div>
                             </div>
                             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                <div className="text-sm text-green-600 font-medium mb-1">{t('reports.customers.total_payments_received') || 'Total Payments Received'}</div>
+                                <div className="text-sm text-green-600 font-medium mb-1">{t('reports.clients.total_payments_received')}</div>
                                 <div className="text-2xl font-bold text-green-900">{formatAmount(summaryData.totalPaymentsReceived || 0)}</div>
                             </div>
                             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                <div className="text-sm text-red-600 font-medium mb-1">{t('reports.customers.total_outstanding') || 'Total Outstanding'}</div>
+                                <div className="text-sm text-red-600 font-medium mb-1">{t('reports.clients.total_outstanding')}</div>
                                 <div className="text-2xl font-bold text-red-900">{formatAmount(summaryData.totalOutstanding || 0)}</div>
                             </div>
                         </div>
@@ -229,13 +229,13 @@ const SummaryCustomerReport = () => {
 
                     {loading && !summaryData && (
                         <div className="text-center py-8 text-gray-500">
-                            {t('reports.loading') || 'Loading...'}
+                            {t('reports.loading')}
                         </div>
                     )}
 
                     {!loading && !summaryData && !error && (
                         <div className="text-center py-8 text-gray-500">
-                            {t('reports.no_data') || 'No data available'}
+                            {t('reports.no_data')}
                         </div>
                     )}
                 </div>

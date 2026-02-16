@@ -120,7 +120,7 @@ const DetailedSuppliersReport = () => {
 
     const handleExportPdf = () => {
         const doc = new jsPDF({ orientation: 'landscape' });
-        const title = t('reports.suppliers.supplier_general_ledger') || "Supplier Account Statement";
+        const title = t('reports.suppliers.supplier_general_ledger');
 
         doc.setFontSize(18);
         doc.text(title, doc.internal.pageSize.width / 2, 20, { align: 'center' });
@@ -231,7 +231,7 @@ const DetailedSuppliersReport = () => {
                                 onClick={handleResetFilters}
                                 className="px-6 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
                             >
-                                {t('sales.common.reset') || "Reset"}
+                                {t('sales.common.reset')}
                             </button>
                         </div>
 
@@ -286,7 +286,7 @@ const DetailedSuppliersReport = () => {
                                 </thead>
                                 <tbody className="divide-y divide-gray-200">
                                     {loading ? (
-                                        <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">{t('reports.loading')}...</td></tr>
+                                        <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">{t('reports.loading')}</td></tr>
                                     ) : reportData.length === 0 ? (
                                         <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">{error || t('reports.no_data')}</td></tr>
                                     ) : (

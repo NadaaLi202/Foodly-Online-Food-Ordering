@@ -349,7 +349,7 @@ const SalesReport = () => {
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-6 p-4 bg-gray-50 rounded-lg no-print">
                         <div className="flex items-center gap-4">
                             <button onClick={handleViewReport} disabled={loading} className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 transition-colors">
-                                {loading ? '...' : t('reports.view_report')}
+                                {loading ? t('reports.loading') : t('reports.view_report')}
                             </button>
                             {error && <span className="text-sm text-red-600">{error}</span>}
                         </div>
@@ -419,7 +419,7 @@ const SalesReport = () => {
                                                 </tr>
                                             ))
                                         ) : (
-                                            <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400 text-sm italic">{loading ? '...' : t('reports.no_data')}</td></tr>
+                                            <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400 text-sm italic">{loading ? t('reports.loading') : t('reports.no_data')}</td></tr>
                                         )
                                     ) : (
                                         summaryData.length > 0 ? (
@@ -438,7 +438,7 @@ const SalesReport = () => {
                                                 </tr>
                                             ))
                                         ) : (
-                                            <tr><td colSpan={11} className="px-4 py-12 text-center text-gray-400 text-sm italic">{loading ? '...' : t('reports.no_data')}</td></tr>
+                                            <tr><td colSpan={11} className="px-4 py-12 text-center text-gray-400 text-sm italic">{loading ? t('reports.loading') : t('reports.no_data')}</td></tr>
                                         )
                                     )}
                                 </tbody>

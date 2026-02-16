@@ -78,7 +78,7 @@ const TaxReturnReport = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.branches')}</label>
                         <div className="relative">
                             <select value={filters.branch} onChange={(e) => handleFilterChange('branch', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="all">{t('reports.filters.all_branches') || 'All Branches'}</option>
+                                <option value="all">{t('reports.filters.all_branches')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
@@ -93,7 +93,7 @@ const TaxReturnReport = () => {
                 {/* Report Header & Export */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
                     <div className="text-sm text-gray-700 font-medium">
-                        {t('reports.accounting.tax.return_report_title') || 'Tax Return Report From Date 2026 February 1, Sunday To Date 2026 February 28, Saturday'}
+                        {t('reports.accounting.tax.return_report_title')}
                     </div>
                     <div className="flex items-center gap-2">
                         <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
@@ -116,7 +116,7 @@ const TaxReturnReport = () => {
                     {/* Sales Section */}
                     <div className="border border-gray-200 rounded-lg overflow-hidden">
                         <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 font-semibold text-gray-800">
-                            {t('reports.accounting.tax.sales_section') || 'Sales / Outputs'}
+                            {t('reports.accounting.tax.sales_section')}
                         </div>
                         <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
                             <div>
@@ -141,7 +141,7 @@ const TaxReturnReport = () => {
                     {/* Purchases Section */}
                     <div className="border border-gray-200 rounded-lg overflow-hidden">
                         <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 font-semibold text-gray-800">
-                            {t('reports.accounting.tax.purchases_section') || 'Purchases / Inputs'}
+                            {t('reports.accounting.tax.purchases_section')}
                         </div>
                         <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
                             <div>
@@ -165,7 +165,7 @@ const TaxReturnReport = () => {
 
                     {/* Net Tax Section */}
                     <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-6 flex items-center justify-between">
-                        <div className="text-lg font-bold text-indigo-900">{t('reports.accounting.tax.net_vat') || 'Net VAT'}</div>
+                        <div className="text-lg font-bold text-indigo-900">{t('reports.accounting.tax.net_vat')}</div>
                         <div className="text-2xl font-bold text-indigo-700" dir="ltr">{reportData.netTax}</div>
                     </div>
                 </div>

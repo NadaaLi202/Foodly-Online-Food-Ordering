@@ -26,22 +26,22 @@ const DetailedTaxReport = () => {
     ];
 
     const groupByOptions = [
-        { value: 'invoice', label: t('reports.filters.group_no') || 'Invoice' },
+        { value: 'invoice', label: t('reports.filters.group_no') },
     ];
 
     const reportSections = [
         {
-            title: t('reports.accounting.tax.sale_invoices') || 'Sale Invoices',
+            title: t('reports.accounting.tax.sale_invoices'),
             items: [],
             total: { taxable: '0.00', tax: '0.00' }
         },
         {
-            title: t('reports.accounting.tax.sale_credit_notes') || 'Sale Credit Notes',
+            title: t('reports.accounting.tax.sale_credit_notes'),
             items: [],
             total: { taxable: '0.00', tax: '0.00' }
         },
         {
-            title: t('reports.accounting.tax.purchase_invoices') || 'Purchase Invoices',
+            title: t('reports.accounting.tax.purchase_invoices'),
             items: [
                 {
                     invoice: 'BILL-26-1-000001',
@@ -55,12 +55,12 @@ const DetailedTaxReport = () => {
             total: { taxable: '- 100.00', tax: '- 14.00' }
         },
         {
-            title: t('reports.accounting.tax.purchase_credit_notes') || 'Purchase Credit Notes',
+            title: t('reports.accounting.tax.purchase_credit_notes'),
             items: [],
             total: { taxable: '0.00', tax: '0.00' }
         },
         {
-            title: t('reports.accounting.tax.journal_entries') || 'Journal Entries',
+            title: t('reports.accounting.tax.journal_entries'),
             items: [],
             total: { taxable: '', tax: '0.00' }
         },
@@ -111,7 +111,7 @@ const DetailedTaxReport = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.branches')}</label>
                         <div className="relative">
                             <select value={filters.branch} onChange={(e) => handleFilterChange('branch', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="all">{t('reports.filters.all_branches') || 'All Branches'}</option>
+                                <option value="all">{t('reports.filters.all_branches')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
@@ -119,7 +119,7 @@ const DetailedTaxReport = () => {
 
                     {/* Group By */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.accounting.tax.group_by') || 'Group By'}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.accounting.tax.group_by')}</label>
                         <div className="relative">
                             <select value={filters.groupBy} onChange={(e) => handleFilterChange('groupBy', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                 {groupByOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
@@ -130,10 +130,10 @@ const DetailedTaxReport = () => {
 
                     {/* Taxes */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.taxes') || 'Taxes'}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.taxes')}</label>
                         <div className="relative">
                             <select value={filters.tax} onChange={(e) => handleFilterChange('tax', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="all">{t('reports.filters.all_taxes') || 'All Taxes'}</option>
+                                <option value="all">{t('reports.filters.all_taxes')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
@@ -148,7 +148,7 @@ const DetailedTaxReport = () => {
                 {/* Report Header & Export */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
                     <div className="text-sm text-gray-700 font-medium">
-                        {t('reports.accounting.tax.detailed_report_title') || 'Detailed Tax Report From Date 2026 February 1, Sunday To Date 2026 February 28, Saturday'}
+                        {t('reports.accounting.tax.detailed_report_title')}
                     </div>
                     <div className="flex items-center gap-2">
                         <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
@@ -171,12 +171,12 @@ const DetailedTaxReport = () => {
                     <table className="w-full min-w-[900px]">
                         <thead>
                             <tr className="bg-gray-50 border-b border-gray-200">
-                                <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.accounting.tax.invoice') || 'Invoice'}</th>
-                                <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.accounting.tax.client_supplier') || 'Client/Supplier'}</th>
-                                <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.accounting.tax.tax_number') || 'Tax Number'}</th>
-                                <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.accounting.tax.date') || 'Date'}</th>
-                                <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.accounting.tax.taxable_amount') || 'Taxable Amount'}</th>
-                                <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.accounting.tax.tax_amount') || 'Tax Amount'}</th>
+                                <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.accounting.tax.invoice')}</th>
+                                <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.accounting.tax.client_supplier')}</th>
+                                <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.accounting.tax.tax_number')}</th>
+                                <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.accounting.tax.date')}</th>
+                                <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.accounting.tax.taxable_amount')}</th>
+                                <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.accounting.tax.tax_amount')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -201,7 +201,7 @@ const DetailedTaxReport = () => {
 
                                     {/* Section Total */}
                                     <tr className="bg-white font-bold border-t border-gray-100">
-                                        <td colSpan="4" className="px-4 py-3 text-sm text-gray-900">{t('reports.accounting.tax.total') || 'Total'}</td>
+                                        <td colSpan="4" className="px-4 py-3 text-sm text-gray-900">{t('reports.accounting.tax.total')}</td>
                                         <td className="px-4 py-3 text-sm text-gray-900" dir="ltr">{section.total.taxable}</td>
                                         <td className="px-4 py-3 text-sm text-gray-900" dir="ltr">{section.total.tax}</td>
                                     </tr>
@@ -219,15 +219,15 @@ const DetailedTaxReport = () => {
                             </tr>
 
                             <tr className="bg-white font-bold">
-                                <td colSpan="5" className="px-4 py-3 text-sm text-gray-900">{t('reports.accounting.tax.invoices_total') || 'Invoices Total'}</td>
+                                <td colSpan="5" className="px-4 py-3 text-sm text-gray-900">{t('reports.accounting.tax.invoices_total')}</td>
                                 <td className="px-4 py-3 text-sm text-gray-900" dir="ltr">{grandTotals.invoices.tax}</td>
                             </tr>
                             <tr className="bg-white font-bold">
-                                <td colSpan="5" className="px-4 py-3 text-sm text-gray-900">{t('reports.accounting.tax.journal_entry_totals') || 'Journal Entry Totals'}</td>
+                                <td colSpan="5" className="px-4 py-3 text-sm text-gray-900">{t('reports.accounting.tax.journal_entry_totals')}</td>
                                 <td className="px-4 py-3 text-sm text-gray-900" dir="ltr">{grandTotals.journalEntries.tax}</td>
                             </tr>
                             <tr className="bg-gray-50 font-bold border-t border-gray-200">
-                                <td colSpan="5" className="px-4 py-3 text-sm text-gray-900">{t('reports.accounting.tax.total') || 'Total'}</td>
+                                <td colSpan="5" className="px-4 py-3 text-sm text-gray-900">{t('reports.accounting.tax.total')}</td>
                                 <td className="px-4 py-3 text-sm text-gray-900" dir="ltr">{grandTotals.total.tax}</td>
                             </tr>
                         </tbody>

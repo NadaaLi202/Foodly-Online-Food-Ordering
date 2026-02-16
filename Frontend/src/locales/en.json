@@ -66,13 +66,21 @@
         "view_report": "View Report",
         "select_columns": "Select Columns",
         "no_data": "No data available",
+        "error_load": "Error loading report",
+        "loading": "Loading",
+        "purchase_reports": "Purchase Reports",
+        "sales_reports": "Sales Reports",
         "sales": {
             "title": "Sales Reports",
             "description": "View sales reports."
         },
         "purchases": {
             "title": "Purchases Reports",
-            "description": "View purchases reports"
+            "description": "View purchases reports",
+            "type_return": "Return",
+            "type_order": "Order",
+            "total_spent": "Total Spent",
+            "total_due": "Total Due"
         },
         "accounting_reports_desc": "Financial statements and ledger analysis",
         "payments": {
@@ -141,6 +149,7 @@
             "method": "Method",
             "interval": "Interval (Days)",
             "invoices": "Invoices",
+            "purchases_employee": "Purchases Employee",
             "unspecified": "Unspecified"
         },
         "table": {
@@ -166,6 +175,14 @@
             "products": "Products",
             "total_invoices": "Total Invoices",
             "total_returns": "Total Returns",
+            "returns": "Returns",
+            "orders": "Orders",
+            "suppliers": "Suppliers",
+            "total_orders": "Total Orders",
+            "total_paid": "Total Paid",
+            "total_remaining": "Total Remaining",
+            "total_purchases_discounts": "Total Purchases Discounts",
+            "total_returns_discounts": "Total Returns Discounts",
             "total_sales_discounts": "Total Sales Discounts",
             "sales_discounts": "Sales Discounts",
             "sales_total_without_taxes": "Sales Total Without Taxes",
@@ -275,7 +292,12 @@
         "tax_return": "Tax Return",
         "clients": {
             "client_general_ledger": "Client General Ledger",
-            "client_general_ledger_desc": "View Client General Ledger reports."
+            "client_general_ledger_desc": "View Client General Ledger reports.",
+            "summary_report": "Customer Summary Report",
+            "total_invoices": "Total Invoices",
+            "total_returns": "Total Returns",
+            "total_payments_received": "Total Payments Received",
+            "total_outstanding": "Total Outstanding"
         },
         "suppliers": {
             "supplier_general_ledger": "Supplier General Ledger",
