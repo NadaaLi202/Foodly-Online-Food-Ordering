@@ -57,16 +57,31 @@ app.use((err, req, res, next) => {
     res.status(status).json({ message, ...(err.response?.data && { details: err.response.data }) });
 });
 
+// ... (existing code)
+
+// Vercel Serverless: Ensure DB connects on every request if not already connected
+app.use(async (req, res, next) => {
+    await dbConnection();
+    next();
+});
+
 async function bootstrap() {
     await dbConnection()
     startBackupCron()
     app.listen(port, () => console.log(`API server listening on port ${port} (http://localhost:${port}/api/v1)`))
 }
-bootstrap().catch((err) => {
-    console.error('Bootstrap failed:', err);
-    process.exit(1);
-})
+
+// Only run bootstrap if executed directly (e.g. node index.js)
+// In Vercel, this file is imported, so bootstrap() won't auto-run
+if (import.meta.url === `file://${process.argv[1]}`) {
+    bootstrap().catch((err) => {
+        console.error('Bootstrap failed:', err);
+        process.exit(1);
+    })
+}
 
 process.on('unhandledRejection', (err) => {
     console.error('unhandledRejection', err)
 })
+
+export default app;
