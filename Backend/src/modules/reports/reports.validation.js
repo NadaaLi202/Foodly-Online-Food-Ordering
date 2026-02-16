@@ -9,6 +9,7 @@ export const reportQuerySchema = Joi.object({
     endDate: Joi.string().pattern(dateRegex).required().messages({
         "string.pattern.base": "endDate must be YYYY-MM-DD",
     }),
+    customerId: Joi.string().hex().length(24).optional().allow(""),
 });
 
 /** Optional filters for sales invoices detailed report; startDate/endDate optional — when omitted, all invoices returned */

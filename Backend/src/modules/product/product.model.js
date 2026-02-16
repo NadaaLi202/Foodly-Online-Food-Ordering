@@ -76,6 +76,15 @@ const productSchema = new mongoose.Schema({
         min: [0, 'الكمية لا يمكن أن تكون سالبة']
     },
 
+    // متوسط التكلفة (Weighted Average Cost)
+    averageCost: {
+        type: Number,
+        default: function () {
+            return this.purchasePrice || 0;
+        },
+        min: [0, 'متوسط التكلفة لا يمكن أن يكون سالباً']
+    },
+
     // حد التنبيه للمخزون المنخفض
     lowStockThreshold: {
         type: Number,
@@ -215,13 +224,27 @@ productSchema.statics.searchProducts = function (searchTerm) {
 };
 
 // Method لتحديث المخزون
-productSchema.methods.updateStock = function (quantity, operation = 'add') {
+productSchema.methods.updateStock = function (quantity, operation = 'add', purchasePrice = null) {
     if (this.type !== 'tracked') {
         throw new Error('لا يمكن تحديث مخزون الخدمات');
     }
 
+    const currentStock = this.stockQuantity || 0;
+    const currentAverageCost = this.averageCost || this.purchasePrice || 0;
+
     if (operation === 'add') {
-        this.stockQuantity += quantity;
+        // Weighted Average Cost (WAC) formula:
+        // ((Current Stock * Current Average Cost) + (New Quantity * Purchase Price)) / (New Total Stock)
+        const newTotalStock = currentStock + quantity;
+        const newPurchasePrice = purchasePrice !== null ? purchasePrice : this.purchasePrice || 0;
+
+        if (newTotalStock > 0) {
+            this.averageCost = ((currentStock * currentAverageCost) + (quantity * newPurchasePrice)) / newTotalStock;
+        } else {
+            this.averageCost = newPurchasePrice;
+        }
+
+        this.stockQuantity = newTotalStock;
     } else if (operation === 'subtract') {
         this.stockQuantity = Math.max(0, this.stockQuantity - quantity);
     }

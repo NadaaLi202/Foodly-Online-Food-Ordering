@@ -60,6 +60,7 @@
         "sign_out": "Sign Out"
     },
     "reports": {
+        "total": "Total",
         "summary": "Summary",
         "detailed": "Detailed",
         "print": "Print",
@@ -136,6 +137,7 @@
             "storehouse": "Storehouse",
             "payment_status": "Payment Status",
             "user": "User",
+            "all_clients": "All Clients",
             "salesperson": "Salesperson",
             "supplier": "Supplier",
             "treasury": "Treasury",
@@ -150,7 +152,14 @@
             "interval": "Interval (Days)",
             "invoices": "Invoices",
             "purchases_employee": "Purchases Employee",
-            "unspecified": "Unspecified"
+            "unspecified": "Unspecified",
+            "average_cost": "Average Cost",
+            "purchase_price": "Purchase Price",
+            "all_products": "All Products",
+            "products_with_quantity": "Products with Quantity",
+            "highest_value": "Highest Value",
+            "lowest_value": "Lowest Value",
+            "all_warehouses": "All Warehouses"
         },
         "table": {
             "month": "Month",
@@ -294,6 +303,7 @@
             "client_general_ledger": "Client General Ledger",
             "client_general_ledger_desc": "View Client General Ledger reports.",
             "summary_report": "Customer Summary Report",
+            "summary_report_desc": "View summary of customer totals.",
             "total_invoices": "Total Invoices",
             "total_returns": "Total Returns",
             "total_payments_received": "Total Payments Received",
@@ -329,7 +339,9 @@
                 "quantity": "Quantity",
                 "quantity_after": "Quantity After",
                 "value": "Value (EGP)",
-                "value_correction": "Value Correction (EGP)"
+                "value_correction": "Value Correction (EGP)",
+                "stock_in": "Stock In",
+                "stock_out": "Stock Out"
             }
         }
     },

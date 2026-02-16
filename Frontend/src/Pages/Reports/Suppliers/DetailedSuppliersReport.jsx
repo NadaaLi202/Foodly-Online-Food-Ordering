@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucide-react';
+import { ChevronDown, FileSpreadsheet, Printer } from 'lucide-react';
 import reportsService from '../../../services/reportsService';
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 
 const DetailedSuppliersReport = () => {
     const { t, i18n } = useTranslation();
@@ -118,44 +116,6 @@ const DetailedSuppliersReport = () => {
         XLSX.writeFile(workbook, `Supplier_Statement_${filters.fromDate}_to_${filters.toDate}.xlsx`);
     };
 
-    const handleExportPdf = () => {
-        const doc = new jsPDF({ orientation: 'landscape' });
-        const title = t('reports.suppliers.supplier_general_ledger');
-
-        doc.setFontSize(18);
-        doc.text(title, doc.internal.pageSize.width / 2, 20, { align: 'center' });
-
-        const tableColumn = [
-            t('reports.detailed_columns.issue_date'),
-            t('reports.detailed_columns.type'),
-            t('reports.detailed_columns.code'),
-            t('reports.columns.description'),
-            t('reports.columns.debit'),
-            t('reports.columns.credit'),
-            t('reports.columns.balance')
-        ];
-
-        const tableRows = reportData.map(row => [
-            row.date ? new Date(row.date).toLocaleDateString() : '—',
-            row.type ?? '—',
-            row.code ?? '—',
-            row.description ?? '—',
-            formatAmount(row.debit),
-            formatAmount(row.credit),
-            formatAmount(row.balance)
-        ]);
-
-        doc.autoTable({
-            head: [tableColumn],
-            body: tableRows,
-            startY: 40,
-            styles: { halign: isRTL ? 'right' : 'left' },
-            headStyles: { fillColor: [79, 70, 229] }
-        });
-
-        doc.save(`Supplier_Statement_${filters.fromDate}_to_${filters.toDate}.pdf`);
-    };
-
     return (
         <>
             <div className="p-6" id="detailed-suppliers-report-root">
@@ -242,13 +202,6 @@ const DetailedSuppliersReport = () => {
                             >
                                 <Printer size={18} />
                                 {t('reports.export.print')}
-                            </button>
-                            <button
-                                onClick={handleExportPdf}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 border-2 border-red-100 rounded-xl font-bold text-sm hover:bg-red-100 shadow-sm transition-all"
-                            >
-                                <FileText size={18} />
-                                {t('reports.export.pdf')}
                             </button>
                             <button
                                 onClick={handleExportExcel}

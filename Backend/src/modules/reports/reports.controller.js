@@ -124,10 +124,10 @@ export const getInventoryMovementsDetailed = catchAsyncError(async (req, res) =>
 
 // Customers
 export const getCustomersSummary = catchAsyncError(async (req, res) => {
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, customerId } = req.query;
     const companyFilter = req.companyFilter || {};
-    const data = await reportsService.getCustomersSummary(startDate, endDate, companyFilter);
-    res.status(200).json({ message: "OK", data });
+    const result = await reportsService.getCustomersSummary(startDate, endDate, companyFilter, customerId);
+    res.status(200).json({ message: "OK", ...result });
 });
 
 export const getCustomersDetailed = catchAsyncError(async (req, res) => {

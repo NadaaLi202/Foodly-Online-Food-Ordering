@@ -8,6 +8,8 @@ import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary
 import QRCode from "qrcode";
 import PDFDocument from "pdfkit";
 
+import * as inventoryService from "../product/inventory.service.js";
+
 const createTransaction = (module, documentType) =>
     catchAsyncError(async (req, res, next) => {
         console.log(`[DEBUG] createTransaction called for ${module}/${documentType}`);
@@ -49,18 +51,54 @@ const createTransaction = (module, documentType) =>
             }
         }
 
-        const transaction = await Transaction.create({
-            ...opData,
-            module,
-            documentType,
-            companyId, // Ensure companyId is saved
-            createdBy: req.user?._id
-        });
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+            const transaction = await Transaction.create([{
+                ...opData,
+                module,
+                documentType,
+                companyId,
+                createdBy: req.user?._id
+            }], { session });
 
-        res.status(201).json({
-            message: "تم الإنشاء بنجاح",
-            transaction
-        });
+            const txn = transaction[0];
+
+            // Automated Stock Updates
+            if (txn.status !== 'draft' && (txn.documentType === 'invoice' || txn.documentType === 'return')) {
+                const isSales = txn.module === 'sales';
+                const isReturn = txn.documentType === 'return';
+
+                // Purchases Invoice: IN, Purchases Return: OUT
+                // Sales Invoice: OUT, Sales Return: IN
+                const stockType = isSales ? (isReturn ? 'in' : 'out') : (isReturn ? 'out' : 'in');
+
+                for (const item of txn.items || []) {
+                    await inventoryService.updateProductStock({
+                        productId: item.product,
+                        companyId,
+                        quantity: item.quantity,
+                        type: stockType,
+                        permissionId: txn._id,
+                        userId: req.user?._id,
+                        // For purchases invoices, use the actual unit price to update WAC
+                        purchasePrice: (txn.module === 'purchases' && txn.documentType === 'invoice') ? item.unitPrice : null,
+                        session
+                    });
+                }
+            }
+
+            await session.commitTransaction();
+            res.status(201).json({
+                message: "تم الإنشاء بنجاح",
+                transaction: txn
+            });
+        } catch (error) {
+            await session.abortTransaction();
+            next(error);
+        } finally {
+            session.endSession();
+        }
     });
 
 const getAllTransactions = (module, documentType) =>
@@ -194,12 +232,53 @@ const deleteOne = catchAsyncError(async (req, res, next) => {
     const doc = await Transaction.findOne({ _id: req.params.id, ...req.companyFilter });
     if (!doc) return next(new AppError("غير موجود", 404));
 
-    // Soft delete
-    doc.deletedAt = new Date();
-    doc.deletedBy = req.user?._id;
-    await doc.save();
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+        // Reverse Stock Movements if not draft
+        if (doc.status !== 'draft' && (doc.documentType === 'invoice' || doc.documentType === 'return')) {
+            const isSales = doc.module === 'sales';
+            const isReturn = doc.documentType === 'return';
 
-    res.json({ message: "تم الحذف" });
+            // Reversing: 
+            // Original IN -> Subtract, Original OUT -> Add
+            const stockType = isSales ? (isReturn ? 'out' : 'add') : (isReturn ? 'add' : 'out');
+            const inventoryAction = (isSales ? (isReturn ? 'out' : 'in') : (isReturn ? 'in' : 'out')) === 'in' ? 'subtract' : 'add';
+
+            // More readable logic:
+            // Purchase Invoice was IN -> Subtract
+            // Purchase Return was OUT -> Add
+            // Sales Invoice was OUT -> Add
+            // Sales Return was IN -> Subtract
+
+            for (const item of doc.items || []) {
+                const action = (doc.module === 'purchases' && doc.documentType === 'invoice') || (doc.module === 'sales' && doc.documentType === 'return') ? 'subtract' : 'add';
+
+                await inventoryService.updateProductStock({
+                    productId: item.product,
+                    companyId: doc.companyId,
+                    quantity: item.quantity,
+                    type: action === 'add' ? 'in' : 'out',
+                    permissionId: doc._id,
+                    userId: req.user?._id,
+                    session
+                });
+            }
+        }
+
+        // Soft delete
+        doc.deletedAt = new Date();
+        doc.deletedBy = req.user?._id;
+        await doc.save({ session });
+
+        await session.commitTransaction();
+        res.json({ message: "تم الحذف" });
+    } catch (error) {
+        await session.abortTransaction();
+        next(error);
+    } finally {
+        session.endSession();
+    }
 });
 
 const docTypeLabel = (module, documentType) => {

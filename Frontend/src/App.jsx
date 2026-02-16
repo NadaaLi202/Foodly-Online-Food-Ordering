@@ -65,15 +65,8 @@ import SummaryPurchasesReport from './Pages/Reports/Purchases/SummaryPurchasesRe
 import DetailedPurchasesReport from './Pages/Reports/Purchases/DetailedPurchasesReport';
 import SummarySupplierPaymentsReport from './Pages/Reports/Purchases/SummarySupplierPaymentsReport';
 import DetailedSupplierPaymentsReport from './Pages/Reports/Purchases/DetailedSupplierPaymentsReport';
-import AccountingReportsPage from './Pages/Reports/Accounting/AccountingReportsPage';
-import BalanceSheetReport from './Pages/Reports/Accounting/BalanceSheetReport';
-import IncomeStatementReport from './Pages/Reports/Accounting/IncomeStatementReport';
-import TrialBalanceReport from './Pages/Reports/Accounting/TrialBalanceReport';
-import GeneralLedgerReport from './Pages/Reports/Accounting/GeneralLedgerReport';
-import SummaryTaxReport from './Pages/Reports/Accounting/SummaryTaxReport';
-import DetailedTaxReport from './Pages/Reports/Accounting/DetailedTaxReport';
-import TaxReturnReport from './Pages/Reports/Accounting/TaxReturnReport';
 import ClientsReportsPage from './Pages/Reports/Clients/ClientsReportsPage';
+import SummaryCustomerReport from './Pages/Reports/Clients/SummaryCustomerReport';
 import ClientGeneralLedger from './Pages/Reports/Clients/ClientGeneralLedger';
 import SuppliersReportsPage from './Pages/Reports/Suppliers/SuppliersReportsPage';
 import DetailedSuppliersReport from './Pages/Reports/Suppliers/DetailedSuppliersReport';
@@ -180,18 +173,9 @@ function App() {
                 <Route path="payments-summary" element={<SummarySupplierPaymentsReport />} />
                 <Route path="payments-detailed" element={<DetailedSupplierPaymentsReport />} />
               </Route>
-              <Route path="accounting">
-                <Route index element={<AccountingReportsPage />} />
-                <Route path="balance-sheet" element={<BalanceSheetReport />} />
-                <Route path="income-statement" element={<IncomeStatementReport />} />
-                <Route path="trial-balance" element={<TrialBalanceReport />} />
-                <Route path="general-ledger" element={<GeneralLedgerReport />} />
-                <Route path="tax-summary" element={<SummaryTaxReport />} />
-                <Route path="tax-detailed" element={<DetailedTaxReport />} />
-                <Route path="tax-return" element={<TaxReturnReport />} />
-              </Route>
               <Route path="clients" element={<ReportsLayout title="Clients Reports" />}>
                 <Route index element={<ClientsReportsPage />} />
+                <Route path="summary" element={<SummaryCustomerReport />} />
                 <Route path="general-ledger" element={<ClientGeneralLedger />} />
               </Route>
               <Route path="customers" element={<PlaceholderPage title="Customers Reports" />} />
@@ -248,7 +232,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
-    </BrowserRouter>
+    </BrowserRouter >
   );
 }
 

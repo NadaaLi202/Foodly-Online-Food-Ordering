@@ -9,6 +9,7 @@ const SummaryCustomerReport = () => {
     const [summaryData, setSummaryData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [customers, setCustomers] = useState([]);
 
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -25,6 +26,7 @@ const SummaryCustomerReport = () => {
         period: 'current_month',
         fromDate: formatDate(firstDay),
         toDate: formatDate(lastDay),
+        customerId: 'all',
     });
 
     const handleFilterChange = (field, value) => {
@@ -32,11 +34,20 @@ const SummaryCustomerReport = () => {
         setError(null);
     };
 
+    const fetchCustomers = async () => {
+        try {
+            const list = await reportsService.getCustomersList();
+            setCustomers(list);
+        } catch (err) {
+            console.error('Error fetching customers:', err);
+        }
+    };
+
     const fetchReport = async () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await reportsService.getCustomersSummary(filters.fromDate, filters.toDate);
+            const res = await reportsService.getCustomersSummary(filters.fromDate, filters.toDate, filters.customerId);
             const data = res?.data ?? res;
             setSummaryData(data);
         } catch (err) {
@@ -51,10 +62,23 @@ const SummaryCustomerReport = () => {
         fetchReport();
     };
 
-    // Auto-fetch on mount
+    // Initial fetch
     useEffect(() => {
+        fetchCustomers();
         fetchReport();
     }, []);
+
+    // Filter changes (date or period) - update on period change
+    useEffect(() => {
+        if (filters.period !== 'custom') {
+            fetchReport();
+        }
+    }, [filters.fromDate, filters.toDate, filters.period]);
+
+    // Customer change - update immediately
+    useEffect(() => {
+        fetchReport();
+    }, [filters.customerId]);
 
     // Listen for customer creation/update events
     useEffect(() => {
@@ -162,6 +186,24 @@ const SummaryCustomerReport = () => {
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                 />
                                 <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            </div>
+                        </div>
+
+                        {/* Customer */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.client') || 'Customer'}</label>
+                            <div className="relative">
+                                <select
+                                    value={filters.customerId}
+                                    onChange={(e) => handleFilterChange('customerId', e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                >
+                                    <option value="all">{t('reports.filters.all_clients') || 'All Customers'}</option>
+                                    {customers.map(c => (
+                                        <option key={c._id} value={c._id}>{c.name}</option>
+                                    ))}
+                                </select>
+                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                             </div>
                         </div>
                     </div>

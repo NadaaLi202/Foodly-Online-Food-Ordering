@@ -15,8 +15,14 @@ const stockLogSchema = new mongoose.Schema(
         },
         permission: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Requisition",
-            required: true
+            required: true,
+            refPath: 'permissionModel'
+        },
+        permissionModel: {
+            type: String,
+            required: true,
+            enum: ['Requisition', 'Transaction'],
+            default: 'Requisition'
         },
         type: {
             type: String,

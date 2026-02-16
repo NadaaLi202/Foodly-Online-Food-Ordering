@@ -13,7 +13,7 @@ export function exportCustomerSummaryToExcel(summaryData, dateRange, t) {
     rows.push([t('reports.filters.from_date') || 'From Date', dateRange?.fromDate || '—']);
     rows.push([t('reports.filters.to_date') || 'To Date', dateRange?.toDate || '—']);
     rows.push([]);
-    
+
     rows.push([
         t('reports.customers.total_invoices') || 'Total Invoices',
         fmtNum(summaryData?.totalInvoices || 0)
@@ -23,14 +23,14 @@ export function exportCustomerSummaryToExcel(summaryData, dateRange, t) {
         fmtNum(summaryData?.totalReturns || 0)
     ]);
     rows.push([
-        t('reports.customers.total_paid') || 'Total Paid',
-        fmtNum(summaryData?.totalPaid || 0)
+        t('reports.clients.total_payments_received') || 'Total Payments Received',
+        fmtNum(summaryData?.totalPaymentsReceived || 0)
     ]);
     rows.push([
-        t('reports.customers.outstanding') || 'Outstanding',
-        fmtNum(summaryData?.outstanding || 0)
+        t('reports.clients.total_outstanding') || 'Outstanding',
+        fmtNum(summaryData?.totalOutstanding || 0)
     ]);
-    
+
     const ws = XLSX.utils.aoa_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Customer Summary');
@@ -48,7 +48,7 @@ export function exportCustomerDetailedToExcel(detailedData, dateRange, t) {
     rows.push([t('reports.filters.from_date') || 'From Date', dateRange?.fromDate || '—']);
     rows.push([t('reports.filters.to_date') || 'To Date', dateRange?.toDate || '—']);
     rows.push([]);
-    
+
     // Header row
     rows.push([
         t('reports.columns.customer_name') || 'Customer Name',
@@ -58,7 +58,7 @@ export function exportCustomerDetailedToExcel(detailedData, dateRange, t) {
         t('reports.customers.total_paid') || 'Total Paid',
         t('reports.customers.outstanding') || 'Outstanding'
     ]);
-    
+
     // Data rows
     detailedData.forEach(row => {
         rows.push([
@@ -70,7 +70,7 @@ export function exportCustomerDetailedToExcel(detailedData, dateRange, t) {
             fmtNum(row.outstanding || 0)
         ]);
     });
-    
+
     // Total row
     if (detailedData.length > 0) {
         rows.push([
@@ -82,7 +82,7 @@ export function exportCustomerDetailedToExcel(detailedData, dateRange, t) {
             fmtNum(detailedData.reduce((sum, r) => sum + (r.outstanding || 0), 0))
         ]);
     }
-    
+
     const ws = XLSX.utils.aoa_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Customer Detailed');
@@ -100,7 +100,7 @@ export function exportSupplierSummaryToExcel(summaryData, dateRange, t) {
     rows.push([t('reports.filters.from_date') || 'From Date', dateRange?.fromDate || '—']);
     rows.push([t('reports.filters.to_date') || 'To Date', dateRange?.toDate || '—']);
     rows.push([]);
-    
+
     rows.push([
         t('reports.suppliers.total_purchases') || 'Total Purchases',
         fmtNum(summaryData?.totalPurchases || 0)
@@ -117,7 +117,7 @@ export function exportSupplierSummaryToExcel(summaryData, dateRange, t) {
         t('reports.suppliers.total_outstanding') || 'Total Outstanding',
         fmtNum(summaryData?.totalOutstanding || 0)
     ]);
-    
+
     const ws = XLSX.utils.aoa_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Supplier Summary');
@@ -135,7 +135,7 @@ export function exportSupplierDetailedToExcel(detailedData, dateRange, t) {
     rows.push([t('reports.filters.from_date') || 'From Date', dateRange?.fromDate || '—']);
     rows.push([t('reports.filters.to_date') || 'To Date', dateRange?.toDate || '—']);
     rows.push([]);
-    
+
     // Header row
     rows.push([
         t('reports.columns.supplier_name') || 'Supplier Name',
@@ -145,7 +145,7 @@ export function exportSupplierDetailedToExcel(detailedData, dateRange, t) {
         t('reports.suppliers.total_paid') || 'Total Paid',
         t('reports.suppliers.outstanding') || 'Outstanding'
     ]);
-    
+
     // Data rows
     detailedData.forEach(row => {
         rows.push([
@@ -157,7 +157,7 @@ export function exportSupplierDetailedToExcel(detailedData, dateRange, t) {
             fmtNum(row.outstanding || 0)
         ]);
     });
-    
+
     // Total row
     if (detailedData.length > 0) {
         rows.push([
@@ -169,7 +169,7 @@ export function exportSupplierDetailedToExcel(detailedData, dateRange, t) {
             fmtNum(detailedData.reduce((sum, r) => sum + (r.outstanding || 0), 0))
         ]);
     }
-    
+
     const ws = XLSX.utils.aoa_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Supplier Detailed');
@@ -185,7 +185,7 @@ export function exportInventoryValueToExcel(summaryData, filters, t) {
     const rows = [];
     rows.push([t('reports.inventory.inventory_value_report.report_title_dynamic') || 'Inventory Value Report']);
     rows.push([]);
-    
+
     // Header row
     rows.push([
         t('reports.inventory.inventory_value_report.name') || 'Name',
@@ -197,26 +197,27 @@ export function exportInventoryValueToExcel(summaryData, filters, t) {
         t('reports.inventory.inventory_value_report.sale_value') || 'Sale Value',
         t('reports.inventory.inventory_value_report.sale_profit') || 'Sale Profit'
     ]);
-    
+
     // Data rows
     summaryData.forEach(row => {
-        const saleValue = (row.quantity || 0) * (row.sellingPrice || 0);
-        const saleProfit = saleValue - (row.value || 0);
         rows.push([
             row.productName || '—',
             row.code || '—',
             row.quantity || 0,
-            fmtNum(row.unitPrice || 0),
-            fmtNum(row.value || 0),
+            fmtNum(row.unitCost || 0),
+            fmtNum(row.inventoryValue || 0),
             fmtNum(row.sellingPrice || 0),
-            fmtNum(saleValue),
-            fmtNum(saleProfit)
+            fmtNum(row.potentialSalesValue || 0),
+            fmtNum(row.potentialProfit || 0)
         ]);
     });
-    
+
     // Total row
     if (summaryData.length > 0) {
-        const totalValue = summaryData.reduce((sum, item) => sum + (item.value || 0), 0);
+        const totalValue = summaryData.reduce((sum, item) => sum + (item.inventoryValue || 0), 0);
+        const totalSalesValue = summaryData.reduce((sum, item) => sum + (item.potentialSalesValue || 0), 0);
+        const totalProfit = summaryData.reduce((sum, item) => sum + (item.potentialProfit || 0), 0);
+
         rows.push([
             t('reports.total') || 'Total',
             '',
@@ -224,11 +225,11 @@ export function exportInventoryValueToExcel(summaryData, filters, t) {
             '',
             fmtNum(totalValue),
             '',
-            '',
-            ''
+            fmtNum(totalSalesValue),
+            fmtNum(totalProfit)
         ]);
     }
-    
+
     const ws = XLSX.utils.aoa_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Inventory Value');
@@ -246,7 +247,7 @@ export function exportInventoryMovementsToExcel(movementsData, dateRange, t) {
     rows.push([t('reports.filters.from_date') || 'From Date', dateRange?.fromDate || '—']);
     rows.push([t('reports.filters.to_date') || 'To Date', dateRange?.toDate || '—']);
     rows.push([]);
-    
+
     // Header row
     rows.push([
         t('reports.inventory.inventory_value_detailed_report.stock_transaction') || 'Stock Transaction',
@@ -257,7 +258,7 @@ export function exportInventoryMovementsToExcel(movementsData, dateRange, t) {
         t('reports.inventory.inventory_value_detailed_report.value') || 'Value (EGP)',
         t('reports.inventory.inventory_value_detailed_report.value_correction') || 'Value Correction (EGP)'
     ]);
-    
+
     // Group by product and add rows
     const groupedByProduct = {};
     movementsData.forEach(movement => {
@@ -271,22 +272,22 @@ export function exportInventoryMovementsToExcel(movementsData, dateRange, t) {
         }
         groupedByProduct[key].movements.push(movement);
     });
-    
+
     Object.entries(groupedByProduct).forEach(([key, group]) => {
         rows.push([`${group.productName} ${group.productCode}`, '', '', '', '', '', '']);
         group.movements.forEach(movement => {
             rows.push([
-                movement.type === 'in' ? (t('reports.inventory.incoming') || 'Incoming') : (t('reports.inventory.outgoing') || 'Outgoing'),
+                movement.type || '—',
                 movement.documentNumber || '—',
                 formatCellDate(movement.date),
-                movement.quantity || 0,
-                '—',
-                '—',
-                '—'
+                fmtNum(movement.quantity),
+                fmtNum(movement.quantityAfter),
+                fmtNum(movement.value),
+                fmtNum(movement.valueCorrection)
             ]);
         });
     });
-    
+
     const ws = XLSX.utils.aoa_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Inventory Movements');
@@ -568,46 +569,46 @@ export function buildCustomerSummaryPdf(summaryData, dateRange, t) {
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 14;
     let y = 18;
-    
+
     doc.setR2L(true);
-    
+
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
     doc.text(t('reports.customers.summary_report') || 'Customer Summary Report', pageW - margin, y);
     y += 8;
-    
+
     doc.setFontSize(9);
     doc.setFont(undefined, 'normal');
     doc.text(`${t('reports.filters.from_date') || 'From Date'}: ${dateRange?.fromDate || '—'}`, pageW - margin, y);
     y += 5;
     doc.text(`${t('reports.filters.to_date') || 'To Date'}: ${dateRange?.toDate || '—'}`, pageW - margin, y);
     y += 10;
-    
+
     if (summaryData) {
         doc.setFont(undefined, 'bold');
         doc.text(t('reports.customers.total_invoices') || 'Total Invoices', pageW - margin, y);
         doc.setFont(undefined, 'normal');
         doc.text(fmtNum(summaryData.totalInvoices || 0), pageW - margin - 60, y);
         y += 7;
-        
+
         doc.setFont(undefined, 'bold');
         doc.text(t('reports.customers.total_returns') || 'Total Returns', pageW - margin, y);
         doc.setFont(undefined, 'normal');
         doc.text(fmtNum(summaryData.totalReturns || 0), pageW - margin - 60, y);
         y += 7;
-        
+
         doc.setFont(undefined, 'bold');
-        doc.text(t('reports.customers.total_paid') || 'Total Paid', pageW - margin, y);
+        doc.text(t('reports.clients.total_payments_received') || 'Total Payments Received', pageW - margin, y);
         doc.setFont(undefined, 'normal');
-        doc.text(fmtNum(summaryData.totalPaid || 0), pageW - margin - 60, y);
+        doc.text(fmtNum(summaryData.totalPaymentsReceived || 0), pageW - margin - 60, y);
         y += 7;
-        
+
         doc.setFont(undefined, 'bold');
-        doc.text(t('reports.customers.outstanding') || 'Outstanding', pageW - margin, y);
+        doc.text(t('reports.clients.total_outstanding') || 'Outstanding', pageW - margin, y);
         doc.setFont(undefined, 'normal');
-        doc.text(fmtNum(summaryData.outstanding || 0), pageW - margin - 60, y);
+        doc.text(fmtNum(summaryData.totalOutstanding || 0), pageW - margin - 60, y);
     }
-    
+
     return doc.output('blob');
 }
 
@@ -619,26 +620,26 @@ export function buildCustomerDetailedPdf(detailedData, dateRange, t) {
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 14;
     let y = 18;
-    
+
     doc.setR2L(true);
-    
+
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
     doc.text(t('reports.customers.detailed_report') || 'Detailed Customer Report', pageW - margin, y);
     y += 8;
-    
+
     doc.setFontSize(9);
     doc.setFont(undefined, 'normal');
     doc.text(`${t('reports.filters.from_date') || 'From Date'}: ${dateRange?.fromDate || '—'}`, pageW - margin, y);
     y += 5;
     doc.text(`${t('reports.filters.to_date') || 'To Date'}: ${dateRange?.toDate || '—'}`, pageW - margin, y);
     y += 10;
-    
+
     if (detailedData.length === 0) {
         doc.text(t('reports.no_data') || 'No data available', pageW - margin, y);
         return doc.output('blob');
     }
-    
+
     const colW = (pageW - 2 * margin) / 6;
     const headers = [
         t('reports.columns.customer_name') || 'Customer Name',
@@ -648,7 +649,7 @@ export function buildCustomerDetailedPdf(detailedData, dateRange, t) {
         t('reports.customers.total_paid') || 'Total Paid',
         t('reports.customers.outstanding') || 'Outstanding'
     ];
-    
+
     doc.setFont(undefined, 'bold');
     doc.setFontSize(8);
     headers.forEach((header, i) => {
@@ -656,7 +657,7 @@ export function buildCustomerDetailedPdf(detailedData, dateRange, t) {
         doc.text(String(header).substring(0, 20), x, y);
     });
     y += 6;
-    
+
     doc.setFont(undefined, 'normal');
     detailedData.forEach(row => {
         if (y > doc.internal.pageSize.getHeight() - 20) {
@@ -678,7 +679,7 @@ export function buildCustomerDetailedPdf(detailedData, dateRange, t) {
         });
         y += 5;
     });
-    
+
     // Total row
     if (detailedData.length > 0) {
         if (y > doc.internal.pageSize.getHeight() - 20) {
@@ -700,7 +701,7 @@ export function buildCustomerDetailedPdf(detailedData, dateRange, t) {
             doc.text(String(cell).substring(0, 22), x, y);
         });
     }
-    
+
     return doc.output('blob');
 }
 
@@ -712,46 +713,46 @@ export function buildSupplierSummaryPdf(summaryData, dateRange, t) {
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 14;
     let y = 18;
-    
+
     doc.setR2L(true);
-    
+
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
     doc.text(t('reports.suppliers.summary_report') || 'Supplier Summary Report', pageW - margin, y);
     y += 8;
-    
+
     doc.setFontSize(9);
     doc.setFont(undefined, 'normal');
     doc.text(`${t('reports.filters.from_date') || 'From Date'}: ${dateRange?.fromDate || '—'}`, pageW - margin, y);
     y += 5;
     doc.text(`${t('reports.filters.to_date') || 'To Date'}: ${dateRange?.toDate || '—'}`, pageW - margin, y);
     y += 10;
-    
+
     if (summaryData) {
         doc.setFont(undefined, 'bold');
         doc.text(t('reports.suppliers.total_purchases') || 'Total Purchases', pageW - margin, y);
         doc.setFont(undefined, 'normal');
         doc.text(fmtNum(summaryData.totalPurchases || 0), pageW - margin - 60, y);
         y += 7;
-        
+
         doc.setFont(undefined, 'bold');
         doc.text(t('reports.suppliers.total_returns') || 'Total Returns', pageW - margin, y);
         doc.setFont(undefined, 'normal');
         doc.text(fmtNum(summaryData.totalReturns || 0), pageW - margin - 60, y);
         y += 7;
-        
+
         doc.setFont(undefined, 'bold');
         doc.text(t('reports.suppliers.total_payments_spent') || 'Total Payments Spent', pageW - margin, y);
         doc.setFont(undefined, 'normal');
         doc.text(fmtNum(summaryData.totalPaymentsSpent || 0), pageW - margin - 60, y);
         y += 7;
-        
+
         doc.setFont(undefined, 'bold');
         doc.text(t('reports.suppliers.total_outstanding') || 'Total Outstanding', pageW - margin, y);
         doc.setFont(undefined, 'normal');
         doc.text(fmtNum(summaryData.totalOutstanding || 0), pageW - margin - 60, y);
     }
-    
+
     return doc.output('blob');
 }
 
@@ -763,26 +764,26 @@ export function buildSupplierDetailedPdf(detailedData, dateRange, t) {
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 14;
     let y = 18;
-    
+
     doc.setR2L(true);
-    
+
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
     doc.text(t('reports.suppliers.detailed_report') || 'Detailed Supplier Report', pageW - margin, y);
     y += 8;
-    
+
     doc.setFontSize(9);
     doc.setFont(undefined, 'normal');
     doc.text(`${t('reports.filters.from_date') || 'From Date'}: ${dateRange?.fromDate || '—'}`, pageW - margin, y);
     y += 5;
     doc.text(`${t('reports.filters.to_date') || 'To Date'}: ${dateRange?.toDate || '—'}`, pageW - margin, y);
     y += 10;
-    
+
     if (detailedData.length === 0) {
         doc.text(t('reports.no_data') || 'No data available', pageW - margin, y);
         return doc.output('blob');
     }
-    
+
     const colW = (pageW - 2 * margin) / 6;
     const headers = [
         t('reports.columns.supplier_name') || 'Supplier Name',
@@ -792,7 +793,7 @@ export function buildSupplierDetailedPdf(detailedData, dateRange, t) {
         t('reports.suppliers.total_paid') || 'Total Paid',
         t('reports.suppliers.outstanding') || 'Outstanding'
     ];
-    
+
     doc.setFont(undefined, 'bold');
     doc.setFontSize(8);
     headers.forEach((header, i) => {
@@ -800,7 +801,7 @@ export function buildSupplierDetailedPdf(detailedData, dateRange, t) {
         doc.text(String(header).substring(0, 20), x, y);
     });
     y += 6;
-    
+
     doc.setFont(undefined, 'normal');
     detailedData.forEach(row => {
         if (y > doc.internal.pageSize.getHeight() - 20) {
@@ -822,7 +823,7 @@ export function buildSupplierDetailedPdf(detailedData, dateRange, t) {
         });
         y += 5;
     });
-    
+
     // Total row
     if (detailedData.length > 0) {
         if (y > doc.internal.pageSize.getHeight() - 20) {
@@ -844,7 +845,7 @@ export function buildSupplierDetailedPdf(detailedData, dateRange, t) {
             doc.text(String(cell).substring(0, 22), x, y);
         });
     }
-    
+
     return doc.output('blob');
 }
 
@@ -856,21 +857,21 @@ export function buildInventoryValuePdf(summaryData, filters, t) {
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 14;
     let y = 18;
-    
+
     doc.setR2L(true);
-    
+
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
     doc.text(t('reports.inventory.inventory_value_report.report_title_dynamic') || 'Inventory Value Report', pageW - margin, y);
     y += 10;
-    
+
     if (summaryData.length === 0) {
         doc.setFontSize(9);
         doc.setFont(undefined, 'normal');
         doc.text(t('reports.no_data') || 'No data available', pageW - margin, y);
         return doc.output('blob');
     }
-    
+
     const colW = (pageW - 2 * margin) / 8;
     const headers = [
         t('reports.inventory.inventory_value_report.name') || 'Name',
@@ -882,7 +883,7 @@ export function buildInventoryValuePdf(summaryData, filters, t) {
         t('reports.inventory.inventory_value_report.sale_value') || 'Sale Value',
         t('reports.inventory.inventory_value_report.sale_profit') || 'Sale Profit'
     ];
-    
+
     doc.setFont(undefined, 'bold');
     doc.setFontSize(7);
     headers.forEach((header, i) => {
@@ -890,7 +891,7 @@ export function buildInventoryValuePdf(summaryData, filters, t) {
         doc.text(String(header).substring(0, 15), x, y);
     });
     y += 6;
-    
+
     doc.setFont(undefined, 'normal');
     summaryData.forEach(row => {
         if (y > doc.internal.pageSize.getHeight() - 20) {
@@ -898,25 +899,23 @@ export function buildInventoryValuePdf(summaryData, filters, t) {
             y = 18;
             doc.setR2L(true);
         }
-        const saleValue = (row.quantity || 0) * (row.sellingPrice || 0);
-        const saleProfit = saleValue - (row.value || 0);
         const rowData = [
             row.productName || '—',
             row.code || '—',
-            String(row.quantity || 0),
-            fmtNum(row.unitPrice || 0),
-            fmtNum(row.value || 0),
-            fmtNum(row.sellingPrice || 0),
-            fmtNum(saleValue),
-            fmtNum(saleProfit)
+            fmtNum(row.quantity),
+            fmtNum(row.unitCost),
+            fmtNum(row.inventoryValue),
+            fmtNum(row.sellingPrice),
+            fmtNum(row.potentialSalesValue),
+            fmtNum(row.potentialProfit)
         ];
         rowData.forEach((cell, i) => {
             const x = pageW - margin - (i + 1) * colW + 2;
-            doc.text(String(cell).substring(0, 18), x, y);
+            doc.text(String(cell), x, y);
         });
         y += 5;
     });
-    
+
     // Total row
     if (summaryData.length > 0) {
         if (y > doc.internal.pageSize.getHeight() - 20) {
@@ -924,24 +923,17 @@ export function buildInventoryValuePdf(summaryData, filters, t) {
             y = 18;
             doc.setR2L(true);
         }
+        const totalValue = summaryData.reduce((sum, item) => sum + (item.inventoryValue || 0), 0);
+        const totalSalesValue = summaryData.reduce((sum, item) => sum + (item.potentialSalesValue || 0), 0);
+        const totalProfit = summaryData.reduce((sum, item) => sum + (item.potentialProfit || 0), 0);
+
         doc.setFont(undefined, 'bold');
-        const totalValue = summaryData.reduce((sum, item) => sum + (item.value || 0), 0);
-        const totals = [
-            t('reports.total') || 'Total',
-            '',
-            '',
-            '',
-            fmtNum(totalValue),
-            '',
-            '',
-            ''
-        ];
-        totals.forEach((cell, i) => {
-            const x = pageW - margin - (i + 1) * colW + 2;
-            doc.text(String(cell).substring(0, 18), x, y);
-        });
+        doc.text(t('reports.total') || 'Total', pageW - margin - colW + 2, y);
+        doc.text(fmtNum(totalValue), pageW - margin - 5 * colW + 2, y);
+        doc.text(fmtNum(totalSalesValue), pageW - margin - 7 * colW + 2, y);
+        doc.text(fmtNum(totalProfit), pageW - margin - 8 * colW + 2, y);
     }
-    
+
     return doc.output('blob');
 }
 
@@ -953,26 +945,26 @@ export function buildInventoryMovementsPdf(movementsData, dateRange, t) {
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 14;
     let y = 18;
-    
+
     doc.setR2L(true);
-    
+
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
     doc.text(t('reports.inventory.inventory_movements_detailed') || 'Inventory Movements Detailed Report', pageW - margin, y);
     y += 8;
-    
+
     doc.setFontSize(9);
     doc.setFont(undefined, 'normal');
     doc.text(`${t('reports.filters.from_date') || 'From Date'}: ${dateRange?.fromDate || '—'}`, pageW - margin, y);
     y += 5;
     doc.text(`${t('reports.filters.to_date') || 'To Date'}: ${dateRange?.toDate || '—'}`, pageW - margin, y);
     y += 10;
-    
+
     if (movementsData.length === 0) {
         doc.text(t('reports.no_data') || 'No data available', pageW - margin, y);
         return doc.output('blob');
     }
-    
+
     const colW = (pageW - 2 * margin) / 7;
     const headers = [
         t('reports.inventory.inventory_value_detailed_report.stock_transaction') || 'Stock Transaction',
@@ -983,7 +975,7 @@ export function buildInventoryMovementsPdf(movementsData, dateRange, t) {
         t('reports.inventory.inventory_value_detailed_report.value') || 'Value (EGP)',
         t('reports.inventory.inventory_value_detailed_report.value_correction') || 'Value Correction (EGP)'
     ];
-    
+
     doc.setFont(undefined, 'bold');
     doc.setFontSize(7);
     headers.forEach((header, i) => {
@@ -991,7 +983,7 @@ export function buildInventoryMovementsPdf(movementsData, dateRange, t) {
         doc.text(String(header).substring(0, 18), x, y);
     });
     y += 6;
-    
+
     // Group by product
     const groupedByProduct = {};
     movementsData.forEach(movement => {
@@ -1005,7 +997,7 @@ export function buildInventoryMovementsPdf(movementsData, dateRange, t) {
         }
         groupedByProduct[key].movements.push(movement);
     });
-    
+
     doc.setFont(undefined, 'normal');
     Object.entries(groupedByProduct).forEach(([key, group]) => {
         if (y > doc.internal.pageSize.getHeight() - 20) {
@@ -1017,7 +1009,7 @@ export function buildInventoryMovementsPdf(movementsData, dateRange, t) {
         doc.text(`${group.productName} ${group.productCode}`, pageW - margin, y);
         y += 5;
         doc.setFont(undefined, 'normal');
-        
+
         group.movements.forEach(movement => {
             if (y > doc.internal.pageSize.getHeight() - 20) {
                 doc.addPage('a4', 'l');
@@ -1025,13 +1017,13 @@ export function buildInventoryMovementsPdf(movementsData, dateRange, t) {
                 doc.setR2L(true);
             }
             const rowData = [
-                movement.type === 'in' ? (t('reports.inventory.incoming') || 'Incoming') : (t('reports.inventory.outgoing') || 'Outgoing'),
+                movement.type || '—',
                 movement.documentNumber || '—',
                 formatCellDate(movement.date),
-                String(movement.quantity || 0),
-                '—',
-                '—',
-                '—'
+                fmtNum(movement.quantity),
+                fmtNum(movement.quantityAfter),
+                fmtNum(movement.value),
+                fmtNum(movement.valueCorrection)
             ];
             rowData.forEach((cell, i) => {
                 const x = pageW - margin - (i + 1) * colW + 2;
@@ -1040,6 +1032,6 @@ export function buildInventoryMovementsPdf(movementsData, dateRange, t) {
             y += 5;
         });
     });
-    
+
     return doc.output('blob');
 }
