@@ -34,15 +34,6 @@ const ReportsMainPage = () => {
             link: '/dashboard/reports/purchases',
         },
         {
-            id: 'accounting',
-            title: t('sidebar.accounting_reports'),
-            description: t('reports.accounting_reports_desc', 'Financial statements and ledger analysis'),
-            icon: BookOpen,
-            iconBg: 'bg-purple-50',
-            iconColor: 'text-purple-600',
-            link: '/dashboard/reports/accounting',
-        },
-        {
             id: 'clients',
             title: t('sidebar.clients_reports'),
             description: t('reports.clients.client_general_ledger_desc', 'Monitor customer balances and history'),

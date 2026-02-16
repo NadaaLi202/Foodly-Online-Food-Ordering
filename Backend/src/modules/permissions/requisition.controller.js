@@ -4,6 +4,7 @@ import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { requisitionModel } from "./requisition.model.js";
 import { productModel } from "../product/product.model.js";
 import { stockLogModel } from "../stockLogs/stockLog.model.js";
+import * as inventoryService from "../product/inventory.service.js";
 
 // Add Requisition (Permission) with optional stock movement and logs
 export const addRequisition = catchAsyncError(async (req, res, next) => {
@@ -57,33 +58,16 @@ export const addRequisition = catchAsyncError(async (req, res, next) => {
                     .findOne({ _id: item.product, companyId })
                     .session(session);
                 if (!product) continue;
-                const prevQty = product.stockQuantity ?? 0;
-                const newQty =
-                    logType === "in" ? prevQty + item.quantity : Math.max(0, prevQty - item.quantity);
-
-                await productModel
-                    .updateOne(
-                        { _id: product._id },
-                        { $set: { stockQuantity: newQty } },
-                        { session }
-                    )
-                    .session(session);
-
-                await stockLogModel.create(
-                    [
-                        {
-                            companyId,
-                            product: product._id,
-                            permission: requisition._id,
-                            type: logType,
-                            quantity: item.quantity,
-                            previousQuantity: prevQty,
-                            newQuantity: newQty,
-                            createdBy: userId
-                        }
-                    ],
-                    { session }
-                );
+                // Use inventoryService for centralized stock management and WAC
+                await inventoryService.updateProductStock({
+                    productId: item.product,
+                    companyId,
+                    quantity: item.quantity,
+                    type: logType,
+                    permissionId: requisition._id,
+                    userId,
+                    session
+                });
             }
         }
 
@@ -179,28 +163,40 @@ export const deleteRequisition = catchAsyncError(async (req, res, next) => {
                     .findOne({ _id: item.product, companyId })
                     .session(session);
                 if (product) {
-                    const newQty = Math.max(0, (product.stockQuantity ?? 0) - item.quantity);
-                    await productModel
-                        .updateOne(
-                            { _id: product._id },
-                            { $set: { stockQuantity: newQty } },
-                            { session }
-                        )
-                        .session(session);
+                    await inventoryService.updateProductStock({
+                        productId: item.product,
+                        companyId,
+                        quantity: item.quantity,
+                        type: 'out',
+                        permissionId: requisition._id,
+                        userId: req.user._id,
+                        session
+                    });
                 }
             }
         } else if (type === "inventory_out" && items.length) {
             for (const item of items) {
-                await productModel
-                    .findOneAndUpdate(
-                        { _id: item.product, companyId },
-                        { $inc: { stockQuantity: item.quantity } },
-                        { session }
-                    )
+                const product = await productModel
+                    .findOne({ _id: item.product, companyId })
                     .session(session);
+                if (product) {
+                    await inventoryService.updateProductStock({
+                        productId: item.product,
+                        companyId,
+                        quantity: item.quantity,
+                        type: 'in',
+                        permissionId: requisition._id,
+                        userId: req.user._id,
+                        session
+                    });
+                }
             }
         }
 
+        // Logs are now automatically handled by inventoryService if we were adding them,
+        // but since we are DELETING the requisition and REVERSING stock, 
+        // we might want to keep the reversal logs OR just delete the original logs.
+        // Spec says: "Delete Requisition: reverse stock and remove stock logs"
         await stockLogModel.deleteMany({ permission: requisition._id }).session(session);
         await requisitionModel.findOneAndDelete({ _id: id, ...req.companyFilter }).session(session);
 

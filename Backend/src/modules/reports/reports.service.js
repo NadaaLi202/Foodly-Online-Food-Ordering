@@ -5,6 +5,8 @@ import Contact from "../contacts/contacts.model.js";
 import { productModel } from "../product/product.model.js";
 import { chartOfAccountsModel } from "../chartOfAccounts/chartOfAccounts.model.js";
 import { dailyRestrictionModel } from "../dailyRestrictions/dailyRestrictions.model.js";
+import { stockLogModel } from "../stockLogs/stockLog.model.js";
+import mongoose from "mongoose";
 
 /**
  * Parse YYYY-MM-DD to start of day (00:00:00) and end of day (23:59:59.999) in UTC
@@ -673,52 +675,61 @@ export async function getProfitDetailed(startDate, endDate, companyFilter) {
 /**
  * Customers summary: total invoices, total returns, total payments received, total outstanding
  */
-export async function getCustomersSummary(startDate, endDate, companyFilter) {
+export async function getCustomersSummary(startDate, endDate, companyFilter, customerId) {
     const { start, end } = getDateRange(startDate, endDate);
 
     // Total invoices (sales invoices)
+    const invoiceMatch = {
+        ...companyFilter,
+        module: "sales",
+        documentType: "invoice",
+        issueDate: { $gte: start, $lte: end },
+        status: { $ne: "draft" },
+        deletedAt: { $in: [null, undefined] },
+    };
+    if (customerId && customerId !== 'all') {
+        invoiceMatch.contact = new mongoose.Types.ObjectId(customerId);
+    }
+
     const [invoicesResult] = await Transaction.aggregate([
-        {
-            $match: {
-                ...companyFilter,
-                module: "sales",
-                documentType: "invoice",
-                issueDate: { $gte: start, $lte: end },
-                status: { $ne: "draft" },
-                deletedAt: { $in: [null, undefined] },
-            },
-        },
+        { $match: invoiceMatch },
         { $group: { _id: null, totalInvoices: { $sum: "$totalAmount" } } },
     ]);
     const totalInvoices = invoicesResult?.totalInvoices ?? 0;
 
     // Total returns (sales returns)
+    const returnMatch = {
+        ...companyFilter,
+        module: "sales",
+        documentType: "return",
+        issueDate: { $gte: start, $lte: end },
+        status: { $ne: "draft" },
+        deletedAt: { $in: [null, undefined] },
+    };
+    if (customerId && customerId !== 'all') {
+        returnMatch.contact = new mongoose.Types.ObjectId(customerId);
+    }
+
     const [returnsResult] = await Transaction.aggregate([
-        {
-            $match: {
-                ...companyFilter,
-                module: "sales",
-                documentType: "return",
-                issueDate: { $gte: start, $lte: end },
-                status: { $ne: "draft" },
-                deletedAt: { $in: [null, undefined] },
-            },
-        },
+        { $match: returnMatch },
         { $group: { _id: null, totalReturns: { $sum: "$totalAmount" } } },
     ]);
     const totalReturns = returnsResult?.totalReturns ?? 0;
 
     // Total payments received
+    const paymentMatch = {
+        ...companyFilter,
+        module: "sales",
+        operationType: "receive",
+        date: { $gte: start, $lte: end },
+        status: { $ne: "cancelled" },
+    };
+    if (customerId && customerId !== 'all') {
+        paymentMatch.contact = new mongoose.Types.ObjectId(customerId);
+    }
+
     const [paymentsResult] = await Payment.aggregate([
-        {
-            $match: {
-                ...companyFilter,
-                module: "sales",
-                operationType: "receive",
-                date: { $gte: start, $lte: end },
-                status: { $ne: "cancelled" },
-            },
-        },
+        { $match: paymentMatch },
         { $group: { _id: null, totalPaymentsReceived: { $sum: "$amount" } } },
     ]);
     const totalPaymentsReceived = paymentsResult?.totalPaymentsReceived ?? 0;
@@ -1340,109 +1351,117 @@ export async function getInventorySummary(filters, companyFilter) {
     const query = {
         ...companyFilter,
         deletedAt: { $in: [null, undefined] },
+        type: "tracked" // Only tracked products have inventory
     };
 
     if (warehouse && warehouse !== "all") {
         query.warehouse = { $regex: String(warehouse).trim(), $options: "i" };
     }
-    if (category) {
-        query.category = category;
+    if (category && category !== "all") {
+        query.category = { $regex: String(category).trim(), $options: "i" };
     }
     if (productsWithQuantityOnly === "true" || productsWithQuantityOnly === true) {
         query.stockQuantity = { $gt: 0 };
     }
 
     const products = await productModel.find(query)
-        .select("name code stockQuantity purchasePrice sellingPrice warehouse category")
+        .select("name code stockQuantity purchasePrice averageCost sellingPrice warehouse category")
+        .sort({ name: 1 })
         .lean();
 
     const data = products.map(product => {
         const quantity = product.stockQuantity ?? 0;
-        let unitPrice = 0;
+
+        // Define cost based on selection method
+        let unitCost = 0;
         if (method === "purchase_price") {
-            unitPrice = product.purchasePrice ?? 0;
+            unitCost = product.purchasePrice ?? 0;
         } else {
-            // average_cost or default
-            unitPrice = product.purchasePrice ?? 0;
+            // Default to average_cost
+            unitCost = product.averageCost ?? product.purchasePrice ?? 0;
         }
-        const value = quantity * unitPrice;
+
+        const inventoryValue = quantity * unitCost;
+        const potentialSalesValue = quantity * (product.sellingPrice ?? 0);
+        const potentialProfit = potentialSalesValue - inventoryValue;
 
         return {
             productId: product._id.toString(),
             productName: product.name ?? "—",
             code: product.code ?? "—",
             quantity,
-            unitPrice,
-            value,
+            unitCost,
+            inventoryValue,
             sellingPrice: product.sellingPrice ?? 0,
+            potentialSalesValue,
+            potentialProfit,
             warehouse: product.warehouse ?? "—",
             category: product.category ?? "—",
         };
     });
 
-    const totalValue = data.reduce((sum, item) => sum + (item.value || 0), 0);
+    const totals = data.reduce((acc, item) => {
+        acc.totalQuantity += item.quantity;
+        acc.totalInventoryValue += item.inventoryValue;
+        acc.totalSalesValue += item.potentialSalesValue;
+        acc.totalProfit += item.potentialProfit;
+        return acc;
+    }, { totalQuantity: 0, totalInventoryValue: 0, totalSalesValue: 0, totalProfit: 0 });
 
     return {
         success: true,
         results: data.length,
-        totals: { totalValue },
+        totals,
         data,
     };
 }
 
 /**
- * Inventory movements detailed: stock in/out movements from transactions
+ * Inventory movements detailed: stock in/out movements from StockLog
  */
 export async function getInventoryMovementsDetailed(filters, companyFilter) {
-    const { startDate, endDate, productId, warehouse } = filters || {};
+    const { startDate, endDate, productId, product, warehouse } = filters || {};
 
     const query = {
         ...companyFilter,
-        $or: [
-            { module: "sales", documentType: { $in: ["invoice", "return"] } },
-            { module: "purchases", documentType: { $in: ["invoice", "return"] } },
-        ],
-        deletedAt: { $in: [null, undefined] },
-        status: { $ne: "draft" },
     };
 
     if (startDate && endDate && String(startDate).trim() && String(endDate).trim()) {
         const { start, end } = getDateRange(startDate, endDate);
-        query.issueDate = { $gte: start, $lte: end };
+        query.createdAt = { $gte: start, $lte: end };
     }
-    if (productId) {
-        query["items.product"] = productId;
-    }
-    if (warehouse && warehouse !== "all") {
-        query.warehouse = { $regex: String(warehouse).trim(), $options: "i" };
+    const effectiveProductId = productId || product;
+    if (effectiveProductId) {
+        query.product = effectiveProductId;
     }
 
-    const transactions = await Transaction.find(query)
-        .sort({ issueDate: 1 })
-        .populate("items.product", "name code")
-        .select("transactionNumber issueDate documentType module warehouse items")
+    const logs = await stockLogModel.find(query)
+        .sort({ createdAt: -1 })
+        .populate("product", "name code")
+        .populate({
+            path: 'permission',
+            select: 'transactionNumber number module documentType type warehouse'
+        })
         .lean();
 
-    const movements = [];
-    for (const txn of transactions) {
-        const isSales = txn.module === "sales";
-        const isReturn = txn.documentType === "return";
-        const type = isSales ? (isReturn ? "out" : "out") : (isReturn ? "out" : "in");
+    const movements = logs.map(log => {
+        // If it's a Transaction, use transactionNumber; if Requisition, use number
+        const docNumber = log.permission?.transactionNumber || log.permission?.number || "—";
+        const docType = log.permission?.documentType || log.permission?.type || "movement";
 
-        for (const item of txn.items || []) {
-            if (productId && item.product?._id?.toString() !== productId) continue;
-
-            movements.push({
-                date: txn.issueDate,
-                documentNumber: txn.transactionNumber ?? "—",
-                productName: item.product?.name ?? "—",
-                productCode: item.product?.code ?? "—",
-                type: type,
-                quantity: item.quantity ?? 0,
-                warehouse: txn.warehouse ?? "—",
-            });
-        }
-    }
+        return {
+            date: log.createdAt,
+            documentNumber: docNumber,
+            docType: docType,
+            productName: log.product?.name ?? "—",
+            productCode: log.product?.code ?? "—",
+            type: log.type, // 'in' or 'out'
+            quantity: log.quantity,
+            previousQuantity: log.previousQuantity,
+            newQuantity: log.newQuantity,
+            warehouse: log.permission?.warehouse || "—",
+        };
+    });
 
     return {
         success: true,

@@ -156,10 +156,12 @@ export async function getInventoryMovementsDetailed(filterState) {
     return response.data;
 }
 
-export async function getCustomersSummary(startDate, endDate) {
+export async function getCustomersSummary(startDate, endDate, customerId) {
     const p = params(startDate, endDate);
     if (!p) throw new Error("startDate and endDate are required");
-    const response = await api.get("/reports/customers/summary", { params: p });
+    const query = { ...p };
+    if (customerId && customerId !== 'all') query.customerId = customerId;
+    const response = await api.get("/reports/customers/summary", { params: query });
     return response.data;
 }
 
@@ -246,6 +248,20 @@ export async function getSuppliersList() {
     }
 }
 
+/** Fetch all customers for report filters (contacts/customers). */
+export async function getCustomersList() {
+    try {
+        const response = await api.get("/contacts/customers");
+        const list = response.data?.contacts ?? response.data?.data ?? response.data ?? [];
+        return Array.isArray(list) ? list : [];
+    } catch (err) {
+        if (import.meta.env?.DEV) {
+            console.warn("[getCustomersList]", err.response?.status ?? "Network Error", err.response?.data?.message ?? err.message);
+        }
+        throw err;
+    }
+}
+
 // Accounting Reports
 export async function getTrialBalance(startDate, endDate, filterState) {
     const p = params(startDate, endDate);
@@ -315,6 +331,7 @@ export default {
     getSuppliersDetailed,
     getSupplierGeneralLedger,
     getSuppliersList,
+    getCustomersList,
     getTrialBalance,
     getBalanceSheet,
     getIncomeStatement,

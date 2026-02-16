@@ -61,6 +61,7 @@
         "sign_out": "تسجيل الخروج"
     },
     "reports": {
+        "total": "الإجمالي",
         "summary": "ملخص",
         "detailed": "تفصيلي",
         "print": "طباعة",
@@ -137,6 +138,7 @@
             "storehouse": "المخزن",
             "payment_status": "حالة الدفع",
             "user": "المستخدم",
+            "all_clients": "كل العملاء",
             "salesperson": "البائع",
             "supplier": "المورد",
             "treasury": "الخزينة",
@@ -151,7 +153,14 @@
             "interval": "الفاصل الزمني (الأيام)",
             "invoices": "فواتير",
             "purchases_employee": "موظف المشتريات",
-            "unspecified": "غير محدد"
+            "unspecified": "غير محدد",
+            "average_cost": "متوسط التكلفة",
+            "purchase_price": "سعر الشراء",
+            "all_products": "جميع المنتجات",
+            "products_with_quantity": "المنتجات التي لها كمية",
+            "highest_value": "الأعلى قيمة",
+            "lowest_value": "الأقل قيمة",
+            "all_warehouses": "جميع المستودعات"
         },
         "table": {
             "month": "الشهر",
@@ -296,6 +305,7 @@
             "client_general_ledger": "كشف حساب العميل",
             "client_general_ledger_desc": "عرض تقارير كشف حساب العميل.",
             "summary_report": "تقرير ملخص العملاء",
+            "summary_report_desc": "عرض ملخص لإجماليات العملاء.",
             "total_invoices": "إجمالي الفواتير",
             "total_returns": "إجمالي المرتجعات",
             "total_payments_received": "إجمالي المدفوعات المستلمة",
@@ -331,7 +341,9 @@
                 "quantity": "الكمية",
                 "quantity_after": "الكمية بعد",
                 "value": "القيمة (ج.م)",
-                "value_correction": "تسوية القيمة (ج.م)"
+                "value_correction": "تسوية القيمة (ج.م)",
+                "stock_in": "وارد",
+                "stock_out": "صادر"
             }
         }
     },
