@@ -4,6 +4,8 @@
     "private": true,
     "scripts": {
         "start": "concurrently \"npm start --prefix Backend\" \"npm run dev --prefix Frontend\"",
+        "build": "npm run build --prefix Frontend",
+        "start:prod": "npm run build && npm start --prefix Backend",
         "install-all": "npm install && npm install --prefix Backend && npm install --prefix Frontend"
     },
     "devDependencies": {

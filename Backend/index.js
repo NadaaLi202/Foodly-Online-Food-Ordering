@@ -1,4 +1,6 @@
 import express from 'express'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { dbConnection } from './dataBase/dbConnection.js'
 import { routes } from './src/modules/index.routes.js'
 import { startBackupCron } from './src/backups/backup.cron.js'
@@ -7,6 +9,8 @@ import cors from 'cors'
 import * as  dotenv from 'dotenv'
 dotenv.config()
 
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 console.log('Current working directory:', process.cwd());
 
@@ -14,7 +18,9 @@ const app = express()
 // Match frontend baseURL: http://localhost:4000/api/v1
 const port = process.env.PORT || 4000
 
-app.use(cors({ origin: true, credentials: true }))
+// CORS configuration: allow origin from env or fallback to true in dev
+const allowedOrigin = process.env.ALLOWED_ORIGIN === 'true' ? true : process.env.ALLOWED_ORIGIN || true;
+app.use(cors({ origin: allowedOrigin, credentials: true }))
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
     next();
@@ -22,9 +28,19 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '10mb' }))
 app.use('/uploads', express.static('uploads'))
 
-app.get('/', (req, res) => res.send('Hello World!'))
-
 routes(app)
+
+// Serve Frontend static files from Frontend/dist
+const frontendPath = path.join(__dirname, '../Frontend/dist')
+app.use(express.static(frontendPath))
+
+// Handle SPA routing: serve index.html for unknown non-API routes
+app.get('*', (req, res, next) => {
+    if (req.url.startsWith('/api')) {
+        return next();
+    }
+    res.sendFile(path.join(frontendPath, 'index.html'));
+});
 
 // 404 for unknown routes (must be before error handler)
 app.use((req, res) => {

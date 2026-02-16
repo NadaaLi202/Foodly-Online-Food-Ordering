@@ -7,6 +7,7 @@ import { exportCustomerSummaryToExcel, buildCustomerSummaryPdf } from '../../../
 const SummaryCustomerReport = () => {
     const { t } = useTranslation();
     const [summaryData, setSummaryData] = useState(null);
+    const [detailedData, setDetailedData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [customers, setCustomers] = useState([]);
@@ -47,12 +48,22 @@ const SummaryCustomerReport = () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await reportsService.getCustomersSummary(filters.fromDate, filters.toDate, filters.customerId);
-            const data = res?.data ?? res;
-            setSummaryData(data);
+            // Fetch Summary (Cards)
+            const sumRes = await reportsService.getCustomersSummary(filters.fromDate, filters.toDate, filters.customerId);
+            const sumData = sumRes?.data ?? sumRes;
+            setSummaryData(sumData);
+
+            // Fetch Detailed Breakdown (Table) if 'all'
+            if (filters.customerId === 'all') {
+                const detRes = await reportsService.getCustomersDetailed(filters.fromDate, filters.toDate);
+                setDetailedData(detRes?.data ?? []);
+            } else {
+                setDetailedData([]);
+            }
         } catch (err) {
             setError(err.response?.data?.message || err.message || t('reports.error_load'));
             setSummaryData(null);
+            setDetailedData([]);
         } finally {
             setLoading(false);
         }
@@ -129,7 +140,7 @@ const SummaryCustomerReport = () => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `Customer_Summary_${filters.fromDate}_${filters.toDate}.pdf`;
+        link.download = `Client_General_Ledger_${filters.fromDate}_${filters.toDate}.pdf`;
         link.click();
         URL.revokeObjectURL(url);
     };
@@ -247,25 +258,33 @@ const SummaryCustomerReport = () => {
                         </div>
                     </div>
 
-                    {/* Summary Cards */}
-                    {summaryData && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                <div className="text-sm text-blue-600 font-medium mb-1">{t('reports.clients.total_invoices')}</div>
-                                <div className="text-2xl font-bold text-blue-900">{formatAmount(summaryData.totalInvoices || 0)}</div>
-                            </div>
-                            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                                <div className="text-sm text-orange-600 font-medium mb-1">{t('reports.clients.total_returns')}</div>
-                                <div className="text-2xl font-bold text-orange-900">{formatAmount(summaryData.totalReturns || 0)}</div>
-                            </div>
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                <div className="text-sm text-green-600 font-medium mb-1">{t('reports.clients.total_payments_received')}</div>
-                                <div className="text-2xl font-bold text-green-900">{formatAmount(summaryData.totalPaymentsReceived || 0)}</div>
-                            </div>
-                            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                                <div className="text-sm text-red-600 font-medium mb-1">{t('reports.clients.total_outstanding')}</div>
-                                <div className="text-2xl font-bold text-red-900">{formatAmount(summaryData.totalOutstanding || 0)}</div>
-                            </div>
+
+
+                    {/* Detailed Table (All Customers) */}
+                    {filters.customerId === 'all' && detailedData.length > 0 && (
+                        <div className="border border-gray-200 rounded-lg overflow-hidden overflow-x-auto mb-6">
+                            <table className="w-full text-sm text-start">
+                                <thead className="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th className="px-4 py-3 font-semibold text-gray-700">{t('reports.columns.client') || 'Customer'}</th>
+                                        <th className="px-4 py-3 font-semibold text-gray-700">{t('reports.columns.total_invoices') || 'Total Invoices'}</th>
+                                        <th className="px-4 py-3 font-semibold text-gray-700">{t('reports.columns.total_returns') || 'Total Returns'}</th>
+                                        <th className="px-4 py-3 font-semibold text-gray-700">{t('reports.columns.total_paid') || 'Total Paid'}</th>
+                                        <th className="px-4 py-3 font-semibold text-gray-700">{t('reports.columns.outstanding') || 'Outstanding'}</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {detailedData.map((row) => (
+                                        <tr key={row.customerId} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-4 py-3 font-medium text-gray-900">{row.customerName}</td>
+                                            <td className="px-4 py-3 text-gray-700">{formatAmount(row.totalInvoices)}</td>
+                                            <td className="px-4 py-3 text-gray-700">{formatAmount(row.totalReturns)}</td>
+                                            <td className="px-4 py-3 text-gray-700">{formatAmount(row.totalPaid)}</td>
+                                            <td className={`px-4 py-3 font-bold ${row.outstanding > 0 ? 'text-red-600' : 'text-green-600'}`}>{formatAmount(row.outstanding)}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     )}
 

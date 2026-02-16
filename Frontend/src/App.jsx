@@ -6,7 +6,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import DashboardPage from './Pages/DashboardPage';
 import PurchasesPage from './Pages/PurchasesPage';
 import PurchaseInvoices from './Pages/Purchases/PurchaseInvoices';
-import PurchaseCreditNotes from './Pages/Purchases/PurchaseCreditNotes';
 import PurchaseRequests from './Pages/Purchases/PurchaseRequests';
 import PurchaseOrders from './Pages/Purchases/PurchaseOrders';
 import PurchaseReturns from './Pages/Purchases/PurchaseReturns';
@@ -25,7 +24,6 @@ import Warehouses from './Pages/Inventory/Warehouses';
 import Inventories from './Pages/Inventory/Inventories';
 import JournalEntries from './Pages/Accounting/JournalEntries';
 import ChartOfAccounts from './Pages/Accounting/ChartOfAccounts';
-import CostCenters from './Pages/Accounting/CostCenters';
 import Branches from './Pages/Branches/Branches';
 import PartnerLists from './Pages/Branches/PartnerLists';
 import Activities from './Pages/Branches/Activities';
@@ -39,7 +37,7 @@ import Users from './Pages/Users/Users';
 import Roles from './Pages/Users/Roles';
 import LandingPage from './Pages/LandingPage';
 import Login from './Pages/login';
-import Register from './Pages/Register';
+
 import CompanyLogin from './Pages/CompanyLogin';
 import SalesMainPage from './Pages/Sales/SalesMainPage';
 import InventoryMainPage from './Pages/Inventory/InventoryMainPage';
@@ -57,17 +55,12 @@ import UserManagement from './Pages/SuperAdmin/UserManagement';
 // Reports Imports
 import SalesReportsPage from './Pages/Reports/Sales/SalesReportsPage';
 import PurchasesReportsPage from './Pages/Reports/Purchases/PurchasesReportsPage';
-import SummarySalesReport from './Pages/Reports/Sales/SummarySalesReport';
 import DetailedSalesReport from './Pages/Reports/Sales/DetailedSalesReport';
-import SummaryPaymentsReport from './Pages/Reports/Sales/SummaryPaymentsReport';
 import DetailedPaymentsReport from './Pages/Reports/Sales/DetailedPaymentsReport';
-import SummaryPurchasesReport from './Pages/Reports/Purchases/SummaryPurchasesReport';
 import DetailedPurchasesReport from './Pages/Reports/Purchases/DetailedPurchasesReport';
-import SummarySupplierPaymentsReport from './Pages/Reports/Purchases/SummarySupplierPaymentsReport';
 import DetailedSupplierPaymentsReport from './Pages/Reports/Purchases/DetailedSupplierPaymentsReport';
 import ClientsReportsPage from './Pages/Reports/Clients/ClientsReportsPage';
 import SummaryCustomerReport from './Pages/Reports/Clients/SummaryCustomerReport';
-import ClientGeneralLedger from './Pages/Reports/Clients/ClientGeneralLedger';
 import SuppliersReportsPage from './Pages/Reports/Suppliers/SuppliersReportsPage';
 import DetailedSuppliersReport from './Pages/Reports/Suppliers/DetailedSuppliersReport';
 import InventoryReportsPage from './Pages/Reports/Inventory/InventoryReportsPage';
@@ -98,7 +91,7 @@ function App() {
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+
           <Route path="/company-login" element={<CompanyLogin />} />
           <Route path="/company/:slug/login" element={<CompanyLogin />} />
 
@@ -153,7 +146,6 @@ function App() {
               <Route index element={<AccountingMainPage />} />
               <Route path="journal-entries" element={<JournalEntries />} />
               <Route path="chart-of-accounts" element={<ChartOfAccounts />} />
-              <Route path="cost-centers" element={<CostCenters />} />
             </Route>
 
             <Route path="reports">
@@ -161,22 +153,17 @@ function App() {
 
               <Route path="sales">
                 <Route index element={<SalesReportsPage />} />
-                <Route path="summary" element={<SummarySalesReport />} />
                 <Route path="detailed" element={<DetailedSalesReport />} />
-                <Route path="payments-summary" element={<SummaryPaymentsReport />} />
                 <Route path="payments-detailed" element={<DetailedPaymentsReport />} />
               </Route>
               <Route path="purchases">
                 <Route index element={<PurchasesReportsPage />} />
-                <Route path="summary" element={<SummaryPurchasesReport />} />
                 <Route path="detailed" element={<DetailedPurchasesReport />} />
-                <Route path="payments-summary" element={<SummarySupplierPaymentsReport />} />
                 <Route path="payments-detailed" element={<DetailedSupplierPaymentsReport />} />
               </Route>
               <Route path="clients" element={<ReportsLayout title="Clients Reports" />}>
                 <Route index element={<ClientsReportsPage />} />
                 <Route path="summary" element={<SummaryCustomerReport />} />
-                <Route path="general-ledger" element={<ClientGeneralLedger />} />
               </Route>
               <Route path="customers" element={<PlaceholderPage title="Customers Reports" />} />
               <Route path="suppliers" element={<ReportsLayout title="Suppliers Reports" />}>
@@ -196,8 +183,6 @@ function App() {
               <Route path="suppliers/:id" element={<Suppliers />} />
               <Route path="invoices" element={<PurchaseInvoices />} />
               <Route path="invoices/add" element={<PurchaseInvoices />} />
-              <Route path="credit-notes" element={<PurchaseCreditNotes />} />
-              <Route path="credit-notes/add" element={<PurchaseCreditNotes />} />
               <Route path="purchase-orders" element={<PurchaseOrders />} />
               <Route path="returns" element={<PurchaseReturns />} />
               <Route path="requests" element={<PurchaseRequests />} />

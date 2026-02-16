@@ -220,7 +220,9 @@
             "account": "Account",
             "purchases_total": "Purchases Total",
             "net_purchases_discounts": "Net Purchases Discounts",
-            "net_purchases": "Net Purchases"
+            "net_purchases": "Net Purchases",
+            "client": "Customer",
+            "outstanding": "Outstanding"
         },
         "export": {
             "excel": "Excel",
@@ -302,8 +304,8 @@
         "clients": {
             "client_general_ledger": "Client General Ledger",
             "client_general_ledger_desc": "View Client General Ledger reports.",
-            "summary_report": "Customer Summary Report",
-            "summary_report_desc": "View summary of customer totals.",
+            "summary_report": "Client General Ledger",
+            "summary_report_desc": "View Client General Ledger and customer totals.",
             "total_invoices": "Total Invoices",
             "total_returns": "Total Returns",
             "total_payments_received": "Total Payments Received",
@@ -411,6 +413,7 @@
         "attachments": "Attachments"
     },
     "finance_page": {
+        "tile_desc": "Record and manage company expenses",
         "expenses": "Expenses",
         "transactions": "Money Transactions",
         "requisitions": "Permissions",
@@ -424,6 +427,7 @@
         "no_requisitions_desc": "There are no permissions yet."
     },
     "safes_page": {
+        "tile_desc": "Manage cash safes and vaults",
         "name": "Name",
         "add_safe": "Add Safe",
         "edit_safe": "Edit Safe",
@@ -1006,6 +1010,9 @@
             "start_creating": "Start by creating stock-takes"
         }
     },
+    "bank_accounts": {
+        "tile_desc": "Track bank account balances and transactions"
+    },
     "accounting": {
         "journal_entries": {
             "title": "Journal Entries",
@@ -1096,6 +1103,7 @@
     },
     "branches_page": {
         "title": "Branches",
+        "tile_desc": "Manage company branches",
         "add_branch": "Add Branch",
         "branch_name": "Name",
         "code": "Code",
