@@ -9,21 +9,12 @@ const ClientsReportsPage = () => {
     const reportSections = [
         {
             id: 'client-summary',
-            title: t('reports.clients.summary_report') || 'Customer Summary Report',
-            description: t('reports.clients.summary_report_desc') || 'View summary of customer totals.',
+            title: t('reports.clients.summary_report') || 'Client General Ledger',
+            description: t('reports.clients.summary_report_desc') || 'View Client General Ledger and customer totals.',
             icon: Users,
             iconBg: 'bg-blue-50',
             iconColor: 'text-blue-600',
             link: '/dashboard/reports/clients/summary',
-        },
-        {
-            id: 'client-general-ledger',
-            title: t('reports.clients.client_general_ledger') || 'Client General Ledger',
-            description: t('reports.clients.client_general_ledger_desc') || 'View Client General Ledger reports.',
-            icon: FileText,
-            iconBg: 'bg-green-50',
-            iconColor: 'text-green-600',
-            link: '/dashboard/reports/clients/general-ledger',
         },
     ];
 

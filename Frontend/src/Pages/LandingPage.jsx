@@ -170,12 +170,6 @@ const LandingPage = () => {
                                     <Link to="/login" className="text-sm font-semibold text-gray-300 hover:text-indigo-400 transition-colors">
                                         {t('landing.nav.log_in')}
                                     </Link>
-                                    <Link
-                                        to="/register"
-                                        className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-bold rounded-xl hover:from-indigo-500 hover:to-violet-500 transition-all shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-0.5 duration-300"
-                                    >
-                                        {t('landing.nav.sign_up_free')}
-                                    </Link>
                                 </div>
                             )}
                         </div>
@@ -220,13 +214,6 @@ const LandingPage = () => {
                             ) : (
                                 <>
                                     <Link to="/login" onClick={closeMenu} className={`text-base font-semibold text-gray-300 py-2 hover:text-indigo-400 transition-colors ${isRtl ? 'text-right' : 'text-left'}`}>{t('landing.nav.log_in')}</Link>
-                                    <Link
-                                        to="/register"
-                                        onClick={closeMenu}
-                                        className="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-xl hover:from-indigo-500 hover:to-violet-500 transition-all text-center"
-                                    >
-                                        {t('landing.nav.sign_up_free')}
-                                    </Link>
                                 </>
                             )}
                         </div>
@@ -260,7 +247,7 @@ const LandingPage = () => {
 
                         <div className={`flex flex-col sm:flex-row items-center justify-center gap-4 mt-12 animate-in fade-in slide-in-from-bottom-16 duration-700 fill-mode-backwards ${isRtl ? 'flex-row-reverse' : ''}`}>
                             <button
-                                onClick={() => navigate('/register')}
+                                onClick={() => navigate('/login')}
                                 className={`w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-lg font-bold rounded-xl hover:from-indigo-500 hover:to-violet-500 transition-all shadow-lg shadow-indigo-500/40 hover:shadow-indigo-500/60 hover:-translate-y-1 duration-300 flex items-center justify-center gap-2 group ${isRtl ? 'flex-row-reverse' : ''}`}
                             >
                                 {t('landing.hero.get_started')}
@@ -349,7 +336,7 @@ const LandingPage = () => {
             </section>
 
             {/* Features Section */}
-            <section id="features" className="py-24 relative z-10" dir={isRtl ? 'rtl' : 'ltr'}>
+            <section id="features" className="py-24 relative z-10" dir={isRtl ? 'rtl' : 'ltr'} >
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center max-w-3xl mx-auto mb-20">
                         <div className="inline-block px-4 py-1 bg-indigo-500/10 border border-indigo-500/30 rounded-full text-indigo-300 text-xs font-bold uppercase tracking-widest mb-6">
@@ -421,7 +408,7 @@ const LandingPage = () => {
             </section>
 
             {/* Benefits Section */}
-            <section id="benefits" className="py-24 relative z-10" dir={isRtl ? 'rtl' : 'ltr'}>
+            <section id="benefits" className="py-24 relative z-10" dir={isRtl ? 'rtl' : 'ltr'} >
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                         <div className={isRtl ? 'text-right' : 'text-left'}>
@@ -450,7 +437,7 @@ const LandingPage = () => {
                             </ul>
 
                             <button
-                                onClick={() => navigate('/register')}
+                                onClick={() => navigate('/login')}
                                 className={`px-8 py-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-xl hover:from-indigo-500 hover:to-violet-500 transition-all shadow-lg shadow-indigo-500/30 hover:shadow-indigo-500/50 hover:-translate-y-1 duration-300 flex items-center gap-2 group ${isRtl ? 'flex-row-reverse' : ''}`}
                             >
                                 {t('landing.hero.get_started')}
@@ -483,7 +470,7 @@ const LandingPage = () => {
             </section>
 
             {/* Pricing Section */}
-            <section id="pricing" className="py-24 relative z-10" dir={isRtl ? 'rtl' : 'ltr'}>
+            <section id="pricing" className="py-24 relative z-10" dir={isRtl ? 'rtl' : 'ltr'} >
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className={`text-center max-w-3xl mx-auto mb-20 ${isRtl ? 'text-right' : 'text-center'}`}>
                         <div className="inline-block px-4 py-1 bg-violet-500/10 border border-violet-500/30 rounded-full text-violet-300 text-xs font-bold uppercase tracking-widest mb-6">
@@ -547,7 +534,7 @@ const LandingPage = () => {
                                 </div>
 
                                 <button
-                                    onClick={() => navigate('/register')}
+                                    onClick={() => navigate('/login')}
                                     className={`w-full py-3 rounded-lg font-bold transition-all duration-300 mb-8 ${plan.highlight
                                         ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-500/30'
                                         : 'bg-gray-800/50 text-gray-300 border border-gray-700 hover:border-indigo-500/50 hover:bg-gray-800'
@@ -571,7 +558,7 @@ const LandingPage = () => {
             </section>
 
             {/* CTA Section */}
-            <section className="py-24 relative z-10" dir={isRtl ? 'rtl' : 'ltr'}>
+            <section className="py-24 relative z-10" dir={isRtl ? 'rtl' : 'ltr'} >
                 <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="relative bg-gradient-to-r from-indigo-600 to-violet-600 rounded-3xl p-12 md:p-16 text-center overflow-hidden group hover:shadow-2xl hover:shadow-indigo-500/50 transition-all duration-300">
                         <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity duration-300">
@@ -588,7 +575,7 @@ const LandingPage = () => {
                             </p>
                             <div className={`flex flex-col sm:flex-row items-center justify-center gap-4 ${isRtl ? 'flex-row-reverse' : ''}`}>
                                 <button
-                                    onClick={() => navigate('/register')}
+                                    onClick={() => navigate('/login')}
                                     className={`px-8 py-4 bg-white text-indigo-600 font-bold rounded-xl hover:bg-indigo-50 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 duration-300 flex items-center gap-2 group ${isRtl ? 'flex-row-reverse' : ''}`}
                                 >
                                     {t('landing.cta.get_started')}
@@ -607,7 +594,7 @@ const LandingPage = () => {
             </section>
 
             {/* Footer */}
-            <footer className="py-20 bg-slate-950 border-t border-gray-900 relative z-10" dir={isRtl ? 'rtl' : 'ltr'}>
+            <footer className="py-20 bg-slate-950 border-t border-gray-900 relative z-10" dir={isRtl ? 'rtl' : 'ltr'} >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-12 mb-16">
                         <div className="col-span-2 lg:col-span-2">

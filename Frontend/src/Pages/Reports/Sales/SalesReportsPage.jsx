@@ -14,7 +14,6 @@ const SalesReportsPage = () => {
             icon: FileText,
             iconBg: 'bg-orange-50',
             iconColor: 'text-orange-500',
-            summaryLink: '/dashboard/reports/sales/detailed?tab=summary',
             detailedLink: '/dashboard/reports/sales/detailed',
         },
         {
@@ -24,7 +23,6 @@ const SalesReportsPage = () => {
             icon: CreditCard,
             iconBg: 'bg-purple-50',
             iconColor: 'text-purple-500',
-            summaryLink: '/dashboard/reports/sales/payments-detailed?tab=summary',
             detailedLink: '/dashboard/reports/sales/payments-detailed',
         },
     ];
@@ -48,13 +46,6 @@ const SalesReportsPage = () => {
                             </div>
                         </div>
                         <div className="flex gap-2">
-                            <Link
-                                to={section.summaryLink}
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors"
-                            >
-                                <BarChart3 className="w-4 h-4" />
-                                {t('reports.summary')}
-                            </Link>
                             <Link
                                 to={section.detailedLink}
                                 className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors"

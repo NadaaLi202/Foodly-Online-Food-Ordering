@@ -14,7 +14,6 @@ const PurchasesReportsPage = () => {
             icon: FileText,
             iconBg: 'bg-indigo-50',
             iconColor: 'text-indigo-500',
-            summaryLink: '/dashboard/reports/purchases/detailed?tab=summary',
             detailedLink: '/dashboard/reports/purchases/detailed',
         },
         {
@@ -24,7 +23,6 @@ const PurchasesReportsPage = () => {
             icon: CreditCard,
             iconBg: 'bg-amber-50',
             iconColor: 'text-amber-500',
-            summaryLink: '/dashboard/reports/purchases/payments-detailed?tab=summary',
             detailedLink: '/dashboard/reports/purchases/payments-detailed',
         },
     ];
@@ -47,13 +45,6 @@ const PurchasesReportsPage = () => {
                             </div>
                         </div>
                         <div className="flex gap-2">
-                            <Link
-                                to={section.summaryLink}
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors"
-                            >
-                                <BarChart3 className="w-4 h-4" />
-                                {t('reports.summary')}
-                            </Link>
                             <Link
                                 to={section.detailedLink}
                                 className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors"
