@@ -110,10 +110,10 @@ const InventoryValueReport = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 no-print">
                         {/* Storehouse */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.storehouse') || 'Storehouse'}</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.storehouse')}</label>
                             <div className="relative">
                                 <select value={filters.storehouse} onChange={(e) => handleFilterChange('storehouse', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="all">{t('reports.filters.all_warehouses') || 'All Warehouses'}</option>
+                                    <option value="all">{t('reports.filters.all_warehouses')}</option>
                                     {warehouses.map(wh => (
                                         <option key={wh._id} value={wh._id}>{wh.name}</option>
                                     ))}
@@ -124,7 +124,7 @@ const InventoryValueReport = () => {
 
                         {/* Method */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.method') || 'Method'}</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.method')}</label>
                             <div className="relative">
                                 <select value={filters.method} onChange={(e) => handleFilterChange('method', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                     {methodOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
@@ -135,7 +135,7 @@ const InventoryValueReport = () => {
 
                         {/* Displayed Products */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.displayed_products') || 'Displayed Products'}</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.displayed_products')}</label>
                             <div className="relative">
                                 <select value={filters.displayedProducts} onChange={(e) => handleFilterChange('displayedProducts', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                     {displayedProductsOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
@@ -146,7 +146,7 @@ const InventoryValueReport = () => {
 
                         {/* Sort By */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.sort_by') || 'Sort By'}</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.sort_by')}</label>
                             <div className="relative">
                                 <select value={filters.sortBy} onChange={(e) => handleFilterChange('sortBy', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                     {sortByOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
@@ -157,10 +157,10 @@ const InventoryValueReport = () => {
 
                         {/* Product */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.product') || 'Product'}</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.product')}</label>
                             <div className="relative">
                                 <select value={filters.product} onChange={(e) => handleFilterChange('product', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="">{t('reports.filters.unspecified') || 'Unspecified'}</option>
+                                    <option value="">{t('reports.filters.unspecified')}</option>
                                     {products.map(p => (
                                         <option key={p._id} value={p._id}>{p.name}</option>
                                     ))}
@@ -171,10 +171,10 @@ const InventoryValueReport = () => {
 
                         {/* Product Category */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.product_category') || 'Product Category'}</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.product_category')}</label>
                             <div className="relative">
                                 <select value={filters.productCategory} onChange={(e) => handleFilterChange('productCategory', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="">{t('reports.filters.unspecified') || 'Unspecified'}</option>
+                                    <option value="">{t('reports.filters.unspecified')}</option>
                                     {categories.map(cat => (
                                         <option key={cat._id} value={cat._id}>{cat.name}</option>
                                     ))}
@@ -198,7 +198,7 @@ const InventoryValueReport = () => {
                     {/* Report Header & Export */}
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100 no-print">
                         <div className="text-sm text-gray-700 font-medium">
-                            {t('reports.inventory.inventory_value_report.report_title_dynamic', { date: new Date().toLocaleDateString() }) || `Inventory Value Report For Date: ${new Date().toLocaleDateString()}`}
+                            {t('reports.inventory.inventory_value_report.report_title_dynamic', { date: new Date().toLocaleDateString() })}
                         </div>
                         <div className="flex items-center gap-2">
                             <button onClick={() => {
@@ -249,18 +249,18 @@ const InventoryValueReport = () => {
                         <table className="w-full min-w-[1000px]">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-200">
-                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.inventory.inventory_value_report.name') || 'Name'}</th>
-                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.inventory.inventory_value_report.code') || 'Code'}</th>
-                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.inventory.inventory_value_report.quantity') || 'Quantity'}</th>
+                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.inventory.inventory_value_report.name')}</th>
+                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.inventory.inventory_value_report.code')}</th>
+                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.inventory.inventory_value_report.quantity')}</th>
                                     <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">
                                         {filters.method === 'average_cost'
-                                            ? (t('reports.inventory.inventory_value_report.average_cost') || 'Average Cost')
-                                            : (t('reports.inventory.inventory_value_report.purchase_price') || 'Purchase Price')}
+                                            ? t('reports.inventory.inventory_value_report.average_cost')
+                                            : t('reports.inventory.inventory_value_report.purchase_price')}
                                     </th>
-                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.inventory.inventory_value_report.value') || 'Value'}</th>
-                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.inventory.inventory_value_report.sale_price_without_taxes') || 'Sale Price (Without Taxes)'}</th>
-                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.inventory.inventory_value_report.sale_value') || 'Sale Value'}</th>
-                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.inventory.inventory_value_report.sale_profit') || 'Sale Profit'}</th>
+                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.inventory.inventory_value_report.value')}</th>
+                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.inventory.inventory_value_report.sale_price_without_taxes')}</th>
+                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.inventory.inventory_value_report.sale_value')}</th>
+                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.inventory.inventory_value_report.sale_profit')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
@@ -303,7 +303,7 @@ const InventoryValueReport = () => {
                             {reportData.length > 0 && (
                                 <tfoot className="bg-gray-50 font-bold">
                                     <tr>
-                                        <td colSpan="4" className="px-4 py-3 text-sm text-gray-900 text-end">{t('reports.total') || 'Total'}</td>
+                                        <td colSpan="4" className="px-4 py-3 text-sm text-gray-900 text-end">{t('reports.total')}</td>
                                         <td className="px-4 py-3 text-sm text-indigo-600">{totalValue.toFixed(2)}</td>
                                         <td className="px-4 py-3 text-sm"></td>
                                         <td className="px-4 py-3 text-sm text-indigo-600">{totalSaleValue.toFixed(2)}</td>

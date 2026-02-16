@@ -162,7 +162,7 @@ const IncomeStatementReport = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.branches')}</label>
                         <div className="relative">
                             <select value={filters.branch} onChange={(e) => handleFilterChange('branch', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="all">{t('reports.filters.all_branches') || 'All Branches'}</option>
+                                <option value="all">{t('reports.filters.all_branches')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
@@ -173,7 +173,7 @@ const IncomeStatementReport = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.displayed_accounts')}</label>
                         <div className="relative">
                             <select value={filters.displayedAccounts} onChange={(e) => handleFilterChange('displayedAccounts', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="all">{t('reports.filters.all_accounts') || 'All Accounts'}</option>
+                                <option value="all">{t('reports.filters.all_accounts')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
@@ -188,7 +188,7 @@ const IncomeStatementReport = () => {
                 {/* Report Header & Export */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
                     <div className="text-sm text-gray-700 font-medium">
-                        {t('reports.accounting.income_statement_title') || 'Income Statement From Date 2026 February 1, Sunday To Date 2026 February 28, Saturday'}
+                        {t('reports.accounting.income_statement_title')}
                     </div>
                     <div className="flex items-center gap-2">
                         <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
@@ -209,7 +209,7 @@ const IncomeStatementReport = () => {
                 {/* Report Content */}
                 <div className="border border-gray-200 rounded-lg overflow-hidden text-sm">
                     {/* Revenue */}
-                    {renderRow(t('reports.accounting.revenue') || 'Revenue #4', reportData.revenue.total, true, false, 0, () => toggleSection('revenue'), expandedSections['revenue'])}
+                    {renderRow(t('reports.accounting.revenue'), reportData.revenue.total, true, false, 0, () => toggleSection('revenue'), expandedSections['revenue'])}
                     {expandedSections['revenue'] && (
                         <>
                             {/* Revenue Categories */}
@@ -221,14 +221,14 @@ const IncomeStatementReport = () => {
                         </>
                     )}
                     <div className="bg-gray-200 px-4 py-2 flex justify-between font-bold text-gray-900 border-t border-gray-300">
-                        <span>{t('reports.accounting.total_revenue') || 'Revenue Total'}</span>
+                        <span>{t('reports.accounting.total_revenue')}</span>
                         <span>{reportData.revenue.total.toFixed(2)}</span>
                     </div>
 
                     <div className="h-4 bg-gray-50 border-t border-b border-gray-200"></div>
 
                     {/* Expenses */}
-                    {renderRow(t('reports.accounting.expenses') || 'Expenses #5', reportData.expenses.total, true, false, 0, () => toggleSection('expenses'), expandedSections['expenses'])}
+                    {renderRow(t('reports.accounting.expenses'), reportData.expenses.total, true, false, 0, () => toggleSection('expenses'), expandedSections['expenses'])}
                     {expandedSections['expenses'] && (
                         <>
                             {/* Expenses Categories */}
@@ -246,7 +246,7 @@ const IncomeStatementReport = () => {
                         </>
                     )}
                     <div className="bg-gray-200 px-4 py-2 flex justify-between font-bold text-gray-900 border-t border-gray-300">
-                        <span>{t('reports.accounting.total_expenses') || 'Expenses Total'}</span>
+                        <span>{t('reports.accounting.total_expenses')}</span>
                         <span>{reportData.expenses.total.toFixed(2)}</span>
                     </div>
 

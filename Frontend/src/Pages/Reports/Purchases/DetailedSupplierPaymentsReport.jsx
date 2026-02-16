@@ -230,18 +230,18 @@ const DetailedSupplierPaymentsReport = () => {
 
                     {/* Supplier */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.supplier') || 'Supplier'}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.supplier')}</label>
                         <div className="relative">
-                            <input type="text" value={filters.supplier} onChange={(e) => handleFilterChange('supplier', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('reports.filters.unspecified') || 'Unspecified'} />
+                            <input type="text" value={filters.supplier} onChange={(e) => handleFilterChange('supplier', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t('reports.filters.unspecified')} />
                         </div>
                     </div>
 
                     {/* Treasury */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.treasury') || 'Treasury'}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.treasury')}</label>
                         <div className="relative">
                             <select value={filters.treasury} onChange={(e) => handleFilterChange('treasury', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="">{t('reports.filters.unspecified') || 'Unspecified'}</option>
+                                <option value="">{t('reports.filters.unspecified')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
@@ -249,10 +249,10 @@ const DetailedSupplierPaymentsReport = () => {
 
                     {/* User */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.user') || 'User'}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.user')}</label>
                         <div className="relative">
                             <select value={filters.user} onChange={(e) => handleFilterChange('user', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="">{t('reports.filters.unspecified') || 'Unspecified'}</option>
+                                <option value="">{t('reports.filters.unspecified')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
@@ -260,10 +260,10 @@ const DetailedSupplierPaymentsReport = () => {
 
                     {/* Responsible User */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.responsible_user') || 'Responsible User'}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.responsible_user')}</label>
                         <div className="relative">
                             <select value={filters.responsibleUser} onChange={(e) => handleFilterChange('responsibleUser', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="">{t('reports.filters.unspecified') || 'Unspecified'}</option>
+                                <option value="">{t('reports.filters.unspecified')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>

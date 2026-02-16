@@ -9,8 +9,8 @@ const InventoryReportsPage = () => {
     const reportSections = [
         {
             id: 'inventory-value',
-            title: t('reports.inventory.inventory_value') || 'Inventory Value Report',
-            description: t('reports.inventory.inventory_value_desc') || 'View inventory value report depending on average cost or purchase price.',
+            title: t('reports.inventory.inventory_value'),
+            description: t('reports.inventory.inventory_value_desc'),
             icon: DollarSign,
             iconBg: 'bg-orange-50',
             iconColor: 'text-orange-600',
@@ -18,8 +18,8 @@ const InventoryReportsPage = () => {
         },
         {
             id: 'inventory-value-detailed',
-            title: t('reports.inventory.inventory_value_detailed') || 'Inventory Value Detailed Report',
-            description: t('reports.inventory.inventory_value_detailed_desc') || 'View detailed inventory value changes over a specified period for each product.',
+            title: t('reports.inventory.inventory_value_detailed'),
+            description: t('reports.inventory.inventory_value_detailed_desc'),
             icon: FileText,
             iconBg: 'bg-red-50',
             iconColor: 'text-red-600',

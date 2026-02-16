@@ -27,12 +27,12 @@ const GeneralLedgerReport = () => {
 
     // Placeholder column headers for General Ledger
     const tableColumns = [
-        { key: 'date', label: t('reports.columns.date') || 'Date' },
-        { key: 'description', label: t('reports.columns.description') || 'Description' },
-        { key: 'account', label: t('reports.columns.account') || 'Account' },
-        { key: 'debit', label: t('reports.columns.debit') || 'Debit' },
-        { key: 'credit', label: t('reports.columns.credit') || 'Credit' },
-        { key: 'balance', label: t('reports.columns.balance') || 'Balance' },
+        { key: 'date', label: t('reports.columns.date') },
+        { key: 'description', label: t('reports.columns.description') },
+        { key: 'account', label: t('reports.columns.account') },
+        { key: 'debit', label: t('reports.columns.debit') },
+        { key: 'credit', label: t('reports.columns.credit') },
+        { key: 'balance', label: t('reports.columns.balance') },
     ];
 
     return (
@@ -74,7 +74,7 @@ const GeneralLedgerReport = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.branches')}</label>
                         <div className="relative">
                             <select value={filters.branch} onChange={(e) => handleFilterChange('branch', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="all">{t('reports.filters.all_branches') || 'All Branches'}</option>
+                                <option value="all">{t('reports.filters.all_branches')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
@@ -82,10 +82,10 @@ const GeneralLedgerReport = () => {
 
                     {/* Journal Account */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.journal_account') || 'Journal Account'}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.journal_account')}</label>
                         <div className="relative">
                             <select value={filters.journalAccount} onChange={(e) => handleFilterChange('journalAccount', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="all">{t('reports.filters.all_journal_accounts') || 'All Journal Accounts'}</option>
+                                <option value="all">{t('reports.filters.all_journal_accounts')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
@@ -96,8 +96,8 @@ const GeneralLedgerReport = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.displayed_accounts')}</label>
                         <div className="relative">
                             <select value={filters.displayedAccounts} onChange={(e) => handleFilterChange('displayedAccounts', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="with_transactions">{t('reports.filters.with_transactions') || 'Accounts With Transactions Before...'}</option>
-                                <option value="all">{t('reports.filters.all_accounts') || 'All Accounts'}</option>
+                                <option value="with_transactions">{t('reports.filters.with_transactions')}</option>
+                                <option value="all">{t('reports.filters.all_accounts')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
@@ -112,7 +112,7 @@ const GeneralLedgerReport = () => {
                 {/* Report Header & Export */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
                     <div className="text-sm text-gray-700 font-medium">
-                        {t('reports.accounting.general_ledger_title') || 'General Ledger'}
+                        {t('reports.accounting.general_ledger_title')}
                     </div>
                     <div className="flex items-center gap-2">
                         <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">

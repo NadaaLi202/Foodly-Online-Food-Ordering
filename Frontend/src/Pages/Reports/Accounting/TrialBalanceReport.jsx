@@ -122,7 +122,7 @@ const TrialBalanceReport = () => {
     const handleExportPdf = () => {
         const exportData = transformDataForExport();
         const dateRange = `${t('reports.filters.from_date')} ${filters.fromDate} ${t('reports.filters.to_date')} ${filters.toDate}`;
-        const blob = buildTrialBalancePdf(exportData, exportTotals, t, t('reports.accounting.trial_balance') || 'Trial Balance', dateRange);
+        const blob = buildTrialBalancePdf(exportData, exportTotals, t, t('reports.accounting.trial_balance'), dateRange);
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -207,7 +207,7 @@ const TrialBalanceReport = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.branches')}</label>
                             <div className="relative">
                                 <select value={filters.branch} onChange={(e) => handleFilterChange('branch', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="all">{t('reports.filters.all_branches') || 'All Branches'}</option>
+                                    <option value="all">{t('reports.filters.all_branches')}</option>
                                 </select>
                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                             </div>
@@ -218,7 +218,7 @@ const TrialBalanceReport = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.displayed_accounts')}</label>
                             <div className="relative">
                                 <select value={filters.displayedAccounts} onChange={(e) => handleFilterChange('displayedAccounts', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="all">{t('reports.filters.all_accounts') || 'Accounts With Transactions Before...'}</option>
+                                    <option value="all">{t('reports.filters.all_accounts')}</option>
                                 </select>
                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                             </div>
@@ -233,7 +233,7 @@ const TrialBalanceReport = () => {
                     {/* Report Header & Export */}
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100 no-print">
                         <div className="text-sm text-gray-700 font-medium">
-                            {t('reports.accounting.trial_balance_title') || 'Trial Balance From Date 2026 February 1, Sunday To Date 2026 February 28, Saturday'}
+                            {t('reports.accounting.trial_balance_title')}
                         </div>
                         <div className="flex items-center gap-2">
                             <button onClick={handleExportExcel} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
@@ -256,25 +256,25 @@ const TrialBalanceReport = () => {
                         <table className="w-full min-w-[800px]">
                             <thead>
                                 <tr className="bg-gray-50 text-gray-700 text-sm border-b border-gray-200">
-                                    <th rowSpan="2" className="px-4 py-3 text-start font-semibold border-r border-gray-200">{t('reports.columns.account') || 'Account'}</th>
-                                    <th colSpan="2" className="px-4 py-2 text-center font-semibold border-r border-gray-200 border-b">{t('reports.columns.initial_balance') || 'Initial Balance'}</th>
-                                    <th colSpan="2" className="px-4 py-2 text-center font-semibold border-r border-gray-200 border-b">{t('reports.columns.transaction_totals') || 'Transaction Totals'}</th>
-                                    <th colSpan="2" className="px-4 py-2 text-center font-semibold border-b">{t('reports.columns.end_balance') || 'End Balance'}</th>
+                                    <th rowSpan="2" className="px-4 py-3 text-start font-semibold border-r border-gray-200">{t('reports.columns.account')}</th>
+                                    <th colSpan="2" className="px-4 py-2 text-center font-semibold border-r border-gray-200 border-b">{t('reports.columns.initial_balance')}</th>
+                                    <th colSpan="2" className="px-4 py-2 text-center font-semibold border-r border-gray-200 border-b">{t('reports.columns.transaction_totals')}</th>
+                                    <th colSpan="2" className="px-4 py-2 text-center font-semibold border-b">{t('reports.columns.end_balance')}</th>
                                 </tr>
                                 <tr className="bg-gray-50 text-gray-600 text-xs border-b border-gray-200">
-                                    <th className="px-4 py-2 text-center font-medium border-r border-gray-200">{t('reports.columns.debit') || 'Debit'}</th>
-                                    <th className="px-4 py-2 text-center font-medium border-r border-gray-200">{t('reports.columns.credit') || 'Credit'}</th>
-                                    <th className="px-4 py-2 text-center font-medium border-r border-gray-200">{t('reports.columns.debit') || 'Debit'}</th>
-                                    <th className="px-4 py-2 text-center font-medium border-r border-gray-200">{t('reports.columns.credit') || 'Credit'}</th>
-                                    <th className="px-4 py-2 text-center font-medium border-r border-gray-200">{t('reports.columns.debit') || 'Debit'}</th>
-                                    <th className="px-4 py-2 text-center font-medium">{t('reports.columns.credit') || 'Credit'}</th>
+                                    <th className="px-4 py-2 text-center font-medium border-r border-gray-200">{t('reports.columns.debit')}</th>
+                                    <th className="px-4 py-2 text-center font-medium border-r border-gray-200">{t('reports.columns.credit')}</th>
+                                    <th className="px-4 py-2 text-center font-medium border-r border-gray-200">{t('reports.columns.debit')}</th>
+                                    <th className="px-4 py-2 text-center font-medium border-r border-gray-200">{t('reports.columns.credit')}</th>
+                                    <th className="px-4 py-2 text-center font-medium border-r border-gray-200">{t('reports.columns.debit')}</th>
+                                    <th className="px-4 py-2 text-center font-medium">{t('reports.columns.credit')}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {initialData.map(item => renderRow(item))}
                                 {/* Total Row */}
                                 <tr className="bg-gray-100 font-bold border-t border-gray-200">
-                                    <td className="px-4 py-3 text-sm text-gray-900 border-r border-gray-200">{t('reports.total') || 'Total'}</td>
+                                    <td className="px-4 py-3 text-sm text-gray-900 border-r border-gray-200">{t('reports.total')}</td>
                                     <td className="px-4 py-3 text-sm text-center border-r border-gray-200">{totals.initial.debit.toFixed(2)}</td>
                                     <td className="px-4 py-3 text-sm text-center border-r border-gray-200">{totals.initial.credit.toFixed(2)}</td>
                                     <td className="px-4 py-3 text-sm text-center border-r border-gray-200">{totals.transaction.debit.toFixed(2)}</td>

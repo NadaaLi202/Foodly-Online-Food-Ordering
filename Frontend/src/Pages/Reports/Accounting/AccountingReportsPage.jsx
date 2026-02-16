@@ -9,7 +9,7 @@ const AccountingReportsPage = () => {
     const reportSections = [
         {
             id: 'balance-sheet',
-            title: t('reports.accounting.balance_sheet') || 'Balance Sheet',
+            title: t('reports.accounting.balance_sheet'),
             icon: FileText,
             iconBg: 'bg-indigo-50',
             iconColor: 'text-indigo-500',
@@ -17,7 +17,7 @@ const AccountingReportsPage = () => {
         },
         {
             id: 'income-statement',
-            title: t('reports.accounting.income_statement') || 'Income Statement (Profit & Loss)',
+            title: t('reports.accounting.income_statement'),
             icon: FileText,
             iconBg: 'bg-green-50',
             iconColor: 'text-green-500',
@@ -25,7 +25,7 @@ const AccountingReportsPage = () => {
         },
         {
             id: 'trial-balance',
-            title: t('reports.accounting.trial_balance') || 'Trial Balance',
+            title: t('reports.accounting.trial_balance'),
             icon: Scale,
             iconBg: 'bg-purple-50',
             iconColor: 'text-purple-500',
@@ -33,7 +33,7 @@ const AccountingReportsPage = () => {
         },
         {
             id: 'general-ledger',
-            title: t('reports.accounting.general_ledger') || 'General Ledger',
+            title: t('reports.accounting.general_ledger'),
             icon: BookOpen,
             iconBg: 'bg-blue-50',
             iconColor: 'text-blue-500',
@@ -69,21 +69,21 @@ const AccountingReportsPage = () => {
                                 <Percent className="w-6 h-6 text-orange-500" />
                             </div>
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900">{t('reports.accounting.tax_reports') || 'Tax Reports'}</h3>
+                                <h3 className="text-lg font-semibold text-gray-900">{t('reports.accounting.tax_reports')}</h3>
                             </div>
                         </div>
                         <div className="flex gap-2 ml-16">
                             <Link to="/dashboard/reports/accounting/tax-summary" className="px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-md text-sm font-medium hover:bg-indigo-100 transition-colors flex items-center gap-2">
                                 <PieChart className="w-4 h-4" />
-                                {t('reports.summary') || 'Summary'}
+                                {t('reports.summary')}
                             </Link>
                             <Link to="/dashboard/reports/accounting/tax-detailed" className="px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-md text-sm font-medium hover:bg-indigo-100 transition-colors flex items-center gap-2">
                                 <FileText className="w-4 h-4" />
-                                {t('reports.detailed') || 'Detailed'}
+                                {t('reports.detailed')}
                             </Link>
                             <Link to="/dashboard/reports/accounting/tax-return" className="px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-md text-sm font-medium hover:bg-indigo-100 transition-colors flex items-center gap-2">
                                 <FileText className="w-4 h-4" />
-                                {t('reports.tax_return') || 'Tax Return'}
+                                {t('reports.tax_return')}
                             </Link>
                         </div>
                     </div>

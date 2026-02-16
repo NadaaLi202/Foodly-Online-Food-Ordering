@@ -216,18 +216,18 @@ const SummarySupplierPaymentsReport = () => {
 
                     {/* Supplier */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.supplier') || 'Supplier'}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.supplier')}</label>
                         <div className="relative">
-                            <input type="text" value={filters.supplier} onChange={(e) => handleFilterChange('supplier', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder={t('reports.filters.unspecified') || 'Unspecified'} />
+                            <input type="text" value={filters.supplier} onChange={(e) => handleFilterChange('supplier', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder={t('reports.filters.unspecified')} />
                         </div>
                     </div>
 
                     {/* Treasury */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.treasury') || 'Treasury'}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.treasury')}</label>
                         <div className="relative">
                             <select value={filters.treasury} onChange={(e) => handleFilterChange('treasury', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">{t('reports.filters.unspecified') || 'Unspecified'}</option>
+                                <option value="">{t('reports.filters.unspecified')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
@@ -235,10 +235,10 @@ const SummarySupplierPaymentsReport = () => {
 
                     {/* User */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.user') || 'User'}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.user')}</label>
                         <div className="relative">
                             <select value={filters.user} onChange={(e) => handleFilterChange('user', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">{t('reports.filters.unspecified') || 'Unspecified'}</option>
+                                <option value="">{t('reports.filters.unspecified')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
@@ -246,10 +246,10 @@ const SummarySupplierPaymentsReport = () => {
 
                     {/* Responsible User */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.responsible_user') || 'Responsible User'}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.responsible_user')}</label>
                         <div className="relative">
                             <select value={filters.responsibleUser} onChange={(e) => handleFilterChange('responsibleUser', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">{t('reports.filters.unspecified') || 'Unspecified'}</option>
+                                <option value="">{t('reports.filters.unspecified')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
@@ -266,15 +266,15 @@ const SummarySupplierPaymentsReport = () => {
                 {/* Summary cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                     <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm border-b-4 border-b-indigo-500">
-                        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{t('reports.purchases.total_spent') || 'Total Spent'}</div>
+                        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{t('reports.purchases.total_spent')}</div>
                         <div className="text-xl font-black text-gray-900">{Number(summaryData.totalSpent).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                     </div>
                     <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm border-b-4 border-b-emerald-500">
-                        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{t('reports.payments.total_received') || 'Total Received'}</div>
+                        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{t('reports.payments.total_received')}</div>
                         <div className="text-xl font-black text-gray-900">{Number(summaryData.totalReceived).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                     </div>
                     <div className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm border-b-4 border-b-amber-500">
-                        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{t('reports.purchases.total_due') || 'Total Due'}</div>
+                        <div className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{t('reports.purchases.total_due')}</div>
                         <div className="text-xl font-black text-gray-900">{Number(summaryData.totalDue).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                     </div>
                 </div>
@@ -283,7 +283,7 @@ const SummarySupplierPaymentsReport = () => {
                 <div className="mb-4 flex justify-end">
                     <div className="relative w-48">
                         <select className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                            <option>{t('reports.charts.processed_amount') || 'Processed Amount'}</option>
+                            <option>{t('reports.chart.processed_amount')}</option>
                         </select>
                         <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                     </div>
@@ -303,7 +303,7 @@ const SummarySupplierPaymentsReport = () => {
                         {/* Legend */}
                         <div className="absolute bottom-2 flex items-center gap-2 text-xs text-gray-500">
                             <div className="w-3 h-3 bg-indigo-500"></div>
-                            <span>{t('reports.charts.processed_amount') || 'Processed Amount'}</span>
+                            <span>{t('reports.chart.processed_amount')}</span>
                         </div>
                     </div>
                 </div>
