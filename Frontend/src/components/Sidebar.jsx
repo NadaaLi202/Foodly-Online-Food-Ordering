@@ -13,7 +13,8 @@ import {
     Building2,
     Play,
     LogOut,
-    ShieldCheck
+    ShieldCheck,
+    Settings
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -33,6 +34,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
         if (path.startsWith('/dashboard/accounting')) setOpenMenu((m) => (m === 'accounting' ? m : 'accounting'));
         else if (path.startsWith('/dashboard/reports')) setOpenMenu((m) => (m === 'reports' ? m : 'reports'));
         else if (path.startsWith('/super-admin')) setOpenMenu((m) => (m === 'superAdmin' ? m : 'superAdmin'));
+        else if (path.startsWith('/settings')) setOpenMenu((m) => (m === 'settings' ? m : 'settings'));
     }, [location.pathname]);
 
     const handleLogout = () => {
@@ -149,6 +151,26 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                 { key: 'branches_list', path: '/dashboard/branches/list' },
                 { key: 'partners_lists', path: '/dashboard/branches/partner-lists' },
                 { key: 'activities', path: '/dashboard/branches/businesses' },
+            ]
+        },
+        {
+            key: 'settings',
+            icon: Settings,
+            path: '/settings/general',
+            hasSub: true,
+            children: [
+                { key: 'settings_general', path: '/settings/general' },
+                { key: 'settings_sales', path: '/settings/sales' },
+                { key: 'settings_purchases', path: '/settings/purchases' },
+                { key: 'settings_customers', path: '/settings/customers' },
+                { key: 'settings_suppliers', path: '/settings/suppliers' },
+                { key: 'settings_accounting', path: '/settings/accounting' },
+                { key: 'settings_taxes', path: '/settings/taxes' },
+                { key: 'settings_einvoice', path: '/settings/einvoice' },
+                { key: 'settings_import', path: '/settings/import' },
+                { key: 'settings_export', path: '/settings/export' },
+                { key: 'settings_coding', path: '/settings/coding' },
+                { key: 'settings_api', path: '/settings/api' },
             ]
         },
     ];

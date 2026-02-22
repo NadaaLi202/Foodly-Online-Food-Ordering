@@ -679,10 +679,24 @@ export async function getProfitDetailed(startDate, endDate, companyFilter) {
 export async function getCustomersSummary(startDate, endDate, companyFilter, customerId) {
     const { start, end } = getDateRange(startDate, endDate);
 
+
+    // Total invoices (sales invoices)
+    const invoiceMatch = {
+        ...companyFilter,
+        module: "sales",
+        documentType: "invoice",
+        issueDate: { $gte: start, $lte: end },
+        status: { $ne: "draft" },
+        deletedAt: { $in: [null, undefined] },
+    };
+    if (customerId && customerId !== 'all' && customerId !== '') {
+        invoiceMatch.contact = new mongoose.Types.ObjectId(customerId);
+      
     // Normalize companyFilter to ensure companyId is an ObjectId for aggregation
     const matchCompany = { ...companyFilter };
     if (matchCompany.companyId && typeof matchCompany.companyId === 'string') {
         matchCompany.companyId = new mongoose.Types.ObjectId(matchCompany.companyId);
+
     }
 
     const commonMatch = {
@@ -691,6 +705,34 @@ export async function getCustomersSummary(startDate, endDate, companyFilter, cus
         status: { $ne: "draft" },
         deletedAt: { $in: [null, undefined] },
     };
+
+    if (customerId && customerId !== 'all' && customerId !== '') {
+        returnMatch.contact = new mongoose.Types.ObjectId(customerId);
+    }
+
+    const [returnsResult] = await Transaction.aggregate([
+        { $match: returnMatch },
+        { $group: { _id: null, totalReturns: { $sum: "$totalAmount" } } },
+    ]);
+    const totalReturns = returnsResult?.totalReturns ?? 0;
+
+    // Total payments received
+    const paymentMatch = {
+        ...companyFilter,
+        module: "sales",
+        operationType: "receive",
+        date: { $gte: start, $lte: end },
+        status: { $ne: "cancelled" },
+    };
+    if (customerId && customerId !== 'all' && customerId !== '') {
+        paymentMatch.contact = new mongoose.Types.ObjectId(customerId);
+    }
+
+    const [paymentsResult] = await Payment.aggregate([
+        { $match: paymentMatch },
+        { $group: { _id: null, totalPaymentsReceived: { $sum: "$amount" } } },
+    ]);
+    const totalPaymentsReceived = paymentsResult?.totalPaymentsReceived ?? 0;
 
     if (customerId && customerId !== 'all') {
         const cid = new mongoose.Types.ObjectId(customerId);
