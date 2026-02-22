@@ -350,7 +350,9 @@
             "account": "الحساب",
             "purchases_total": "إجمالي المشتريات",
             "net_purchases_discounts": "خصومات صافي المشتريات",
-            "net_purchases": "صافي المشتريات"
+            "net_purchases": "صافي المشتريات",
+            "client": "العميل",
+            "outstanding": "المستحقات"
         },
         "export": {
             "excel": "إكسل",
@@ -433,8 +435,8 @@
         "clients": {
             "client_general_ledger": "كشف حساب العميل",
             "client_general_ledger_desc": "عرض تقارير كشف حساب العميل.",
-            "summary_report": "تقرير ملخص العملاء",
-            "summary_report_desc": "عرض ملخص لإجماليات العملاء.",
+            "summary_report": "كشف حساب العميل",
+            "summary_report_desc": "عرض كشف حساب العميل وإجماليات العملاء.",
             "total_invoices": "إجمالي الفواتير",
             "total_returns": "إجمالي المرتجعات",
             "total_payments_received": "إجمالي المدفوعات المستلمة",
@@ -542,6 +544,7 @@
         "attachments": "المرفقات"
     },
     "finance_page": {
+        "tile_desc": "تسجيل وإدارة مصروفات الشركة",
         "expenses": "مصروفات",
         "transactions": "معاملات مالية",
         "requisitions": "الأذونات",
@@ -559,6 +562,7 @@
         "no_requisitions_desc": "لا توجد أذونات حتى الآن."
     },
     "safes_page": {
+        "tile_desc": "إدارة الخزائن والعهد النقدية",
         "name": "الاسم",
         "add_safe": "إضافة خزنة",
         "edit_safe": "تعديل خزنة",
@@ -781,6 +785,7 @@
         },
         "returns": {
             "title": "فواتير مرتجعات",
+            "tile_desc": "معالجة مرتجعات المبيعات والإشعارات الدائنة",
             "add_return": "إضافة فاتورة مرتجعات",
             "edit_return": "تعديل المرتجع",
             "view_return": "عرض المرتجع",
@@ -803,6 +808,7 @@
         },
         "customers": {
             "title": "العملاء",
+            "tile_desc": "إدارة قاعدة بيانات العملاء وحساباتهم",
             "update": "تحديث",
             "add_customer": "إضافة عميل",
             "edit_customer": "تعديل عميل",
@@ -885,6 +891,7 @@
         },
         "payments": {
             "title": "مدفوعات العملاء",
+            "tile_desc": "تتبع مدفوعات العملاء وتحصيلاتهم",
             "add_payment": "إضافة عملية دفع عميل",
             "edit_payment": "تعديل عملية الدفع",
             "treasury": "الخزينة",
@@ -975,6 +982,7 @@
             "return_number_placeholder": "PRET-26-1-000001"
         },
         "requests": {
+            "tile_desc": "إنشاء وإدارة طلبات شراء المشتريات",
             "add_request": "إضافة طلب شراء",
             "edit_request": "تعديل طلب الشراء",
             "view_request": "عرض طلب الشراء",
@@ -1117,6 +1125,7 @@
         },
         "warehouses": {
             "title": "المستودعات",
+            "tile_desc": "إدارة مواقع التخزين والمستودعات",
             "add_warehouse": "إضافة مستودع",
             "edit_warehouse": "تعديل مستودع",
             "warehouse_name": "الاسم",
@@ -1132,6 +1141,7 @@
         },
         "inventories": {
             "title": "عمليات الجرد",
+            "tile_desc": "إجراء عمليات جرد وتدقيق المخزون",
             "add_inventory": "إضافة عملية جرد",
             "inventory_name": "المخزن",
             "date": "التاريخ",
@@ -1139,6 +1149,9 @@
             "no_inventories": "لا توجد عمليات جرد",
             "start_creating": "ابدأ بإنشاء عمليات جرد"
         }
+    },
+    "bank_accounts": {
+        "tile_desc": "تتبع أرصدة الحسابات البنكية ومعاملاتها"
     },
     "accounting": {
         "journal_entries": {
@@ -1207,6 +1220,7 @@
         },
         "chart_of_accounts": {
             "title": "شجرة الحسابات",
+            "tile_desc": "إعداد وتنظيم الحسابات المالية",
             "add_account": "إضافة حساب",
             "type": "النوع",
             "main_account": "حساب رئيسي",
@@ -1229,6 +1243,7 @@
     },
     "branches_page": {
         "title": "الفروع",
+        "tile_desc": "إدارة فروع الشركة",
         "add_branch": "إضافة فرع",
         "branch_name": "الاسم",
         "code": "الكود",
