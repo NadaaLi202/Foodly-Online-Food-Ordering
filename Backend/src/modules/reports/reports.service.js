@@ -687,7 +687,7 @@ export async function getCustomersSummary(startDate, endDate, companyFilter, cus
         status: { $ne: "draft" },
         deletedAt: { $in: [null, undefined] },
     };
-    if (customerId && customerId !== 'all') {
+    if (customerId && customerId !== 'all' && customerId !== '') {
         invoiceMatch.contact = new mongoose.Types.ObjectId(customerId);
     }
 
@@ -706,7 +706,7 @@ export async function getCustomersSummary(startDate, endDate, companyFilter, cus
         status: { $ne: "draft" },
         deletedAt: { $in: [null, undefined] },
     };
-    if (customerId && customerId !== 'all') {
+    if (customerId && customerId !== 'all' && customerId !== '') {
         returnMatch.contact = new mongoose.Types.ObjectId(customerId);
     }
 
@@ -724,7 +724,7 @@ export async function getCustomersSummary(startDate, endDate, companyFilter, cus
         date: { $gte: start, $lte: end },
         status: { $ne: "cancelled" },
     };
-    if (customerId && customerId !== 'all') {
+    if (customerId && customerId !== 'all' && customerId !== '') {
         paymentMatch.contact = new mongoose.Types.ObjectId(customerId);
     }
 

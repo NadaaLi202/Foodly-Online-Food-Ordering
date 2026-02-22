@@ -15,22 +15,50 @@ const SummaryCustomerReport = () => {
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    const formatDate = (date) => {
-        const d = date.getDate();
-        const m = date.getMonth() + 1;
+    const formatDateForInput = (date) => {
+        const d = String(date.getDate()).padStart(2, '0');
+        const m = String(date.getMonth() + 1).padStart(2, '0');
         const y = date.getFullYear();
         return `${d}-${m}-${y}`;
     };
 
     const [filters, setFilters] = useState({
         period: 'current_month',
-        fromDate: formatDate(firstDay),
-        toDate: formatDate(lastDay),
+        fromDate: formatDateForInput(firstDay),
+        toDate: formatDateForInput(lastDay),
         customerId: 'all',
     });
 
     const handleFilterChange = (field, value) => {
-        setFilters(prev => ({ ...prev, [field]: value }));
+        setFilters(prev => {
+            const newFilters = { ...prev, [field]: value };
+
+            if (field === 'period' && value !== 'custom') {
+                const now = new Date();
+                let start, end;
+
+                if (value === 'current_month') {
+                    start = new Date(now.getFullYear(), now.getMonth(), 1);
+                    end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                } else if (value === 'last_month') {
+                    start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    end = new Date(now.getFullYear(), now.getMonth(), 0);
+                } else if (value === 'current_quarter') {
+                    const quarter = Math.floor(now.getMonth() / 3);
+                    start = new Date(now.getFullYear(), quarter * 3, 1);
+                    end = new Date(now.getFullYear(), (quarter + 1) * 3, 0);
+                } else if (value === 'current_year') {
+                    start = new Date(now.getFullYear(), 0, 1);
+                    end = new Date(now.getFullYear(), 11, 31);
+                }
+
+                if (start && end) {
+                    newFilters.fromDate = formatDateForInput(start);
+                    newFilters.toDate = formatDateForInput(end);
+                }
+            }
+            return newFilters;
+        });
         setError(null);
     };
 

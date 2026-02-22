@@ -4,6 +4,12 @@ import Layout from './components/Layout';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardPage from './Pages/DashboardPage';
+import SalesSettings from './Pages/Settings/SalesSettings';
+import PurchasesSettings from './Pages/Settings/PurchasesSettings';
+import CustomersSettings from './Pages/Settings/CustomersSettings';
+import SuppliersSettings from './Pages/Settings/SuppliersSettings';
+import AccountingSettings from './Pages/Settings/AccountingSettings';
+import GeneralSettings from './Pages/Settings/GeneralSettings';
 import PurchasesPage from './Pages/PurchasesPage';
 import PurchaseInvoices from './Pages/Purchases/PurchaseInvoices';
 import PurchaseCreditNotes from './Pages/Purchases/PurchaseCreditNotes';
@@ -227,6 +233,28 @@ function App() {
               <Route path="partner-lists" element={<PartnerLists />} />
               <Route path="businesses" element={<Activities />} />
             </Route>
+          </Route>
+
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute allowedRoles={['superAdmin', 'admin', 'accountant', 'employee', 'company']}>
+                <Layout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="general" element={<GeneralSettings />} />
+            <Route path="sales" element={<SalesSettings />} />
+            <Route path="purchases" element={<PurchasesSettings />} />
+            <Route path="customers" element={<CustomersSettings />} />
+            <Route path="suppliers" element={<SuppliersSettings />} />
+            <Route path="accounting" element={<AccountingSettings />} />
+            <Route path="taxes" element={<PlaceholderPage title="Taxes Settings" />} />
+            <Route path="einvoice" element={<PlaceholderPage title="E-Invoice Settings" />} />
+            <Route path="import" element={<PlaceholderPage title="Import Settings" />} />
+            <Route path="export" element={<PlaceholderPage title="Export Settings" />} />
+            <Route path="coding" element={<PlaceholderPage title="Coding Settings" />} />
+            <Route path="api" element={<PlaceholderPage title="API Settings" />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
