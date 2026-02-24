@@ -31,6 +31,11 @@ import roleRouter from "./role/role.routes.js"
 import reportsRouter from "./reports/reports.routes.js"
 import financialTransactionRouter from "./FinancialTransactions/financialTransaction.routes.js"
 import { settingsRouter } from "./settings/settings.routes.js"
+import taxesRouter from "./taxes/taxes.routes.js";
+import importRouter from "./import/import.routes.js";
+import exportRouter from "./export/export.routes.js";
+import codingRouter from "./coding/coding.routes.js";
+import apiClientRouter from "./apiClient/apiClient.routes.js";
 import { backupRouter } from "../backups/backup.routes.js"
 
 export function routes(app) {
@@ -66,6 +71,11 @@ export function routes(app) {
     app.use("/api/v1/financial-transactions", financialTransactionRouter)
     app.use("/api/v1/companies", companyRouter)
     app.use("/api/v1/settings", settingsRouter)
+    app.use('/api/v1/taxes', taxesRouter);
+    app.use('/api/v1/import', importRouter);
+    app.use('/api/v1/export', exportRouter);
+    app.use('/api/v1/coding', codingRouter);
+    app.use('/api/v1/api-clients', apiClientRouter);
     app.use("/api/v1/backups", backupRouter)
 
 

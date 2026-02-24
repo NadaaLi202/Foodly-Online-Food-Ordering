@@ -60,24 +60,41 @@ app.use((err, req, res, next) => {
 // ... (existing code)
 
 // Vercel Serverless: Ensure DB connects on every request if not already connected
-app.use(async (req, res, next) => {
-    await dbConnection();
-    next();
-});
+// app.use(async (req, res, next) => {
+//     await dbConnection();
+//     next();
+// });
+
+// async function bootstrap() {
+//     await dbConnection()
+//     startBackupCron()
+//     app.listen(port, () => console.log(`API server listening on port ${port} (http://localhost:${port}/api/v1)`))
+// }
+
 
 async function bootstrap() {
-    await dbConnection()
-    startBackupCron()
-    app.listen(port, () => console.log(`API server listening on port ${port} (http://localhost:${port}/api/v1)`))
-}
+    console.log("🔄 Connecting to DB...");
 
-// Only run bootstrap if executed directly (e.g. node index.js)
-// In Vercel, this file is imported, so bootstrap() won't auto-run
-if (import.meta.url === `file://${process.argv[1]}`) {
+    await dbConnection();
+
+    console.log("✅ DB Connected");
+
+    startBackupCron();
+
+    app.listen(port, () =>
+        console.log(`🚀 Server running on http://localhost:${port}/api/v1`)
+    );
+}
+const isDirectRun = process.argv[1] && (path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url)));
+
+if (isDirectRun) {
+    console.log("🚀 Starting application in direct mode...");
     bootstrap().catch((err) => {
-        console.error('Bootstrap failed:', err);
+        console.error('❌ Bootstrap failed:', err);
         process.exit(1);
     })
+} else {
+    console.log("☁️ Application loaded as a module (Serverless mode)");
 }
 
 process.on('unhandledRejection', (err) => {
