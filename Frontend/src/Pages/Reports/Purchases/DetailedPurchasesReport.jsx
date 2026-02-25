@@ -13,12 +13,7 @@ const PurchasesReport = () => {
     const isRTL = i18n.language === 'ar';
     const printRef = useRef(null);
 
-    const getInitialTab = () => {
-        const params = new URLSearchParams(location.search);
-        return params.get('tab') === 'summary' ? 'summary' : 'detailed';
-    };
-
-    const [activeTab, setActiveTab] = useState(getInitialTab());
+    const [activeTab] = useState('detailed');
     const [detailedData, setDetailedData] = useState([]);
     const [summaryData, setSummaryData] = useState([]);
     const [grandTotals, setGrandTotals] = useState(null);
@@ -254,27 +249,7 @@ const PurchasesReport = () => {
     };
 
     const renderSummaryCards = () => {
-        if (!grandTotals) return null;
-        return (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 no-print">
-                <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-                    <p className="text-xs font-bold text-indigo-600 uppercase mb-1">{t('reports.columns.total_invoices')}</p>
-                    <p className="text-xl font-black text-indigo-900">{formatAmount(grandTotals.totalInvoices)}</p>
-                </div>
-                <div className="bg-red-50 p-4 rounded-xl border border-red-100">
-                    <p className="text-xs font-bold text-red-600 uppercase mb-1">{t('reports.columns.total_returns')}</p>
-                    <p className="text-xl font-black text-red-900">{formatAmount(grandTotals.totalReturns)}</p>
-                </div>
-                <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
-                    <p className="text-xs font-bold text-amber-600 uppercase mb-1">{t('reports.columns.total_orders')}</p>
-                    <p className="text-xl font-black text-amber-900">{formatAmount(grandTotals.totalOrders)}</p>
-                </div>
-                <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                    <p className="text-xs font-bold text-blue-600 uppercase mb-1">{t('reports.columns.net_purchases')}</p>
-                    <p className="text-xl font-black text-blue-900">{formatAmount(grandTotals.netPurchases)}</p>
-                </div>
-            </div>
-        );
+        return null;
     };
 
     return (
@@ -283,14 +258,6 @@ const PurchasesReport = () => {
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 no-print">
                         <h1 className="text-2xl font-black text-gray-900">{t('reports.purchase_reports') || 'Purchase Reports'}</h1>
-                        <div className="flex bg-gray-100 p-1 rounded-lg">
-                            <button onClick={() => setActiveTab('summary')} className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'summary' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <BarChart3 className="w-4 h-4" /> {t('reports.summary')}
-                            </button>
-                            <button onClick={() => setActiveTab('detailed')} className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${activeTab === 'detailed' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                                <List className="w-4 h-4" /> {t('reports.detailed')}
-                            </button>
-                        </div>
                     </div>
 
                     {/* Shared Filters */}

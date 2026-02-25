@@ -11,9 +11,14 @@ import SuppliersSettings from './Pages/Settings/SuppliersSettings';
 import AccountingSettings from './Pages/Settings/AccountingSettings';
 import GeneralSettings from './Pages/Settings/GeneralSettings';
 import ZatcaSettings from './Pages/Settings/ZatcaSettings';
+import TaxesSettings from './Pages/Settings/TaxesSettings';
+import ImportingSettings from './Pages/Settings/ImportingSettings';
+import ExportingSettings from './Pages/Settings/ExportingSettings';
+import CodingSettings from './Pages/Settings/CodingSettings';
+import ApiSettings from './Pages/Settings/ApiSettings';
+import ImportEntityPage from './Pages/Settings/ImportEntityPage';
 import PurchasesPage from './Pages/PurchasesPage';
 import PurchaseInvoices from './Pages/Purchases/PurchaseInvoices';
-import PurchaseCreditNotes from './Pages/Purchases/PurchaseCreditNotes';
 import PurchaseRequests from './Pages/Purchases/PurchaseRequests';
 import PurchaseOrders from './Pages/Purchases/PurchaseOrders';
 import PurchaseReturns from './Pages/Purchases/PurchaseReturns';
@@ -32,7 +37,6 @@ import Warehouses from './Pages/Inventory/Warehouses';
 import Inventories from './Pages/Inventory/Inventories';
 import JournalEntries from './Pages/Accounting/JournalEntries';
 import ChartOfAccounts from './Pages/Accounting/ChartOfAccounts';
-import CostCenters from './Pages/Accounting/CostCenters';
 import Branches from './Pages/Branches/Branches';
 import PartnerLists from './Pages/Branches/PartnerLists';
 import Activities from './Pages/Branches/Activities';
@@ -46,7 +50,7 @@ import Users from './Pages/Users/Users';
 import Roles from './Pages/Users/Roles';
 import LandingPage from './Pages/LandingPage';
 import Login from './Pages/login';
-import Register from './Pages/Register';
+
 import CompanyLogin from './Pages/CompanyLogin';
 import SalesMainPage from './Pages/Sales/SalesMainPage';
 import InventoryMainPage from './Pages/Inventory/InventoryMainPage';
@@ -64,22 +68,25 @@ import UserManagement from './Pages/SuperAdmin/UserManagement';
 // Reports Imports
 import SalesReportsPage from './Pages/Reports/Sales/SalesReportsPage';
 import PurchasesReportsPage from './Pages/Reports/Purchases/PurchasesReportsPage';
-import SummarySalesReport from './Pages/Reports/Sales/SummarySalesReport';
 import DetailedSalesReport from './Pages/Reports/Sales/DetailedSalesReport';
-import SummaryPaymentsReport from './Pages/Reports/Sales/SummaryPaymentsReport';
 import DetailedPaymentsReport from './Pages/Reports/Sales/DetailedPaymentsReport';
-import SummaryPurchasesReport from './Pages/Reports/Purchases/SummaryPurchasesReport';
 import DetailedPurchasesReport from './Pages/Reports/Purchases/DetailedPurchasesReport';
-import SummarySupplierPaymentsReport from './Pages/Reports/Purchases/SummarySupplierPaymentsReport';
 import DetailedSupplierPaymentsReport from './Pages/Reports/Purchases/DetailedSupplierPaymentsReport';
 import ClientsReportsPage from './Pages/Reports/Clients/ClientsReportsPage';
 import SummaryCustomerReport from './Pages/Reports/Clients/SummaryCustomerReport';
-import ClientGeneralLedger from './Pages/Reports/Clients/ClientGeneralLedger';
 import SuppliersReportsPage from './Pages/Reports/Suppliers/SuppliersReportsPage';
 import DetailedSuppliersReport from './Pages/Reports/Suppliers/DetailedSuppliersReport';
 import InventoryReportsPage from './Pages/Reports/Inventory/InventoryReportsPage';
 import InventoryValueReport from './Pages/Reports/Inventory/InventoryValueReport';
 import InventoryValueDetailedReport from './Pages/Reports/Inventory/InventoryValueDetailedReport';
+import AccountingReportsPage from './Pages/Reports/Accounting/AccountingReportsPage';
+import BalanceSheetReport from './Pages/Reports/Accounting/BalanceSheetReport';
+import GeneralLedgerReport from './Pages/Reports/Accounting/GeneralLedgerReport';
+import IncomeStatementReport from './Pages/Reports/Accounting/IncomeStatementReport';
+import TrialBalanceReport from './Pages/Reports/Accounting/TrialBalanceReport';
+import SummaryTaxReport from './Pages/Reports/Accounting/SummaryTaxReport';
+import DetailedTaxReport from './Pages/Reports/Accounting/DetailedTaxReport';
+import TaxReturnReport from './Pages/Reports/Accounting/TaxReturnReport';
 import ReportsMainPage from './Pages/Reports/ReportsMainPage';
 
 const ReportsLayout = ({ title }) => (
@@ -105,7 +112,7 @@ function App() {
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+
           <Route path="/company-login" element={<CompanyLogin />} />
           <Route path="/company/:slug/login" element={<CompanyLogin />} />
 
@@ -160,7 +167,6 @@ function App() {
               <Route index element={<AccountingMainPage />} />
               <Route path="journal-entries" element={<JournalEntries />} />
               <Route path="chart-of-accounts" element={<ChartOfAccounts />} />
-              <Route path="cost-centers" element={<CostCenters />} />
             </Route>
 
             <Route path="reports">
@@ -168,22 +174,17 @@ function App() {
 
               <Route path="sales">
                 <Route index element={<SalesReportsPage />} />
-                <Route path="summary" element={<SummarySalesReport />} />
                 <Route path="detailed" element={<DetailedSalesReport />} />
-                <Route path="payments-summary" element={<SummaryPaymentsReport />} />
                 <Route path="payments-detailed" element={<DetailedPaymentsReport />} />
               </Route>
               <Route path="purchases">
                 <Route index element={<PurchasesReportsPage />} />
-                <Route path="summary" element={<SummaryPurchasesReport />} />
                 <Route path="detailed" element={<DetailedPurchasesReport />} />
-                <Route path="payments-summary" element={<SummarySupplierPaymentsReport />} />
                 <Route path="payments-detailed" element={<DetailedSupplierPaymentsReport />} />
               </Route>
               <Route path="clients" element={<ReportsLayout title="Clients Reports" />}>
                 <Route index element={<ClientsReportsPage />} />
                 <Route path="summary" element={<SummaryCustomerReport />} />
-                <Route path="general-ledger" element={<ClientGeneralLedger />} />
               </Route>
               <Route path="customers" element={<PlaceholderPage title="Customers Reports" />} />
               <Route path="suppliers" element={<ReportsLayout title="Suppliers Reports" />}>
@@ -195,6 +196,16 @@ function App() {
                 <Route path="value" element={<InventoryValueReport />} />
                 <Route path="value-detailed" element={<InventoryValueDetailedReport />} />
               </Route>
+              <Route path="accounting">
+                <Route index element={<AccountingReportsPage />} />
+                <Route path="balance-sheet" element={<BalanceSheetReport />} />
+                <Route path="income-statement" element={<IncomeStatementReport />} />
+                <Route path="trial-balance" element={<TrialBalanceReport />} />
+                <Route path="general-ledger" element={<GeneralLedgerReport />} />
+                <Route path="tax-summary" element={<SummaryTaxReport />} />
+                <Route path="tax-detailed" element={<DetailedTaxReport />} />
+                <Route path="tax-return" element={<TaxReturnReport />} />
+              </Route>
             </Route>
 
             <Route path="purchases">
@@ -203,8 +214,6 @@ function App() {
               <Route path="suppliers/:id" element={<Suppliers />} />
               <Route path="invoices" element={<PurchaseInvoices />} />
               <Route path="invoices/add" element={<PurchaseInvoices />} />
-              <Route path="credit-notes" element={<PurchaseCreditNotes />} />
-              <Route path="credit-notes/add" element={<PurchaseCreditNotes />} />
               <Route path="purchase-orders" element={<PurchaseOrders />} />
               <Route path="returns" element={<PurchaseReturns />} />
               <Route path="requests" element={<PurchaseRequests />} />
@@ -250,12 +259,15 @@ function App() {
             <Route path="customers" element={<CustomersSettings />} />
             <Route path="suppliers" element={<SuppliersSettings />} />
             <Route path="accounting" element={<AccountingSettings />} />
-            <Route path="taxes" element={<PlaceholderPage title="Taxes Settings" />} />
+            <Route path="taxes" element={<TaxesSettings />} />
             <Route path="einvoice" element={<ZatcaSettings />} />
-            <Route path="import" element={<PlaceholderPage title="Import Settings" />} />
-            <Route path="export" element={<PlaceholderPage title="Export Settings" />} />
-            <Route path="coding" element={<PlaceholderPage title="Coding Settings" />} />
-            <Route path="api" element={<PlaceholderPage title="API Settings" />} />
+            <Route path="import">
+              <Route index element={<ImportingSettings />} />
+              <Route path=":entity" element={<ImportEntityPage />} />
+            </Route>
+            <Route path="export" element={<ExportingSettings />} />
+            <Route path="coding" element={<CodingSettings />} />
+            <Route path="api" element={<ApiSettings />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

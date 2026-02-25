@@ -127,6 +127,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
             children: [
                 { key: 'sales_reports', path: '/dashboard/reports/sales' },
                 { key: 'purchases_reports', path: '/dashboard/reports/purchases' },
+                { key: 'accounting_reports', path: '/dashboard/reports/accounting' },
                 { key: 'clients_reports', path: '/dashboard/reports/clients' },
                 { key: 'suppliers_reports', path: '/dashboard/reports/suppliers' },
                 { key: 'inventory_reports', path: '/dashboard/reports/inventory' },

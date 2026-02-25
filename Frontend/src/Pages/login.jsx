@@ -135,12 +135,7 @@ export default function Login() {
                         </button>
                     </form>
 
-                    <p className="text-center mt-8 text-gray-500 font-medium">
-                        {t('auth.no_account')}{" "}
-                        <Link to="/register" className="text-indigo-600 font-bold hover:underline">
-                            {t('auth.signup_free')}
-                        </Link>
-                    </p>
+
                 </div>
 
                 <div className={`text-sm text-gray-400 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>

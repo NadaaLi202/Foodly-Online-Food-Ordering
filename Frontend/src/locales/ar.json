@@ -236,6 +236,110 @@
         "save": "حفظ",
         "error_message": "حدث خطأ أثناء حفظ الإعدادات"
     },
+    "taxes_settings": {
+        "title": "الضرائب",
+        "settings": "الإعدادات",
+        "add_tax": "إضافة",
+        "modal_title_add": "إضافة ضريبة",
+        "modal_title_edit": "تعديل ضريبة",
+        "name": "الاسم",
+        "percentage": "النسبة",
+        "percentage_placeholder": "",
+        "is_inclusive": "الأسعار تشمل هذه الضريبة",
+        "paid_tax_account": "حساب الضريبة المدفوعة",
+        "collected_tax_account": "حساب الضريبة المحصلة",
+        "save": "حفظ",
+        "cancel": "إلغاء",
+        "actions": "الإجراءات",
+        "delete_confirm_title": "تأكيد الحذف",
+        "delete_confirm_message": "هل أنت متأكد من حذف الضريبة \"{{name}}\"؟",
+        "success_add": "تم إضافة الضريبة بنجاح",
+        "success_update": "تم تحديث الضريبة بنجاح",
+        "success_delete": "تم حذف الضريبة بنجاح",
+        "error_load": "خطأ في تحميل الضرائب",
+        "error_save": "خطأ في حفظ الضريبة",
+        "field_required": "هذا الحقل مطلوب",
+        "yes": "نعم",
+        "no": "لا"
+    },
+    "import_settings": {
+        "title": "الاستيراد",
+        "import_products": "استيراد المنتجات",
+        "import_clients": "استيراد العملاء",
+        "import_suppliers": "استيراد الموردين",
+        "instruction_1": "يمكنك رفع أي ملف بصيغة CSV أو Excel وسيتم تحديد الأعمدة في المرحلة التالية.",
+        "instruction_2_products": "يمكنك تنزيل قالب استيراد المنتجات من هنا.",
+        "instruction_2_clients": "يمكنك تنزيل قالب استيراد العملاء من هنا.",
+        "instruction_2_suppliers": "يمكنك تنزيل قالب استيراد الموردين من هنا.",
+        "download_here": "من هنا.",
+        "upload_area_title": "اضغط لرفع الملفات أو اسحبها هنا",
+        "upload_area_subtitle": "ملفات EXCEL أو CSV حتى 16 ميجابايت",
+        "next": "التالي",
+        "products": "المنتجات",
+        "clients": "العملاء",
+        "suppliers": "الموردين",
+        "import_success": "تم استيراد البيانات بنجاح"
+    },
+    "export_settings": {
+        "title": "التصدير",
+        "products": "المنتجات",
+        "clients": "العملاء",
+        "suppliers": "الموردين",
+        "export_btn": "تصدير"
+    },
+    "coding_settings": {
+        "title": "التكويد",
+        "entities": {
+            "invoices": "الفواتير",
+            "returns": "فواتير المرتجعات",
+            "quotations": "عروض الأسعار",
+            "purchase_invoices": "فواتير المشتريات",
+            "purchase_returns": "فواتير مرتجعات المشتريات",
+            "purchase_requests": "طلبات الشراء",
+            "purchase_orders": "أوامر الشراء",
+            "products": "المنتجات",
+            "customers": "العملاء",
+            "suppliers": "الموردين",
+            "journal_entries": "قيود اليومية"
+        },
+        "parts": {
+            "fixed": "قيمة ثابتة",
+            "year": "السنة الحالية",
+            "branch": "النطاق",
+            "sequence": "التسلسل"
+        },
+        "field_labels": {
+            "fixed_value": "قيمة ثابتة",
+            "min_digits": "أقل عدد أرقام",
+            "separator": "الفاصل",
+            "example": "مثال :",
+            "current_sequence": "التسلسل الحالي",
+            "main_branch": "الفرع الرئيسي",
+            "branch_label": "الفرع",
+            "save_btn": "حفظ"
+        },
+        "success_save": "تم حفظ إعدادات التكويد بنجاح",
+        "success_sequence": "تم تحديث التسلسل بنجاح"
+    },
+    "api_settings": {
+        "title": "API",
+        "info_box": "يمكنك التفاعل مع واجهتنا البرمجية باستخدام API Clients. لمزيد من التفاصيل، قم بزيارة",
+        "doc_link": "API Documentation",
+        "empty_title": "لا يوجد API Clients",
+        "empty_desc": "ابدأ بإنشاء API Client",
+        "add_btn": "إضافة",
+        "modal_title": "إضافة API Client",
+        "field_labels": {
+            "name": "الاسم",
+            "role": "الدور الوظيفي",
+            "branches": "الفروع",
+            "select": "اختر",
+            "save": "حفظ",
+            "cancel": "إلغاء"
+        },
+        "success_create": "تم إنشاء API Client بنجاح",
+        "success_delete": "تم حذف API Client بنجاح"
+    },
     "reports": {
         "total": "الإجمالي",
         "summary": "ملخص",
@@ -426,6 +530,7 @@
             "total_due": "إجمالي المستحق"
         },
         "accounting": {
+            "description": "القوائم المالية وحسابات الأستاذ العام",
             "balance_sheet": "الميزانية العمومية",
             "income_statement": "قائمة الدخل (الأرباح والخسائر)",
             "trial_balance": "ميزان المراجعة",

@@ -1,4 +1,5 @@
 import Invoice from "../invoices/invoices.model.js";
+import { returnModel as ReturnDoc } from "../returns/returns.model.js";
 import Transaction from "../transaction/transaction.model.js";
 import Payment from "../payments/payments.model.js";
 import Contact from "../contacts/contacts.model.js";
@@ -678,67 +679,127 @@ export async function getProfitDetailed(startDate, endDate, companyFilter) {
 export async function getCustomersSummary(startDate, endDate, companyFilter, customerId) {
     const { start, end } = getDateRange(startDate, endDate);
 
-    // Total invoices (sales invoices)
-    const invoiceMatch = {
-        ...companyFilter,
-        module: "sales",
-        documentType: "invoice",
+    // Normalize companyFilter to ensure companyId is an ObjectId for aggregation
+    const matchCompany = { ...companyFilter };
+    if (matchCompany.companyId && typeof matchCompany.companyId === 'string') {
+        matchCompany.companyId = new mongoose.Types.ObjectId(matchCompany.companyId);
+    }
+
+    const commonMatch = {
+        ...matchCompany,
         issueDate: { $gte: start, $lte: end },
         status: { $ne: "draft" },
         deletedAt: { $in: [null, undefined] },
     };
+
     if (customerId && customerId !== 'all' && customerId !== '') {
-        invoiceMatch.contact = new mongoose.Types.ObjectId(customerId);
+        const cid = new mongoose.Types.ObjectId(customerId);
+
+        // 1. Total Invoices
+        const txnInvoiceResult = await Transaction.aggregate([
+            { $match: { ...commonMatch, module: "sales", documentType: "invoice", contact: cid } },
+            { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+        ]);
+        const accInvoiceResult = await Invoice.aggregate([
+            { $match: { ...commonMatch, clientId: cid } },
+            { $group: { _id: null, total: { $sum: "$total" } } },
+        ]);
+        const totalInvoices = (txnInvoiceResult[0]?.total ?? 0) + (accInvoiceResult[0]?.total ?? 0);
+
+        // 2. Total Returns
+        const txnReturnResult = await Transaction.aggregate([
+            { $match: { ...commonMatch, module: "sales", documentType: "return", contact: cid } },
+            { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+        ]);
+        const accReturnResult = await ReturnDoc.aggregate([
+            {
+                $match: {
+                    ...matchCompany,
+                    date: { $gte: start, $lte: end },
+                    status: { $nin: ["Rejected", "cancelled"] }
+                }
+            },
+            { $lookup: { from: "invoices", localField: "invoice", foreignField: "_id", as: "inv" } },
+            { $unwind: "$inv" },
+            { $match: { "inv.clientId": cid } },
+            { $group: { _id: null, total: { $sum: "$totalRefundAmount" } } },
+        ]);
+        const totalReturns = (txnReturnResult[0]?.total ?? 0) + (accReturnResult[0]?.total ?? 0);
+
+        // 3. Total Payments Received
+        const pyMatch = {
+            ...matchCompany,
+            module: "sales",
+            operationType: "receive",
+            date: { $gte: start, $lte: end },
+            status: { $ne: "cancelled" },
+            deletedAt: { $in: [null, undefined] },
+            contact: cid
+        };
+        const [paymentsResult] = await Payment.aggregate([
+            { $match: pyMatch },
+            { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]);
+        const totalPaid = paymentsResult?.total ?? 0;
+
+        return {
+            totalInvoices,
+            totalReturns,
+            totalPaid,
+            outstandingAmount: totalInvoices - totalReturns - totalPaid
+        };
+    } else {
+        // --- ALL CUSTOMERS ---
+        const txnInvoiceResult = await Transaction.aggregate([
+            { $match: { ...commonMatch, module: "sales", documentType: "invoice" } },
+            { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+        ]);
+        const accInvoiceResult = await Invoice.aggregate([
+            { $match: commonMatch },
+            { $group: { _id: null, total: { $sum: "$total" } } },
+        ]);
+        const totalInvoices = (txnInvoiceResult[0]?.total ?? 0) + (accInvoiceResult[0]?.total ?? 0);
+
+        const txnReturnResult = await Transaction.aggregate([
+            { $match: { ...commonMatch, module: "sales", documentType: "return" } },
+            { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+        ]);
+        const accReturnResult = await ReturnDoc.aggregate([
+            {
+                $match: {
+                    ...matchCompany,
+                    date: { $gte: start, $lte: end },
+                    status: { $nin: ["Rejected", "cancelled"] }
+                }
+            },
+            { $group: { _id: null, total: { $sum: "$totalRefundAmount" } } },
+        ]);
+        const totalReturns = (txnReturnResult[0]?.total ?? 0) + (accReturnResult[0]?.total ?? 0);
+
+        const [paymentsResult] = await Payment.aggregate([
+            {
+                $match: {
+                    ...matchCompany,
+                    module: "sales",
+                    operationType: "receive",
+                    date: { $gte: start, $lte: end },
+                    status: { $ne: "cancelled" },
+                    deletedAt: { $in: [null, undefined] }
+                }
+            },
+            { $group: { _id: null, total: { $sum: "$amount" } } },
+        ]);
+        const totalPaid = paymentsResult?.total ?? 0;
+
+        return {
+            totalInvoices,
+            totalReturns,
+            totalPaid,
+            outstandingAmount: totalInvoices - totalReturns - totalPaid
+        };
     }
-
-    const [invoicesResult] = await Transaction.aggregate([
-        { $match: invoiceMatch },
-        { $group: { _id: null, totalInvoices: { $sum: "$totalAmount" } } },
-    ]);
-    const totalInvoices = invoicesResult?.totalInvoices ?? 0;
-
-    // Total returns (sales returns)
-    const returnMatch = {
-        ...companyFilter,
-        module: "sales",
-        documentType: "return",
-        issueDate: { $gte: start, $lte: end },
-        status: { $ne: "draft" },
-        deletedAt: { $in: [null, undefined] },
-    };
-    if (customerId && customerId !== 'all' && customerId !== '') {
-        returnMatch.contact = new mongoose.Types.ObjectId(customerId);
-    }
-
-    const [returnsResult] = await Transaction.aggregate([
-        { $match: returnMatch },
-        { $group: { _id: null, totalReturns: { $sum: "$totalAmount" } } },
-    ]);
-    const totalReturns = returnsResult?.totalReturns ?? 0;
-
-    // Total payments received
-    const paymentMatch = {
-        ...companyFilter,
-        module: "sales",
-        operationType: "receive",
-        date: { $gte: start, $lte: end },
-        status: { $ne: "cancelled" },
-    };
-    if (customerId && customerId !== 'all' && customerId !== '') {
-        paymentMatch.contact = new mongoose.Types.ObjectId(customerId);
-    }
-
-    const [paymentsResult] = await Payment.aggregate([
-        { $match: paymentMatch },
-        { $group: { _id: null, totalPaymentsReceived: { $sum: "$amount" } } },
-    ]);
-    const totalPaymentsReceived = paymentsResult?.totalPaymentsReceived ?? 0;
-
-    // Total outstanding = invoices - returns - payments
-    const totalOutstanding = totalInvoices - totalReturns - totalPaymentsReceived;
-
-    return { totalInvoices, totalReturns, totalPaymentsReceived, totalOutstanding };
 }
+
 
 /**
  * Customers detailed: per customer - total invoices, total returns, total paid, outstanding
@@ -746,94 +807,106 @@ export async function getCustomersSummary(startDate, endDate, companyFilter, cus
 export async function getCustomersDetailed(startDate, endDate, companyFilter) {
     const { start, end } = getDateRange(startDate, endDate);
 
-    // Aggregate invoices per customer
-    const invoicesByCustomer = await Transaction.aggregate([
-        {
-            $match: {
-                ...companyFilter,
-                module: "sales",
-                documentType: "invoice",
-                issueDate: { $gte: start, $lte: end },
-                status: { $ne: "draft" },
-                deletedAt: { $in: [null, undefined] },
-            },
-        },
-        {
-            $group: {
-                _id: "$contact",
-                totalInvoices: { $sum: "$totalAmount" },
-            },
-        },
+    // Normalize companyFilter
+    const matchCompany = { ...companyFilter };
+    if (matchCompany.companyId && typeof matchCompany.companyId === 'string') {
+        matchCompany.companyId = new mongoose.Types.ObjectId(matchCompany.companyId);
+    }
+
+    const commonMatch = {
+        ...matchCompany,
+        issueDate: { $gte: start, $lte: end },
+        status: { $ne: "draft" },
+        deletedAt: { $in: [null, undefined] },
+    };
+
+    // 1. Total Invoices per Customer (Transaction + Invoice)
+    const txnInvoices = await Transaction.aggregate([
+        { $match: { ...commonMatch, module: "sales", documentType: "invoice" } },
+        { $group: { _id: "$contact", total: { $sum: "$totalAmount" } } },
     ]);
 
-    // Aggregate returns per customer
-    const returnsByCustomer = await Transaction.aggregate([
-        {
-            $match: {
-                ...companyFilter,
-                module: "sales",
-                documentType: "return",
-                issueDate: { $gte: start, $lte: end },
-                status: { $ne: "draft" },
-                deletedAt: { $in: [null, undefined] },
-            },
-        },
-        {
-            $group: {
-                _id: "$contact",
-                totalReturns: { $sum: "$totalAmount" },
-            },
-        },
+    const accInvoices = await Invoice.aggregate([
+        { $match: { ...commonMatch } }, // Invoice uses clientId, but for "all" we don't match clientId yet
+        { $group: { _id: "$clientId", total: { $sum: "$total" } } },
     ]);
 
-    // Aggregate payments per customer
-    const paymentsByCustomer = await Payment.aggregate([
+    // 2. Total Returns per Customer (Transaction + ReturnDoc)
+    const txnReturns = await Transaction.aggregate([
+        { $match: { ...commonMatch, module: "sales", documentType: "return" } },
+        { $group: { _id: "$contact", total: { $sum: "$totalAmount" } } },
+    ]);
+
+    const accReturns = await ReturnDoc.aggregate([
         {
             $match: {
-                ...companyFilter,
+                ...matchCompany,
+                date: { $gte: start, $lte: end },
+                status: { $nin: ["Rejected", "cancelled"] }
+            }
+        },
+        { $lookup: { from: "invoices", localField: "invoice", foreignField: "_id", as: "inv" } },
+        { $unwind: "$inv" },
+        { $group: { _id: "$inv.clientId", total: { $sum: "$totalRefundAmount" } } },
+    ]);
+
+    // 3. Total Payments Received per Customer
+    const txnPayments = await Payment.aggregate([
+        {
+            $match: {
+                ...matchCompany,
                 module: "sales",
                 operationType: "receive",
                 date: { $gte: start, $lte: end },
                 status: { $ne: "cancelled" },
-            },
+                deletedAt: { $in: [null, undefined] }
+            }
         },
-        {
-            $group: {
-                _id: "$contact",
-                totalPaid: { $sum: "$amount" },
-            },
-        },
+        { $group: { _id: "$contact", total: { $sum: "$amount" } } },
     ]);
 
-    // Build maps for quick lookup
-    const invoicesMap = Object.fromEntries(invoicesByCustomer.map(r => [r._id?.toString(), r.totalInvoices ?? 0]));
-    const returnsMap = Object.fromEntries(returnsByCustomer.map(r => [r._id?.toString(), r.totalReturns ?? 0]));
-    const paymentsMap = Object.fromEntries(paymentsByCustomer.map(r => [r._id?.toString(), r.totalPaid ?? 0]));
+    // Build Maps
+    const combine = (arr, map = {}) => {
+        arr.forEach(r => {
+            if (!r._id) return;
+            const id = r._id.toString();
+            map[id] = (map[id] || 0) + (r.total || r.totalInvoices || r.totalReturns || r.totalPaid || 0);
+        });
+        return map;
+    };
 
-    // Fetch ALL customers for the company (Contact module is "customer")
-    // so new customers without any transactions still appear in the report
+    const invoicesMap = {};
+    combine(txnInvoices, invoicesMap);
+    combine(accInvoices, invoicesMap);
+
+    const returnsMap = {};
+    combine(txnReturns, returnsMap);
+    combine(accReturns, returnsMap);
+
+    const paymentsMap = {};
+    combine(txnPayments, paymentsMap);
+
+    // Fetch ALL customers
     const customers = await Contact.find({
-        ...companyFilter,
+        ...matchCompany,
         module: "customer",
         deletedAt: { $in: [null, undefined] },
     }).select("name code").sort({ name: 1 }).lean();
 
-    // Build result: every customer gets a row (zeros if no transactions in range)
     const data = customers.map(customer => {
-        const customerId = customer._id.toString();
-        const totalInvoices = invoicesMap[customerId] ?? 0;
-        const totalReturns = returnsMap[customerId] ?? 0;
-        const totalPaid = paymentsMap[customerId] ?? 0;
-        const outstanding = totalInvoices - totalReturns - totalPaid;
+        const cid = customer._id.toString();
+        const totalInvoices = invoicesMap[cid] ?? 0;
+        const totalReturns = returnsMap[cid] ?? 0;
+        const totalPaid = paymentsMap[cid] ?? 0;
 
         return {
-            customerId: customerId,
+            customerId: cid,
             customerName: customer.name ?? "—",
             code: customer.code ?? "—",
             totalInvoices,
             totalReturns,
             totalPaid,
-            outstanding,
+            outstanding: totalInvoices - totalReturns - totalPaid,
         };
     });
 
@@ -850,49 +923,71 @@ export async function getCustomersDetailed(startDate, endDate, companyFilter) {
 export async function getClientGeneralLedger(filters, companyFilter) {
     const { startDate, endDate, clientId, branch, journalAccount } = filters || {};
 
-    const baseMatch = {
-        ...companyFilter,
-        module: "sales",
-        deletedAt: { $in: [null, undefined] },
+    const matchCompany = { ...companyFilter };
+    if (matchCompany.companyId && typeof matchCompany.companyId === 'string') {
+        matchCompany.companyId = new mongoose.Types.ObjectId(matchCompany.companyId);
+    }
+
+    const { start, end } = getDateRange(startDate, endDate);
+    const cid = (clientId && clientId !== 'unspecified' && clientId !== 'all') ? new mongoose.Types.ObjectId(clientId) : null;
+
+    const commonMatch = {
+        ...matchCompany,
+        issueDate: { $gte: start, $lte: end },
         status: { $ne: "draft" },
+        deletedAt: { $in: [null, undefined] },
     };
 
-    if (startDate && endDate && String(startDate).trim() && String(endDate).trim()) {
-        const { start, end } = getDateRange(startDate, endDate);
-        baseMatch.issueDate = { $gte: start, $lte: end };
-    }
+    if (cid) commonMatch.contact = cid; // Transaction uses 'contact'
 
-    if (clientId && String(clientId).trim() && clientId !== 'unspecified') {
-        baseMatch.contact = clientId;
-    }
-
-    if (branch && String(branch).trim() && branch !== 'all') {
-        baseMatch.warehouse = { $regex: String(branch).trim(), $options: "i" };
-    }
-
-    // Get all transactions (invoices and returns)
-    const transactions = await Transaction.find(baseMatch)
+    // 1. Transactions (Sales Invoice / Return)
+    const transactions = await Transaction.find(commonMatch)
         .populate("contact", "name code")
         .sort({ issueDate: 1 })
         .lean();
 
-    // Get payments for the same customer
+    // 2. Invoices (Invoice Model)
+    const invoiceMatch = {
+        ...matchCompany,
+        issueDate: { $gte: start, $lte: end },
+        status: { $ne: "draft" },
+        deletedAt: { $in: [null, undefined] },
+    };
+    if (cid) invoiceMatch.clientId = cid;
+    const accInvoices = await Invoice.find(invoiceMatch)
+        .populate("clientId", "name code")
+        .sort({ issueDate: 1 })
+        .lean();
+
+    // 3. Returns (ReturnDoc Model)
+    // We need to filter by customer via lookup or simple match if it were there, 
+    // but ReturnDoc usually references Invoice.
+    let accReturns = [];
+    const returnMatch = {
+        ...matchCompany,
+        date: { $gte: start, $lte: end },
+        status: { $nin: ["Rejected", "cancelled"] }
+    };
+    const returnDocs = await ReturnDoc.find(returnMatch)
+        .populate({
+            path: "invoice",
+            match: cid ? { clientId: cid } : {}
+        })
+        .lean();
+
+    // Filter out if customer didn't match after populate
+    accReturns = returnDocs.filter(rd => rd.invoice);
+
+    // 4. Payments
     const paymentMatch = {
-        ...companyFilter,
+        ...matchCompany,
         module: "sales",
         operationType: "receive",
         status: { $ne: "cancelled" },
+        date: { $gte: start, $lte: end },
+        deletedAt: { $in: [null, undefined] }
     };
-
-    if (startDate && endDate && String(startDate).trim() && String(endDate).trim()) {
-        const { start, end } = getDateRange(startDate, endDate);
-        paymentMatch.date = { $gte: start, $lte: end };
-    }
-
-    if (clientId && String(clientId).trim() && clientId !== 'unspecified') {
-        paymentMatch.contact = clientId;
-    }
-
+    if (cid) paymentMatch.contact = cid;
     const payments = await Payment.find(paymentMatch)
         .populate("contact", "name code")
         .sort({ date: 1 })
@@ -901,6 +996,7 @@ export async function getClientGeneralLedger(filters, companyFilter) {
     // Combine and format
     const entries = [];
 
+    // Map Transactions
     transactions.forEach(txn => {
         const type = txn.documentType === 'invoice' ? 'invoice' : 'return';
         entries.push({
@@ -911,22 +1007,51 @@ export async function getClientGeneralLedger(filters, companyFilter) {
             description: txn.notes || (type === 'invoice' ? 'Invoice' : 'Return'),
             debit: type === 'invoice' ? txn.totalAmount : 0,
             credit: type === 'return' ? txn.totalAmount : 0,
-            balance: 0,
             customerName: txn.contact?.name || txn.contactSnapshot?.name || '—',
             journalAccount: journalAccount || '—',
         });
     });
 
+    // Map Invoices
+    accInvoices.forEach(inv => {
+        entries.push({
+            documentId: inv._id?.toString(),
+            date: inv.issueDate,
+            type: 'invoice',
+            documentNumber: inv.invoiceNumber,
+            description: inv.notes || 'Invoice',
+            debit: inv.total || 0,
+            credit: 0,
+            customerName: inv.clientId?.name || '—',
+            journalAccount: journalAccount || '—',
+        });
+    });
+
+    // Map Returns
+    accReturns.forEach(ret => {
+        entries.push({
+            documentId: ret._id?.toString(),
+            date: ret.date,
+            type: 'return',
+            documentNumber: ret.returnNumber || `RET-${ret._id.toString().slice(-6)}`,
+            description: ret.notes || (ret.reason ?? 'Return'),
+            debit: 0,
+            credit: ret.totalRefundAmount || 0,
+            customerName: ret.invoice?.clientId?.name || '—',
+            journalAccount: journalAccount || '—',
+        });
+    });
+
+    // Map Payments
     payments.forEach(payment => {
         entries.push({
             documentId: payment._id?.toString(),
             date: payment.date,
             type: 'payment',
-            documentNumber: payment.referenceNumber || payment._id.toString(),
+            documentNumber: payment.referenceNumber || `PY-${payment._id.toString().slice(-6)}`,
             description: payment.notes || 'Payment',
             debit: 0,
             credit: payment.amount,
-            balance: 0,
             customerName: payment.contact?.name || '—',
             journalAccount: journalAccount || '—',
         });
@@ -934,11 +1059,13 @@ export async function getClientGeneralLedger(filters, companyFilter) {
 
     // Sort by date and calculate running balance
     entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+
     let runningBalance = 0;
     let totalDebit = 0;
     let totalCredit = 0;
+
     entries.forEach(entry => {
-        runningBalance += entry.debit - entry.credit;
+        runningBalance += (entry.debit || 0) - (entry.credit || 0);
         entry.balance = runningBalance;
         totalDebit += entry.debit || 0;
         totalCredit += entry.credit || 0;
@@ -984,20 +1111,55 @@ export async function getAgedReceivable(filters, companyFilter) {
         baseMatch.warehouse = { $regex: String(branch).trim(), $options: "i" };
     }
 
-    const invoices = await Transaction.find(baseMatch)
+    // 1. Transactions (Sales Invoice)
+    const txnInvoices = await Transaction.find(baseMatch)
         .populate("contact", "name code")
         .sort({ issueDate: 1 })
         .lean();
 
+    // 2. Invoices (Invoice Model)
+    const invMatch = {
+        ...companyFilter,
+        issueDate: baseMatch.issueDate,
+        status: { $ne: "draft" },
+        deletedAt: { $in: [null, undefined] },
+    };
+    if (clientId && String(clientId).trim() && clientId !== 'unspecified') {
+        invMatch.clientId = clientId;
+    }
+    const accInvoices = await Invoice.find(invMatch)
+        .populate("clientId", "name code")
+        .sort({ issueDate: 1 })
+        .lean();
+
+    const allMatchedInvoices = [
+        ...txnInvoices.map(ti => ({
+            ...ti,
+            _id: ti._id.toString(),
+            total: ti.totalAmount,
+            paid: ti.paidAmount,
+            date: ti.issueDate,
+            customer: ti.contact
+        })),
+        ...accInvoices.map(ai => ({
+            ...ai,
+            _id: ai._id.toString(),
+            total: ai.total,
+            paid: ai.paidAmount,
+            date: ai.issueDate,
+            customer: ai.clientId
+        }))
+    ];
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const agedData = invoices.map(inv => {
-        const invoiceDate = new Date(inv.issueDate);
+    const agedData = allMatchedInvoices.map(inv => {
+        const invoiceDate = new Date(inv.date);
         invoiceDate.setHours(0, 0, 0, 0);
         const daysDiff = Math.floor((today - invoiceDate) / (1000 * 60 * 60 * 24));
 
-        const outstanding = (inv.totalAmount || 0) - (inv.paidAmount || 0);
+        const outstanding = (inv.total || 0) - (inv.paid || 0);
 
         let todayAmount = 0;
         let day1_30 = 0;
@@ -1020,8 +1182,8 @@ export async function getAgedReceivable(filters, companyFilter) {
         }
 
         return {
-            customerId: inv.contact?._id?.toString() || inv.contact?.toString(),
-            customerName: inv.contact?.name || inv.contactSnapshot?.name || '—',
+            customerId: inv.customer?._id?.toString() || inv.customer?.toString(),
+            customerName: inv.customer?.name || '—',
             journalAccount: journalAccount && journalAccount !== 'all' ? journalAccount : '—',
             today: todayAmount,
             day1_30,

@@ -26,15 +26,6 @@ const PurchasesMainPage = () => {
             link: '/dashboard/purchases/invoices',
         },
         {
-            id: 'credit-notes',
-            title: t('sidebar.credit_notes'),
-            description: t('purchases.credit_notes.tile_desc'),
-            icon: FileCheck,
-            iconBg: 'bg-red-50',
-            iconColor: 'text-red-600',
-            link: '/dashboard/purchases/credit-notes',
-        },
-        {
             id: 'purchase-orders',
             title: t('sidebar.purchase_orders'),
             description: t('purchases.purchase_orders.tile_desc'),
