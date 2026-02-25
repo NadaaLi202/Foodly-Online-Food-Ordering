@@ -149,6 +149,7 @@ const protectedRoutes = catchAsyncError(async (req, res, next) => { // authentic
     req.user = typeof account.toObject === 'function' ? account.toObject() : account;
     if (decoded.systemRole) req.user.systemRole = decoded.systemRole;
     if (decoded.roleId) req.user.roleId = decoded.roleId;
+    if (decoded.companyId) req.user.companyId = decoded.companyId; // Ensure companyId from token is restored
     next();
 })
 
