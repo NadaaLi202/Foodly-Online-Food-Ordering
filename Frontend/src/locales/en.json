@@ -1,4 +1,4 @@
-{
+﻿{
     "app_name": "Dafater",
     "currency": "Currency",
     "currencies": {
@@ -1523,7 +1523,7 @@
         "signin": "Sign in",
         "no_account": "Don't have an account?",
         "signup_free": "Sign up for free",
-        "copyright": "© {{year}} Dafater Inc.",
+        "copyright": "Â© {{year}} Dafater Inc.",
         "create_account": "Create Account",
         "get_started_desc": "Create your account to get started.",
         "full_name": "Full Name",
@@ -1532,7 +1532,7 @@
         "phone_number": "Phone Number",
         "phone_placeholder": "123 456 7890",
         "confirm_password": "Confirm Password",
-        "password_placeholder": "••••••••",
+        "password_placeholder": "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢",
         "terms_privacy": "By clicking \"Create Account\", you agree to our Terms of Service and Privacy Policy.",
         "creating_account": "Creating Account...",
         "already_have_account": "Already have an account?",
@@ -1571,10 +1571,10 @@
             "growth_boost": "+124% Boost"
         },
         "hero": {
-            "ai_powered": "✨ AI-Powered Analytics Platform",
+            "ai_powered": "âœ¨ AI-Powered Analytics Platform",
             "accounting": "Accounting",
             "made_simple": "Made Simple",
-            "description": "Manage invoices, track inventory, and analyze your business finances—all in one intelligent platform built for modern businesses.",
+            "description": "Manage invoices, track inventory, and analyze your business financesâ€”all in one intelligent platform built for modern businesses.",
             "get_started": "Get Started",
             "watch_demo": "Watch Demo"
         },
@@ -1622,7 +1622,7 @@
             "desc": "Join thousands of businesses that have transformed their operations with Dafater's intelligent accounting solution.",
             "automated_tasks": "Automate repetitive tasks and focus on growth",
             "faster_insights": "Get insights faster with AI-powered analytics",
-            "scale_without_limits": "Scale without limits—from startup to enterprise",
+            "scale_without_limits": "Scale without limitsâ€”from startup to enterprise",
             "integrate_seamlessly": "Integrate with your favorite tools seamlessly"
         },
         "pricing": {
@@ -1691,5 +1691,52 @@
             "contact": "Contact",
             "rights": "All rights reserved."
         }
+    },
+    "zatca": {
+        "title": "Saudi Electronic Invoicing",
+        "settings_tab": "Settings",
+        "enable_title": "Enable Saudi Electronic Invoicing (ZATCA)",
+        "enable_desc": "(Zakat, Tax and Customs Authority)",
+        "phase1_title": "Phase 1",
+        "phase1_desc": "(Generation and Archiving Phase)",
+        "phase2_title": "Phase 2",
+        "phase2_desc": "(Integration and Connection Phase)",
+        "onboarding_details": "Onboarding Details",
+        "tax_number": "Tax Number",
+        "otp": "First OTP",
+        "otp1": "First OTP",
+        "otp2": "Second OTP",
+        "org_name": "Organization Name",
+        "branch_name": "Branch Name or VAT Group Number",
+        "registered_address": "Registered Address",
+        "business_category": "Activity Classification",
+        "phase2_warning": "Initiating connection for Phase 2 requires a valid OTP from ZATCA Fatoora portal. Ensure all company details match your ZATCA registration.",
+        "save": "Save Changes",
+        "save_success": "ZATCA settings saved successfully",
+        "save_error": "Error saving ZATCA settings",
+        "error_fetching": "Error fetching ZATCA settings",
+        "tax_number_required": "Tax Number is required",
+        "tax_number_invalid": "Invalid Tax Number, must be 15 digits",
+        "platform_simulation_title": "Fatoora Simulation Platform",
+        "platform_simulation_desc": "Configuration to test and send electronic invoices for simulation on the Fatoora simulation platform.",
+        "platform_production_title": "Fatoora Platform",
+        "platform_production_desc": "Configuration for actual issuance and submission of electronic invoices to the authority.",
+        "how_to_get_otp": "How to get OTP activation codes",
+        "close": "Close",
+        "visual_guide_placeholder": "Visual guide for this step (as shown in design)",
+        "otp_difference_title": "What is the difference between the first and second code?",
+        "otp_difference_desc": "The first code is used to connect the establishment for the first time, while the second code is used to initialize units and devices and ensure continuity of the technical connection.",
+        "help_step1_title": "Login to Fatoora Portal",
+        "help_step1_desc": "Login to Fatoora platform via the link below or via the authority's website by clicking on the electronic invoice icon and then clicking on Fatoora platform.",
+        "help_step2_title": "Navigate to Simulation Platform",
+        "help_step2_desc": "To navigate to the Fatoora simulation platform, click on 'Fatoora Simulation Platform' in the top right corner.",
+        "help_step3_title": "Accept Terms",
+        "help_step3_desc": "Before continuing on the Fatoora simulation platform, please read the terms and conditions, and after checking the acknowledgment box, you can click 'Next' to continue.",
+        "help_step4_title": "Initialize New Unit",
+        "help_step4_desc": "Click on 'Initialize new unit/device'",
+        "help_step5_title": "Set Number of Codes",
+        "help_step5_desc": "The taxpayer selects 'Issue one-time password' then writes 2 in the number of codes, then clicks 'Create activation code'.",
+        "help_step6_title": "Copy Codes",
+        "help_step6_desc": "The Fatoora platform issues a one-time password - valid for one hour and strictly for single use - copy the two codes into the Alostaz program."
     }
 }

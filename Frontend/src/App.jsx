@@ -10,6 +10,7 @@ import CustomersSettings from './Pages/Settings/CustomersSettings';
 import SuppliersSettings from './Pages/Settings/SuppliersSettings';
 import AccountingSettings from './Pages/Settings/AccountingSettings';
 import GeneralSettings from './Pages/Settings/GeneralSettings';
+import ZatcaSettings from './Pages/Settings/ZatcaSettings';
 import TaxesSettings from './Pages/Settings/TaxesSettings';
 import ImportingSettings from './Pages/Settings/ImportingSettings';
 import ExportingSettings from './Pages/Settings/ExportingSettings';
@@ -259,11 +260,11 @@ function App() {
             <Route path="suppliers" element={<SuppliersSettings />} />
             <Route path="accounting" element={<AccountingSettings />} />
             <Route path="taxes" element={<TaxesSettings />} />
+            <Route path="einvoice" element={<ZatcaSettings />} />
             <Route path="import">
               <Route index element={<ImportingSettings />} />
               <Route path=":entity" element={<ImportEntityPage />} />
             </Route>
-            <Route path="einvoice" element={<PlaceholderPage title="E-Invoice Settings" />} />
             <Route path="export" element={<ExportingSettings />} />
             <Route path="coding" element={<CodingSettings />} />
             <Route path="api" element={<ApiSettings />} />

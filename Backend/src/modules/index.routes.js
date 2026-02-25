@@ -31,6 +31,7 @@ import roleRouter from "./role/role.routes.js"
 import reportsRouter from "./reports/reports.routes.js"
 import financialTransactionRouter from "./FinancialTransactions/financialTransaction.routes.js"
 import { settingsRouter } from "./settings/settings.routes.js"
+import { zatcaRouter } from "./zatca/zatca.routes.js"
 import taxesRouter from "./taxes/taxes.routes.js";
 import importRouter from "./import/import.routes.js";
 import exportRouter from "./export/export.routes.js";
@@ -71,6 +72,7 @@ export function routes(app) {
     app.use("/api/v1/financial-transactions", financialTransactionRouter)
     app.use("/api/v1/companies", companyRouter)
     app.use("/api/v1/settings", settingsRouter)
+    app.use("/api/v1/zatca", zatcaRouter)
     app.use('/api/v1/taxes', taxesRouter);
     app.use('/api/v1/import', importRouter);
     app.use('/api/v1/export', exportRouter);
