@@ -60,6 +60,15 @@ const ReportsMainPage = () => {
             iconColor: 'text-indigo-600',
             link: '/dashboard/reports/inventory',
         },
+        {
+            id: 'accounting',
+            title: t('sidebar.accounting_reports'),
+            description: t('reports.accounting.description', 'Financial statements and general ledgers'),
+            icon: BookOpen,
+            iconBg: 'bg-indigo-50',
+            iconColor: 'text-indigo-600',
+            link: '/dashboard/reports/accounting',
+        },
     ];
 
     return (

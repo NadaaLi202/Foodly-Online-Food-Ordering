@@ -10,6 +10,12 @@ import CustomersSettings from './Pages/Settings/CustomersSettings';
 import SuppliersSettings from './Pages/Settings/SuppliersSettings';
 import AccountingSettings from './Pages/Settings/AccountingSettings';
 import GeneralSettings from './Pages/Settings/GeneralSettings';
+import TaxesSettings from './Pages/Settings/TaxesSettings';
+import ImportingSettings from './Pages/Settings/ImportingSettings';
+import ExportingSettings from './Pages/Settings/ExportingSettings';
+import CodingSettings from './Pages/Settings/CodingSettings';
+import ApiSettings from './Pages/Settings/ApiSettings';
+import ImportEntityPage from './Pages/Settings/ImportEntityPage';
 import PurchasesPage from './Pages/PurchasesPage';
 import PurchaseInvoices from './Pages/Purchases/PurchaseInvoices';
 import PurchaseRequests from './Pages/Purchases/PurchaseRequests';
@@ -72,6 +78,14 @@ import DetailedSuppliersReport from './Pages/Reports/Suppliers/DetailedSuppliers
 import InventoryReportsPage from './Pages/Reports/Inventory/InventoryReportsPage';
 import InventoryValueReport from './Pages/Reports/Inventory/InventoryValueReport';
 import InventoryValueDetailedReport from './Pages/Reports/Inventory/InventoryValueDetailedReport';
+import AccountingReportsPage from './Pages/Reports/Accounting/AccountingReportsPage';
+import BalanceSheetReport from './Pages/Reports/Accounting/BalanceSheetReport';
+import GeneralLedgerReport from './Pages/Reports/Accounting/GeneralLedgerReport';
+import IncomeStatementReport from './Pages/Reports/Accounting/IncomeStatementReport';
+import TrialBalanceReport from './Pages/Reports/Accounting/TrialBalanceReport';
+import SummaryTaxReport from './Pages/Reports/Accounting/SummaryTaxReport';
+import DetailedTaxReport from './Pages/Reports/Accounting/DetailedTaxReport';
+import TaxReturnReport from './Pages/Reports/Accounting/TaxReturnReport';
 import ReportsMainPage from './Pages/Reports/ReportsMainPage';
 
 const ReportsLayout = ({ title }) => (
@@ -181,6 +195,16 @@ function App() {
                 <Route path="value" element={<InventoryValueReport />} />
                 <Route path="value-detailed" element={<InventoryValueDetailedReport />} />
               </Route>
+              <Route path="accounting">
+                <Route index element={<AccountingReportsPage />} />
+                <Route path="balance-sheet" element={<BalanceSheetReport />} />
+                <Route path="income-statement" element={<IncomeStatementReport />} />
+                <Route path="trial-balance" element={<TrialBalanceReport />} />
+                <Route path="general-ledger" element={<GeneralLedgerReport />} />
+                <Route path="tax-summary" element={<SummaryTaxReport />} />
+                <Route path="tax-detailed" element={<DetailedTaxReport />} />
+                <Route path="tax-return" element={<TaxReturnReport />} />
+              </Route>
             </Route>
 
             <Route path="purchases">
@@ -234,12 +258,15 @@ function App() {
             <Route path="customers" element={<CustomersSettings />} />
             <Route path="suppliers" element={<SuppliersSettings />} />
             <Route path="accounting" element={<AccountingSettings />} />
-            <Route path="taxes" element={<PlaceholderPage title="Taxes Settings" />} />
+            <Route path="taxes" element={<TaxesSettings />} />
+            <Route path="import">
+              <Route index element={<ImportingSettings />} />
+              <Route path=":entity" element={<ImportEntityPage />} />
+            </Route>
             <Route path="einvoice" element={<PlaceholderPage title="E-Invoice Settings" />} />
-            <Route path="import" element={<PlaceholderPage title="Import Settings" />} />
-            <Route path="export" element={<PlaceholderPage title="Export Settings" />} />
-            <Route path="coding" element={<PlaceholderPage title="Coding Settings" />} />
-            <Route path="api" element={<PlaceholderPage title="API Settings" />} />
+            <Route path="export" element={<ExportingSettings />} />
+            <Route path="coding" element={<CodingSettings />} />
+            <Route path="api" element={<ApiSettings />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
