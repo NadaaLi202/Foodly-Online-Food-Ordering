@@ -8,7 +8,7 @@ import MarginsPopover from '../components/MarginsPopover.jsx';
 import { GeneralPreview } from '../components/DocumentPreview.jsx';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import branchService from '../../../services/branchService.js';
-import { Upload } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 
 const TABS = [
     { id: 'design', label: 'Design' },
@@ -30,21 +30,57 @@ const SIG_POSITION_OPTIONS = [
     { value: 'bottomPage', label: 'Bottom of Page' },
 ];
 
-const SignatureSection = ({ title, rows, setRows, dir, imageUrl, onImageUpload, imageSize, setImageSize }) => (
+/** Maps a branch DB record to the placeholder keys used in templates */
+const buildBranchContext = (branch = {}) => ({
+    name: branch.name || '',
+    address_line_1: branch.address1 || '',
+    address_line_2: branch.address2 || '',
+    city: branch.city || '',
+    region: branch.region || '',
+    neighborhood: branch.neighborhood || '',
+    postal_code: branch.postalCode || '',
+    country: branch.country || '',
+    phone: branch.phone || '',
+    commercial_register: branch.commercialRegister || '',
+});
+
+/** Maps a company DB/auth record to placeholder keys */
+const buildCompanyContext = (user = {}) => ({
+    name: user.name || '',
+    email: user.email || '',
+    phone: user.phone || '',
+    tax_number: user.taxNumber || user.tax_number || '',
+    register: user.commercialRegister || user.register || '',
+    currency: { ar: 'ر.س', en: 'SAR' },
+});
+
+const SignatureSection = ({ title, rows, setRows, dir, imageUrl, onImageUpload, onImageDelete, imageSize, setImageSize }) => (
     <div className="space-y-3">
         <p className="text-sm font-semibold text-gray-800">{title}</p>
         <TextBlockList rows={rows} setRows={setRows} dir={dir} />
-        <label className="block border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-indigo-400 transition-colors">
+        <div className="relative">
             {imageUrl ? (
-                <img src={imageUrl} alt="" className="max-h-16 mx-auto object-contain" />
-            ) : (
-                <div className="flex flex-col items-center gap-1 text-gray-400">
-                    <Upload size={20} />
-                    <span className="text-xs">Upload files or drag and drop here</span>
+                <div className="relative border border-gray-200 rounded-lg p-3 flex items-center justify-center bg-gray-50">
+                    <img src={imageUrl} alt="" className="max-h-20 max-w-full object-contain" />
+                    <button
+                        type="button"
+                        onClick={onImageDelete}
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow"
+                        title="Remove image"
+                    >
+                        <X size={12} />
+                    </button>
                 </div>
+            ) : (
+                <label className="block border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-indigo-400 transition-colors">
+                    <div className="flex flex-col items-center gap-1 text-gray-400">
+                        <Upload size={20} />
+                        <span className="text-xs">Upload files or drag and drop here</span>
+                    </div>
+                    <input type="file" accept="image/*" className="hidden" onChange={onImageUpload} />
+                </label>
             )}
-            <input type="file" accept="image/*" className="hidden" onChange={onImageUpload} />
-        </label>
+        </div>
         <div>
             <Label>Image Size</Label>
             <input type="number" value={imageSize} min={10} max={500} onChange={e => setImageSize(+e.target.value)}
@@ -60,7 +96,6 @@ const GeneralTemplateEdit = () => {
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    const [companyData, setCompanyData] = useState({});
     const [branches, setBranches] = useState([]);
     const [selectedBranch, setSelectedBranch] = useState('');
 
@@ -73,6 +108,8 @@ const GeneralTemplateEdit = () => {
         { text: '{{company.name}}', format: { fontSize: 14, bold: true } },
         { text: 'السجل التجاري : {{company.register}}', format: { fontSize: 12 } },
         { text: 'الرقم الضريبي : {{company.tax_number}}', format: { fontSize: 12 } },
+        { text: '{{branch.address_line_1}}', format: { fontSize: 11 } },
+        { text: '{{branch.city}}', format: { fontSize: 11 } },
     ]);
 
     // Page tab inline header/footer blocks
@@ -124,13 +161,8 @@ const GeneralTemplateEdit = () => {
                 }
                 const bl = branchRes.branches || branchRes || [];
                 setBranches(Array.isArray(bl) ? bl : []);
-                setCompanyData({
-                    name: user?.name || 'Company Name',
-                    email: user?.email || '',
-                    phone: user?.phone || '',
-                    register: user?.commercialRegister || user?.register || '20501683340',
-                    tax_number: user?.taxNumber || user?.tax_number || '300545522455',
-                });
+                // Auto-select first branch
+                if (Array.isArray(bl) && bl.length > 0) setSelectedBranch(bl[0]._id);
             } catch { toast.error('فشل تحميل القالب'); }
             finally { setLoading(false); }
         })();
@@ -171,7 +203,7 @@ const GeneralTemplateEdit = () => {
         } catch { toast.error('فشل الرفع'); }
     };
 
-    // Signature image upload handler
+    // Signature image upload handler - reads as base64 for local preview
     const handleSigImageUpload = (setter) => async (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -186,8 +218,8 @@ const GeneralTemplateEdit = () => {
 
     const activeBranch = branches.find(b => b._id === selectedBranch) || branches[0] || {};
     const previewContext = {
-        company: companyData,
-        branch: { name: activeBranch.name || '', address_line_1: activeBranch.address1 || 'dammam', city: activeBranch.city || 'region' },
+        company: buildCompanyContext(user),
+        branch: buildBranchContext(activeBranch),
     };
 
     const templateData = {
@@ -237,10 +269,23 @@ const GeneralTemplateEdit = () => {
                 return (
                     <div className="space-y-4">
                         {logo.url ? (
-                            <div className="space-y-2"><img src={logo.url} alt="" className="max-h-20 max-w-full object-contain rounded border border-gray-200 p-2" /><button onClick={() => setLogo(l => ({ ...l, url: '' }))} className="text-xs text-red-500">حذف</button></div>
+                            <div className="relative border border-gray-200 rounded-lg p-3 flex items-center justify-center bg-gray-50">
+                                <img src={logo.url} alt="" className="max-h-24 max-w-full object-contain" />
+                                <button
+                                    type="button"
+                                    onClick={() => setLogo(l => ({ ...l, url: '' }))}
+                                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow"
+                                    title="Remove logo"
+                                >
+                                    <X size={12} />
+                                </button>
+                            </div>
                         ) : (
                             <label className="block border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-indigo-400 transition-colors">
-                                <div className="flex flex-col items-center gap-1 text-gray-400"><Upload size={24} /><span className="text-sm">Upload files or drag and drop here</span></div>
+                                <div className="flex flex-col items-center gap-2 text-gray-400">
+                                    <Upload size={28} />
+                                    <span className="text-sm">Upload files or drag and drop here</span>
+                                </div>
                                 <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
                             </label>
                         )}
@@ -270,15 +315,21 @@ const GeneralTemplateEdit = () => {
                         </div>
                         <div className="border-t border-gray-200 pt-4">
                             <SignatureSection title="Left Signature" rows={sigRows1} setRows={setSigRows1} dir={pageDir}
-                                imageUrl={sig1ImageUrl} onImageUpload={handleSigImageUpload(setSig1ImageUrl)} imageSize={sig1ImageSize} setImageSize={setSig1ImageSize} />
+                                imageUrl={sig1ImageUrl} onImageUpload={handleSigImageUpload(setSig1ImageUrl)}
+                                onImageDelete={() => setSig1ImageUrl('')}
+                                imageSize={sig1ImageSize} setImageSize={setSig1ImageSize} />
                         </div>
                         <div className="border-t border-gray-200 pt-4">
                             <SignatureSection title="Middle Signature" rows={sigRows2} setRows={setSigRows2} dir={pageDir}
-                                imageUrl={sig2ImageUrl} onImageUpload={handleSigImageUpload(setSig2ImageUrl)} imageSize={sig2ImageSize} setImageSize={setSig2ImageSize} />
+                                imageUrl={sig2ImageUrl} onImageUpload={handleSigImageUpload(setSig2ImageUrl)}
+                                onImageDelete={() => setSig2ImageUrl('')}
+                                imageSize={sig2ImageSize} setImageSize={setSig2ImageSize} />
                         </div>
                         <div className="border-t border-gray-200 pt-4">
                             <SignatureSection title="Right Signature" rows={sigRows3} setRows={setSigRows3} dir={pageDir}
-                                imageUrl={sig3ImageUrl} onImageUpload={handleSigImageUpload(setSig3ImageUrl)} imageSize={sig3ImageSize} setImageSize={setSig3ImageSize} />
+                                imageUrl={sig3ImageUrl} onImageUpload={handleSigImageUpload(setSig3ImageUrl)}
+                                onImageDelete={() => setSig3ImageUrl('')}
+                                imageSize={sig3ImageSize} setImageSize={setSig3ImageSize} />
                         </div>
                     </div>
                 );

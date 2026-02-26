@@ -8,6 +8,21 @@ import MarginsPopover from '../components/MarginsPopover.jsx';
 import InvoicePreview from '../components/DocumentPreview.jsx';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import branchService from '../../../services/branchService.js';
+import { X } from 'lucide-react';
+
+/** Maps branch DB record to template placeholder keys */
+const buildBranchContext = (branch = {}) => ({
+    name: branch.name || '',
+    address_line_1: branch.address1 || '',
+    address_line_2: branch.address2 || '',
+    city: branch.city || '',
+    region: branch.region || '',
+    neighborhood: branch.neighborhood || '',
+    postal_code: branch.postalCode || '',
+    country: branch.country || '',
+    phone: branch.phone || '',
+    commercial_register: branch.commercialRegister || '',
+});
 
 const TABS = [
     { id: 'design', label: 'Design' },
@@ -130,7 +145,9 @@ const InvoiceTemplateEdit = () => {
                 }
                 // Branches
                 const bl = branchRes.branches || branchRes || [];
-                setBranches(Array.isArray(bl) ? bl : []);
+                const branchList = Array.isArray(bl) ? bl : [];
+                setBranches(branchList);
+                if (branchList.length > 0) setSelectedBranch(branchList[0]._id);
                 // Company data from user context
                 setCompanyData({
                     name: user?.name || 'Company Name',
@@ -138,6 +155,7 @@ const InvoiceTemplateEdit = () => {
                     phone: user?.phone || '',
                     register: user?.commercialRegister || user?.register || '20501683340',
                     tax_number: user?.taxNumber || user?.tax_number || '300545522455',
+                    currency: { ar: 'ر.س', en: 'SAR' },
                 });
             } catch { toast.error('فشل تحميل القالب'); }
             finally { setLoading(false); }
@@ -182,13 +200,8 @@ const InvoiceTemplateEdit = () => {
     const activeBranch = branches.find(b => b._id === selectedBranch) || branches[0] || {};
     const previewContext = {
         company: companyData,
-        branch: {
-            name: activeBranch.name || 'Main Branch',
-            address_line_1: activeBranch.address1 || 'dammam',
-            address_line_2: activeBranch.address2 || '',
-            city: activeBranch.city || 'region',
-        },
-        partner: { name: 'عبدالعزيز بن ناصر الشهري', address: 'طريق الملك فهد الرياض' },
+        branch: buildBranchContext(activeBranch),
+        partner: { name: 'عبدالعزيز بن ناصر الشهري', tax_number: '{{partner.tax_number}}', address: 'طريق الملك فهد الرياض' },
         invoice: { number: 'INV-25-1-000001', date: '2025-09-04' },
     };
 
@@ -228,9 +241,22 @@ const InvoiceTemplateEdit = () => {
                 return (
                     <div className="space-y-4">
                         {logo.url ? (
-                            <div className="space-y-2"><img src={logo.url} alt="" className="max-h-20 object-contain rounded border p-2" /><button onClick={() => setLogo(l => ({ ...l, url: '' }))} className="text-xs text-red-500">حذف</button></div>
+                            <div className="relative border border-gray-200 rounded-lg p-3 flex items-center justify-center bg-gray-50">
+                                <img src={logo.url} alt="" className="max-h-24 max-w-full object-contain" />
+                                <button
+                                    type="button"
+                                    onClick={() => setLogo(l => ({ ...l, url: '' }))}
+                                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow"
+                                    title="Remove logo"
+                                >
+                                    <X size={12} />
+                                </button>
+                            </div>
                         ) : (
-                            <label className="block border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-indigo-400"><span className="text-sm text-gray-500">رفع شعار</span><input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} /></label>
+                            <label className="block border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-indigo-400">
+                                <span className="text-sm text-gray-500">رفع شعار</span>
+                                <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                            </label>
                         )}
                         <div><Label>الحجم</Label><input type="number" value={logo.size} min={10} max={500} onChange={e => setLogo(l => ({ ...l, size: +e.target.value }))} className={inputClass} /></div>
                     </div>

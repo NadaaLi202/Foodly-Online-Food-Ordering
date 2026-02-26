@@ -5,13 +5,16 @@ const PLACEHOLDERS = [
     { label: 'اسم الشركة', tag: '{{company.name}}' },
     { label: 'السجل التجاري', tag: '{{company.register}}' },
     { label: 'الرقم الضريبي', tag: '{{company.tax_number}}' },
+    { label: 'هاتف الشركة', tag: '{{company.phone}}' },
+    { label: 'عملة الشركة', tag: '{{company.currency.ar}}' },
     { label: 'اسم الفرع', tag: '{{branch.name}}' },
-    { label: 'السجل التجاري للفرع', tag: '{{branch.register}}' },
+    { label: 'هاتف الفرع', tag: '{{branch.phone}}' },
+    { label: 'سجل الفرع التجاري', tag: '{{branch.commercial_register}}' },
     { label: 'العنوان الأول', tag: '{{branch.address_line_1}}' },
     { label: 'العنوان الثاني', tag: '{{branch.address_line_2}}' },
-    { label: 'الحي', tag: '{{branch.district}}' },
+    { label: 'الحي', tag: '{{branch.neighborhood}}' },
     { label: 'المدينة', tag: '{{branch.city}}' },
-    { label: 'المنطقة', tag: '{{branch.state}}' },
+    { label: 'المنطقة', tag: '{{branch.region}}' },
     { label: 'الرمز البريدي', tag: '{{branch.postal_code}}' },
     { label: 'الدولة', tag: '{{branch.country}}' },
     { label: 'رقم الفاتورة', tag: '{{invoice.number}}' },
@@ -31,7 +34,6 @@ const PLACEHOLDERS = [
     { label: 'الكمية', tag: '{{quantity}}' },
     { label: 'صورة الباركود', tag: '{{barcode_image}}' },
     { label: 'نص الباركود', tag: '{{barcode_text}}' },
-    { label: 'عملة الشركة', tag: '{{company.currency.ar}}' },
 ];
 
 const PlaceholderModal = ({ onClose }) => {
