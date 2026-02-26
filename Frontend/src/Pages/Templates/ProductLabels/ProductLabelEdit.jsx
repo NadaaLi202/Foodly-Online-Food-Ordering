@@ -7,6 +7,7 @@ import { TextBlockList } from '../components/TextBlock.jsx';
 import MarginsPopover from '../components/MarginsPopover.jsx';
 import { LabelPreview } from '../components/DocumentPreview.jsx';
 import { useAuth } from '../../../context/AuthContext.jsx';
+import branchService from '../../../services/branchService.js';
 
 const TABS = [
     { id: 'design', label: 'Design' },
@@ -14,7 +15,15 @@ const TABS = [
     { id: 'content', label: 'Content' },
 ];
 
-const ensureRows = (rows) => (rows?.length ? rows : [{ text: '{{product.name}}', format: { fontSize: 10 } }, { text: '{{barcode_image}}', format: { fontSize: 10 } }, { text: '{{price}}', format: { fontSize: 10 } }]);
+const DEFAULT_CONTENT_ROWS = [
+    { text: '{{product.name}}', format: { fontSize: 10 } },
+    { text: '{{barcode_image}}', format: { fontSize: 10 } },
+    { text: '{{barcode_text}}', format: { fontSize: 8 } },
+    { text: '{{price}} {{company.currency.ar}}', format: { fontSize: 10 } },
+    { text: '{{quantity}}', format: { fontSize: 8 } },
+];
+
+const ensureRows = (rows) => (rows?.length ? rows : DEFAULT_CONTENT_ROWS);
 const inputClass = "w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white outline-none focus:border-indigo-400";
 const selectClass = "w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white outline-none focus:border-indigo-400 appearance-none";
 const Label = ({ children }) => <label className="block text-sm font-semibold text-gray-700 mb-1">{children}</label>;
@@ -25,6 +34,9 @@ const ProductLabelEdit = () => {
     const [activeTab, setActiveTab] = useState('design');
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
+
+    const [branches, setBranches] = useState([]);
+    const [selectedBranch, setSelectedBranch] = useState('');
 
     const [name, setName] = useState('');
     const [direction, setDirection] = useState('rtl');
@@ -37,8 +49,11 @@ const ProductLabelEdit = () => {
     useEffect(() => {
         (async () => {
             try {
-                const { data } = await api.get(`/templates/${id}`);
-                const t = data.template;
+                const [tmplRes, branchRes] = await Promise.all([
+                    api.get(`/templates/${id}`),
+                    branchService.getAllBranches().catch(() => ({ branches: [] })),
+                ]);
+                const t = tmplRes.data.template;
                 setName(t.name ?? '');
                 setDirection(t.page?.direction ?? 'rtl');
                 setWidth(t.label?.width ?? 40);
@@ -46,6 +61,8 @@ const ProductLabelEdit = () => {
                 setFontSize(t.page?.fontSize ?? 10);
                 setMargins(t.page?.margins ?? { top: 2, right: 3, bottom: 2, left: 3 });
                 setContentRows(ensureRows(t.label?.contentRows));
+                const bl = branchRes.branches || branchRes || [];
+                setBranches(Array.isArray(bl) ? bl : []);
             } catch { toast.error('فشل تحميل القالب'); }
             finally { setLoading(false); }
         })();
@@ -63,25 +80,37 @@ const ProductLabelEdit = () => {
     if (loading) return <div className="flex items-center justify-center h-96 text-gray-500">جارٍ التحميل...</div>;
 
     const previewContext = {
-        company: { name: user?.name || 'Company', register: user?.commercialRegister || '' },
+        company: { name: user?.name || 'Company', register: user?.commercialRegister || '', currency: { ar: 'ر.س', en: 'SAR' } },
         product: { name: 'قلم رصاص خشبي' },
-        price: '2.00 ر.س',
-        barcode_image: '||||||||||||',
+        price: '2.00',
+        barcode_image: '||||||||||||||||',
+        barcode_text: '6281234567890',
+        quantity: '10',
     };
 
     const renderTab = () => {
         switch (activeTab) {
-            case 'design': return <div><Label>Name</Label><input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} /></div>;
-            case 'label': return (
+            case 'design': return (
                 <div className="space-y-5">
-                    <div><Label>الاتجاه</Label><select value={direction} onChange={e => setDirection(e.target.value)} className={selectClass}><option value="rtl">RTL</option><option value="ltr">LTR</option></select></div>
-                    <div><Label>العرض (ملم)</Label><input type="number" value={width} min={5} max={500} onChange={e => setWidth(+e.target.value)} className={inputClass} /></div>
-                    <div><Label>الارتفاع (ملم)</Label><input type="number" value={height} min={5} max={500} onChange={e => setHeight(+e.target.value)} className={inputClass} /></div>
-                    <div><Label>حجم الخط</Label><input type="number" value={fontSize} min={4} max={48} onChange={e => setFontSize(+e.target.value)} className={inputClass} /></div>
-                    <div><Label>الهوامش</Label><MarginsPopover margins={margins} onChange={setMargins} /></div>
+                    <div><Label>Name</Label><input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} /></div>
+                    <div><Label>Branches</Label>
+                        <select value={selectedBranch} onChange={e => setSelectedBranch(e.target.value)} className={selectClass}>
+                            <option value="">جميع الفروع</option>
+                            {branches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                        </select>
+                    </div>
                 </div>
             );
-            case 'content': return <TextBlockList rows={contentRows} setRows={setContentRows} dir={direction} title="محتوى الملصق" />;
+            case 'label': return (
+                <div className="space-y-5">
+                    <div><Label>Direction</Label><select value={direction} onChange={e => setDirection(e.target.value)} className={selectClass}><option value="rtl">Right to Left</option><option value="ltr">Left to Right</option></select></div>
+                    <div><Label>Width</Label><div className="flex items-center gap-2"><input type="number" value={width} min={5} max={500} onChange={e => setWidth(+e.target.value)} className={inputClass} style={{ width: '100px' }} /><span className="text-xs text-gray-400">mm</span></div></div>
+                    <div><Label>Height</Label><div className="flex items-center gap-2"><input type="number" value={height} min={5} max={500} onChange={e => setHeight(+e.target.value)} className={inputClass} style={{ width: '100px' }} /><span className="text-xs text-gray-400">mm</span></div></div>
+                    <div><Label>Font Size</Label><input type="number" value={fontSize} min={4} max={48} onChange={e => setFontSize(+e.target.value)} className={inputClass} style={{ width: '100px' }} /></div>
+                    <div><Label>Margins</Label><MarginsPopover margins={margins} onChange={setMargins} /></div>
+                </div>
+            );
+            case 'content': return <TextBlockList rows={contentRows} setRows={setContentRows} dir={direction} title="Label Content" />;
             default: return null;
         }
     };
@@ -92,7 +121,7 @@ const ProductLabelEdit = () => {
             tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab}
             tabContent={renderTab()}
             previewContent={<LabelPreview width={width} height={height} direction={direction} rows={contentRows} fontSize={fontSize} margins={margins} context={previewContext} />}
-            previewHeader={<div className="flex items-center gap-2 p-3"><button className="flex-1 bg-indigo-600 text-white py-2 rounded text-sm font-semibold hover:bg-indigo-700">Preview</button></div>}
+            previewHeader={<div className="flex items-center gap-2 p-3"><button className="flex-1 bg-indigo-600 text-white py-2 rounded text-sm font-semibold hover:bg-indigo-700 transition-colors">Preview</button></div>}
             onSave={handleSave} saving={saving} backUrl="/dashboard/templates/product-labels"
         />
     );

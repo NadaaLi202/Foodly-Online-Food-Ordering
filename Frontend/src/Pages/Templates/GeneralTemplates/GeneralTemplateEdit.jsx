@@ -8,6 +8,7 @@ import MarginsPopover from '../components/MarginsPopover.jsx';
 import { GeneralPreview } from '../components/DocumentPreview.jsx';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import branchService from '../../../services/branchService.js';
+import { Upload } from 'lucide-react';
 
 const TABS = [
     { id: 'design', label: 'Design' },
@@ -23,6 +24,35 @@ const inputClass = "w-full border border-gray-300 rounded px-3 py-2 text-sm bg-w
 const selectClass = "w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white outline-none focus:border-indigo-400 appearance-none";
 const Label = ({ children }) => <label className="block text-sm font-semibold text-gray-700 mb-1">{children}</label>;
 
+const SIG_POSITION_OPTIONS = [
+    { value: 'afterNotes', label: 'After Notes' },
+    { value: 'afterContent', label: 'After Content' },
+    { value: 'bottomPage', label: 'Bottom of Page' },
+];
+
+const SignatureSection = ({ title, rows, setRows, dir, imageUrl, onImageUpload, imageSize, setImageSize }) => (
+    <div className="space-y-3">
+        <p className="text-sm font-semibold text-gray-800">{title}</p>
+        <TextBlockList rows={rows} setRows={setRows} dir={dir} />
+        <label className="block border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-indigo-400 transition-colors">
+            {imageUrl ? (
+                <img src={imageUrl} alt="" className="max-h-16 mx-auto object-contain" />
+            ) : (
+                <div className="flex flex-col items-center gap-1 text-gray-400">
+                    <Upload size={20} />
+                    <span className="text-xs">Upload files or drag and drop here</span>
+                </div>
+            )}
+            <input type="file" accept="image/*" className="hidden" onChange={onImageUpload} />
+        </label>
+        <div>
+            <Label>Image Size</Label>
+            <input type="number" value={imageSize} min={10} max={500} onChange={e => setImageSize(+e.target.value)}
+                className={inputClass} style={{ width: '100px' }} />
+        </div>
+    </div>
+);
+
 const GeneralTemplateEdit = () => {
     const { id } = useParams();
     const { user } = useAuth();
@@ -37,16 +67,32 @@ const GeneralTemplateEdit = () => {
     const [name, setName] = useState('');
     const [page, setPage] = useState({ direction: 'rtl', pageSize: 'A4', fontSize: 12, margins: { top: 40, right: 40, bottom: 40, left: 40 } });
     const [logo, setLogo] = useState({ url: '', size: 70 });
+
+    // Header tab rows (Company Info TextBlocks)
     const [headerRows, setHeaderRows] = useState([
         { text: '{{company.name}}', format: { fontSize: 14, bold: true } },
         { text: 'السجل التجاري : {{company.register}}', format: { fontSize: 12 } },
         { text: 'الرقم الضريبي : {{company.tax_number}}', format: { fontSize: 12 } },
     ]);
+
+    // Page tab inline header/footer blocks
+    const [pageHeaderRows, setPageHeaderRows] = useState([{ text: '', format: {} }]);
+    const [pageFooterRows, setPageFooterRows] = useState([{ text: '', format: {} }]);
+
+    // Content
     const [contentLang, setContentLang] = useState('ar');
-    const [footerRows, setFooterRows] = useState([{ text: '', format: {} }]);
-    const [sigRows1, setSigRows1] = useState([{ text: '', format: {} }]);
+
+    // Footer
+    const [sigPosition, setSigPosition] = useState('afterNotes');
+    const [sigRows1, setSigRows1] = useState([{ text: 'المحاسب', format: { fontSize: 12 } }]);
+    const [sig1ImageUrl, setSig1ImageUrl] = useState('');
+    const [sig1ImageSize, setSig1ImageSize] = useState(100);
     const [sigRows2, setSigRows2] = useState([{ text: '', format: {} }]);
-    const [sigRows3, setSigRows3] = useState([{ text: '', format: {} }]);
+    const [sig2ImageUrl, setSig2ImageUrl] = useState('');
+    const [sig2ImageSize, setSig2ImageSize] = useState(100);
+    const [sigRows3, setSigRows3] = useState([{ text: 'المدير', format: { fontSize: 12 } }]);
+    const [sig3ImageUrl, setSig3ImageUrl] = useState('');
+    const [sig3ImageSize, setSig3ImageSize] = useState(100);
 
     useEffect(() => {
         (async () => {
@@ -60,12 +106,21 @@ const GeneralTemplateEdit = () => {
                 setPage(t.page ?? { direction: 'rtl', pageSize: 'A4', fontSize: 12, margins: { top: 40, right: 40, bottom: 40, left: 40 } });
                 setLogo(t.logo ?? { url: '', size: 70 });
                 if (t.header?.rows?.length) setHeaderRows(t.header.rows);
+                if (t.page?.headerRows?.length) setPageHeaderRows(t.page.headerRows);
+                if (t.page?.footerRows?.length) setPageFooterRows(t.page.footerRows);
                 setContentLang(t.content?.language ?? 'ar');
-                if (t.footer?.notesRows?.length) setFooterRows(t.footer.notesRows);
+                setSigPosition(t.footer?.signaturePosition ?? 'afterNotes');
+                if (t.footer?.signatures?.length >= 1) {
+                    const s0 = t.footer.signatures[0] || {};
+                    setSigRows1(ensureRows(s0.rows)); setSig1ImageUrl(s0.imageUrl || ''); setSig1ImageSize(s0.imageSize || 100);
+                }
+                if (t.footer?.signatures?.length >= 2) {
+                    const s1 = t.footer.signatures[1] || {};
+                    setSigRows2(ensureRows(s1.rows)); setSig2ImageUrl(s1.imageUrl || ''); setSig2ImageSize(s1.imageSize || 100);
+                }
                 if (t.footer?.signatures?.length >= 3) {
-                    setSigRows1(ensureRows(t.footer.signatures[0]?.rows));
-                    setSigRows2(ensureRows(t.footer.signatures[1]?.rows));
-                    setSigRows3(ensureRows(t.footer.signatures[2]?.rows));
+                    const s2 = t.footer.signatures[2] || {};
+                    setSigRows3(ensureRows(s2.rows)); setSig3ImageUrl(s2.imageUrl || ''); setSig3ImageSize(s2.imageSize || 100);
                 }
                 const bl = branchRes.branches || branchRes || [];
                 setBranches(Array.isArray(bl) ? bl : []);
@@ -85,15 +140,17 @@ const GeneralTemplateEdit = () => {
         setSaving(true);
         try {
             await api.put(`/templates/${id}`, {
-                name, page, logo,
+                name,
+                page: { ...page, headerRows: pageHeaderRows, footerRows: pageFooterRows },
+                logo,
                 header: { rows: headerRows },
                 content: { language: contentLang },
                 footer: {
-                    notesRows: footerRows,
+                    signaturePosition: sigPosition,
                     signatures: [
-                        { label: 'right', rows: sigRows1, imageUrl: '', imageSize: 100 },
-                        { label: 'middle', rows: sigRows2, imageUrl: '', imageSize: 100 },
-                        { label: 'left', rows: sigRows3, imageUrl: '', imageSize: 100 },
+                        { label: 'left', rows: sigRows1, imageUrl: sig1ImageUrl, imageSize: sig1ImageSize },
+                        { label: 'middle', rows: sigRows2, imageUrl: sig2ImageUrl, imageSize: sig2ImageSize },
+                        { label: 'right', rows: sigRows3, imageUrl: sig3ImageUrl, imageSize: sig3ImageSize },
                     ],
                 },
             });
@@ -114,6 +171,15 @@ const GeneralTemplateEdit = () => {
         } catch { toast.error('فشل الرفع'); }
     };
 
+    // Signature image upload handler
+    const handleSigImageUpload = (setter) => async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onloadend = () => setter(reader.result);
+        reader.readAsDataURL(file);
+    };
+
     const pageDir = page.direction ?? 'rtl';
 
     if (loading) return <div className="flex items-center justify-center h-96 text-gray-500">جارٍ التحميل...</div>;
@@ -121,13 +187,21 @@ const GeneralTemplateEdit = () => {
     const activeBranch = branches.find(b => b._id === selectedBranch) || branches[0] || {};
     const previewContext = {
         company: companyData,
-        branch: { name: activeBranch.name || '', address_line_1: activeBranch.address1 || '', city: activeBranch.city || '' },
+        branch: { name: activeBranch.name || '', address_line_1: activeBranch.address1 || 'dammam', city: activeBranch.city || 'region' },
     };
 
     const templateData = {
-        page, logo,
+        page: { ...page, headerRows: pageHeaderRows, footerRows: pageFooterRows },
+        logo,
         header: { rows: headerRows },
-        footer: { signatures: [{ label: 'right', rows: sigRows1 }, { label: 'middle', rows: sigRows2 }, { label: 'left', rows: sigRows3 }] },
+        footer: {
+            signaturePosition: sigPosition,
+            signatures: [
+                { label: 'left', rows: sigRows1, imageUrl: sig1ImageUrl, imageSize: sig1ImageSize },
+                { label: 'middle', rows: sigRows2, imageUrl: sig2ImageUrl, imageSize: sig2ImageSize },
+                { label: 'right', rows: sigRows3, imageUrl: sig3ImageUrl, imageSize: sig3ImageSize },
+            ],
+        },
     };
 
     const renderTab = () => {
@@ -147,12 +221,16 @@ const GeneralTemplateEdit = () => {
             case 'page':
                 return (
                     <div className="space-y-5">
-                        <div><Label>الاتجاه</Label><select value={page.direction} onChange={e => setPage(p => ({ ...p, direction: e.target.value }))} className={selectClass}><option value="rtl">من اليمين إلى اليسار</option><option value="ltr">من اليسار إلى اليمين</option></select></div>
-                        <div><Label>حجم الصفحة</Label><select value={page.pageSize} onChange={e => setPage(p => ({ ...p, pageSize: e.target.value }))} className={selectClass}>{['A4', 'A5', 'Letter', 'Legal'].map(s => <option key={s}>{s}</option>)}</select></div>
-                        <div><Label>حجم الخط</Label><div className="flex items-center border border-gray-300 rounded bg-white h-9 w-24"><input type="number" value={page.fontSize} min={6} max={72} onChange={e => setPage(p => ({ ...p, fontSize: +e.target.value }))} className="w-full text-center text-sm border-none outline-none bg-transparent" /></div></div>
-                        <div><Label>الهوامش</Label><MarginsPopover margins={page.margins} onChange={m => setPage(p => ({ ...p, margins: m }))} /></div>
-                        <div className="pt-3 border-t border-gray-100"><TextBlockList rows={headerRows} setRows={setHeaderRows} dir={pageDir} title="المقدمة" /></div>
-                        <div className="pt-3 border-t border-gray-100"><TextBlockList rows={footerRows} setRows={setFooterRows} dir={pageDir} title="التذييل" /></div>
+                        <div><Label>Direction</Label><select value={page.direction} onChange={e => setPage(p => ({ ...p, direction: e.target.value }))} className={selectClass}><option value="rtl">Right to Left</option><option value="ltr">Left to Right</option></select></div>
+                        <div><Label>Page Size</Label><select value={page.pageSize} onChange={e => setPage(p => ({ ...p, pageSize: e.target.value }))} className={selectClass}>{['A4', 'A5', 'Letter', 'Legal'].map(s => <option key={s}>{s}</option>)}</select></div>
+                        <div><Label>Font Size</Label><input type="number" value={page.fontSize} min={6} max={72} onChange={e => setPage(p => ({ ...p, fontSize: +e.target.value }))} className={inputClass} style={{ width: '100px' }} /></div>
+                        <div><Label>Margins</Label><MarginsPopover margins={page.margins} onChange={m => setPage(p => ({ ...p, margins: m }))} /></div>
+                        <div className="border-t border-gray-200 pt-4">
+                            <TextBlockList rows={pageHeaderRows} setRows={setPageHeaderRows} dir={pageDir} title="Header" />
+                        </div>
+                        <div className="border-t border-gray-200 pt-4">
+                            <TextBlockList rows={pageFooterRows} setRows={setPageFooterRows} dir={pageDir} title="Footer" />
+                        </div>
                     </div>
                 );
             case 'logo':
@@ -161,21 +239,47 @@ const GeneralTemplateEdit = () => {
                         {logo.url ? (
                             <div className="space-y-2"><img src={logo.url} alt="" className="max-h-20 max-w-full object-contain rounded border border-gray-200 p-2" /><button onClick={() => setLogo(l => ({ ...l, url: '' }))} className="text-xs text-red-500">حذف</button></div>
                         ) : (
-                            <label className="block border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-indigo-400"><span className="text-sm text-gray-500">اضغط لرفع شعار</span><input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} /></label>
+                            <label className="block border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-indigo-400 transition-colors">
+                                <div className="flex flex-col items-center gap-1 text-gray-400"><Upload size={24} /><span className="text-sm">Upload files or drag and drop here</span></div>
+                                <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                            </label>
                         )}
-                        <div><Label>الحجم</Label><input type="number" value={logo.size} min={10} max={500} onChange={e => setLogo(l => ({ ...l, size: +e.target.value }))} className={inputClass} /></div>
+                        <div><Label>Size</Label><input type="number" value={logo.size} min={10} max={500} onChange={e => setLogo(l => ({ ...l, size: +e.target.value }))} className={inputClass} style={{ width: '100px' }} /></div>
                     </div>
                 );
             case 'header':
-                return <TextBlockList rows={headerRows} setRows={setHeaderRows} dir={pageDir} title="المقدمة" />;
+                return <TextBlockList rows={headerRows} setRows={setHeaderRows} dir={pageDir} title="Company Info" />;
             case 'content':
-                return <div><Label>لغة المحتوى</Label><select value={contentLang} onChange={e => setContentLang(e.target.value)} className={selectClass}><option value="ar">العربية</option><option value="en">English</option></select></div>;
+                return (
+                    <div>
+                        <Label>Content Locale</Label>
+                        <select value={contentLang} onChange={e => setContentLang(e.target.value)} className={selectClass}>
+                            <option value="ar">Arabic</option>
+                            <option value="en">English</option>
+                        </select>
+                    </div>
+                );
             case 'footer':
                 return (
-                    <div className="space-y-5">
-                        <TextBlockList rows={sigRows1} setRows={setSigRows1} dir={pageDir} title="التوقيع ١" />
-                        <div className="border-t border-gray-100 pt-3"><TextBlockList rows={sigRows2} setRows={setSigRows2} dir={pageDir} title="التوقيع ٢" /></div>
-                        <div className="border-t border-gray-100 pt-3"><TextBlockList rows={sigRows3} setRows={setSigRows3} dir={pageDir} title="التوقيع ٣" /></div>
+                    <div className="space-y-6">
+                        <div>
+                            <Label>Signature Position</Label>
+                            <select value={sigPosition} onChange={e => setSigPosition(e.target.value)} className={selectClass}>
+                                {SIG_POSITION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                            </select>
+                        </div>
+                        <div className="border-t border-gray-200 pt-4">
+                            <SignatureSection title="Left Signature" rows={sigRows1} setRows={setSigRows1} dir={pageDir}
+                                imageUrl={sig1ImageUrl} onImageUpload={handleSigImageUpload(setSig1ImageUrl)} imageSize={sig1ImageSize} setImageSize={setSig1ImageSize} />
+                        </div>
+                        <div className="border-t border-gray-200 pt-4">
+                            <SignatureSection title="Middle Signature" rows={sigRows2} setRows={setSigRows2} dir={pageDir}
+                                imageUrl={sig2ImageUrl} onImageUpload={handleSigImageUpload(setSig2ImageUrl)} imageSize={sig2ImageSize} setImageSize={setSig2ImageSize} />
+                        </div>
+                        <div className="border-t border-gray-200 pt-4">
+                            <SignatureSection title="Right Signature" rows={sigRows3} setRows={setSigRows3} dir={pageDir}
+                                imageUrl={sig3ImageUrl} onImageUpload={handleSigImageUpload(setSig3ImageUrl)} imageSize={sig3ImageSize} setImageSize={setSig3ImageSize} />
+                        </div>
                     </div>
                 );
             default: return null;
@@ -184,7 +288,7 @@ const GeneralTemplateEdit = () => {
 
     return (
         <TemplateEditor
-            breadcrumbs={[{ label: 'Template Designs', to: '/dashboard/templates' }, { label: 'General Templates', to: '/dashboard/templates/general' }, { label: 'Edit' }]}
+            breadcrumbs={[{ label: 'Template Designs', to: '/dashboard/templates' }, { label: 'General', to: '/dashboard/templates/general' }, { label: 'Edit' }]}
             tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab}
             tabContent={renderTab()}
             previewContent={<GeneralPreview template={templateData} direction={pageDir} context={previewContext} />}

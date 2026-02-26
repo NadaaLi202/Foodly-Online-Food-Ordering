@@ -216,18 +216,20 @@ export const GeneralPreview = ({ template = {}, direction = 'rtl', context = {} 
     const footer = template.footer || {};
     const isRtl = direction === 'rtl';
     const margins = page.margins || { top: 40, right: 40, bottom: 40, left: 40 };
+    const sigs = (footer.signatures || []).filter(s => s.rows?.[0]?.text || s.imageUrl);
 
     return (
         <div
             dir={direction}
-            className="bg-white shadow-lg border border-gray-300 mx-auto"
+            className="bg-white shadow-lg border border-gray-300 mx-auto flex flex-col"
             style={{
                 width: '100%', maxWidth: '580px', minHeight: '820px',
                 padding: `${margins.top * 0.6}px ${margins.right * 0.6}px ${margins.bottom * 0.6}px ${margins.left * 0.6}px`,
                 fontSize: `${page.fontSize || 12}px`, fontFamily: 'Tahoma, Arial, sans-serif',
             }}
         >
-            <div className="flex items-start justify-between mb-4">
+            {/* Header: company info + logo */}
+            <div className="flex items-start justify-between mb-2">
                 <div style={{ flex: 1 }}>
                     {(header.rows || []).map((row, i) => (
                         <StyledRow key={i} row={row} defaultFontSize={page.fontSize || 12} isRtl={isRtl} context={context} />
@@ -235,23 +237,43 @@ export const GeneralPreview = ({ template = {}, direction = 'rtl', context = {} 
                 </div>
                 {logo.url ? (
                     <img src={logo.url} alt="" style={{ width: `${logo.size || 70}px`, maxHeight: '60px', objectFit: 'contain' }} />
-                ) : (
-                    <div className="border-2 border-dashed border-gray-300 rounded p-2 text-center flex items-center justify-center" style={{ width: '70px', height: '55px' }}>
-                        <span className="text-[9px] text-gray-400 leading-tight block">ضــع<br />شعارك<br />هنــا</span>
-                    </div>
-                )}
+                ) : null}
             </div>
-            <div className="my-8 text-gray-400 text-sm">محتوى اختباري</div>
-            <div className="flex justify-between mt-auto pt-16">
-                {(footer.signatures || []).map((sig, i) => (
-                    <div key={i} className="text-center text-xs">
-                        {(sig.rows || []).map((r, j) => (
-                            <StyledRow key={j} row={r} defaultFontSize={10} isRtl={isRtl} context={context} />
-                        ))}
-                        <div className="w-20 border-b border-gray-400 mx-auto" />
-                    </div>
-                ))}
+
+            {/* Address rows from branch context */}
+            <div className="text-xs text-gray-600 mb-1">
+                <p>{context.branch?.address_line_1 || 'dammam'}</p>
+                <p>{context.branch?.city || 'region'}</p>
             </div>
+
+            {/* Page inline header TextBlocks */}
+            {(page.headerRows || []).filter(r => r.text).map((r, i) => (
+                <StyledRow key={`ph${i}`} row={r} defaultFontSize={page.fontSize || 12} isRtl={isRtl} context={context} />
+            ))}
+
+            {/* Content placeholder */}
+            <div className="flex-1 my-8 text-gray-400 text-sm text-center">محتوى اختباري</div>
+
+            {/* Signatures — matching reference layout */}
+            {sigs.length > 0 && (
+                <div className="flex justify-around mt-auto pt-4">
+                    {sigs.map((sig, i) => (
+                        <div key={i} className="text-center text-xs">
+                            {sig.imageUrl && (
+                                <img src={sig.imageUrl} alt="" className="mx-auto mb-1" style={{ maxWidth: `${sig.imageSize || 100}px`, maxHeight: '40px', objectFit: 'contain' }} />
+                            )}
+                            {(sig.rows || []).map((r, j) => (
+                                <StyledRow key={j} row={r} defaultFontSize={11} isRtl={isRtl} context={context} />
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Page inline footer TextBlocks */}
+            {(page.footerRows || []).filter(r => r.text).map((r, i) => (
+                <StyledRow key={`pf${i}`} row={r} defaultFontSize={page.fontSize || 12} isRtl={isRtl} context={context} />
+            ))}
         </div>
     );
 };
