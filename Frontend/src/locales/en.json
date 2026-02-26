@@ -70,6 +70,10 @@
         "settings_export": "Export Settings",
         "settings_coding": "Coding Settings",
         "settings_api": "API",
+        "templates": "Templates",
+        "general_templates": "General Templates",
+        "invoice_templates": "Invoice Templates",
+        "product_labels": "Product Labels",
         "sign_out": "Sign Out"
     },
     "sales_settings": {
@@ -1022,9 +1026,24 @@
             "date_from": "From Date",
             "date_to": "To Date",
             "view_invoice": "View Invoice",
-            "page": "Page",
-            "of": "of",
-            "total": "Total"
+            "page": "Page"
+        }
+    },
+    "templates": {
+        "template_designs": "Template Designs",
+        "template": "Template",
+        "main_desc": "Manage all your document templates and designs in one place",
+        "general": {
+            "title": "General Templates",
+            "tile_desc": "Manage general system templates"
+        },
+        "invoices": {
+            "title": "Invoice Templates",
+            "tile_desc": "Manage templates for printing and exporting invoices"
+        },
+        "product_labels": {
+            "title": "Product Labels",
+            "tile_desc": "Manage barcode and product label templates"
         }
     },
     "purchases": {

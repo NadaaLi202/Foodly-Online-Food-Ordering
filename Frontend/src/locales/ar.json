@@ -71,6 +71,10 @@
         "settings_export": "التصدير",
         "settings_coding": "التكويد",
         "settings_api": "API",
+        "templates": "القوالب",
+        "general_templates": "قوالب عامة",
+        "invoice_templates": "قوالب الفواتير",
+        "product_labels": "ملصقات المنتجات",
         "sign_out": "تسجيل الخروج"
     },
     "sales_settings": {
@@ -1088,6 +1092,23 @@
             "page": "صفحة",
             "of": "من",
             "total": "الإجمالي"
+        }
+    },
+    "templates": {
+        "template_designs": "تصاميم القوالب",
+        "template": "القالب",
+        "main_desc": "إدارة جميع قوالب وتصاميم المستندات الخاصة بك في مكان واحد",
+        "general": {
+            "title": "قوالب عامة",
+            "tile_desc": "إدارة القوالب العامة للنظام"
+        },
+        "invoices": {
+            "title": "قوالب الفواتير",
+            "tile_desc": "إدارة قوالب طباعة وتصدير الفواتير"
+        },
+        "product_labels": {
+            "title": "ملصقات المنتجات",
+            "tile_desc": "إدارة قوالب الباركود وملصقات المنتجات"
         }
     },
     "purchases": {
