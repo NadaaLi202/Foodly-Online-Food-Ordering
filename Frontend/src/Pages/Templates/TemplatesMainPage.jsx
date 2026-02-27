@@ -32,7 +32,7 @@ const TemplatesMainPage = () => {
     const isRtl = i18n.language === 'ar';
 
     return (
-        <div className="min-h-screen bg-[#dce3ed] p-6" dir={isRtl ? 'rtl' : 'ltr'}>
+        <div className="min-h-screen bg-[#f5f7f9] p-6" dir={isRtl ? 'rtl' : 'ltr'}>
             {/* Breadcrumb */}
             <div className="flex items-center justify-end gap-1 mb-6">
                 <Link to="/dashboard" className="flex items-center justify-center w-9 h-9 rounded bg-white border border-gray-200 hover:bg-gray-50 shadow-sm">

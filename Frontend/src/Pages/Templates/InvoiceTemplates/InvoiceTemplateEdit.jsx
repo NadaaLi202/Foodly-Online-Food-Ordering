@@ -326,15 +326,15 @@ const InvoiceTemplateEdit = () => {
             tabContent={renderTab()}
             previewContent={<InvoicePreview template={templateData} direction={pageDir} context={previewContext} />}
             previewHeader={
-                <div className="flex items-center gap-2 p-3">
-                    <select value={prevModule} onChange={e => setPrevModule(e.target.value)} className="border border-gray-300 rounded px-3 py-2 text-sm bg-white flex-1">
+                <div className="grid grid-cols-2 gap-3 p-4 bg-[#f8f9fc]">
+                    <select value={prevModule} onChange={e => setPrevModule(e.target.value)} className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white outline-none cursor-pointer text-gray-700 hover:border-gray-300 transition-colors">
                         <option>Sales</option><option>Purchases</option>
                     </select>
-                    <select value={prevDocType} onChange={e => setPrevDocType(e.target.value)} className="border border-gray-300 rounded px-3 py-2 text-sm bg-white flex-1">
+                    <select value={prevDocType} onChange={e => setPrevDocType(e.target.value)} className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white outline-none cursor-pointer text-gray-700 hover:border-gray-300 transition-colors">
                         <option>Invoice</option><option>Return</option><option>Quote</option>
                     </select>
-                    <input type="text" placeholder="" className="border border-gray-300 rounded px-3 py-2 text-sm bg-white w-24" />
-                    <button className="bg-indigo-600 text-white px-5 py-2 rounded text-sm font-semibold hover:bg-indigo-700 transition-colors whitespace-nowrap">Preview</button>
+                    <input type="text" placeholder="" className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white outline-none focus:border-indigo-400 transition-colors" />
+                    <button className="bg-[#6366f1] text-white rounded-md px-4 py-2 text-sm font-bold shadow-sm hover:bg-indigo-600 transition-colors">Preview</button>
                 </div>
             }
             onSave={handleSave} saving={saving} backUrl="/dashboard/templates/invoices"

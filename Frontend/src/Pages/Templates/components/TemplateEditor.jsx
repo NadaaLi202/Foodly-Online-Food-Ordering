@@ -37,20 +37,36 @@ const TemplateEditor = ({
     return (
         <div className="flex flex-col h-full min-h-0">
             {/* ── Breadcrumb ── */}
-            <div className="flex items-center gap-2 px-4 py-2 bg-white border-b border-gray-200">
-                <Link to="/dashboard" className="text-gray-400 hover:text-gray-600">
-                    <Home size={18} />
-                </Link>
-                {breadcrumbs.map((b, i) => (
-                    <React.Fragment key={i}>
-                        <ChevronRight size={14} className="text-gray-300" />
-                        {b.to ? (
-                            <Link to={b.to} className="text-sm text-gray-500 hover:text-gray-800">{b.label}</Link>
+            <div className="flex items-center px-6 py-4 bg-[#f4f5f7] border-b border-gray-200">
+                <div className="flex drop-shadow-sm">
+                    {/* Home icon block */}
+                    <Link to="/dashboard"
+                        className="flex items-center justify-center bg-white text-gray-400 hover:text-gray-600 h-10"
+                        style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%)', paddingLeft: '16px', paddingRight: '22px' }}>
+                        <Home size={18} />
+                    </Link>
+
+                    {breadcrumbs.map((b, i) => {
+                        const isLast = i === breadcrumbs.length - 1;
+                        const clipPath = isLast
+                            ? 'polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%)'
+                            : 'polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%)';
+
+                        return b.to ? (
+                            <Link key={i} to={b.to}
+                                className="flex items-center justify-center bg-white text-[13px] font-medium text-gray-500 hover:text-gray-800 h-10"
+                                style={{ clipPath, paddingLeft: '28px', paddingRight: isLast ? '16px' : '26px', marginLeft: '-6px' }}>
+                                {b.label}
+                            </Link>
                         ) : (
-                            <span className="text-sm font-semibold text-gray-800">{b.label}</span>
-                        )}
-                    </React.Fragment>
-                ))}
+                            <div key={i}
+                                className="flex items-center justify-center bg-white text-[13px] font-bold text-gray-700 h-10"
+                                style={{ clipPath, paddingLeft: '28px', paddingRight: isLast ? '16px' : '26px', marginLeft: '-6px' }}>
+                                {b.label}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
 
             {/* ── Main 3-column area ── */}
@@ -62,32 +78,14 @@ const TemplateEditor = ({
                             key={tab.id}
                             onClick={() => onTabChange(tab.id)}
                             className={`w-full flex items-center justify-between px-4 py-3.5 text-sm transition-colors border-b border-gray-50 ${activeTab === tab.id
-                                    ? 'text-indigo-600 font-bold bg-white'
-                                    : 'text-gray-600 hover:bg-gray-50 font-medium'
+                                ? 'text-indigo-600 font-bold bg-white'
+                                : 'text-gray-600 hover:bg-gray-50 font-medium'
                                 }`}
                         >
                             <span>{tab.label}</span>
                             <ChevronRight size={14} className={activeTab === tab.id ? 'text-indigo-400' : 'text-gray-300'} />
                         </button>
                     ))}
-
-                    {/* Save button at bottom of tabs */}
-                    <div className="p-3 mt-4">
-                        <button
-                            type="button"
-                            onClick={onSave}
-                            disabled={saving}
-                            className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white py-2 rounded text-sm font-bold transition-colors"
-                        >
-                            {saving ? 'جارٍ الحفظ...' : 'حفظ'}
-                        </button>
-                        <Link
-                            to={backUrl}
-                            className="block text-center mt-2 text-sm text-gray-500 hover:text-gray-700"
-                        >
-                            إلغاء
-                        </Link>
-                    </div>
                 </div>
 
                 {/* Column 2: Tab content (form) */}
@@ -107,6 +105,24 @@ const TemplateEditor = ({
                     {/* Document preview */}
                     <div className="flex-1 overflow-auto p-4">
                         {previewContent}
+                    </div>
+
+                    {/* Action buttons at bottom of preview */}
+                    <div className="p-4 bg-white border-t border-gray-200 flex justify-end gap-3 shrink-0">
+                        <Link
+                            to={backUrl}
+                            className="px-6 py-2 text-sm text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded font-bold transition-colors"
+                        >
+                            إلغاء
+                        </Link>
+                        <button
+                            type="button"
+                            onClick={onSave}
+                            disabled={saving}
+                            className="px-8 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white py-2 rounded text-sm font-bold transition-colors"
+                        >
+                            {saving ? 'جارٍ الحفظ...' : 'حفظ'}
+                        </button>
                     </div>
                 </div>
             </div>

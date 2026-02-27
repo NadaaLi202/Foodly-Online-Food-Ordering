@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import TemplateEditor from '../components/TemplateEditor.jsx';
 import { TextBlockList } from '../components/TextBlock.jsx';
 import MarginsPopover from '../components/MarginsPopover.jsx';
-import { GeneralPreview } from '../components/DocumentPreview.jsx';
+import { GeneralPreview, LivePdfWrapper } from '../components/DocumentPreview.jsx';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import branchService from '../../../services/branchService.js';
 import { Upload, X } from 'lucide-react';
@@ -342,8 +342,11 @@ const GeneralTemplateEdit = () => {
             breadcrumbs={[{ label: 'Template Designs', to: '/dashboard/templates' }, { label: 'General', to: '/dashboard/templates/general' }, { label: 'Edit' }]}
             tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab}
             tabContent={renderTab()}
-            previewContent={<GeneralPreview template={templateData} direction={pageDir} context={previewContext} />}
-            previewHeader={<div className="flex items-center gap-2 p-3"><button className="flex-1 bg-indigo-600 text-white py-2 rounded text-sm font-semibold hover:bg-indigo-700 transition-colors">Preview</button></div>}
+            previewContent={
+                <LivePdfWrapper direction={pageDir}>
+                    <GeneralPreview template={templateData} direction={pageDir} context={previewContext} />
+                </LivePdfWrapper>
+            }
             onSave={handleSave} saving={saving} backUrl="/dashboard/templates/general"
         />
     );

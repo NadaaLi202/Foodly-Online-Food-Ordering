@@ -30,11 +30,8 @@ const ProductLabels = () => {
     };
     useEffect(() => { load(); }, []);
 
-    const handleAdd = async () => {
-        try {
-            const { data } = await api.post('/templates', { name: 'ملصق جديد', type: 'product-label' });
-            navigate(`/dashboard/templates/product-labels/${data.template._id}/edit`);
-        } catch { toast.error('فشل الإنشاء'); }
+    const handleAdd = () => {
+        navigate('/dashboard/templates/product-labels/add');
     };
 
     const handleDelete = async (id, e) => {
@@ -45,7 +42,7 @@ const ProductLabels = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#dce3ed]" dir={isRtl ? 'rtl' : 'ltr'}>
+        <div className="min-h-screen bg-[#f5f7f9]" dir={isRtl ? 'rtl' : 'ltr'}>
             <div className="flex items-center justify-between px-4 py-3">
                 <button onClick={handleAdd} className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-4 py-2 rounded transition-colors">
                     <Plus size={16} /> إضافة

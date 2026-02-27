@@ -45,7 +45,10 @@ const MarginsPopover = ({ margins = {}, onChange }) => {
 
             {/* Popover */}
             {open && (
-                <div className="absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 mt-1" style={{ left: '50%', transform: 'translateX(-50%)' }}>
+                <div
+                    className="absolute z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 mt-1"
+                    style={{ [document.documentElement.dir === 'rtl' ? 'right' : 'left']: 0 }}
+                >
                     <div className="flex flex-col items-center gap-1">
                         {/* Top */}
                         <input
