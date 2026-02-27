@@ -33,8 +33,8 @@ const financialReceiptSchema = new mongoose.Schema({
         min: 0
     },
     taxes: {
-        type: String,
-        default: 'none'
+        type: mongoose.Schema.Types.Mixed,
+        default: 0
     },
     description: {
         type: String,
@@ -75,3 +75,4 @@ financialReceiptSchema.index({ code: 1, companyId: 1 }, { unique: true });
 
 const FinancialReceipt = mongoose.model("FinancialReceipt", financialReceiptSchema);
 export default FinancialReceipt;
+

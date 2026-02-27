@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../../utils/currencyFormatter';
 import ClientLink from '../navigation/ClientLink';
 
-const InvoiceList = ({ invoices, loading, onAddClick, onRefresh, onInvoiceClick, i18n, noItemsKey, startKey, clientLabelKey, isSupplier = false }) => {
+const InvoiceList = ({ invoices, loading, onAddClick, onRefresh, onInvoiceClick, i18n, noItemsKey, startKey, clientLabelKey, isSupplier = false, canAdd = true }) => {
     const { t } = useTranslation();
     const noItemsMsg = noItemsKey ? t(noItemsKey) : t('sales.invoices.no_invoices');
     const startMsg = startKey ? t(startKey) : t('sales.invoices.start_creating');
@@ -13,10 +13,12 @@ const InvoiceList = ({ invoices, loading, onAddClick, onRefresh, onInvoiceClick,
         <div className="min-h-screen bg-white" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
             <div className="bg-white border-b border-gray-100 px-6 py-4">
                 <div className="flex flex-wrap items-center gap-3 mb-4">
-                    <button type="button" onClick={onAddClick} className="flex items-center gap-1.5 bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition-all font-bold text-sm shadow-sm">
-                        <span>{t('sales.common.add')}</span>
-                        <Plus size={18} />
-                    </button>
+                    {canAdd && (
+                        <button type="button" onClick={onAddClick} className="flex items-center gap-1.5 bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 transition-all font-bold text-sm shadow-sm">
+                            <span>{t('sales.common.add')}</span>
+                            <Plus size={18} />
+                        </button>
+                    )}
                     <button type="button" onClick={onRefresh} className="flex items-center gap-2 border-2 border-gray-100 text-gray-500 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all font-bold text-sm">
                         <RefreshCw size={16} />
                         <span>{t('sales.common.search_filter')}</span>

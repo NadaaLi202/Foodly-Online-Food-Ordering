@@ -5,6 +5,7 @@ const entryItemSchema = Joi.object({
         'string.empty': 'Each entry must have an account',
         'any.required': 'Each entry must have an account'
     }),
+    costCenterId: Joi.string().trim().allow('').optional(),
     debit: Joi.number().min(0).default(0).messages({
         'number.min': 'Debit must be 0 or greater'
     }),

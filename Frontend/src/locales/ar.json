@@ -71,6 +71,7 @@
         "settings_export": "التصدير",
         "settings_coding": "التكويد",
         "settings_api": "API",
+        "settings_backups": "النسخ الاحتياطي للنظام",
         "sign_out": "تسجيل الخروج"
     },
     "sales_settings": {
@@ -287,6 +288,23 @@
         "suppliers": "الموردين",
         "export_btn": "تصدير"
     },
+    "backup_settings": {
+        "title": "النسخ الاحتياطي للنظام",
+        "create": "إنشاء نسخة احتياطية",
+        "date": "التاريخ",
+        "format": "الصيغة",
+        "size": "حجم الملف",
+        "storage": "مكان التخزين",
+        "status": "الحالة",
+        "empty": "لا توجد نسخ احتياطية",
+        "download": "تحميل",
+        "restore": "استعادة",
+        "restore_title": "استعادة نسخة احتياطية",
+        "restore_warning": "قد تؤدي هذه العملية إلى استبدال البيانات الحالية.",
+        "restore_confirm": "أفهم وأرغب في المتابعة",
+        "restore_wipe": "حذف البيانات الحالية قبل الاستعادة",
+        "restore_now": "استعادة"
+    },
     "coding_settings": {
         "title": "التكويد",
         "entities": {
@@ -316,8 +334,17 @@
             "current_sequence": "التسلسل الحالي",
             "main_branch": "الفرع الرئيسي",
             "branch_label": "الفرع",
-            "save_btn": "حفظ"
+            "save_btn": "حفظ",
+            "no_separator": "بدون",
+            "branch_scope_branch": "معرف الفرع",
+            "branch_scope_global": "عام"
         },
+        "validation": {
+            "prefix_required": "قيمة ثابتة مطلوبة",
+            "min_digits": "أقل عدد أرقام يجب أن يكون 1 على الأقل",
+            "sequence": "التسلسل يجب أن يكون 0 أو أكثر"
+        },
+        "success_title": "تم الحفظ بنجاح",
         "success_save": "تم حفظ إعدادات التكويد بنجاح",
         "success_sequence": "تم تحديث التسلسل بنجاح"
     },
@@ -339,6 +366,43 @@
         },
         "success_create": "تم إنشاء API Client بنجاح",
         "success_delete": "تم حذف API Client بنجاح"
+    },
+    "cost_centers": {
+        "tile_desc": "إدارة مراكز التكلفة الرئيسية والفرعية",
+        "add_btn": "إضافة",
+        "empty": "لا توجد مراكز تكلفة بعد. أضف مركز تكلفة للبدء.",
+        "table": {
+            "name": "الاسم",
+            "actions": "الإجراءات"
+        },
+        "modal": {
+            "add_title": "إضافة مركز تكلفة",
+            "edit_title": "تعديل مركز تكلفة",
+            "type": "النوع",
+            "main": "رئيسي",
+            "sub": "فرعي",
+            "name": "الاسم",
+            "parent": "مركز التكلفة الرئيسي",
+            "parent_placeholder": "ابحث عن مركز تكلفة...",
+            "loading_parents": "جاري تحميل مراكز التكلفة الرئيسية...",
+            "parent_empty_hint": "لا توجد مراكز تكلفة رئيسية مطابقة (المشاريع، الأقسام، الأنشطة، المنتجات)."
+        },
+        "field_labels": {
+            "cost_center": "مركز التكلفة",
+            "choose_cost_center": "اختر مركز التكلفة"
+        },
+        "validation": {
+            "name_required": "الاسم مطلوب",
+            "parent_required": "مركز التكلفة الرئيسي مطلوب عند اختيار فرعي",
+            "main_parent_null": "مركز التكلفة الرئيسي لا يجب أن يحتوي على أب"
+        },
+        "success": {
+            "create": "تم إنشاء مركز التكلفة بنجاح",
+            "update": "تم تحديث مركز التكلفة بنجاح",
+            "delete": "تم حذف مركز التكلفة بنجاح"
+        },
+        "delete_title": "حذف مركز تكلفة",
+        "delete_message": "هل تريد حذف {{name}}؟"
     },
     "reports": {
         "total": "الإجمالي",
@@ -440,7 +504,10 @@
             "products_with_quantity": "المنتجات التي لها كمية",
             "highest_value": "الأعلى قيمة",
             "lowest_value": "الأقل قيمة",
-            "all_warehouses": "جميع المستودعات"
+            "all_warehouses": "جميع المستودعات",
+            "taxes": "الضرائب",
+            "all_taxes": "كل الضرائب",
+            "group_no": "فاتورة"
         },
         "table": {
             "month": "الشهر",
@@ -554,8 +621,15 @@
             "total_liabilities_and_equity": "إجمالي الخصوم وحقوق الملكية",
             "revenue": "الإيرادات",
             "total_revenue": "إجمالي الإيرادات",
+            "sales_revenue": "إيرادات المبيعات",
+            "other_revenue": "إيرادات أخرى",
             "expenses": "المصروفات",
             "total_expenses": "إجمالي المصروفات",
+            "purchase_expenses": "مصروفات المشتريات",
+            "cogs_expenses": "تكلفة البضاعة المباعة",
+            "admin_expenses": "مصروفات إدارية",
+            "other_expenses": "مصروفات أخرى",
+            "net_income": "صافي الربح",
             "tax": {
                 "summary_report_title": "ملخص التقرير الضريبي",
                 "detailed_report_title": "التقرير الضريبي التفصيلي",
@@ -834,6 +908,7 @@
             "apply": "تطبيق",
             "edit": "تعديل",
             "delete": "حذف",
+            "confirm": "تأكيد",
             "confirm_delete": "هل أنت متأكد من الحذف؟",
             "close": "إغلاق",
             "print": "طباعة",
@@ -868,7 +943,8 @@
             "description_placeholder": "أدخل الوصف",
             "safe": "الخزنة / الحساب",
             "before_tax": "(قبل الضريبة)",
-            "choose_client": "اختر العميل"
+            "choose_client": "اختر العميل",
+            "custom": "مخصص"
         },
         "invoices": {
             "title": "الفواتير",
@@ -1528,7 +1604,15 @@
             "purchase_report": "تقرير المشتريات",
             "supplier_payments_report": "تقرير مدفوعات الموردين",
             "balance_sheet": "تقرير الميزانية العمومية",
-            "income_statement": "تقرير قائمة الدخل"
+            "income_statement": "تقرير قائمة الدخل",
+            "users": "المستخدمون",
+            "roles": "الأدوار",
+            "import": "الاستيراد",
+            "export": "التصدير",
+            "coding": "الترميز",
+            "api_clients": "عملاء API",
+            "activity": "الأنشطة",
+            "zatca": "زاتكا"
         }
     },
     "superAdmin": {

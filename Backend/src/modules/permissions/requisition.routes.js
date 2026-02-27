@@ -8,12 +8,13 @@ import {
 } from "./requisition.controller.js";
 import { validation } from "../../middleware/validation.js";
 import { addRequisitionSchema, updateRequisitionSchema } from "./requisition.validation.js";
-import { protectedRoutes } from "../auth/auth.controller.js";
+import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
 import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const router = express.Router();
 
 router.use(protectedRoutes, applyCompanyFilter);
+router.use(requireResourcePermission("inventory_operations"));
 
 router.route("/")
     .post(validation(addRequisitionSchema), addRequisition)

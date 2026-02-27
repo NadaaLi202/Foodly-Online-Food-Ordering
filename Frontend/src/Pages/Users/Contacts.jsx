@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, RefreshCw, X, Phone, MapPin, Mail, User, Building, FileText, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import { confirmDelete } from '../../utils/confirmDelete';
 import { formatCurrency } from '../../utils/currencyFormatter';
 import { prepareContactPayload } from '../../utils/contactUtils';
 
@@ -181,7 +182,8 @@ const Contacts = () => {
 
     // Handle Delete
     const handleDelete = async (id) => {
-        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد؟' : 'Are you sure?')) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('sales.common.confirm_delete', 'Are you sure?'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
 
         try {
             await api.delete(`/contacts/${id}`);
@@ -570,3 +572,6 @@ const Contacts = () => {
 };
 
 export default Contacts;
+
+
+

@@ -12,6 +12,7 @@ import {
     Info
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { confirmDelete } from '../../utils/confirmDelete';
 import api from '../../services/api';
 
 const GeneralSettings = () => {
@@ -109,7 +110,8 @@ const GeneralSettings = () => {
     };
 
     const handleLogoDelete = async () => {
-        if (!window.confirm(t('general_settings.delete_confirm'))) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('general_settings.delete_confirm'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
 
         try {
             const response = await api.delete('/settings/general/logo');
@@ -506,3 +508,4 @@ const GeneralSettings = () => {
 };
 
 export default GeneralSettings;
+

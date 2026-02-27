@@ -1,7 +1,9 @@
 import Transaction from "./transaction.model.js";
+import mongoose from "mongoose";
 import Contact from "../contacts/contacts.model.js";
 import { companyModel } from "../companies/company.model.js";
 import { SUPPORTED_CURRENCIES } from "../../constants/currencies.js";
+import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
@@ -14,10 +16,26 @@ const createTransaction = (module, documentType) =>
     catchAsyncError(async (req, res, next) => {
         console.log(`[DEBUG] createTransaction called for ${module}/${documentType}`);
         const opData = { ...req.body };
-        const companyId = req.user.companyId;
+        if (typeof opData.payment === "string") {
+            try {
+                opData.payment = JSON.parse(opData.payment);
+            } catch (e) {
+                console.error("Error parsing payment JSON:", e);
+            }
+        }
+        let companyId = resolveCompanyIdForWrite(req);
+        if (!companyId && opData.contact) {
+            const contactDoc = await Contact.findById(opData.contact).select("companyId").lean();
+            companyId = contactDoc?.companyId ? String(contactDoc.companyId) : null;
+        }
+        if (!companyId) {
+            return next(new AppError("Unable to resolve company context for this transaction", 400));
+        }
         const company = companyId ? await companyModel.findById(companyId).select("defaultCurrency").lean() : null;
         const defaultCurrency = company?.defaultCurrency || "EGP";
-        opData.currency = SUPPORTED_CURRENCIES.includes(opData.currency) ? opData.currency : defaultCurrency;
+        const paymentCurrency = opData.payment?.currency;
+        const normalizedCurrency = String(paymentCurrency || opData.currency || "").trim().toUpperCase();
+        opData.currency = SUPPORTED_CURRENCIES.includes(normalizedCurrency) ? normalizedCurrency : defaultCurrency;
 
         // Check transactionNumber uniqueness per company
         if (opData.transactionNumber) {
@@ -167,6 +185,21 @@ const updateOne = catchAsyncError(async (req, res, next) => {
     if (!doc) return next(new AppError("غير موجود", 404));
 
     const opData = { ...req.body };
+    if (typeof opData.payment === "string") {
+        try {
+            opData.payment = JSON.parse(opData.payment);
+        } catch (e) {
+            console.error("Error parsing payment JSON:", e);
+        }
+    }
+    const company = doc.companyId
+        ? await companyModel.findById(doc.companyId).select("defaultCurrency").lean()
+        : null;
+    const defaultCurrency = company?.defaultCurrency || "EGP";
+    if (Object.prototype.hasOwnProperty.call(opData, "currency") || opData.payment?.currency) {
+        const normalizedCurrency = String(opData.payment?.currency || opData.currency || "").trim().toUpperCase();
+        opData.currency = SUPPORTED_CURRENCIES.includes(normalizedCurrency) ? normalizedCurrency : defaultCurrency;
+    }
 
     // Check transactionNumber uniqueness if changed
     if (opData.transactionNumber && opData.transactionNumber !== doc.transactionNumber) {
@@ -369,13 +402,13 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
     y += 10;
 
     doc.font("Helvetica");
-    const fmt = (n) => (n ?? 0).toFixed(2);
+    const fmt = (n) => Number(n ?? 0).toFixed(2);
     (transaction.items || []).forEach((item) => {
         const name = item.productName || item.product?.name || "—";
         const total = item.total ?? (item.quantity * item.unitPrice - (item.discountAmount || 0) + (item.taxAmount || 0));
         doc.fontSize(9).text(name.substring(0, 35), 40, y);
-        doc.text(String(item.quantity), 220, y);
-        doc.text(String(item.unitPrice ?? 0), 260, y);
+        doc.text(fmt(item.quantity), 220, y);
+        doc.text(fmt(item.unitPrice), 260, y);
         doc.text(`${fmt(total)} ${currencySymbol}`, 320, y);
         y += 18;
     });

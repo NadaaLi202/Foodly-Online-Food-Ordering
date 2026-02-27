@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, ChevronDown, ChevronRight, ChevronUp, FileSpreadsheet, FileText, Printer } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronRight, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import { exportBalanceSheetToExcel, buildAccountingReportPdf } from '../../../utils/accountingReportsExport';
+import api from '../../../services/api';
 
 const BalanceSheetReport = () => {
     const { t } = useTranslation();
 
     const [filters, setFilters] = useState({
-        toDate: '2026-02-09',
+        toDate: new Date().toISOString().slice(0, 10),
         displayedAccounts: 'all',
         branch: 'all',
     });
@@ -18,6 +19,14 @@ const BalanceSheetReport = () => {
         'assets-fixed': true,
         'liabilities': true,
         'equity': true,
+    });
+
+    const [loading, setLoading] = useState(false);
+    const [reportData, setReportData] = useState({
+        assets: { fixed: [], current: [], total: 0 },
+        liabilities: { current: [], longTerm: [], total: 0 },
+        equity: { items: [], total: 0 },
+        totalLiabilitiesAndEquity: 0
     });
 
     const toggleSection = (sectionId) => {
@@ -31,62 +40,49 @@ const BalanceSheetReport = () => {
         setFilters(prev => ({ ...prev, [field]: value }));
     };
 
-    // Placeholder data to match Image 2 structure
-    const reportData = {
-        assets: {
-            total: 100.00,
-            fixed: {
-                total: 0.00,
-                items: [
-                    { name: 'Buildings', code: '111', amount: 0.00 },
-                    { name: 'Lands', code: '112', amount: 0.00 },
-                    { name: 'Furniture', code: '113', amount: 0.00 },
-                    { name: 'Devices & Equipment', code: '114', amount: 0.00 },
-                    { name: 'Vehicles', code: '115', amount: 0.00 },
-                ]
-            },
-            current: {
-                total: 100.00,
-                items: [
-                    { name: 'Safes', code: '121', amount: 0.00 },
-                    { name: 'Bank Accounts', code: '122', amount: 0.00 },
-                    { name: 'POS Safes', code: '123', amount: 0.00 },
-                    { name: 'Employee Custody', code: '124', amount: 0.00 },
-                    { name: 'Inventories', code: '125', amount: 100.00 },
-                    { name: 'Debtors', code: '126', amount: 0.00 },
-                    { name: 'Cash Shortage', code: '127', amount: 0.00 },
-                    { name: 'Work in Progress', code: '128', amount: 0.00 },
-                    { name: 'Purchases Under Receipt', code: '129', amount: 0.00 },
-                ]
-            }
-        },
-        liabilities: {
-            total: 100.00,
-            current: {
-                total: 100.00, // Inferred
-                items: [
-                    { name: 'Creditors', code: '211', amount: 114.00 },
-                    { name: 'Depreciation', code: '212', amount: 0.00 },
-                    { name: 'Opening Balance', code: '213', amount: 0.00 },
-                    { name: 'VAT', code: '214', amount: -14.00 },
-                ]
-            },
-            longTerm: {
-                total: 0.00,
-                items: []
-            }
-        },
-        equity: {
-            total: 100.00,
-            items: [
-                { name: 'Capital', code: '31', amount: 0.00 },
-                { name: 'Retained Earnings', code: '32', amount: 0.00 },
-            ],
-            unallocatedProfitLoss: 0.00,
-            totalEquity: 0.00,
-            totalLiabilitiesAndEquity: 100.00
+    const fetchReport = useCallback(async () => {
+        setLoading(true);
+        try {
+            const response = await api.get('/reports/accounting/balance-sheet', {
+                params: {
+                    asOfDate: filters.toDate,
+                    branch: filters.branch !== 'all' ? filters.branch : undefined,
+                }
+            });
+            setReportData({
+                assets: response.data?.assets || { fixed: [], current: [], total: 0 },
+                liabilities: response.data?.liabilities || { current: [], longTerm: [], total: 0 },
+                equity: response.data?.equity || { items: [], total: 0 },
+                totalLiabilitiesAndEquity: response.data?.totalLiabilitiesAndEquity || 0
+            });
+        } catch (error) {
+            setReportData({
+                assets: { fixed: [], current: [], total: 0 },
+                liabilities: { current: [], longTerm: [], total: 0 },
+                equity: { items: [], total: 0 },
+                totalLiabilitiesAndEquity: 0
+            });
+        } finally {
+            setLoading(false);
         }
-    };
+    }, [filters.branch, filters.toDate]);
+
+    useEffect(() => {
+        fetchReport();
+    }, [fetchReport]);
+
+    const fixedTotal = useMemo(
+        () => (reportData.assets?.fixed || []).reduce((sum, item) => sum + (item.amount || 0), 0),
+        [reportData.assets?.fixed]
+    );
+    const currentTotal = useMemo(
+        () => (reportData.assets?.current || []).reduce((sum, item) => sum + (item.amount || 0), 0),
+        [reportData.assets?.current]
+    );
+    const liabilitiesCurrentTotal = useMemo(
+        () => (reportData.liabilities?.current || []).reduce((sum, item) => sum + (item.amount || 0), 0),
+        [reportData.liabilities?.current]
+    );
 
     const handleExportExcel = () => {
         exportBalanceSheetToExcel(reportData, t);
@@ -144,12 +140,11 @@ const BalanceSheetReport = () => {
                 )}
                 {!onClick && (isHeader || isSubHeader) && <span className="w-4"></span>}
 
-                {/* Icon placeholder for leaf nodes */}
                 {!isHeader && !isSubHeader && <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>}
 
                 <span>{label}</span>
             </div>
-            <span className={isHeader ? 'font-bold' : ''}>{amount.toFixed(2)}</span>
+            <span className={isHeader ? 'font-bold' : ''}>{Number(amount || 0).toFixed(2)}</span>
         </div>
     );
 
@@ -194,13 +189,15 @@ const BalanceSheetReport = () => {
 
                     {/* View Report Button */}
                     <div className="mb-6 no-print">
-                        <button className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">{t('reports.view_report')}</button>
+                        <button onClick={fetchReport} className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
+                            {loading ? t('reports.loading') || 'Loading...' : t('reports.view_report')}
+                        </button>
                     </div>
 
                     {/* Report Header & Export */}
                     <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100 no-print">
                         <div className="text-sm text-gray-700 font-medium">
-                            {t('reports.accounting.balance_sheet_title') || 'Balance Sheet To Date 2026 February 9, Monday'}
+                            {t('reports.accounting.balance_sheet_title') || 'Balance Sheet'}
                         </div>
                         <div className="flex items-center gap-2">
                             <button onClick={handleExportExcel} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
@@ -221,68 +218,68 @@ const BalanceSheetReport = () => {
                     {/* Report Content */}
                     <div className="border border-gray-200 rounded-lg overflow-hidden text-sm">
                         {/* Assets */}
-                        {renderRow(t('reports.accounting.assets') || 'Assets #1', reportData.assets.total, true, false, 0, () => toggleSection('assets'), expandedSections['assets'])}
+                        {renderRow(t('reports.accounting.assets') || 'Assets #1', reportData.assets.total || 0, true, false, 0, () => toggleSection('assets'), expandedSections['assets'])}
 
                         {expandedSections['assets'] && (
                             <>
                                 {/* Fixed Assets */}
-                                {renderRow(t('reports.accounting.fixed_assets') || 'Fixed Assets #11', reportData.assets.fixed.total, false, true, 1, () => toggleSection('assets-fixed'), expandedSections['assets-fixed'])}
-                                {expandedSections['assets-fixed'] && reportData.assets.fixed.items.map(item =>
-                                    renderRow(`${item.name} #${item.code}`, item.amount, false, false, 2)
+                                {renderRow(t('reports.accounting.fixed_assets') || 'Fixed Assets #11', fixedTotal, false, true, 1, () => toggleSection('assets-fixed'), expandedSections['assets-fixed'])}
+                                {expandedSections['assets-fixed'] && (reportData.assets.fixed || []).map(item =>
+                                    renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2)
                                 )}
 
                                 {/* Current Assets */}
-                                {renderRow(t('reports.accounting.current_assets') || 'Current Assets #12', reportData.assets.current.total, false, true, 1, () => toggleSection('assets-current'), expandedSections['assets-current'])}
-                                {expandedSections['assets-current'] && reportData.assets.current.items.map(item =>
-                                    renderRow(`${item.name} #${item.code}`, item.amount, false, false, 2)
+                                {renderRow(t('reports.accounting.current_assets') || 'Current Assets #12', currentTotal, false, true, 1, () => toggleSection('assets-current'), expandedSections['assets-current'])}
+                                {expandedSections['assets-current'] && (reportData.assets.current || []).map(item =>
+                                    renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2)
                                 )}
                             </>
                         )}
                         <div className="bg-gray-200 px-4 py-2 flex justify-between font-bold text-gray-900 border-t border-gray-300">
                             <span>{t('reports.accounting.total_assets') || 'Total Assets'}</span>
-                            <span>{reportData.assets.total.toFixed(2)}</span>
+                            <span>{Number(reportData.assets.total || 0).toFixed(2)}</span>
                         </div>
 
                         <div className="h-4 bg-gray-50 border-t border-b border-gray-200"></div>
 
                         {/* Liabilities */}
-                        {renderRow(t('reports.accounting.liabilities') || 'Liabilities #2', reportData.liabilities.total, true, false, 0, () => toggleSection('liabilities'), expandedSections['liabilities'])}
+                        {renderRow(t('reports.accounting.liabilities') || 'Liabilities #2', reportData.liabilities.total || 0, true, false, 0, () => toggleSection('liabilities'), expandedSections['liabilities'])}
                         {expandedSections['liabilities'] && (
                             <>
                                 {/* Current Liabilities */}
-                                {renderRow(t('reports.accounting.current_liabilities') || 'Current Liabilities #21', reportData.liabilities.current.total, false, true, 1, () => toggleSection('liabilities-current'), expandedSections['liabilities-current'])}
-                                {expandedSections['liabilities-current'] && reportData.liabilities.current.items.map(item =>
-                                    renderRow(`${item.name} #${item.code}`, item.amount, false, false, 2)
+                                {renderRow(t('reports.accounting.current_liabilities') || 'Current Liabilities #21', liabilitiesCurrentTotal, false, true, 1, () => toggleSection('liabilities-current'), expandedSections['liabilities-current'])}
+                                {expandedSections['liabilities-current'] && (reportData.liabilities.current || []).map(item =>
+                                    renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2)
                                 )}
 
                                 {/* Long Term Liabilities */}
-                                {renderRow(t('reports.accounting.long_term_liabilities') || 'Long Term Liabilities #22', reportData.liabilities.longTerm.total, false, true, 1, () => toggleSection('liabilities-longterm'), expandedSections['liabilities-longterm'])}
+                                {renderRow(t('reports.accounting.long_term_liabilities') || 'Long Term Liabilities #22', 0, false, true, 1, () => toggleSection('liabilities-longterm'), expandedSections['liabilities-longterm'])}
                             </>
                         )}
                         <div className="bg-gray-200 px-4 py-2 flex justify-between font-bold text-gray-900 border-t border-gray-300">
                             <span>{t('reports.accounting.total_liabilities') || 'Total Liabilities'}</span>
-                            <span>{reportData.liabilities.total.toFixed(2)}</span>
+                            <span>{Number(reportData.liabilities.total || 0).toFixed(2)}</span>
                         </div>
 
                         <div className="h-4 bg-gray-50 border-t border-b border-gray-200"></div>
 
                         {/* Equity */}
-                        {renderRow(t('reports.accounting.equity') || 'Equity #3', reportData.equity.total, true, false, 0, () => toggleSection('equity'), expandedSections['equity'])}
-                        {expandedSections['equity'] && reportData.equity.items.map(item =>
-                            renderRow(`${item.name} #${item.code}`, item.amount, false, false, 1)
+                        {renderRow(t('reports.accounting.equity') || 'Equity #3', reportData.equity.total || 0, true, false, 0, () => toggleSection('equity'), expandedSections['equity'])}
+                        {expandedSections['equity'] && (reportData.equity.items || []).map(item =>
+                            renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 1)
                         )}
 
                         <div className="bg-gray-100 px-4 py-2 flex justify-between font-semibold text-gray-800 border-b border-gray-200">
                             <span>{t('reports.accounting.unallocated_profit_loss') || 'Unallocated Profit/Loss'}</span>
-                            <span>{reportData.equity.unallocatedProfitLoss.toFixed(2)}</span>
+                            <span>{Number(reportData.equity.unallocatedProfitLoss || 0).toFixed(2)}</span>
                         </div>
                         <div className="bg-gray-100 px-4 py-2 flex justify-between font-semibold text-gray-800 border-b border-gray-200">
                             <span>{t('reports.accounting.total_equity') || 'Total Equity'}</span>
-                            <span>{reportData.equity.totalEquity.toFixed(2)}</span>
+                            <span>{Number(reportData.equity.total || 0).toFixed(2)}</span>
                         </div>
                         <div className="bg-gray-200 px-4 py-2 flex justify-between font-bold text-gray-900 border-t border-gray-300">
                             <span>{t('reports.accounting.total_liabilities_and_equity') || 'Total Liabilities and Equity'}</span>
-                            <span>{reportData.equity.totalLiabilitiesAndEquity.toFixed(2)}</span>
+                            <span>{Number(reportData.totalLiabilitiesAndEquity || 0).toFixed(2)}</span>
                         </div>
 
                     </div>

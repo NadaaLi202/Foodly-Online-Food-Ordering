@@ -37,6 +37,7 @@ import importRouter from "./import/import.routes.js";
 import exportRouter from "./export/export.routes.js";
 import codingRouter from "./coding/coding.routes.js";
 import apiClientRouter from "./apiClient/apiClient.routes.js";
+import costCenterRouter from "./costCenters/costCenter.routes.js";
 import { backupRouter } from "../backups/backup.routes.js"
 
 export function routes(app) {
@@ -78,6 +79,7 @@ export function routes(app) {
     app.use('/api/v1/export', exportRouter);
     app.use('/api/v1/coding', codingRouter);
     app.use('/api/v1/api-clients', apiClientRouter);
+    app.use('/api/v1/cost-centers', costCenterRouter);
     app.use("/api/v1/backups", backupRouter)
 
 

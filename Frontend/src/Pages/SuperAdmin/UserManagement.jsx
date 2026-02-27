@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import userService from '../../services/userService';
 import companyService from '../../services/companyService';
+import { confirmDelete } from '../../utils/confirmDelete';
 
 const UserManagement = () => {
     const { companyId } = useParams();
@@ -123,7 +124,8 @@ const UserManagement = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm(t('common.confirmDelete'))) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('common.confirmDelete'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
         setLoading(true);
         try {
             await userService.deleteUser(id);
@@ -286,7 +288,7 @@ const UserManagement = () => {
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    placeholder="••••••••"
+                                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                                 />
                             </div>
 
@@ -300,7 +302,7 @@ const UserManagement = () => {
                                     value={formData.confirmPassword}
                                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                                    placeholder="••••••••"
+                                    placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
                                 />
                             </div>
 
@@ -343,3 +345,4 @@ const UserManagement = () => {
 };
 
 export default UserManagement;
+

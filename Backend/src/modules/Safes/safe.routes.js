@@ -9,22 +9,23 @@ import {
 
 import { validation } from "../../middleware/validation.js";
 import { addSafeSchema, updateSafeSchema } from "./safe.validation.js";
-import { allowedTo, protectedRoutes } from "../auth/auth.controller.js";
+import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
 import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const router = express.Router();
 
 router.use(protectedRoutes, applyCompanyFilter);
+router.use(requireResourcePermission("finance_operations"));
 
 router
     .route("/")
-    .post(validation(addSafeSchema), allowedTo("superAdmin", "admin", "accountant"), addSafe)
-    .get(allowedTo("superAdmin", "admin", "accountant", "employee"), getAllSafes);
+    .post(validation(addSafeSchema), addSafe)
+    .get(getAllSafes);
 
 router
     .route("/:id")
-    .get(allowedTo("superAdmin", "admin", "accountant", "employee"), getSafeById)
-    .put(validation(updateSafeSchema), allowedTo("superAdmin", "admin", "accountant"), updateSafe)
-    .delete(allowedTo("superAdmin", "admin"), deleteSafe);
+    .get(getSafeById)
+    .put(validation(updateSafeSchema), updateSafe)
+    .delete(deleteSafe);
 
 export default router;

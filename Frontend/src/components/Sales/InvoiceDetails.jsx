@@ -9,7 +9,7 @@ import InvoiceLayout from '../invoice/InvoiceLayout';
 import InvoicePaymentsTab from './InvoicePaymentsTab';
 import { fetchPdfBlob, downloadBlob, openBlobInNewTab, getErrorMessage } from '../../utils/invoicePdf';
 
-const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, onRefreshInvoice, loading, i18n, viewTitleKey, filenamePrefix, paymentsModule = 'sales' }) => {
+const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, onRefreshInvoice, loading, i18n, viewTitleKey, filenamePrefix, paymentsModule = 'sales', canEdit = true, canDelete = true }) => {
     const { t } = useTranslation();
     const viewTitle = viewTitleKey ? t(viewTitleKey) : t('sales.invoices.view_invoice');
     const fPrefix = filenamePrefix || 'Invoice';
@@ -148,14 +148,18 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, onRefreshI
                 <div className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-10 print:hidden">
                     <h2 className={`text-lg font-black text-gray-800 ${isRTL ? 'text-right' : 'text-left'}`}>{viewTitle}</h2>
                     <div className="flex items-center gap-2">
-                        <button onClick={() => onEdit(invoice)} className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                            <Edit3 size={16} />
-                            <span className="hidden sm:inline">{t('sales.common.edit')}</span>
-                        </button>
-                        <button onClick={() => onDelete(invoice._id)} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                            <Trash2 size={16} />
-                            <span className="hidden sm:inline">{t('sales.common.delete')}</span>
-                        </button>
+                        {canEdit && (
+                            <button onClick={() => onEdit(invoice)} className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                                <Edit3 size={16} />
+                                <span className="hidden sm:inline">{t('sales.common.edit')}</span>
+                            </button>
+                        )}
+                        {canDelete && (
+                            <button onClick={() => onDelete(invoice._id)} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                                <Trash2 size={16} />
+                                <span className="hidden sm:inline">{t('sales.common.delete')}</span>
+                            </button>
+                        )}
                         <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
                             <X size={24} />
                         </button>

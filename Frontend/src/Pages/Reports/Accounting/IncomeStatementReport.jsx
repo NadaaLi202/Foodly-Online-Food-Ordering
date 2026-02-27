@@ -1,14 +1,24 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, ChevronRight, FileSpreadsheet, FileText, Printer } from 'lucide-react';
+import { exportIncomeStatementToExcel, buildAccountingReportPdf } from '../../../utils/accountingReportsExport';
+import api from '../../../services/api';
+
+const getMonthRange = (date = new Date()) => {
+    const start = new Date(date.getFullYear(), date.getMonth(), 1);
+    const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    const toISO = (d) => d.toISOString().slice(0, 10);
+    return { startDate: toISO(start), endDate: toISO(end) };
+};
 
 const IncomeStatementReport = () => {
     const { t } = useTranslation();
+    const { startDate: defaultFrom, endDate: defaultTo } = getMonthRange();
 
     const [filters, setFilters] = useState({
         period: 'current_month',
-        fromDate: '1-2-2026',
-        toDate: '28-2-2026',
+        fromDate: defaultFrom,
+        toDate: defaultTo,
         branch: 'all',
         displayedAccounts: 'all',
     });
@@ -22,6 +32,15 @@ const IncomeStatementReport = () => {
         'expenses-cogs': true,
         'expenses-admin': true,
         'expenses-other': true,
+    });
+
+    const [loading, setLoading] = useState(false);
+    const [reportData, setReportData] = useState({
+        revenue: [],
+        expenses: [],
+        totalRevenue: 0,
+        totalExpenses: 0,
+        netIncome: 0,
     });
 
     const toggleSection = (sectionId) => {
@@ -42,65 +61,127 @@ const IncomeStatementReport = () => {
         { value: 'current_year', label: t('reports.filters.current_year') },
     ];
 
-    // Placeholder data to match Image 3 structure
-    const reportData = {
-        revenue: {
-            total: 0.00,
-            sales: {
-                title: 'Sales Revenue #41',
-                items: [
-                    { name: 'Sales', code: '411', amount: 0.00 },
-                    { name: 'Sales Returns', code: '412', amount: 0.00 },
-                ]
-            },
-            other: {
-                title: 'Other Revenue #42',
-                items: [
-                    { name: 'Other Revenue', code: '421', amount: 0.00 },
-                    { name: 'Capital Gains', code: '422', amount: 0.00 },
-                    { name: 'Purchase Discounts', code: '423', amount: 0.00 },
-                ]
-            }
-        },
-        expenses: {
-            total: 0.00,
-            purchases: {
-                title: 'Purchase Expenses #51',
-                items: [
-                    { name: 'Purchases', code: '511', amount: 0.00 },
-                    { name: 'Purchase Returns', code: '512', amount: 0.00 },
-                ]
-            },
-            cogs: {
-                title: 'Cost of Goods Sold #52',
-                items: [
-                    { name: 'Cost of Goods Sold', code: '521', amount: 0.00 },
-                    { name: 'Allowed Discount', code: '522', amount: 0.00 },
-                    { name: 'Sales Discount', code: '523', amount: 0.00 },
-                ]
-            },
-            admin: {
-                title: 'Administrative Expenses #53',
-                items: [
-                    { name: 'Rent', code: '5301', amount: 0.00 },
-                    { name: 'Electricity', code: '5302', amount: 0.00 },
-                    { name: 'Phone & Internet', code: '5303', amount: 0.00 },
-                    { name: 'Maintenance', code: '5304', amount: 0.00 },
-                    { name: 'Water', code: '5305', amount: 0.00 },
-                    { name: 'Gov Expenses', code: '5306', amount: 0.00 },
-                    { name: 'Depreciation', code: '5307', amount: 0.00 },
-                ]
-            },
-            other: {
-                title: 'Other Expenses #54',
-                items: [
-                    { name: 'Bad Debts', code: '541', amount: 0.00 },
-                    { name: 'Inventory Shortage', code: '542', amount: 0.00 },
-                    { name: 'Other Expenses', code: '543', amount: 0.00 },
-                ]
-            }
+    const applyPeriod = (value) => {
+        const now = new Date();
+        if (value === 'current_month') {
+            return getMonthRange(now);
         }
+        if (value === 'last_month') {
+            const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            return getMonthRange(prev);
+        }
+        if (value === 'current_quarter') {
+            const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+            const start = new Date(now.getFullYear(), quarterStartMonth, 1);
+            const end = new Date(now.getFullYear(), quarterStartMonth + 3, 0);
+            return { startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) };
+        }
+        if (value === 'current_year') {
+            const start = new Date(now.getFullYear(), 0, 1);
+            const end = new Date(now.getFullYear(), 11, 31);
+            return { startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) };
+        }
+        return { startDate: filters.fromDate, endDate: filters.toDate };
     };
+
+    const fetchReport = useCallback(async () => {
+        setLoading(true);
+        try {
+            const response = await api.get('/reports/accounting/income-statement', {
+                params: {
+                    startDate: filters.fromDate,
+                    endDate: filters.toDate,
+                    branch: filters.branch !== 'all' ? filters.branch : undefined,
+                }
+            });
+            setReportData({
+                revenue: response.data?.revenue || [],
+                expenses: response.data?.expenses || [],
+                totalRevenue: response.data?.totalRevenue || 0,
+                totalExpenses: response.data?.totalExpenses || 0,
+                netIncome: response.data?.netIncome || 0,
+            });
+        } catch (error) {
+            setReportData({
+                revenue: [],
+                expenses: [],
+                totalRevenue: 0,
+                totalExpenses: 0,
+                netIncome: 0,
+            });
+        } finally {
+            setLoading(false);
+        }
+    }, [filters.branch, filters.fromDate, filters.toDate]);
+
+    useEffect(() => {
+        fetchReport();
+    }, [fetchReport]);
+
+    const grouped = useMemo(() => {
+        const revenue = reportData.revenue || [];
+        const expenses = reportData.expenses || [];
+        const groupByPrefix = (items, prefix) => items.filter((item) => String(item.code || '').startsWith(prefix));
+        const revenueSales = groupByPrefix(revenue, '41');
+        const revenueOther = groupByPrefix(revenue, '42');
+        const expensePurchases = groupByPrefix(expenses, '51');
+        const expenseCogs = groupByPrefix(expenses, '52');
+        const expenseAdmin = groupByPrefix(expenses, '53');
+        const expenseOther = groupByPrefix(expenses, '54');
+        return {
+            revenue: {
+                total: reportData.totalRevenue || 0,
+                sales: { title: t('reports.accounting.sales_revenue') || 'Sales Revenue #41', items: revenueSales },
+                other: { title: t('reports.accounting.other_revenue') || 'Other Revenue #42', items: revenueOther },
+            },
+            expenses: {
+                total: reportData.totalExpenses || 0,
+                purchases: { title: t('reports.accounting.purchase_expenses') || 'Purchase Expenses #51', items: expensePurchases },
+                cogs: { title: t('reports.accounting.cogs_expenses') || 'Cost of Goods Sold #52', items: expenseCogs },
+                admin: { title: t('reports.accounting.admin_expenses') || 'Administrative Expenses #53', items: expenseAdmin },
+                other: { title: t('reports.accounting.other_expenses') || 'Other Expenses #54', items: expenseOther },
+            },
+            netIncome: reportData.netIncome || 0,
+        };
+    }, [reportData, t]);
+
+    const sumItems = (items) => (items || []).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+    const handleExportExcel = () => {
+        exportIncomeStatementToExcel(reportData, t);
+    };
+
+    const handleExportPdf = () => {
+        const contentRows = [];
+        contentRows.push([t('reports.accounting.income_statement') || 'Income Statement']);
+        contentRows.push([t('reports.filters.from_date') || 'From Date', filters.fromDate]);
+        contentRows.push([t('reports.filters.to_date') || 'To Date', filters.toDate]);
+        contentRows.push([]);
+        contentRows.push([t('reports.accounting.revenue') || 'Revenue', fmtNum(grouped.revenue.total)]);
+        grouped.revenue.sales.items.forEach(item => contentRows.push(['', `${item.name || ''} #${item.code || ''}`, fmtNum(item.amount || 0)]));
+        grouped.revenue.other.items.forEach(item => contentRows.push(['', `${item.name || ''} #${item.code || ''}`, fmtNum(item.amount || 0)]));
+        contentRows.push([]);
+        contentRows.push([t('reports.accounting.expenses') || 'Expenses', fmtNum(grouped.expenses.total)]);
+        grouped.expenses.purchases.items.forEach(item => contentRows.push(['', `${item.name || ''} #${item.code || ''}`, fmtNum(item.amount || 0)]));
+        grouped.expenses.cogs.items.forEach(item => contentRows.push(['', `${item.name || ''} #${item.code || ''}`, fmtNum(item.amount || 0)]));
+        grouped.expenses.admin.items.forEach(item => contentRows.push(['', `${item.name || ''} #${item.code || ''}`, fmtNum(item.amount || 0)]));
+        grouped.expenses.other.items.forEach(item => contentRows.push(['', `${item.name || ''} #${item.code || ''}`, fmtNum(item.amount || 0)]));
+        contentRows.push([]);
+        contentRows.push([t('reports.accounting.net_income') || 'Net Income', fmtNum(grouped.netIncome)]);
+        const blob = buildAccountingReportPdf(t('reports.accounting.income_statement') || 'Income Statement', contentRows, t);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Income_Statement_${new Date().toISOString().slice(0, 10)}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const handlePrint = () => {
+        window.print();
+    };
+
+    const fmtNum = (n) => (n == null || n === '' || n === undefined) ? '' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     const renderRow = (label, amount, isHeader = false, isSubHeader = false, indent = 0, onClick = null, isOpen = false) => (
         <div
@@ -119,7 +200,7 @@ const IncomeStatementReport = () => {
 
                 <span>{label}</span>
             </div>
-            <span className={isHeader ? 'font-bold' : ''}>{amount.toFixed(2)}</span>
+            <span className={isHeader ? 'font-bold' : ''}>{fmtNum(amount)}</span>
         </div>
     );
 
@@ -132,7 +213,11 @@ const IncomeStatementReport = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.period')}</label>
                         <div className="relative">
-                            <select value={filters.period} onChange={(e) => handleFilterChange('period', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <select value={filters.period} onChange={(e) => {
+                                const value = e.target.value;
+                                const range = applyPeriod(value);
+                                setFilters(prev => ({ ...prev, period: value, fromDate: range.startDate, toDate: range.endDate }));
+                            }} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                                 {periodOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -182,24 +267,26 @@ const IncomeStatementReport = () => {
 
                 {/* View Report Button */}
                 <div className="mb-6">
-                    <button className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">{t('reports.view_report')}</button>
+                    <button onClick={fetchReport} className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
+                        {loading ? t('reports.loading') || 'Loading...' : t('reports.view_report')}
+                    </button>
                 </div>
 
                 {/* Report Header & Export */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
                     <div className="text-sm text-gray-700 font-medium">
-                        {t('reports.accounting.income_statement_title') || 'Income Statement From Date 2026 February 1, Sunday To Date 2026 February 28, Saturday'}
+                        {t('reports.accounting.income_statement_title') || 'Income Statement'} {t('reports.filters.from_date') || 'From Date'} {filters.fromDate} {t('reports.filters.to_date') || 'To Date'} {filters.toDate}
                     </div>
                     <div className="flex items-center gap-2">
-                        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
+                        <button onClick={handleExportExcel} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
                             <FileSpreadsheet className="w-3.5 h-3.5" />
                             {t('reports.export.excel')}
                         </button>
-                        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition-colors border border-purple-200">
+                        <button onClick={handleExportPdf} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition-colors border border-purple-200">
                             <FileText className="w-3.5 h-3.5" />
                             {t('reports.export.pdf')}
                         </button>
-                        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-200">
+                        <button onClick={handlePrint} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-200">
                             <Printer className="w-3.5 h-3.5" />
                             {t('reports.export.print')}
                         </button>
@@ -209,45 +296,45 @@ const IncomeStatementReport = () => {
                 {/* Report Content */}
                 <div className="border border-gray-200 rounded-lg overflow-hidden text-sm">
                     {/* Revenue */}
-                    {renderRow(t('reports.accounting.revenue') || 'Revenue #4', reportData.revenue.total, true, false, 0, () => toggleSection('revenue'), expandedSections['revenue'])}
+                    {renderRow(t('reports.accounting.revenue') || 'Revenue #4', grouped.revenue.total, true, false, 0, () => toggleSection('revenue'), expandedSections['revenue'])}
                     {expandedSections['revenue'] && (
                         <>
                             {/* Revenue Categories */}
-                            {renderRow(reportData.revenue.sales.title, 0.00, false, true, 1, () => toggleSection('revenue-sales'), expandedSections['revenue-sales'])}
-                            {expandedSections['revenue-sales'] && reportData.revenue.sales.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount, false, false, 2))}
+                            {renderRow(grouped.revenue.sales.title, sumItems(grouped.revenue.sales.items), false, true, 1, () => toggleSection('revenue-sales'), expandedSections['revenue-sales'])}
+                            {expandedSections['revenue-sales'] && grouped.revenue.sales.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
 
-                            {renderRow(reportData.revenue.other.title, 0.00, false, true, 1, () => toggleSection('revenue-other'), expandedSections['revenue-other'])}
-                            {expandedSections['revenue-other'] && reportData.revenue.other.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount, false, false, 2))}
+                            {renderRow(grouped.revenue.other.title, sumItems(grouped.revenue.other.items), false, true, 1, () => toggleSection('revenue-other'), expandedSections['revenue-other'])}
+                            {expandedSections['revenue-other'] && grouped.revenue.other.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
                         </>
                     )}
                     <div className="bg-gray-200 px-4 py-2 flex justify-between font-bold text-gray-900 border-t border-gray-300">
                         <span>{t('reports.accounting.total_revenue') || 'Revenue Total'}</span>
-                        <span>{reportData.revenue.total.toFixed(2)}</span>
+                        <span>{fmtNum(grouped.revenue.total)}</span>
                     </div>
 
                     <div className="h-4 bg-gray-50 border-t border-b border-gray-200"></div>
 
                     {/* Expenses */}
-                    {renderRow(t('reports.accounting.expenses') || 'Expenses #5', reportData.expenses.total, true, false, 0, () => toggleSection('expenses'), expandedSections['expenses'])}
+                    {renderRow(t('reports.accounting.expenses') || 'Expenses #5', grouped.expenses.total, true, false, 0, () => toggleSection('expenses'), expandedSections['expenses'])}
                     {expandedSections['expenses'] && (
                         <>
                             {/* Expenses Categories */}
-                            {renderRow(reportData.expenses.purchases.title, 0.00, false, true, 1, () => toggleSection('expenses-purchases'), expandedSections['expenses-purchases'])}
-                            {expandedSections['expenses-purchases'] && reportData.expenses.purchases.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount, false, false, 2))}
+                            {renderRow(grouped.expenses.purchases.title, sumItems(grouped.expenses.purchases.items), false, true, 1, () => toggleSection('expenses-purchases'), expandedSections['expenses-purchases'])}
+                            {expandedSections['expenses-purchases'] && grouped.expenses.purchases.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
 
-                            {renderRow(reportData.expenses.cogs.title, 0.00, false, true, 1, () => toggleSection('expenses-cogs'), expandedSections['expenses-cogs'])}
-                            {expandedSections['expenses-cogs'] && reportData.expenses.cogs.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount, false, false, 2))}
+                            {renderRow(grouped.expenses.cogs.title, sumItems(grouped.expenses.cogs.items), false, true, 1, () => toggleSection('expenses-cogs'), expandedSections['expenses-cogs'])}
+                            {expandedSections['expenses-cogs'] && grouped.expenses.cogs.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
 
-                            {renderRow(reportData.expenses.admin.title, 0.00, false, true, 1, () => toggleSection('expenses-admin'), expandedSections['expenses-admin'])}
-                            {expandedSections['expenses-admin'] && reportData.expenses.admin.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount, false, false, 2))}
+                            {renderRow(grouped.expenses.admin.title, sumItems(grouped.expenses.admin.items), false, true, 1, () => toggleSection('expenses-admin'), expandedSections['expenses-admin'])}
+                            {expandedSections['expenses-admin'] && grouped.expenses.admin.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
 
-                            {renderRow(reportData.expenses.other.title, 0.00, false, true, 1, () => toggleSection('expenses-other'), expandedSections['expenses-other'])}
-                            {expandedSections['expenses-other'] && reportData.expenses.other.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount, false, false, 2))}
+                            {renderRow(grouped.expenses.other.title, sumItems(grouped.expenses.other.items), false, true, 1, () => toggleSection('expenses-other'), expandedSections['expenses-other'])}
+                            {expandedSections['expenses-other'] && grouped.expenses.other.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
                         </>
                     )}
                     <div className="bg-gray-200 px-4 py-2 flex justify-between font-bold text-gray-900 border-t border-gray-300">
                         <span>{t('reports.accounting.total_expenses') || 'Expenses Total'}</span>
-                        <span>{reportData.expenses.total.toFixed(2)}</span>
+                        <span>{fmtNum(grouped.expenses.total)}</span>
                     </div>
 
                 </div>

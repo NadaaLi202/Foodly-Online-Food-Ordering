@@ -7,6 +7,7 @@ import InvoiceList from './InvoiceList';
 import InvoiceForm from './InvoiceForm';
 import InvoiceDetails from './InvoiceDetails';
 import api from '../../services/api';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const TransactionPage = ({ configKey }) => {
     const { t, i18n } = useTranslation();
@@ -19,8 +20,23 @@ const TransactionPage = ({ configKey }) => {
     const [loading, setLoading] = useState(false);
     const [view, setView] = useState('list');
     const [selected, setSelected] = useState(null);
+    const { hasPermission, loadingPermissions } = usePermissions();
+
+    const permissionModule = configKey?.startsWith('sales_')
+        ? 'sales_invoices'
+        : configKey?.startsWith('purchases_')
+            ? 'purchase_invoices'
+            : null;
+    const canView = permissionModule ? hasPermission(permissionModule, 'view') : true;
+    const canAdd = permissionModule ? hasPermission(permissionModule, 'add') : true;
+    const canEdit = permissionModule ? hasPermission(permissionModule, 'edit') : true;
+    const canDelete = permissionModule ? hasPermission(permissionModule, 'delete') : true;
 
     const fetchList = useCallback(async () => {
+        if (!canView) {
+            setItems([]);
+            return;
+        }
         setLoading(true);
         try {
             const queryParams = {};
@@ -33,7 +49,7 @@ const TransactionPage = ({ configKey }) => {
         } finally {
             setLoading(false);
         }
-    }, [config.listUrl, contactId]);
+    }, [config.listUrl, contactId, canView]);
 
     useEffect(() => {
         fetchList();
@@ -59,11 +75,19 @@ const TransactionPage = ({ configKey }) => {
     }, [openId]);
 
     const handleAddClick = () => {
+        if (!canAdd) {
+            toast.error(t('sales.common.error_message'));
+            return;
+        }
         setSelected(null);
         setView('add');
     };
 
     const handleItemClick = async (item) => {
+        if (!canView) {
+            toast.error(t('sales.common.error_message'));
+            return;
+        }
         setLoading(true);
         try {
             const response = await api.get(config.getOneUrl(item._id));
@@ -79,6 +103,10 @@ const TransactionPage = ({ configKey }) => {
     };
 
     const handleEditClick = async (item) => {
+        if (!canEdit) {
+            toast.error(t('sales.common.error_message'));
+            return;
+        }
         setLoading(true);
         try {
             const response = await api.get(config.getOneUrl(item._id));
@@ -94,6 +122,14 @@ const TransactionPage = ({ configKey }) => {
     };
 
     const handleSave = async (formData, options = {}) => {
+        if (selected && !canEdit) {
+            toast.error(t('sales.common.error_message'));
+            return;
+        }
+        if (!selected && !canAdd) {
+            toast.error(t('sales.common.error_message'));
+            return;
+        }
         setLoading(true);
         try {
             const url = selected ? config.getOneUrl(selected._id) : config.createUrl;
@@ -132,6 +168,10 @@ const TransactionPage = ({ configKey }) => {
     };
 
     const handleDelete = async (id) => {
+        if (!canDelete) {
+            toast.error(t('sales.common.error_message'));
+            return;
+        }
         try {
             await api.delete(config.getOneUrl(id));
             toast.success(t('sales.common.success_message'));
@@ -159,6 +199,15 @@ const TransactionPage = ({ configKey }) => {
 
     return (
         <div className="min-h-screen bg-gray-50 overflow-hidden" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
+            {!loadingPermissions && !canView && (
+                <div className="p-6">
+                    <div className="bg-white rounded-xl border border-red-100 p-6 text-red-600 font-bold text-sm">
+                        {t('sales.common.error_message')}
+                    </div>
+                </div>
+            )}
+            {!loadingPermissions && canView && (
+                <>
             {view === 'list' && (
                 <InvoiceList
                     invoices={items}
@@ -171,6 +220,7 @@ const TransactionPage = ({ configKey }) => {
                     startKey={config.startKey}
                     clientLabelKey={config.clientLabelKey}
                     isSupplier={configKey?.includes('purchases')}
+                    canAdd={canAdd}
                 />
             )}
 
@@ -212,7 +262,11 @@ const TransactionPage = ({ configKey }) => {
                     viewTitleKey={config.viewTitleKey}
                     filenamePrefix={config.filenamePrefix}
                     paymentsModule={configKey?.includes('sales') ? 'sales' : 'purchases'}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
                 />
+            )}
+                </>
             )}
         </div>
     );

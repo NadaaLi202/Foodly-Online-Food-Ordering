@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import {
     User,
     ShieldCheck,
-    Contact,
     ChevronRight
 } from 'lucide-react';
 
@@ -29,15 +28,6 @@ const UsersMainPage = () => {
             iconBg: 'bg-purple-50',
             iconColor: 'text-purple-600',
             link: '/dashboard/users/roles',
-        },
-        {
-            id: 'contacts',
-            title: t('sidebar.customers'), // Using sidebar.customers or adding sidebar.contacts
-            description: t('reports.clients.client_general_ledger_desc', 'Manage external contacts'),
-            icon: Contact,
-            iconBg: 'bg-emerald-50',
-            iconColor: 'text-emerald-600',
-            link: '/dashboard/users/contacts',
         },
     ];
 

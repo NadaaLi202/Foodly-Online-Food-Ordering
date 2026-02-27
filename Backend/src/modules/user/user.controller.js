@@ -2,6 +2,7 @@ import { userModel } from "./user.model.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
+import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
 
 const addUser = catchAsyncError(async (req, res, next) => {
     // Remove confirmPassword before processing (should not be stored)
@@ -29,23 +30,21 @@ const addUser = catchAsyncError(async (req, res, next) => {
         }
     }
 
-    // Validate companyId for non-superAdmin users
-    if (userData.role !== 'superAdmin' && !userData.companyId) {
-        // If req.companyFilter has a companyId, use it
-        if (req.companyFilter && req.companyFilter.companyId) {
-            userData.companyId = req.companyFilter.companyId;
-        } else {
-            return next(new AppError('Company ID is required for non-superAdmin users', 400));
+    // Resolve tenant company context for non-superAdmin created users.
+    if (userData.role !== 'superAdmin') {
+        userData.companyId = userData.companyId || resolveCompanyIdForWrite(req);
+        if (!userData.companyId) {
+            return next(new AppError('Unable to resolve company context for user creation', 400));
         }
     }
 
-    // Set systemRole: superAdmin stays superAdmin, others are companyOwner
+    // Set systemRole: only superAdmin is allowed for user accounts.
     if (userData.role === 'superAdmin') {
         userData.systemRole = 'superAdmin';
         userData.companyId = undefined;
         userData.roleId = undefined;
     } else {
-        userData.systemRole = userData.systemRole || 'companyOwner';
+        userData.systemRole = null;
     }
 
     if (req.file) {

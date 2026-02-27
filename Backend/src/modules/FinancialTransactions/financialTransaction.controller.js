@@ -6,6 +6,19 @@ import { bankAccountModel } from "../BankAccounts/bankAccount.model.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
+import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
+
+const round2 = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+const normalizeTaxesPercent = (value) => {
+    if (value === null || value === undefined || value === '') return 0;
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (normalized === 'none') return 0;
+        if (normalized === 'vat_14') return 14;
+    }
+    const numeric = Number(value);
+    return Number.isFinite(numeric) && numeric >= 0 ? round2(numeric) : 0;
+};
 
 // Helper to get correct model
 const getModel = (type) => {
@@ -25,7 +38,10 @@ const updateBalance = async (modelName, accountId, amount) => {
 
 const createFinancialTransaction = catchAsyncError(async (req, res, next) => {
     const { type, ...rest } = req.body;
-    const companyId = req.user.companyId;
+    const companyId = resolveCompanyIdForWrite(req);
+    if (!companyId) {
+        return next(new AppError("Unable to resolve company context for financial transaction", 400));
+    }
     const Model = getModel(type);
 
     // Check code uniqueness across all three models to prevent duplicates
@@ -38,6 +54,10 @@ const createFinancialTransaction = catchAsyncError(async (req, res, next) => {
     if (existing.some(e => e)) return next(new AppError("رقم المعاملة موجود بالفعل", 409));
 
     const data = { ...rest };
+    data.amount = round2(Number(data.amount || 0));
+    if (type !== 'transfer') {
+        data.taxes = normalizeTaxesPercent(data.taxes);
+    }
 
     // Safely parse attachments if they come as a JSON string
     if (typeof data.attachments === 'string') {
@@ -179,6 +199,10 @@ const updateFinancialTransaction = catchAsyncError(async (req, res, next) => {
     };
 
     const newData = { ...req.body };
+    newData.amount = round2(Number(newData.amount || 0));
+    if (type !== 'transfer') {
+        newData.taxes = normalizeTaxesPercent(newData.taxes);
+    }
 
     // Safely parse attachments if they come as a JSON string
     if (typeof newData.attachments === 'string') {

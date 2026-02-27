@@ -4,6 +4,8 @@
 import mongoose from "mongoose";
 import { SUPPORTED_CURRENCIES } from "../../constants/currencies.js";
 
+const round2 = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+
 const transactionLineSchema = new mongoose.Schema({
     product: {
         type: mongoose.Schema.Types.ObjectId,
@@ -258,31 +260,40 @@ transactionSchema.pre('save', function (next) {
     this.totalTax = 0;
 
     this.items.forEach(item => {
-        const lineSubtotal = item.quantity * item.unitPrice;
+        const quantity = Number(item.quantity || 0);
+        const unitPrice = Number(item.unitPrice || 0);
+        const discountPercent = Number(item.discountPercent || 0);
+        const fixedDiscountAmount = Number(item.discountAmount || 0);
+        const taxPercent = Number(item.taxPercent || 0);
 
-        item.discountAmount = lineSubtotal * (item.discountPercent / 100);
-        item.subtotal = lineSubtotal - item.discountAmount;
+        const lineSubtotal = round2(quantity * unitPrice);
 
-        item.taxAmount = item.subtotal * (item.taxPercent / 100);
-        item.total = item.subtotal + item.taxAmount;
+        const computedDiscount = discountPercent > 0
+            ? round2(lineSubtotal * (discountPercent / 100))
+            : round2(Math.min(Math.max(fixedDiscountAmount, 0), lineSubtotal));
+        item.discountAmount = computedDiscount;
+        item.subtotal = round2(lineSubtotal - item.discountAmount);
 
-        this.subtotal += item.subtotal;
-        this.totalDiscount += item.discountAmount;
-        this.totalTax += item.taxAmount;
+        item.taxAmount = round2(item.subtotal * (taxPercent / 100));
+        item.total = round2(item.subtotal + item.taxAmount);
+
+        this.subtotal = round2(this.subtotal + item.subtotal);
+        this.totalDiscount = round2(this.totalDiscount + item.discountAmount);
+        this.totalTax = round2(this.totalTax + item.taxAmount);
     });
 
     if (this.generalDiscountPercent > 0) {
-        this.generalDiscount = this.subtotal * (this.generalDiscountPercent / 100);
+        this.generalDiscount = round2(this.subtotal * (this.generalDiscountPercent / 100));
     }
 
-    this.subtotal -= this.generalDiscount;
-    this.totalDiscount += this.generalDiscount;
+    this.subtotal = round2(this.subtotal - (this.generalDiscount || 0));
+    this.totalDiscount = round2(this.totalDiscount + (this.generalDiscount || 0));
 
-    this.totalAmount = this.subtotal + this.totalTax;
+    this.totalAmount = round2(this.subtotal + this.totalTax);
 
     // ✅ التعديل المهم هنا
     if (this.documentType === 'invoice') {
-        this.remainingAmount = this.totalAmount - this.paidAmount;
+        this.remainingAmount = round2(this.totalAmount - (this.paidAmount || 0));
     } else {
         this.remainingAmount = 0;
     }

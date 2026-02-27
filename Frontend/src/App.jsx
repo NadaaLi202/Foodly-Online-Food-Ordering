@@ -16,6 +16,7 @@ import ImportingSettings from './Pages/Settings/ImportingSettings';
 import ExportingSettings from './Pages/Settings/ExportingSettings';
 import CodingSettings from './Pages/Settings/CodingSettings';
 import ApiSettings from './Pages/Settings/ApiSettings';
+import BackupSettings from './Pages/Settings/BackupSettings';
 import ImportEntityPage from './Pages/Settings/ImportEntityPage';
 import PurchasesPage from './Pages/PurchasesPage';
 import PurchaseInvoices from './Pages/Purchases/PurchaseInvoices';
@@ -37,6 +38,7 @@ import Warehouses from './Pages/Inventory/Warehouses';
 import Inventories from './Pages/Inventory/Inventories';
 import JournalEntries from './Pages/Accounting/JournalEntries';
 import ChartOfAccounts from './Pages/Accounting/ChartOfAccounts';
+import CostCenters from './Pages/Accounting/CostCenters';
 import Branches from './Pages/Branches/Branches';
 import PartnerLists from './Pages/Branches/PartnerLists';
 import Activities from './Pages/Branches/Activities';
@@ -45,7 +47,6 @@ import Transactions from './Pages/Finance/Transactions';
 import PermissionsFinance from './Pages/Finance/Permissions';
 import Safes from './Pages/Finance/Safes';
 import BankAccounts from './Pages/Finance/BankAccounts';
-import Contacts from './Pages/Users/Contacts';
 import Users from './Pages/Users/Users';
 import Roles from './Pages/Users/Roles';
 import LandingPage from './Pages/LandingPage';
@@ -167,6 +168,7 @@ function App() {
               <Route index element={<AccountingMainPage />} />
               <Route path="journal-entries" element={<JournalEntries />} />
               <Route path="chart-of-accounts" element={<ChartOfAccounts />} />
+              <Route path="cost-centers" element={<CostCenters />} />
             </Route>
 
             <Route path="reports">
@@ -233,7 +235,6 @@ function App() {
             <Route path="users">
               <Route index element={<UsersMainPage />} />
               <Route path="list" element={<Users />} />
-              <Route path="contacts" element={<Contacts />} />
               <Route path="roles" element={<Roles />} />
             </Route>
 
@@ -268,6 +269,7 @@ function App() {
             <Route path="export" element={<ExportingSettings />} />
             <Route path="coding" element={<CodingSettings />} />
             <Route path="api" element={<ApiSettings />} />
+            <Route path="backups" element={<BackupSettings />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

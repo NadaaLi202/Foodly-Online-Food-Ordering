@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import { confirmDelete } from '../../utils/confirmDelete';
 
 const Inventories = () => {
     const { t, i18n } = useTranslation();
@@ -88,7 +89,8 @@ const Inventories = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد من الحذف؟' : 'Are you sure you want to delete?')) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('sales.common.confirm_delete', 'Are you sure you want to delete?'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
 
         setLoading(true);
         try {
@@ -304,3 +306,5 @@ const Inventories = () => {
 };
 
 export default Inventories;
+
+

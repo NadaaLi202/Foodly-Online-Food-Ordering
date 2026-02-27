@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, RefreshCw, X, FolderTree } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import { confirmDelete } from '../../utils/confirmDelete';
 
 const Categories = () => {
     const { t, i18n } = useTranslation();
@@ -123,7 +124,8 @@ const Categories = () => {
 
     // Handle Delete
     const handleDelete = async (id) => {
-        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد من حذف هذا التصنيف؟' : 'Are you sure you want to delete this category?')) {
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete'), message: t('sales.common.confirm_delete'), confirmText: t('sales.common.confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) {
             return;
         }
 
@@ -362,3 +364,6 @@ const Categories = () => {
 };
 
 export default Categories;
+
+
+

@@ -70,6 +70,7 @@
         "settings_export": "Export Settings",
         "settings_coding": "Coding Settings",
         "settings_api": "API",
+        "settings_backups": "System Backups",
         "sign_out": "Sign Out"
     },
     "sales_settings": {
@@ -262,8 +263,19 @@
             "separator": "Separator",
             "example": "Example",
             "current_sequence": "Current Sequence",
-            "main_branch": "Main Branch"
+            "main_branch": "Main Branch",
+            "branch_label": "Branch",
+            "save_btn": "Save",
+            "no_separator": "None",
+            "branch_scope_branch": "Branch Scope",
+            "branch_scope_global": "Global Scope"
         },
+        "validation": {
+            "prefix_required": "Prefix is required",
+            "min_digits": "Min digits must be at least 1",
+            "sequence": "Sequence must be greater than or equal to 0"
+        },
+        "success_title": "Saved successfully",
         "success_save": "Coding settings saved successfully",
         "success_sequence": "Sequence updated successfully"
     },
@@ -285,6 +297,60 @@
         },
         "success_create": "API Client created successfully",
         "success_delete": "API Client deleted successfully"
+    },
+    "backup_settings": {
+        "title": "System Backups",
+        "create": "Create Backup",
+        "date": "Date",
+        "format": "Format",
+        "size": "File Size",
+        "storage": "Storage",
+        "status": "Status",
+        "empty": "No backups found",
+        "download": "Download",
+        "restore": "Restore",
+        "restore_title": "Restore Backup",
+        "restore_warning": "This action may overwrite existing data.",
+        "restore_confirm": "I understand and want to proceed",
+        "restore_wipe": "Wipe existing data before restore",
+        "restore_now": "Restore"
+    },
+    "cost_centers": {
+        "tile_desc": "Manage main and sub cost centers",
+        "add_btn": "Add",
+        "empty": "No cost centers yet. Add one to get started.",
+        "table": {
+            "name": "Name",
+            "actions": "Actions"
+        },
+        "modal": {
+            "add_title": "Add Cost Center",
+            "edit_title": "Edit Cost Center",
+            "type": "Type",
+            "main": "Main",
+            "sub": "Sub",
+            "name": "Name",
+            "parent": "Parent Cost Center",
+            "parent_placeholder": "Search for main cost center...",
+            "loading_parents": "Loading main cost centers...",
+            "parent_empty_hint": "No matching main cost centers found (Projects, Departments, Activities, Products)."
+        },
+        "field_labels": {
+            "cost_center": "Cost Center",
+            "choose_cost_center": "Choose cost center"
+        },
+        "validation": {
+            "name_required": "Name is required",
+            "parent_required": "Parent is required for sub cost center",
+            "main_parent_null": "Main cost center must not have a parent"
+        },
+        "success": {
+            "create": "Cost center created successfully",
+            "update": "Cost center updated successfully",
+            "delete": "Cost center deleted successfully"
+        },
+        "delete_title": "Delete Cost Center",
+        "delete_message": "Are you sure you want to delete {{name}}?"
     },
     "reports": {
         "total": "Total",
@@ -386,7 +452,10 @@
             "products_with_quantity": "Products with Quantity",
             "highest_value": "Highest Value",
             "lowest_value": "Lowest Value",
-            "all_warehouses": "All Warehouses"
+            "all_warehouses": "All Warehouses",
+            "taxes": "Taxes",
+            "all_taxes": "All Taxes",
+            "group_no": "Invoice"
         },
         "table": {
             "month": "Month",
@@ -499,8 +568,15 @@
             "total_liabilities_and_equity": "Total Liabilities & Equity",
             "revenue": "Revenue",
             "total_revenue": "Total Revenue",
+            "sales_revenue": "Sales Revenue",
+            "other_revenue": "Other Revenue",
             "expenses": "Expenses",
             "total_expenses": "Total Expenses",
+            "purchase_expenses": "Purchase Expenses",
+            "cogs_expenses": "Cost of Goods Sold",
+            "admin_expenses": "Administrative Expenses",
+            "other_expenses": "Other Expenses",
+            "net_income": "Net Income",
             "tax": {
                 "summary_report_title": "Summary Tax Report",
                 "detailed_report_title": "Detailed Tax Report",
@@ -776,6 +852,7 @@
             "apply": "Apply",
             "edit": "Edit",
             "delete": "Delete",
+            "confirm": "Confirm",
             "confirm_delete": "Are you sure you want to delete?",
             "close": "Close",
             "print": "Print",
@@ -810,7 +887,8 @@
             "description_placeholder": "Enter description",
             "safe": "Safe / Account",
             "before_tax": "(before tax)",
-            "choose_client": "Choose Client"
+            "choose_client": "Choose Client",
+            "custom": "Custom"
         },
         "invoices": {
             "title": "Invoices",
@@ -1464,7 +1542,15 @@
             "purchase_report": "Purchase Report",
             "supplier_payments_report": "Supplier Payments Report",
             "balance_sheet": "Balance Sheet Report",
-            "income_statement": "Income Statement Report"
+            "income_statement": "Income Statement Report",
+            "users": "Users",
+            "roles": "Roles",
+            "import": "Import",
+            "export": "Export",
+            "coding": "Coding",
+            "api_clients": "API Clients",
+            "activity": "Activity",
+            "zatca": "ZATCA"
         }
     },
     "superAdmin": {
