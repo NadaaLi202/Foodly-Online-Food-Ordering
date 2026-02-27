@@ -2,6 +2,13 @@ import { dailyRestrictionModel } from "./dailyRestrictions.model.js";
 import { AppError } from "../../utils/AppError.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
+import { settingsModel } from "../settings/settings.model.js";
+
+const isCostCentersEnabled = async (companyId) => {
+    if (!companyId) return false;
+    const doc = await settingsModel.findOne({ companyId, category: 'accounting' });
+    return Boolean(doc?.settings?.enable_cost_centers);
+};
 
 const addRestriction = catchAsyncError(async (req, res, next) => {
     const companyId = req.user?.companyId;
@@ -13,6 +20,7 @@ const addRestriction = catchAsyncError(async (req, res, next) => {
         ...req.body,
         companyId
     };
+    const costCentersEnabled = await isCostCentersEnabled(companyId);
 
     // Ensure numeric fields from FormData (all body fields come as strings)
     restrictionData.totalDebit = Number(restrictionData.totalDebit) || 0;
@@ -23,8 +31,9 @@ const addRestriction = catchAsyncError(async (req, res, next) => {
 
     // Map accountId to account for model (entries already parsed by parseJournalEntries)
     if (Array.isArray(restrictionData.entries)) {
-        restrictionData.entries = restrictionData.entries.map(({ accountId, debit, credit, description }) => ({
+        restrictionData.entries = restrictionData.entries.map(({ accountId, costCenterId, debit, credit, description }) => ({
             account: accountId ?? '',
+            costCenterId: costCentersEnabled ? (costCenterId || null) : null,
             debit: Number(debit) || 0,
             credit: Number(credit) || 0,
             description: description ?? ''
@@ -60,6 +69,8 @@ const getRestrictionById = catchAsyncError(async (req, res, next) => {
 
 const updateRestriction = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
+    const companyId = req.user?.companyId;
+    const costCentersEnabled = await isCostCentersEnabled(companyId);
 
     let existingRestriction = await dailyRestrictionModel.findOne({ _id: id, ...req.companyFilter });
     if (!existingRestriction) {
@@ -77,6 +88,7 @@ const updateRestriction = catchAsyncError(async (req, res, next) => {
     if (Array.isArray(updateData.entries)) {
         updateData.entries = updateData.entries.map((entry) => ({
             account: entry.accountId ?? entry.account ?? '',
+            costCenterId: costCentersEnabled ? (entry.costCenterId || null) : null,
             debit: Number(entry.debit) || 0,
             credit: Number(entry.credit) || 0,
             description: entry.description ?? ''

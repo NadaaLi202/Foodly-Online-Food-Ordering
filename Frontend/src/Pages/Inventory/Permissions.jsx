@@ -17,6 +17,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import { confirmDelete } from '../../utils/confirmDelete';
 
 const PERMISSION_TYPES = [
     { value: 'financial', labelKey: 'stocked.permissions.type_financial' },
@@ -162,7 +163,8 @@ const Permissions = () => {
     };
 
     const handleDeletePermission = async (id) => {
-        if (!window.confirm(t('stocked.permissions.confirm_delete', 'Are you sure you want to delete this permission?'))) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('stocked.permissions.confirm_delete', 'Are you sure you want to delete this permission?'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
         setLoading(true);
         try {
             const response = await api.delete(`/requisitions/${id}`);
@@ -548,3 +550,4 @@ const Permissions = () => {
 };
 
 export default Permissions;
+

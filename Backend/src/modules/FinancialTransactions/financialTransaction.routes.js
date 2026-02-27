@@ -7,7 +7,7 @@ import {
     deleteFinancialTransaction
 } from "./financialTransaction.controller.js";
 import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadFiles.js";
-import { allowedTo, protectedRoutes } from "../auth/auth.controller.js";
+import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
 import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 import { validation } from "../../middleware/validation.js";
 import { receiptSchema, disbursementSchema, transferSchema } from "./financialTransaction.validation.js";
@@ -26,32 +26,28 @@ const validateTransaction = (req, res, next) => {
 };
 
 router.use(protectedRoutes, applyCompanyFilter);
+router.use(requireResourcePermission("finance_operations"));
 
 router.route("/")
     .post(
         uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 5 }]),
         validateTransaction,
-        allowedTo("superAdmin", "admin", "accountant"),
         createFinancialTransaction
     )
     .get(
-        allowedTo("superAdmin", "admin", "accountant", "employee"),
         getAllFinancialTransactions
     );
 
 router.route("/:id")
     .get(
-        allowedTo("superAdmin", "admin", "accountant", "employee"),
         getOneTransaction
     )
     .patch(
         uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 5 }]),
         validateTransaction,
-        allowedTo("superAdmin", "admin", "accountant"),
         updateFinancialTransaction
     )
     .delete(
-        allowedTo("superAdmin", "admin"),
         deleteFinancialTransaction
     );
 

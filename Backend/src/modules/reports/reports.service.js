@@ -3,6 +3,7 @@ import { returnModel as ReturnDoc } from "../returns/returns.model.js";
 import Transaction from "../transaction/transaction.model.js";
 import Payment from "../payments/payments.model.js";
 import Contact from "../contacts/contacts.model.js";
+import { taxesModel } from "../taxes/taxes.model.js";
 import { productModel } from "../product/product.model.js";
 import { chartOfAccountsModel } from "../chartOfAccounts/chartOfAccounts.model.js";
 import { dailyRestrictionModel } from "../dailyRestrictions/dailyRestrictions.model.js";
@@ -1857,10 +1858,24 @@ export async function getGeneralLedger(startDate, endDate, companyFilter, filter
 /**
  * Tax Reports: Summary and detailed tax calculations from transactions.
  */
+async function resolveTaxPercent(taxId, taxPercent, companyFilter) {
+    if (taxPercent !== undefined && taxPercent !== null && String(taxPercent).trim() !== "") {
+        const value = Number(taxPercent);
+        return Number.isFinite(value) ? value : null;
+    }
+    if (taxId) {
+        const tax = await taxesModel.findOne({ _id: taxId, ...companyFilter }).select("percentage").lean();
+        if (!tax) return null;
+        const value = Number(tax.percentage);
+        return Number.isFinite(value) ? value : null;
+    }
+    return null;
+}
+
 export async function getTaxSummary(startDate, endDate, companyFilter, filters = {}) {
-    const { branch } = filters;
+    const { branch, taxId, taxPercent } = filters;
     const { start, end } = getDateRange(startDate, endDate);
-    const query = {
+    const baseMatch = {
         ...companyFilter,
         $or: [{ module: "sales" }, { module: "purchases" }],
         documentType: { $in: ["invoice", "return"] },
@@ -1868,34 +1883,104 @@ export async function getTaxSummary(startDate, endDate, companyFilter, filters =
         status: { $ne: "draft" },
         deletedAt: { $in: [null, undefined] },
     };
-    if (branch && branch !== "all") query.warehouse = branch;
-    const transactions = await Transaction.find(query).select("module documentType totalTax totalAmount issueDate").lean();
-    let totalSalesTax = 0;
-    let totalPurchaseTax = 0;
-    let totalSalesAmount = 0;
-    let totalPurchaseAmount = 0;
-    for (const txn of transactions) {
-        const tax = Number(txn.totalTax || 0);
-        const amount = Number(txn.totalAmount || 0);
-        if (txn.module === "sales") {
-            totalSalesTax += tax;
-            totalSalesAmount += amount;
-        } else {
-            totalPurchaseTax += tax;
-            totalPurchaseAmount += amount;
+    if (branch && branch !== "all") baseMatch.warehouse = branch;
+
+    const resolvedPercent = await resolveTaxPercent(taxId, taxPercent, companyFilter);
+
+    const breakdown = {
+        salesInvoices: { taxableAmount: 0, taxAmount: 0 },
+        salesReturns: { taxableAmount: 0, taxAmount: 0 },
+        purchaseInvoices: { taxableAmount: 0, taxAmount: 0 },
+        purchaseReturns: { taxableAmount: 0, taxAmount: 0 },
+        journalEntries: { taxableAmount: 0, taxAmount: 0 },
+    };
+
+    if (resolvedPercent !== null) {
+        const grouped = await Transaction.aggregate([
+            { $match: baseMatch },
+            { $unwind: "$items" },
+            { $match: { "items.taxPercent": resolvedPercent } },
+            {
+                $group: {
+                    _id: { module: "$module", documentType: "$documentType" },
+                    taxable: { $sum: "$items.subtotal" },
+                    tax: { $sum: "$items.taxAmount" },
+                },
+            },
+        ]);
+
+        for (const row of grouped) {
+            const module = row._id?.module;
+            const docType = row._id?.documentType;
+            const sign = docType === "return" ? -1 : 1;
+            const taxable = Number(row.taxable ?? 0) * sign;
+            const tax = Number(row.tax ?? 0) * sign;
+            if (module === "sales" && docType === "invoice") {
+                breakdown.salesInvoices.taxableAmount += taxable;
+                breakdown.salesInvoices.taxAmount += tax;
+            } else if (module === "sales" && docType === "return") {
+                breakdown.salesReturns.taxableAmount += taxable;
+                breakdown.salesReturns.taxAmount += tax;
+            } else if (module === "purchases" && docType === "invoice") {
+                breakdown.purchaseInvoices.taxableAmount += taxable;
+                breakdown.purchaseInvoices.taxAmount += tax;
+            } else if (module === "purchases" && docType === "return") {
+                breakdown.purchaseReturns.taxableAmount += taxable;
+                breakdown.purchaseReturns.taxAmount += tax;
+            }
+        }
+    } else {
+        const transactions = await Transaction.find(baseMatch)
+            .select("module documentType totalTax totalAmount subtotal")
+            .lean();
+
+        for (const txn of transactions) {
+            const sign = txn.documentType === "return" ? -1 : 1;
+            const tax = Number(txn.totalTax || 0) * sign;
+            const taxable = (txn.subtotal != null ? Number(txn.subtotal) : Number(txn.totalAmount || 0) - Number(txn.totalTax || 0)) * sign;
+            if (txn.module === "sales" && txn.documentType === "invoice") {
+                breakdown.salesInvoices.taxableAmount += taxable;
+                breakdown.salesInvoices.taxAmount += tax;
+            } else if (txn.module === "sales" && txn.documentType === "return") {
+                breakdown.salesReturns.taxableAmount += taxable;
+                breakdown.salesReturns.taxAmount += tax;
+            } else if (txn.module === "purchases" && txn.documentType === "invoice") {
+                breakdown.purchaseInvoices.taxableAmount += taxable;
+                breakdown.purchaseInvoices.taxAmount += tax;
+            } else if (txn.module === "purchases" && txn.documentType === "return") {
+                breakdown.purchaseReturns.taxableAmount += taxable;
+                breakdown.purchaseReturns.taxAmount += tax;
+            }
         }
     }
+
+    const totalSalesTax = breakdown.salesInvoices.taxAmount + breakdown.salesReturns.taxAmount;
+    const totalPurchaseTax = breakdown.purchaseInvoices.taxAmount + breakdown.purchaseReturns.taxAmount;
+    const totalSalesAmount = breakdown.salesInvoices.taxableAmount + breakdown.salesReturns.taxableAmount;
+    const totalPurchaseAmount = breakdown.purchaseInvoices.taxableAmount + breakdown.purchaseReturns.taxableAmount;
     const netTaxPayable = totalSalesTax - totalPurchaseTax;
-    return { totalSalesTax, totalPurchaseTax, totalSalesAmount, totalPurchaseAmount, netTaxPayable };
+
+    return {
+        totalSalesTax,
+        totalPurchaseTax,
+        totalSalesAmount,
+        totalPurchaseAmount,
+        netTaxPayable,
+        breakdown,
+        meta: {
+            taxId: taxId || null,
+            taxPercent: resolvedPercent,
+        },
+    };
 }
 
 /**
  * Tax Detailed: Per-transaction tax breakdown.
  */
 export async function getTaxDetailed(startDate, endDate, companyFilter, filters = {}) {
-    const { branch } = filters;
+    const { branch, taxId, taxPercent, groupBy } = filters;
     const { start, end } = getDateRange(startDate, endDate);
-    const query = {
+    const baseMatch = {
         ...companyFilter,
         $or: [{ module: "sales" }, { module: "purchases" }],
         documentType: { $in: ["invoice", "return"] },
@@ -1903,18 +1988,94 @@ export async function getTaxDetailed(startDate, endDate, companyFilter, filters 
         status: { $ne: "draft" },
         deletedAt: { $in: [null, undefined] },
     };
-    if (branch && branch !== "all") query.warehouse = branch;
-    const transactions = await Transaction.find(query)
-        .sort({ issueDate: 1 })
-        .populate("contact", "name")
-        .select("transactionNumber module documentType totalTax totalAmount issueDate contactSnapshot")
-        .lean();
-    return transactions.map((txn) => ({
-        date: txn.issueDate,
-        documentNumber: txn.transactionNumber,
-        type: txn.module === "sales" ? (txn.documentType === "return" ? "sales_return" : "sales_invoice") : (txn.documentType === "return" ? "purchase_return" : "purchase_invoice"),
-        contactName: txn.contact?.name || txn.contactSnapshot?.name || "—",
-        amount: txn.totalAmount || 0,
-        tax: txn.totalTax || 0,
-    }));
+    if (branch && branch !== "all") baseMatch.warehouse = branch;
+
+    const resolvedPercent = await resolveTaxPercent(taxId, taxPercent, companyFilter);
+    const items = [];
+
+    if (resolvedPercent !== null) {
+        const transactions = await Transaction.find({ ...baseMatch, "items.taxPercent": resolvedPercent })
+            .sort({ issueDate: 1 })
+            .populate("contact", "name taxNumber")
+            .select("transactionNumber module documentType issueDate contactSnapshot items")
+            .lean();
+
+        for (const txn of transactions) {
+            const sign = txn.documentType === "return" ? -1 : 1;
+            const matchedItems = (txn.items || []).filter((item) => Number(item.taxPercent || 0) === resolvedPercent);
+            const taxable = matchedItems.reduce((sum, item) => sum + Number(item.subtotal || 0), 0) * sign;
+            const tax = matchedItems.reduce((sum, item) => sum + Number(item.taxAmount || 0), 0) * sign;
+            const amount = matchedItems.reduce((sum, item) => sum + Number(item.total || 0), 0) * sign;
+            items.push({
+                date: txn.issueDate,
+                documentNumber: txn.transactionNumber,
+                type: txn.module === "sales"
+                    ? (txn.documentType === "return" ? "sales_return" : "sales_invoice")
+                    : (txn.documentType === "return" ? "purchase_return" : "purchase_invoice"),
+                contactName: txn.contact?.name || txn.contactSnapshot?.name || "—",
+                taxNumber: txn.contact?.taxNumber || "",
+                amount,
+                tax,
+                taxable,
+            });
+        }
+    } else {
+        const transactions = await Transaction.find(baseMatch)
+            .sort({ issueDate: 1 })
+            .populate("contact", "name taxNumber")
+            .select("transactionNumber module documentType totalTax totalAmount subtotal issueDate contactSnapshot")
+            .lean();
+
+        for (const txn of transactions) {
+            const sign = txn.documentType === "return" ? -1 : 1;
+            const tax = Number(txn.totalTax || 0) * sign;
+            const amount = Number(txn.totalAmount || 0) * sign;
+            const taxable = (txn.subtotal != null ? Number(txn.subtotal) : Number(txn.totalAmount || 0) - Number(txn.totalTax || 0)) * sign;
+            items.push({
+                date: txn.issueDate,
+                documentNumber: txn.transactionNumber,
+                type: txn.module === "sales"
+                    ? (txn.documentType === "return" ? "sales_return" : "sales_invoice")
+                    : (txn.documentType === "return" ? "purchase_return" : "purchase_invoice"),
+                contactName: txn.contact?.name || txn.contactSnapshot?.name || "—",
+                taxNumber: txn.contact?.taxNumber || "",
+                amount,
+                tax,
+                taxable,
+            });
+        }
+    }
+
+    const sectionTotals = {
+        sales_invoice: { taxableAmount: 0, taxAmount: 0 },
+        sales_return: { taxableAmount: 0, taxAmount: 0 },
+        purchase_invoice: { taxableAmount: 0, taxAmount: 0 },
+        purchase_return: { taxableAmount: 0, taxAmount: 0 },
+        journal_entries: { taxableAmount: 0, taxAmount: 0 },
+    };
+
+    for (const item of items) {
+        if (!sectionTotals[item.type]) continue;
+        sectionTotals[item.type].taxableAmount += Number(item.taxable || 0);
+        sectionTotals[item.type].taxAmount += Number(item.tax || 0);
+    }
+
+    const invoicesTax = sectionTotals.sales_invoice.taxAmount + sectionTotals.sales_return.taxAmount
+        + sectionTotals.purchase_invoice.taxAmount + sectionTotals.purchase_return.taxAmount;
+    const totals = {
+        invoicesTax,
+        journalEntriesTax: 0,
+        totalTax: invoicesTax,
+    };
+
+    return {
+        items,
+        sections: sectionTotals,
+        totals,
+        meta: {
+            groupBy: groupBy || "invoice",
+            taxId: taxId || null,
+            taxPercent: resolvedPercent,
+        },
+    };
 }

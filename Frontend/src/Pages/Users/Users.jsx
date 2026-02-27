@@ -16,6 +16,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import { confirmDelete } from '../../utils/confirmDelete';
 import userService from '../../services/userService';
 import rolesService from '../../services/rolesService';
 import branchService from '../../services/branchService';
@@ -178,7 +179,8 @@ const Users = () => {
 
     const handleDelete = async (id) => {
         // We'll use confirmation later if needed, for now keep logic or Use confirm modal if exists
-        if (!confirm(t('sales.common.confirm_delete', 'Are you sure?'))) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('sales.common.confirm_delete', 'Are you sure?'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
         setLoading(true);
         try {
             await api.delete(`/users/${id}`);

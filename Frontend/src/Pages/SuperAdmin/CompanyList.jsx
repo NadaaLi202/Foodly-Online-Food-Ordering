@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import companyService from '../../services/companyService';
 import { useAuth } from '../../context/AuthContext';
 import { Plus, Edit, Trash2, LogIn, Search, Building, Users, Mail, ExternalLink } from 'lucide-react';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 
 const CompanyList = () => {
     const { t, i18n } = useTranslation();
@@ -13,6 +14,7 @@ const CompanyList = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [deleteModal, setDeleteModal] = useState({ show: false, company: null });
+    const [deleteLoading, setDeleteLoading] = useState(false);
 
     useEffect(() => {
         fetchCompanies();
@@ -32,12 +34,15 @@ const CompanyList = () => {
 
     const handleDelete = async () => {
         if (!deleteModal.company) return;
+        setDeleteLoading(true);
         try {
             await companyService.deleteCompany(deleteModal.company._id);
             setCompanies(companies.filter(c => c._id !== deleteModal.company._id));
             setDeleteModal({ show: false, company: null });
         } catch (error) {
             console.error('Error deleting company:', error);
+        } finally {
+            setDeleteLoading(false);
         }
     };
 
@@ -199,31 +204,14 @@ const CompanyList = () => {
                 )}
             </div>
 
-            {/* Delete Confirmation Modal */}
-            {deleteModal.show && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h3 className="text-lg font-semibold mb-4">{t('superAdmin.confirmDelete')}</h3>
-                        <p className="text-gray-600 mb-6">
-                            {t('superAdmin.deleteCompanyWarning', { name: deleteModal.company?.name })}
-                        </p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setDeleteModal({ show: false, company: null })}
-                                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                            >
-                                {t('common.cancel')}
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                            >
-                                {t('common.delete')}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmDeleteModal
+                isOpen={deleteModal.show}
+                onClose={() => setDeleteModal({ show: false, company: null })}
+                onConfirm={handleDelete}
+                loading={deleteLoading}
+                title={t('superAdmin.confirmDelete')}
+                message={t('superAdmin.deleteCompanyWarning', { name: deleteModal.company?.name })}
+            />
         </div>
     );
 };

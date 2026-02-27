@@ -4,6 +4,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import { confirmDelete } from '../../utils/confirmDelete';
 
 const Expenses = () => {
     const { t, i18n } = useTranslation();
@@ -446,7 +447,8 @@ const Expenses = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد من حذف هذا المصروف؟' : 'Are you sure you want to delete this expense?')) {
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete'), message: t('sales.common.confirm_delete'), confirmText: t('sales.common.confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) {
             return;
         }
 
@@ -996,3 +998,5 @@ const Expenses = () => {
 };
 
 export default Expenses;
+
+

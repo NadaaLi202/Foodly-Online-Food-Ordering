@@ -13,6 +13,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import rolesService from '../../services/rolesService';
+import { confirmDelete } from '../../utils/confirmDelete';
 import companyService from '../../services/companyService';
 
 const getStoredUser = () => {
@@ -59,7 +60,15 @@ const Roles = () => {
         { key: 'purchase_report', actions: ['view'] },
         { key: 'supplier_payments_report', actions: ['view'] },
         { key: 'balance_sheet', actions: ['view'] },
-        { key: 'income_statement', actions: ['view'] }
+        { key: 'income_statement', actions: ['view'] },
+        { key: 'users', actions: ['add', 'view', 'edit', 'delete'] },
+        { key: 'roles', actions: ['add', 'view', 'edit', 'delete'] },
+        { key: 'import', actions: ['add', 'view'] },
+        { key: 'export', actions: ['view', 'add'] },
+        { key: 'coding', actions: ['view', 'edit'] },
+        { key: 'api_clients', actions: ['add', 'view', 'edit', 'delete'] },
+        { key: 'activity', actions: ['add', 'view', 'edit', 'delete'] },
+        { key: 'zatca', actions: ['view', 'edit'] }
     ];
 
     const fetchRoles = async () => {
@@ -198,7 +207,8 @@ const Roles = () => {
     };
 
     const handleDeleteRole = async (role) => {
-        if (!confirm(t('sales.common.confirm_delete', 'Are you sure you want to delete?'))) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('sales.common.confirm_delete', 'Are you sure you want to delete?'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
         setLoading(true);
         try {
             await api.delete(`/roles/${role._id}`);
@@ -454,3 +464,4 @@ const Roles = () => {
 };
 
 export default Roles;
+

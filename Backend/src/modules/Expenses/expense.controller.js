@@ -2,6 +2,7 @@ import { expenseModel } from "./expense.model.js"
 import { AppError } from "../../utils/AppError.js"
 import { catchAsyncError } from "../../middleware/catchAsyncError.js"
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js"
+import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js"
 
 
 const addExpense = catchAsyncError(async (req, res, next) => {
@@ -22,7 +23,11 @@ const addExpense = catchAsyncError(async (req, res, next) => {
         expenseData.attachments = attachments;
     }
 
-    expenseData.companyId = req.user.companyId;
+    const companyId = resolveCompanyIdForWrite(req);
+    if (!companyId) {
+        return next(new AppError('Unable to resolve company context for expense', 400));
+    }
+    expenseData.companyId = companyId;
     const expense = new expenseModel(expenseData);
     await expense.save();
     res.status(201).json({ message: 'تم إضافة المصروف بنجاح', expense });

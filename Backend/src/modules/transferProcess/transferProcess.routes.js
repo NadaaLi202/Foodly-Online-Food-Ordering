@@ -7,7 +7,7 @@ import {
     updateTransferProcess
 } from "./transferProcess.controller.js";
 
-import { protectedRoutes } from "../auth/auth.controller.js";
+import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
 import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 import { validation } from "../../middleware/validation.js";
 import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadFiles.js";
@@ -16,6 +16,7 @@ import { addTransferProcessSchema, updateTransferProcessSchema } from "./transfe
 const router = express.Router();
 
 router.use(protectedRoutes, applyCompanyFilter);
+router.use(requireResourcePermission("inventory_operations"));
 
 router
     .route("/")

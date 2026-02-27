@@ -1,16 +1,16 @@
 import api from './api';
 
 const codingService = {
-    getRules: async (entity) => {
-        const response = await api.get(`/coding/${entity}`);
+    getSettings: async (entity = 'invoices') => {
+        const response = await api.get('/settings/coding', { params: { entity } });
         return response.data;
     },
-    updateRules: async (entity, data) => {
-        const response = await api.put(`/coding/${entity}`, data);
+    updateSettings: async (data) => {
+        const response = await api.put('/settings/coding', data);
         return response.data;
     },
-    updateBranchSequence: async (entity, data) => {
-        const response = await api.patch(`/coding/${entity}/sequence`, data);
+    updateBranchSequence: async (data) => {
+        const response = await api.put('/settings/coding/sequence', data);
         return response.data;
     }
 };

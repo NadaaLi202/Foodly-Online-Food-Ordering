@@ -1,13 +1,14 @@
 import { roleModel } from "./role.model.js";
 import { AppError } from "../../utils/AppError.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
 
 const addRole = catchAsyncError(async (req, res, next) => {
     const { name, permissions, status } = req.body;
-    const companyId = req.body.companyId || req.user?.companyId;
+    const companyId = resolveCompanyIdForWrite(req);
 
     if (!companyId) {
-        return next(new AppError("Company ID is required for role creation", 400));
+        return next(new AppError("Unable to resolve company context for role creation", 400));
     }
 
     const existing = await roleModel.findOne({ name: (name || "").trim(), companyId });

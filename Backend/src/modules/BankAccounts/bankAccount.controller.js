@@ -1,18 +1,24 @@
 import { AppError } from "../../utils/AppError.js";
 import { bankAccountModel } from "./bankAccount.model.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
 
 
 // @desc    Add a new bank account
 // @route   POST /api/v1/bank-accounts
 // @access  Private
 const addBankAccount = catchAsyncError(async (req, res, next) => {
+    const companyId = resolveCompanyIdForWrite(req);
+    if (!companyId) {
+        return next(new AppError("Unable to resolve company context for bank account creation", 400));
+    }
+
     const existingAccount = await bankAccountModel.findOne({ name: req.body.name, ...req.companyFilter });
     if (existingAccount) {
         return next(new AppError("Bank account with this name already exists", 409));
     }
 
-    const bankAccount = new bankAccountModel({ ...req.body, companyId: req.user.companyId });
+    const bankAccount = new bankAccountModel({ ...req.body, companyId });
     await bankAccount.save();
 
     res.status(201).json({ message: "Bank account created successfully", bankAccount });

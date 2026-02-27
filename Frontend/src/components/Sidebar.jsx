@@ -29,6 +29,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
     const { user } = useAuth();
     const [openMenu, setOpenMenu] = useState(null);
     const isSuperAdmin = user?.role === 'superAdmin';
+    const canAccessBackups = isSuperAdmin || user?.role === 'company' || user?.systemRole === 'companyOwner';
 
     useEffect(() => {
         const path = location.pathname;
@@ -118,6 +119,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
             children: [
                 { key: 'journal_entries', path: '/dashboard/accounting/journal-entries' },
                 { key: 'chart_of_accounts', path: '/dashboard/accounting/chart-of-accounts' },
+                { key: 'cost_centers', path: '/dashboard/accounting/cost-centers' },
             ]
         },
         {
@@ -173,6 +175,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                 { key: 'settings_export', path: '/settings/export' },
                 { key: 'settings_coding', path: '/settings/coding' },
                 { key: 'settings_api', path: '/settings/api' },
+                ...(canAccessBackups ? [{ key: 'settings_backups', path: '/settings/backups' }] : []),
             ]
         },
         {

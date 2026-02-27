@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Edit, Trash2, FileText, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import { confirmDelete } from '../../utils/confirmDelete';
 import BankAccountModal from './BankAccountModal';
 
 const BankAccounts = () => {
@@ -31,7 +32,8 @@ const BankAccounts = () => {
     }, []);
 
     const handleDelete = async (id) => {
-        if (!window.confirm(t('sales.common.confirm_delete'))) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('sales.common.confirm_delete'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
         try {
             await api.delete(`/bank-accounts/${id}`);
             toast.success(t('sales.common.success_message'));
@@ -165,3 +167,4 @@ const BankAccounts = () => {
 };
 
 export default BankAccounts;
+

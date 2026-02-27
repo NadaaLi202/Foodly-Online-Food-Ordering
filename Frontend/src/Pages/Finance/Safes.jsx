@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Edit, Trash2, FileText, Plus, Landmark } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import { confirmDelete } from '../../utils/confirmDelete';
 import SafeModal from './SafeModal';
 
 const Safes = () => {
@@ -31,7 +32,8 @@ const Safes = () => {
     }, []);
 
     const handleDelete = async (id) => {
-        if (!window.confirm(t('sales.common.confirm_delete'))) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('sales.common.confirm_delete'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
         try {
             await api.delete(`/safes/${id}`);
             toast.success(t('sales.common.success_message'));
@@ -168,3 +170,4 @@ const Safes = () => {
 };
 
 export default Safes;
+

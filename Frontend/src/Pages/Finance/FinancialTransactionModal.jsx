@@ -4,6 +4,15 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 
+const TAX_PRESETS = ['0', '10', '15'];
+const normalizeTaxesValue = (raw) => {
+    if (raw === null || raw === undefined || raw === '') return '0';
+    if (raw === 'none') return '0';
+    if (raw === 'vat_14') return '14';
+    return String(raw);
+};
+const getTaxMode = (taxes) => (TAX_PRESETS.includes(String(taxes)) ? String(taxes) : 'custom');
+
 const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = null, initialType = 'receipt', mode = 'add' }) => {
     const { t, i18n } = useTranslation();
     const isRtl = i18n.language === 'ar';
@@ -29,7 +38,8 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
         toAccountModel: 'Safe',
         externalAccount: '',
         amount: '',
-        taxes: 'none',
+        taxes: '0',
+        taxMode: '0',
         description: '',
         attachments: []
     });
@@ -55,7 +65,8 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                     toAccountModel: 'Safe',
                     externalAccount: '',
                     amount: '',
-                    taxes: 'none',
+                    taxes: '0',
+                    taxMode: '0',
                     description: '',
                     attachments: []
                 });
@@ -97,6 +108,8 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                     account: tx.account?._id || tx.account || '',
                     fromAccount: tx.fromAccount?._id || tx.fromAccount || '',
                     toAccount: tx.toAccount?._id || tx.toAccount || '',
+                    taxes: normalizeTaxesValue(tx.taxes),
+                    taxMode: getTaxMode(normalizeTaxesValue(tx.taxes)),
                     attachments: [] // Don't duplicate attachments for now to avoid complexity
                 });
             } else {
@@ -105,7 +118,9 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                     date: new Date(tx.date).toISOString().split('T')[0],
                     account: tx.account?._id || tx.account || '',
                     fromAccount: tx.fromAccount?._id || tx.fromAccount || '',
-                    toAccount: tx.toAccount?._id || tx.toAccount || ''
+                    toAccount: tx.toAccount?._id || tx.toAccount || '',
+                    taxes: normalizeTaxesValue(tx.taxes),
+                    taxMode: getTaxMode(normalizeTaxesValue(tx.taxes))
                 });
             }
         } catch (error) {
@@ -120,6 +135,14 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleTaxModeChange = (value) => {
+        setFormData(prev => ({
+            ...prev,
+            taxMode: value,
+            taxes: value === 'custom' ? prev.taxes : value
+        }));
     };
 
     const handleAccountSelect = (field, account) => {
@@ -155,6 +178,7 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
 
         // Append all fields
         Object.keys(formData).forEach(key => {
+            if (key === 'taxMode') return;
             if (key === 'attachments') {
                 submitForm.append(key, JSON.stringify(formData[key]));
             } else {
@@ -195,7 +219,7 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
 
     const getAccountLabel = (id) => {
         const acc = accounts.find(a => a._id === id);
-        return acc ? acc.name : (isRtl ? 'اختر الحساب' : 'Choose Account');
+        return acc ? acc.name : (isRtl ? '???? ??????' : 'Choose Account');
     };
 
     return (
@@ -210,7 +234,7 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                         {type === 'receipt' && <Landmark size={22} className="text-emerald-600" />}
                         {type === 'disbursement' && <Landmark size={22} className="text-red-600" />}
                         {type === 'transfer' && <ArrowLeftRight size={22} className="text-indigo-600" />}
-                        {isView ? (isRtl ? 'عرض عملية مالية' : 'View Transaction') : (isEdit ? t('finance.edit_transaction') : (
+                        {isView ? (isRtl ? '??? ????? ?????' : 'View Transaction') : (isEdit ? t('finance.edit_transaction') : (
                             type === 'receipt' ? t('finance.add_receipt') :
                                 type === 'disbursement' ? t('finance.add_disbursement') :
                                     t('finance.add_transfer')
@@ -371,7 +395,7 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                                         name="externalAccount"
                                         value={formData.externalAccount}
                                         onChange={handleInputChange}
-                                        placeholder={isRtl ? 'اختر حساب' : 'Choose Account'}
+                                        placeholder={isRtl ? '???? ????' : 'Choose Account'}
                                         disabled={isView}
                                         className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
                                     />
@@ -409,14 +433,29 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                                     </label>
                                     <select
                                         name="taxes"
-                                        value={formData.taxes}
-                                        onChange={handleInputChange}
+                                        value={formData.taxMode || getTaxMode(normalizeTaxesValue(formData.taxes))}
+                                        onChange={(e) => handleTaxModeChange(e.target.value)}
                                         disabled={isView}
                                         className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none appearance-none ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
                                     >
-                                        <option value="none">{isRtl ? 'بدون ضرائب' : 'No Taxes'}</option>
-                                        <option value="vat_14">VAT 14%</option>
+                                        <option value="0">0%</option>
+                                        <option value="10">10%</option>
+                                        <option value="15">15%</option>
+                                        <option value="custom">{isRtl ? 'مخصص' : 'Custom'}</option>
                                     </select>
+                                    {(formData.taxMode || getTaxMode(normalizeTaxesValue(formData.taxes))) === 'custom' && (
+                                        <input
+                                            type="number"
+                                            name="taxes"
+                                            value={normalizeTaxesValue(formData.taxes)}
+                                            onChange={handleInputChange}
+                                            min="0"
+                                            step="0.01"
+                                            disabled={isView}
+                                            className={`mt-2 w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
+                                            placeholder="%"
+                                        />
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -452,7 +491,7 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                                     <div className="flex flex-col items-center justify-center space-y-2">
                                         <Upload className="h-8 w-8 text-gray-400 group-hover:text-indigo-500 transition-colors" />
                                         <p className="text-sm font-medium text-indigo-600">
-                                            {isRtl ? 'اضغط لرفع الملفات أو اسحبها هنا' : 'Click to upload or drag and drop'}
+                                            {isRtl ? '???? ???? ??????? ?? ?????? ???' : 'Click to upload or drag and drop'}
                                         </p>
                                     </div>
                                 </div>

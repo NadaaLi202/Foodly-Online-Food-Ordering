@@ -3,6 +3,7 @@ import { Plus, Search, RefreshCw, X, ChevronDown, Upload, Package } from 'lucide
 import { useTranslation } from 'react-i18next';
 import api, { BASE_URL } from '../../services/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
+import { confirmDelete } from '../../utils/confirmDelete';
 
 const Products = () => {
     const { t, i18n } = useTranslation();
@@ -284,7 +285,8 @@ const Products = () => {
 
     // Handle Delete
     const handleDelete = async (id) => {
-        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد من حذف هذا المنتج؟' : 'Are you sure you want to delete this product?')) {
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete'), message: t('sales.common.confirm_delete'), confirmText: t('sales.common.confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) {
             return;
         }
 
@@ -847,3 +849,5 @@ const Products = () => {
 };
 
 export default Products;
+
+

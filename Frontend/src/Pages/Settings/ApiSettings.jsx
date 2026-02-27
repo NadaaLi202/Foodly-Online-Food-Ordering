@@ -4,6 +4,7 @@ import { Home, RefreshCw, Info, Plus, X, LayoutGrid } from 'lucide-react';
 import toast from 'react-hot-toast';
 import apiClientService from '../../services/apiClientService';
 import api from '../../services/api';
+import { confirmDelete } from '../../utils/confirmDelete';
 
 const ApiSettings = () => {
     const { t, i18n } = useTranslation();
@@ -146,7 +147,8 @@ const ApiSettings = () => {
                                     <td className="px-6 py-4 text-left">
                                         <button
                                             onClick={async () => {
-                                                if (window.confirm('Are you sure?')) {
+                                                const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete'), message: t('sales.common.confirm_delete'), confirmText: t('sales.common.confirm'), cancelText: t('sales.common.cancel') });
+                                                if (confirmed) {
                                                     await apiClientService.delete(client._id);
                                                     fetchData();
                                                 }
@@ -249,3 +251,4 @@ const ApiSettings = () => {
 };
 
 export default ApiSettings;
+
