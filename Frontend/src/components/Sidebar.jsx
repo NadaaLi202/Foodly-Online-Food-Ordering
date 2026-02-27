@@ -14,7 +14,8 @@ import {
     Play,
     LogOut,
     ShieldCheck,
-    Settings
+    Settings,
+    LayoutTemplate
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -175,6 +176,17 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                 { key: 'settings_coding', path: '/settings/coding' },
                 { key: 'settings_api', path: '/settings/api' },
                 ...(canAccessBackups ? [{ key: 'settings_backups', path: '/settings/backups' }] : []),
+            ]
+        },
+        {
+            key: 'templates',
+            icon: LayoutTemplate,
+            path: '/dashboard/templates',
+            hasSub: true,
+            children: [
+                { key: 'general_templates', path: '/dashboard/templates/general' },
+                { key: 'invoice_templates', path: '/dashboard/templates/invoices' },
+                { key: 'product_labels', path: '/dashboard/templates/product-labels' },
             ]
         },
     ];

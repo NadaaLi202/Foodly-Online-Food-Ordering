@@ -60,6 +60,18 @@ import FinanceMainPage from './Pages/Finance/FinanceMainPage';
 import AccountingMainPage from './Pages/Accounting/AccountingMainPage';
 import UsersMainPage from './Pages/Users/UsersMainPage';
 import BranchesMainPage from './Pages/Branches/BranchesMainPage';
+
+// Templates
+import TemplatesMainPage from './Pages/Templates/TemplatesMainPage';
+import GeneralTemplates from './Pages/Templates/GeneralTemplates';
+import GeneralTemplateAdd from './Pages/Templates/GeneralTemplates/GeneralTemplateAdd';
+import GeneralTemplateEdit from './Pages/Templates/GeneralTemplates/GeneralTemplateEdit';
+import InvoiceTemplates from './Pages/Templates/InvoiceTemplates';
+import InvoiceTemplateAdd from './Pages/Templates/InvoiceTemplates/InvoiceTemplateAdd';
+import InvoiceTemplateEdit from './Pages/Templates/InvoiceTemplates/InvoiceTemplateEdit';
+import ProductLabels from './Pages/Templates/ProductLabels';
+import ProductLabelAdd from './Pages/Templates/ProductLabels/ProductLabelAdd';
+import ProductLabelEdit from './Pages/Templates/ProductLabels/ProductLabelEdit';
 // SuperAdmin
 import SuperAdminDashboard from './Pages/SuperAdmin/Dashboard';
 import CompanyList from './Pages/SuperAdmin/CompanyList';
@@ -243,6 +255,19 @@ function App() {
               <Route path="list" element={<Branches />} />
               <Route path="partner-lists" element={<PartnerLists />} />
               <Route path="businesses" element={<Activities />} />
+            </Route>
+
+            <Route path="templates">
+              <Route index element={<TemplatesMainPage />} />
+              <Route path="general" element={<GeneralTemplates />} />
+              <Route path="general/add" element={<GeneralTemplateAdd />} />
+              <Route path="general/:id/edit" element={<GeneralTemplateEdit />} />
+              <Route path="invoices" element={<InvoiceTemplates />} />
+              <Route path="invoices/add" element={<InvoiceTemplateAdd />} />
+              <Route path="invoices/:id/edit" element={<InvoiceTemplateEdit />} />
+              <Route path="product-labels" element={<ProductLabels />} />
+              <Route path="product-labels/add" element={<ProductLabelAdd />} />
+              <Route path="product-labels/:id/edit" element={<ProductLabelEdit />} />
             </Route>
           </Route>
 
