@@ -25,13 +25,13 @@ const buildBranchContext = (branch = {}) => ({
 });
 
 const TABS = [
-    { id: 'design', label: 'Design' },
-    { id: 'page', label: 'Page' },
-    { id: 'logo', label: 'Logo' },
-    { id: 'header', label: 'Header' },
-    { id: 'partner', label: 'Partner' },
-    { id: 'table', label: 'Table' },
-    { id: 'footer', label: 'Footer' },
+    { id: 'design', label: 'التصميم' },
+    { id: 'page', label: 'الصفحة' },
+    { id: 'logo', label: 'الشعار' },
+    { id: 'header', label: 'الرأس' },
+    { id: 'partner', label: 'العميل' },
+    { id: 'table', label: 'الجدول' },
+    { id: 'footer', label: 'التذييل' },
 ];
 
 const TABLE_COLS_DEFAULT = [
@@ -219,8 +219,8 @@ const InvoiceTemplateEdit = () => {
             case 'design':
                 return (
                     <div className="space-y-5">
-                        <div><Label>Name</Label><input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} /></div>
-                        <div><Label>Branches</Label>
+                        <div><Label>الاسم</Label><input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} /></div>
+                        <div><Label>الفروع</Label>
                             <select value={selectedBranch} onChange={e => setSelectedBranch(e.target.value)} className={selectClass}>
                                 <option value="">جميع الفروع</option>
                                 {branches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
@@ -264,10 +264,10 @@ const InvoiceTemplateEdit = () => {
             case 'header':
                 return (
                     <div className="space-y-4">
-                        <div><Label>Order</Label><select value={headerOrder} onChange={e => setHeaderOrder(e.target.value)} className={selectClass}><option>Logo, Company Info, Invoice Info</option><option>Company Info, Logo, Invoice Info</option><option>Logo, Invoice Info, Company Info</option></select></div>
-                        <Toggle label="Show Bottom Border" checked={showBottomBorder} onChange={setShowBottomBorder} />
-                        <TextBlockList rows={headerRows} setRows={setHeaderRows} dir={pageDir} title="Company Info" />
-                        <div className="pt-3 border-t border-gray-100"><TextBlockList rows={invoiceInfoRows} setRows={setInvoiceInfoRows} dir={pageDir} title="Invoice Info" /></div>
+                        <div><Label>الترتيب</Label><select value={headerOrder} onChange={e => setHeaderOrder(e.target.value)} className={selectClass}><option>Logo, Company Info, Invoice Info</option><option>Company Info, Logo, Invoice Info</option><option>Logo, Invoice Info, Company Info</option></select></div>
+                        <Toggle label="إظهار خط سفلي" checked={showBottomBorder} onChange={setShowBottomBorder} />
+                        <TextBlockList rows={headerRows} setRows={setHeaderRows} dir={pageDir} title="معلومات الشركة" />
+                        <div className="pt-3 border-t border-gray-100"><TextBlockList rows={invoiceInfoRows} setRows={setInvoiceInfoRows} dir={pageDir} title="معلومات الفاتورة" /></div>
                     </div>
                 );
             case 'partner':
@@ -321,7 +321,7 @@ const InvoiceTemplateEdit = () => {
 
     return (
         <TemplateEditor
-            breadcrumbs={[{ label: 'Template Designs', to: '/dashboard/templates' }, { label: 'Invoices', to: '/dashboard/templates/invoices' }, { label: 'Edit' }]}
+            breadcrumbs={[{ label: 'تصاميم القوالب', to: '/dashboard/templates' }, { label: 'الفواتير', to: '/dashboard/templates/invoices' }, { label: 'تعديل' }]}
             tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab}
             tabContent={renderTab()}
             previewContent={<InvoicePreview template={templateData} direction={pageDir} context={previewContext} />}

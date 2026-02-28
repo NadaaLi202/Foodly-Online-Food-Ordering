@@ -1,6 +1,58 @@
 import React, { useState, useEffect, useRef } from 'react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import QRCode from 'qrcode';
+
+/**
+ * ZATCA TLV encoder — produces Base64 string for Saudi e-invoicing QR codes.
+ * Tags: 1=Seller Name, 2=VAT Number, 3=Timestamp, 4=Total (incl. VAT), 5=VAT Amount
+ */
+const buildZatcaTlv = ({ sellerName = '', vatNumber = '', timestamp = '', totalWithVat = '', vatAmount = '' }) => {
+    const encoder = new TextEncoder();
+    const fields = [
+        { tag: 1, value: sellerName },
+        { tag: 2, value: vatNumber },
+        { tag: 3, value: timestamp },
+        { tag: 4, value: totalWithVat },
+        { tag: 5, value: vatAmount },
+    ];
+    const buffers = fields.map(({ tag, value }) => {
+        const valBytes = encoder.encode(value);
+        const tlv = new Uint8Array(2 + valBytes.length);
+        tlv[0] = tag;
+        tlv[1] = valBytes.length;
+        tlv.set(valBytes, 2);
+        return tlv;
+    });
+    const totalLen = buffers.reduce((s, b) => s + b.length, 0);
+    const result = new Uint8Array(totalLen);
+    let offset = 0;
+    buffers.forEach(b => { result.set(b, offset); offset += b.length; });
+    return btoa(String.fromCharCode(...result));
+};
+
+/** QR code component — renders a real scannable ZATCA QR code */
+const ZatcaQRCode = ({ company = {}, totals = {}, size = 56 }) => {
+    const canvasRef = useRef(null);
+    useEffect(() => {
+        const tlvBase64 = buildZatcaTlv({
+            sellerName: company.name || 'Company',
+            vatNumber: company.tax_number || '300000000000003',
+            timestamp: new Date().toISOString(),
+            totalWithVat: totals.total || '0.00',
+            vatAmount: totals.vat || '0.00',
+        });
+        if (canvasRef.current) {
+            QRCode.toCanvas(canvasRef.current, tlvBase64, {
+                width: size,
+                margin: 1,
+                color: { dark: '#000000', light: '#ffffff' },
+                errorCorrectionLevel: 'M',
+            }).catch(err => console.error('QR Error:', err));
+        }
+    }, [company.name, company.tax_number, totals.total, totals.vat, size]);
+    return <canvas ref={canvasRef} width={size} height={size} style={{ width: `${size}px`, height: `${size}px` }} />;
+};
 
 /**
  * Placeholder resolution engine.
@@ -55,11 +107,27 @@ const InvoicePreview = ({ template = {}, direction = 'rtl', context = {} }) => {
     const enabledCols = (table.columns || []).filter(c => c.enabled !== false);
     const enabledFooterRows = (table.footerRows || []).filter(r => r.enabled !== false);
 
-    // Sample data for preview
+    // Sample data for preview — respect deductTaxFromAmounts
+    const deductTax = table.deductTaxFromAmounts === true;
+    const basePrice = 20.00;
+    const qty = 10;
+    const rawSubtotal = basePrice * qty; // 200
+    const vatRate = 0.15;
+    let computedSubtotal, computedVat, computedTotal;
+    if (deductTax) {
+        // Price is tax-inclusive: subtotal = price / 1.15, vat = subtotal * 0.15
+        computedSubtotal = rawSubtotal / (1 + vatRate);
+        computedVat = computedSubtotal * vatRate;
+        computedTotal = rawSubtotal;
+    } else {
+        computedSubtotal = rawSubtotal;
+        computedVat = rawSubtotal * vatRate;
+        computedTotal = rawSubtotal + computedVat;
+    }
     const sampleProducts = [
-        { lineNumber: 'قلم رصاص', description: 'قلم رصاص خشبي أسود مع ممحاة', quantity: '10 قطع', price: '2.00', taxRate: '15%', subtotal: '15.00', taxAmount: '3.00', total: '23.00', discount: '0.00', code: 'PEN-01' },
+        { lineNumber: 'قلم رصاص', description: 'قلم رصاص خشبي أسود مع ممحاة', quantity: `${qty} قطع`, price: basePrice.toFixed(2), taxRate: '15%', subtotal: computedSubtotal.toFixed(2), taxAmount: computedVat.toFixed(2), total: computedTotal.toFixed(2), discount: '0.00', code: 'PEN-01' },
     ];
-    const sampleTotals = { subtotal: '15.00', discount: '0.00', vat: '3.00', total: '23.00', paid: '23.00', remaining: '0.00' };
+    const sampleTotals = { subtotal: computedSubtotal.toFixed(2), discount: '0.00', vat: computedVat.toFixed(2), total: computedTotal.toFixed(2), paid: computedTotal.toFixed(2), remaining: '0.00' };
 
     return (
         <div
@@ -202,13 +270,8 @@ const InvoicePreview = ({ template = {}, direction = 'rtl', context = {} }) => {
                     ))}
                     {(!footer.notesRows || footer.notesRows.length === 0) && 'ملاحظات'}
                 </div>
-                <div className="w-14 h-14 border border-gray-300 rounded flex items-center justify-center shrink-0">
-                    <svg viewBox="0 0 100 100" className="w-10 h-10 text-gray-400">
-                        <rect x="5" y="5" width="25" height="25" fill="currentColor" /><rect x="35" y="5" width="10" height="10" fill="currentColor" /><rect x="55" y="5" width="10" height="10" fill="currentColor" /><rect x="70" y="5" width="25" height="25" fill="currentColor" />
-                        <rect x="5" y="35" width="10" height="10" fill="currentColor" /><rect x="25" y="35" width="10" height="10" fill="currentColor" /><rect x="45" y="35" width="15" height="10" fill="currentColor" /><rect x="65" y="35" width="10" height="10" fill="currentColor" /><rect x="85" y="35" width="10" height="10" fill="currentColor" />
-                        <rect x="5" y="50" width="10" height="10" fill="currentColor" /><rect x="25" y="50" width="20" height="10" fill="currentColor" /><rect x="55" y="50" width="10" height="10" fill="currentColor" /><rect x="75" y="50" width="20" height="10" fill="currentColor" />
-                        <rect x="5" y="70" width="25" height="25" fill="currentColor" /><rect x="35" y="70" width="10" height="10" fill="currentColor" /><rect x="55" y="65" width="15" height="15" fill="currentColor" /><rect x="75" y="75" width="15" height="10" fill="currentColor" />
-                    </svg>
+                <div className="shrink-0">
+                    <ZatcaQRCode company={context.company || {}} totals={sampleTotals} size={56} />
                 </div>
             </div>
         </div>

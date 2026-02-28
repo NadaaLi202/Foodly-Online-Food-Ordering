@@ -59,7 +59,7 @@ const InvoiceTemplates = () => {
                     <table className="min-w-full">
                         <thead><tr className="border-b border-gray-200 bg-gray-50">
                             <th className="px-4 py-3 text-start text-sm font-bold text-gray-700">الاسم</th>
-                            <th className="px-4 py-3 text-start text-sm font-bold text-gray-700">الاتجاه</th>
+                            <th className="px-4 py-3 text-start text-sm font-bold text-gray-700">القالب</th>
                             <th className="px-4 py-3 w-10" />
                         </tr></thead>
                         <tbody>
@@ -68,7 +68,7 @@ const InvoiceTemplates = () => {
                                     : templates.map(tpl => (
                                         <tr key={tpl._id} onClick={() => navigate(`/dashboard/templates/invoices/${tpl._id}/edit`)} className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer">
                                             <td className="px-4 py-3 text-sm font-semibold text-gray-800">{tpl.name}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-500">{tpl.page?.direction === 'ltr' ? 'LTR' : 'RTL'}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-500">{tpl.designId ? `Invoice Template ${tpl.designId.replace('design-', '')}` : 'Invoice Template 1'}</td>
                                             <td className="px-4 py-3 relative" onClick={e => e.stopPropagation()} ref={openMenu === tpl._id ? menuRef : null}>
                                                 <button onClick={() => setOpenMenu(openMenu === tpl._id ? null : tpl._id)} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"><MoreVertical size={18} /></button>
                                                 {openMenu === tpl._id && (
