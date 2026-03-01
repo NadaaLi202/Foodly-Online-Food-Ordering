@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
 import { AuthProvider } from './context/AuthContext';
@@ -52,7 +52,7 @@ import Roles from './Pages/Users/Roles';
 import LandingPage from './Pages/LandingPage';
 import Login from './Pages/login';
 
-import CompanyLogin from './Pages/CompanyLogin';
+// import CompanyLogin from './Pages/CompanyLogin';
 import SalesMainPage from './Pages/Sales/SalesMainPage';
 import InventoryMainPage from './Pages/Inventory/InventoryMainPage';
 import PurchasesMainPage from './Pages/Purchases/PurchasesMainPage';
@@ -60,6 +60,13 @@ import FinanceMainPage from './Pages/Finance/FinanceMainPage';
 import AccountingMainPage from './Pages/Accounting/AccountingMainPage';
 import UsersMainPage from './Pages/Users/UsersMainPage';
 import BranchesMainPage from './Pages/Branches/BranchesMainPage';
+
+// Signup
+import SignupLayout from './Pages/Signup/SignupLayout';
+import SignupForm from './Pages/Signup/SignupForm';
+import SignupCompanyForm from './Pages/Signup/CompanyForm';
+import TaxSettings from './Pages/Signup/TaxSettings';
+import PendingPage from './Pages/Signup/PendingPage';
 
 // Templates
 import TemplatesMainPage from './Pages/Templates/TemplatesMainPage';
@@ -116,6 +123,11 @@ const PlaceholderPage = ({ title }) => (
   </div>
 );
 
+const CompanyLoginRedirect = () => {
+  const { slug } = useParams();
+  return <Navigate to={`/login${slug ? `?company=${slug}` : ''}`} replace />;
+};
+
 function App() {
   return (
     <BrowserRouter>
@@ -126,8 +138,16 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
 
-          <Route path="/company-login" element={<CompanyLogin />} />
-          <Route path="/company/:slug/login" element={<CompanyLogin />} />
+          {/* Signup Flow */}
+          <Route path="/signup" element={<SignupLayout />}>
+            <Route index element={<SignupForm />} />
+            <Route path="company" element={<SignupCompanyForm />} />
+            <Route path="tax" element={<TaxSettings />} />
+            <Route path="pending" element={<PendingPage />} />
+          </Route>
+
+          <Route path="/company-login" element={<CompanyLoginRedirect />} />
+          <Route path="/company/:slug/login" element={<CompanyLoginRedirect />} />
 
           {/* SuperAdmin Layout Route */}
           <Route

@@ -1,5 +1,5 @@
 ﻿{
-    "app_name": "Dafater",
+    "app_name": "Daftar Almohaseb",
     "currency": "Currency",
     "currencies": {
         "EGP": "Egyptian Pound",
@@ -70,7 +70,6 @@
         "settings_export": "Export Settings",
         "settings_coding": "Coding Settings",
         "settings_api": "API",
-
         "settings_backups": "System Backups",
         "templates": "Templates",
         "general_templates": "General Templates",
@@ -1629,7 +1628,7 @@
         "signin": "Sign in",
         "no_account": "Don't have an account?",
         "signup_free": "Sign up for free",
-        "copyright": "Â© {{year}} Dafater Inc.",
+        "copyright": "Â© {{year}} Daftar Almohaseb Inc.",
         "create_account": "Create Account",
         "get_started_desc": "Create your account to get started.",
         "full_name": "Full Name",
@@ -1645,13 +1644,13 @@
         "passwords_mismatch": "Passwords do not match",
         "account_created": "Account created successfully! Please sign in.",
         "registration_failed": "Registration failed",
-        "scale_faster": "Scale faster with Dafater.",
+        "scale_faster": "Scale faster with Daftar Almohaseb.",
         "signin_hero_title": "Manage your business with confidence.",
-        "signin_hero_desc": "Join over 10,000+ businesses that trust Dafater for their accounting needs.",
+        "signin_hero_desc": "Join over 10,000+ businesses that trust Daftar Almohaseb for their accounting needs.",
         "testimonial": {
             "name": "John Doe",
             "role": "CEO, TechStart Inc.",
-            "text": "\"Dafater has completely transformed how we handle our finances. The automated insights are a game changer.\""
+            "text": "\"Daftar Almohaseb has completely transformed how we handle our finances. The automated insights are a game changer.\""
         },
         "features": {
             "automated_bookkeeping": "Automated bookkeeping and reports",
@@ -1723,9 +1722,9 @@
             }
         },
         "benefits": {
-            "tag": "Why Dafater",
+            "tag": "Why Daftar Almohaseb",
             "title": "Built for the future of business",
-            "desc": "Join thousands of businesses that have transformed their operations with Dafater's intelligent accounting solution.",
+            "desc": "Join thousands of businesses that have transformed their operations with Daftar Almohaseb's intelligent accounting solution.",
             "automated_tasks": "Automate repetitive tasks and focus on growth",
             "faster_insights": "Get insights faster with AI-powered analytics",
             "scale_without_limits": "Scale without limitsâ€”from startup to enterprise",
@@ -1780,7 +1779,7 @@
         },
         "cta": {
             "title": "Ready to transform your business?",
-            "desc": "Join thousands of businesses automating their accounting with Dafater.",
+            "desc": "Join thousands of businesses automating their accounting with Daftar Almohaseb.",
             "get_started": "Get Started",
             "schedule_demo": "Schedule Demo"
         },
@@ -1843,6 +1842,6 @@
         "help_step5_title": "Set Number of Codes",
         "help_step5_desc": "The taxpayer selects 'Issue one-time password' then writes 2 in the number of codes, then clicks 'Create activation code'.",
         "help_step6_title": "Copy Codes",
-        "help_step6_desc": "The Fatoora platform issues a one-time password - valid for one hour and strictly for single use - copy the two codes into the Alostaz program."
+        "help_step6_desc": "The Fatoora platform issues a one-time password - valid for one hour and strictly for single use - copy the two codes into the Daftar Almohaseb program."
     }
 }

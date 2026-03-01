@@ -45,7 +45,7 @@
         "suppliers_reports": "تقارير الموردين",
         "inventory_reports": "تقارير المخزون",
         "users_reports": "تقارير المستخدمين",
-        "general_ledger": "حساب الأستاذ",
+        "general_ledger": "حساب دفتر المحاسب",
         "credit_notes": "إشعارات دائنة",
         "purchase_orders": "أوامر الشراء",
         "purchase_returns": "مرتجعات المشتريات",
@@ -71,9 +71,7 @@
         "settings_export": "التصدير",
         "settings_coding": "التكويد",
         "settings_api": "API",
-
         "settings_backups": "النسخ الاحتياطي للنظام",
-
         "templates": "القوالب",
         "general_templates": "قوالب عامة",
         "invoice_templates": "قوالب الفواتير",
@@ -232,7 +230,7 @@
         "help_step5_title": "تحديد عدد الرموز",
         "help_step5_desc": "يختار المكلف 'إصدار كلمة المرور لمرة واحدة' ثم يكتب 2 في عدد الرموز، ثم الضغط على 'إنشاء رمز التفعيل'.",
         "help_step6_title": "نسخ الرموز",
-        "help_step6_desc": "تصدر منصة فاتورة كلمة المرور لمرة واحدة - صالحة لمدة ساعة واحدة ومرة واحدة - قم بنسخ الرمزين في برنامج الأستاذ."
+        "help_step6_desc": "تصدر منصة فاتورة كلمة المرور لمرة واحدة - صالحة لمدة ساعة واحدة ومرة واحدة - قم بنسخ الرمزين في برنامج دفتر المحاسب."
     },
     "accounting_settings": {
         "title": "إعدادات المحاسبة",
@@ -603,16 +601,16 @@
             "total_due": "إجمالي المستحق"
         },
         "accounting": {
-            "description": "القوائم المالية وحسابات الأستاذ العام",
+            "description": "القوائم المالية وحسابات دفتر المحاسب العام",
             "balance_sheet": "الميزانية العمومية",
             "income_statement": "قائمة الدخل (الأرباح والخسائر)",
             "trial_balance": "ميزان المراجعة",
-            "general_ledger": "حساب الأستاذ العام",
+            "general_ledger": "حساب دفتر المحاسب العام",
             "tax_reports": "التقارير الضريبية",
             "balance_sheet_title": "تقرير الميزانية العمومية",
             "income_statement_title": "تقرير قائمة الدخل",
             "trial_balance_title": "تقرير ميزان المراجعة",
-            "general_ledger_title": "تقرير حساب الأستاذ العام",
+            "general_ledger_title": "تقرير حساب دفتر المحاسب العام",
             "assets": "الأصول",
             "fixed_assets": "الأصول الثابتة",
             "current_assets": "الأصول المتداولة",
@@ -805,7 +803,7 @@
         "requisitions": "أذونات",
         "custodians": "الامناء",
         "balance": "الرصيد",
-        "general_ledger": "دفتر الاستاذ العام",
+        "general_ledger": "دفتر دفتر المحاسب العام",
         "add_cash_safe": "إضافة خزنة نقدية",
         "account": "الحساب",
         "new_account": "حساب جديد",
@@ -826,7 +824,7 @@
         "requisitions": "أذونات",
         "custodians": "الامناء",
         "balance": "الرصيد",
-        "general_ledger": "دفتر الاستاذ العام",
+        "general_ledger": "دفتر دفتر المحاسب العام",
         "main_account": "الحساب البنكي الرئيسي",
         "no_items": "لا توجد حسابات بنكية",
         "start_creating": "ابدأ بإنشاء أول حساب بنكي لك"
@@ -1617,7 +1615,7 @@
             "products": "المنتجات",
             "inventory_operations": "العمليات المخزنية",
             "finance_operations": "العمليات المالية",
-            "ledger_accounts": "حسابات الأستاذ",
+            "ledger_accounts": "حسابات دفتر المحاسب",
             "journal_entries": "قيود اليومية",
             "settle_with_balance": "تسوية الفواتير برصيد العميل/المورد",
             "settle_with_accounts": "تسوية الفواتير بالحسابات",

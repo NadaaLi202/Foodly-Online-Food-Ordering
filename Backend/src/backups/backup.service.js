@@ -43,6 +43,7 @@ import { codingModel } from "../modules/coding/coding.model.js";
 import { partnerListModel } from "../modules/listOfPartners/listOfPartners.model.js";
 import { dailyRestrictionModel } from "../modules/dailyRestrictions/dailyRestrictions.model.js";
 import { zatcaModel } from "../modules/zatca/zatca.model.js";
+import logErrorGlobal from "../utils/logError.js";
 
 // Dynamic registry: add new models here to include in backups
 const COLLECTION_REGISTRY = {
@@ -107,7 +108,7 @@ const log = (message, meta = {}) => {
 
 const logError = (message, err) => {
     const timestamp = new Date().toISOString();
-    console.error(`[Backup ERROR] ${timestamp} - ${message}`, err?.message || err);
+    logErrorGlobal(`[Backup ERROR] ${timestamp} - ${message}`, err?.message || err);
 };
 
 const formatTimestampForFilename = (date) => {

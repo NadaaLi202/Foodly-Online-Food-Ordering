@@ -3,6 +3,7 @@ import { Plus, Trash2, X, DollarSign } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 import { formatCurrency } from '../../utils/currencyFormatter';
 import ClientLink from '../navigation/ClientLink';
 import { confirmDelete } from '../../utils/confirmDelete';
@@ -43,7 +44,7 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
             const res = await api.get(`/payments/${paymentsModule}`, { params: { invoiceId: invoice._id } });
             setPayments(res.data.payments || []);
         } catch (err) {
-            console.error('Error fetching payments:', err);
+            logError('Error fetching payments:', err);
             setPayments([]);
         } finally {
             setLoading(false);

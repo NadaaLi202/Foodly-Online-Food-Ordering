@@ -340,7 +340,7 @@ export const LivePdfWrapper = ({ children, pageFormat = 'a4', direction = 'rtl' 
                     return url;
                 });
             } catch (err) {
-                console.error('PDF Generation Error:', err);
+                logError('PDF Generation Error:', err);
             } finally {
                 if (isMounted) setIsGenerating(false);
             }

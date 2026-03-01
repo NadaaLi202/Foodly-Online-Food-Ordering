@@ -4,6 +4,7 @@ import { ChevronDown, FileSpreadsheet, FileText, Printer, Filter } from 'lucide-
 import { exportInventoryValueToExcel, buildInventoryValuePdf } from '../../../utils/customerSupplierInventoryExport';
 import reportsService from '../../../services/reportsService';
 import api from '../../../services/api';
+import logError from '../../../utils/logError';
 
 const InventoryValueReport = () => {
     const { t, i18n } = useTranslation();
@@ -34,7 +35,7 @@ const InventoryValueReport = () => {
                 setCategories(catRes.data.categories || catRes.data.data || catRes.data || []);
                 setProducts(prodRes.data.products || prodRes.data.data || prodRes.data || []);
             } catch (error) {
-                console.error('Error fetching filter data:', error);
+                logError('Error fetching filter data:', error);
             }
         };
         fetchFilterData();
@@ -66,7 +67,7 @@ const InventoryValueReport = () => {
 
             setReportData(processedData);
         } catch (error) {
-            console.error('Error fetching inventory report:', error);
+            logError('Error fetching inventory report:', error);
         } finally {
             setLoading(false);
         }

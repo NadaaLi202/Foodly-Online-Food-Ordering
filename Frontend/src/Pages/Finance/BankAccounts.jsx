@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Edit, Trash2, FileText, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 import { confirmDelete } from '../../utils/confirmDelete';
 import BankAccountModal from './BankAccountModal';
 
@@ -20,7 +21,7 @@ const BankAccounts = () => {
             const response = await api.get('/bank-accounts');
             setAccounts(response.data.bankAccounts || []);
         } catch (error) {
-            console.error('Error fetching bank accounts:', error);
+            logError('Error fetching bank accounts:', error);
             toast.error(t('sales.common.error_message'));
         } finally {
             setLoading(false);
@@ -39,7 +40,7 @@ const BankAccounts = () => {
             toast.success(t('sales.common.success_message'));
             fetchAccounts();
         } catch (error) {
-            console.error('Error deleting bank account:', error);
+            logError('Error deleting bank account:', error);
             toast.error(t('sales.common.error_message'));
         }
     };

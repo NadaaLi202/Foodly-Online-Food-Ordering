@@ -4,6 +4,7 @@ import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer, Filter } fro
 import { exportInventoryMovementsToExcel, buildInventoryMovementsPdf } from '../../../utils/customerSupplierInventoryExport';
 import reportsService from '../../../services/reportsService';
 import api from '../../../services/api';
+import logError from '../../../utils/logError';
 
 const InventoryValueDetailedReport = () => {
     const { t, i18n } = useTranslation();
@@ -34,7 +35,7 @@ const InventoryValueDetailedReport = () => {
                 setCategories(catRes.data.categories || catRes.data.data || catRes.data || []);
                 setProducts(prodRes.data.products || prodRes.data.data || prodRes.data || []);
             } catch (error) {
-                console.error('Error fetching filter data:', error);
+                logError('Error fetching filter data:', error);
             }
         };
         fetchFilterData();
@@ -77,7 +78,7 @@ const InventoryValueDetailedReport = () => {
 
             setReportData(Object.values(grouped));
         } catch (error) {
-            console.error('Error fetching detailed inventory report:', error);
+            logError('Error fetching detailed inventory report:', error);
         } finally {
             setLoading(false);
         }

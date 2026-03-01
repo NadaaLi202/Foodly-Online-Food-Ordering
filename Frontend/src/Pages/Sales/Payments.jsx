@@ -11,6 +11,7 @@ import TreasuryLink from '../../components/navigation/TreasuryLink';
 import OperationTypeLink from '../../components/navigation/OperationTypeLink';
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 import { paths } from '../../utils/navigationHelpers';
+import logError from '../../utils/logError';
 
 export default function Payments() {
     const { t, i18n } = useTranslation();
@@ -71,7 +72,7 @@ export default function Payments() {
             setTotal(data.total ?? data.payments?.length ?? 0);
             setTotalPages(data.totalPages ?? 1);
         } catch (error) {
-            console.error('Error fetching payments:', error);
+            logError('Error fetching payments:', error);
             setPayments([]);
         } finally {
             setLoading(false);
@@ -83,7 +84,7 @@ export default function Payments() {
             const response = await api.get('/contacts/customers');
             setCustomers(response.data.contacts || []);
         } catch (error) {
-            console.error('Error fetching customers:', error);
+            logError('Error fetching customers:', error);
         }
     };
 
@@ -195,7 +196,7 @@ export default function Payments() {
                 setIsModalOpen(true);
             }
         } catch (err) {
-            console.error(err);
+            logError('Error fetching payment for edit:', err);
         } finally {
             setLoading(false);
         }
@@ -211,7 +212,7 @@ export default function Payments() {
             setEditingPayment(null);
             setIsModalOpen(true);
         } catch (err) {
-            console.error('Error fetching payment details:', err);
+            logError('Error fetching payment details:', err);
             toast.error(t('sales.common.error_message'));
         } finally {
             setLoading(false);
@@ -242,7 +243,7 @@ export default function Payments() {
                 fetchPayments(); // Refresh list immediately
             }
         } catch (err) {
-            console.error('Duplication failed:', err);
+            logError('Duplication failed:', err);
             toast.error(t('sales.common.error_message'));
         } finally {
             setLoading(false);
@@ -283,7 +284,7 @@ export default function Payments() {
             a.click();
             window.URL.revokeObjectURL(url);
         } catch (err) {
-            console.error('PDF download failed:', err);
+            logError('PDF download failed:', err);
             alert(err.response?.data?.message || t('sales.common.error_message'));
         }
     };

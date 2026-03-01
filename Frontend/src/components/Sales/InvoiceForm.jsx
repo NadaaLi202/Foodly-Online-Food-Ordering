@@ -5,6 +5,7 @@ import AddContactModal from './AddContactModal';
 import AddSupplierModal from '../AddSupplierModal';
 import AttachmentsSection from '../AttachmentsSection';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 import { SUPPORTED_CURRENCIES } from '../../utils/currencyFormatter';
 import { currencySymbols } from '../../utils/currencySymbols';
 
@@ -104,7 +105,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
             const response = await api.get(`/contacts/${contactType}`);
             setClients(response.data.contacts || response.data.data || []);
         } catch (error) {
-            console.error('Error fetching contacts:', error);
+            logError('Error fetching contacts:', error);
         }
     };
 
@@ -113,7 +114,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
             const response = await api.get('/products');
             setProducts(response.data.products || []);
         } catch (error) {
-            console.error('Error fetching products:', error);
+            logError('Error fetching products:', error);
         }
     };
 
@@ -240,7 +241,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                 await onDeleteAttachment(invoice._id, updated);
                 setExistingAttachments(updated);
             } catch (e) {
-                console.error('Delete attachment failed:', e);
+                logError('Delete attachment failed:', e);
             }
         } else {
             setExistingAttachments(updated);

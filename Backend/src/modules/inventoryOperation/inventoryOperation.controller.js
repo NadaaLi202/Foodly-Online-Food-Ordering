@@ -2,6 +2,7 @@ import { inventoryOperationModel } from "./inventoryOperation.model.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
+import logError from "../../utils/logError.js";
 
 // ================= Add =================
 export const addInventoryOperation = catchAsyncError(async (req, res) => {
@@ -21,7 +22,7 @@ export const addInventoryOperation = catchAsyncError(async (req, res) => {
         try {
             opData.items = JSON.parse(opData.items);
         } catch (e) {
-            console.error("Error parsing items JSON:", e);
+            logError("Error parsing items JSON:", e);
         }
     }
     opData.companyId = req.user.companyId;

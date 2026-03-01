@@ -1,5 +1,6 @@
 import cron from "node-cron";
 import { runSystemBackup, cleanupOldBackups } from "./backup.service.js";
+import logError from "../utils/logError.js";
 
 const CRON_SCHEDULE = "0 2 * * *"; // 2:00 AM every day
 const CLEANUP_SCHEDULE = "0 3 * * *"; // 3:00 AM every day (after backup)
@@ -11,7 +12,7 @@ const runBackupJob = async () => {
         await runSystemBackup();
         console.log("[Backup Cron] Scheduled backup completed successfully");
     } catch (err) {
-        console.error("[Backup Cron] Scheduled backup failed:", err.message);
+        logError("[Backup Cron] Scheduled backup failed:", err.message);
     }
 };
 
@@ -20,7 +21,7 @@ const runCleanupJob = async () => {
         await cleanupOldBackups();
         console.log("[Backup Cron] Cleanup completed");
     } catch (err) {
-        console.error("[Backup Cron] Cleanup failed:", err.message);
+        logError("[Backup Cron] Cleanup failed:", err.message);
     }
 };
 

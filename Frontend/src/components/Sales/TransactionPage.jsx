@@ -7,6 +7,7 @@ import InvoiceList from './InvoiceList';
 import InvoiceForm from './InvoiceForm';
 import InvoiceDetails from './InvoiceDetails';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const TransactionPage = ({ configKey }) => {
@@ -45,7 +46,7 @@ const TransactionPage = ({ configKey }) => {
             const data = response.data;
             setItems(data.data || data.transactions || []);
         } catch (error) {
-            console.error('Error fetching list:', error);
+            logError('Error fetching list:', error);
         } finally {
             setLoading(false);
         }
@@ -65,7 +66,7 @@ const TransactionPage = ({ configKey }) => {
                     setSelected(response.data);
                     setView('details');
                 } catch (e) {
-                    console.error('Could not open invoice:', e);
+                    logError('Could not open invoice:', e);
                 } finally {
                     setLoading(false);
                 }
@@ -95,7 +96,7 @@ const TransactionPage = ({ configKey }) => {
             setSelected(data);
             setView('details');
         } catch (error) {
-            console.error('Error fetching details:', error);
+            logError('Error fetching details:', error);
             alert(t('sales.common.error_message'));
         } finally {
             setLoading(false);
@@ -114,7 +115,7 @@ const TransactionPage = ({ configKey }) => {
             setSelected(data);
             setView('edit');
         } catch (error) {
-            console.error('Error fetching for edit:', error);
+            logError('Error fetching for edit:', error);
             alert(t('sales.common.error_message'));
         } finally {
             setLoading(false);
@@ -159,7 +160,7 @@ const TransactionPage = ({ configKey }) => {
                 window.dispatchEvent(new CustomEvent('purchase-document-created'));
             }
         } catch (error) {
-            console.error('Error saving:', error);
+            logError('Error saving:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message');
             alert(msg);
         } finally {
@@ -178,7 +179,7 @@ const TransactionPage = ({ configKey }) => {
             setView('list');
             fetchList();
         } catch (error) {
-            console.error('Error deleting:', error);
+            logError('Error deleting:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message');
             toast.error(msg);
         }
@@ -191,7 +192,7 @@ const TransactionPage = ({ configKey }) => {
             const res = await api.get(config.getOneUrl(transactionId));
             setSelected(res.data);
         } catch (error) {
-            console.error('Error deleting attachment:', error);
+            logError('Error deleting attachment:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message');
             toast.error(msg);
         }
@@ -208,64 +209,64 @@ const TransactionPage = ({ configKey }) => {
             )}
             {!loadingPermissions && canView && (
                 <>
-            {view === 'list' && (
-                <InvoiceList
-                    invoices={items}
-                    loading={loading}
-                    onAddClick={handleAddClick}
-                    onRefresh={() => fetchList()}
-                    onInvoiceClick={handleItemClick}
-                    i18n={i18n}
-                    noItemsKey={config.noItemsKey}
-                    startKey={config.startKey}
-                    clientLabelKey={config.clientLabelKey}
-                    isSupplier={configKey?.includes('purchases')}
-                    canAdd={canAdd}
-                />
-            )}
+                    {view === 'list' && (
+                        <InvoiceList
+                            invoices={items}
+                            loading={loading}
+                            onAddClick={handleAddClick}
+                            onRefresh={() => fetchList()}
+                            onInvoiceClick={handleItemClick}
+                            i18n={i18n}
+                            noItemsKey={config.noItemsKey}
+                            startKey={config.startKey}
+                            clientLabelKey={config.clientLabelKey}
+                            isSupplier={configKey?.includes('purchases')}
+                            canAdd={canAdd}
+                        />
+                    )}
 
-            {(view === 'add' || view === 'edit') && (
-                <InvoiceForm
-                    invoice={selected}
-                    onClose={() => setView('list')}
-                    onSave={handleSave}
-                    onDeleteAttachment={handleDeleteAttachment}
-                    i18n={i18n}
-                    contactType={config.contactType}
-                    addTitleKey={config.addTitleKey}
-                    editTitleKey={config.editTitleKey}
-                    numberPlaceholderKey={config.numberPlaceholderKey}
-                    clientLabelKey={config.clientLabelKey}
-                    defaultCurrency="EGP"
-                />
-            )}
+                    {(view === 'add' || view === 'edit') && (
+                        <InvoiceForm
+                            invoice={selected}
+                            onClose={() => setView('list')}
+                            onSave={handleSave}
+                            onDeleteAttachment={handleDeleteAttachment}
+                            i18n={i18n}
+                            contactType={config.contactType}
+                            addTitleKey={config.addTitleKey}
+                            editTitleKey={config.editTitleKey}
+                            numberPlaceholderKey={config.numberPlaceholderKey}
+                            clientLabelKey={config.clientLabelKey}
+                            defaultCurrency="EGP"
+                        />
+                    )}
 
-            {view === 'details' && (
-                <InvoiceDetails
-                    invoice={selected}
-                    onClose={() => setView('list')}
-                    onEdit={handleEditClick}
-                    onDelete={handleDelete}
-                    onSave={handleSave}
-                    onRefreshInvoice={async () => {
-                        if (selected?._id) {
-                            try {
-                                const res = await api.get(config.getOneUrl(selected._id));
-                                setSelected(res.data);
-                            } catch (e) {
-                                console.error('Error refreshing invoice:', e);
-                            }
-                        }
-                    }}
-                    loading={loading}
-                    i18n={i18n}
-                    viewTitleKey={config.viewTitleKey}
-                    filenamePrefix={config.filenamePrefix}
-                    paymentsModule={configKey?.includes('sales') ? 'sales' : 'purchases'}
-                    canEdit={canEdit}
-                    canDelete={canDelete}
-                />
-            )}
+                    {view === 'details' && (
+                        <InvoiceDetails
+                            invoice={selected}
+                            onClose={() => setView('list')}
+                            onEdit={handleEditClick}
+                            onDelete={handleDelete}
+                            onSave={handleSave}
+                            onRefreshInvoice={async () => {
+                                if (selected?._id) {
+                                    try {
+                                        const res = await api.get(config.getOneUrl(selected._id));
+                                        setSelected(res.data);
+                                    } catch (e) {
+                                        logError('Error refreshing invoice:', e);
+                                    }
+                                }
+                            }}
+                            loading={loading}
+                            i18n={i18n}
+                            viewTitleKey={config.viewTitleKey}
+                            filenamePrefix={config.filenamePrefix}
+                            paymentsModule={configKey?.includes('sales') ? 'sales' : 'purchases'}
+                            canEdit={canEdit}
+                            canDelete={canDelete}
+                        />
+                    )}
                 </>
             )}
         </div>
