@@ -3,6 +3,7 @@ import { X, Save, Landmark, Calendar, DollarSign, FileText, ChevronDown, Check, 
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 
 const TAX_PRESETS = ['0', '10', '15'];
 const normalizeTaxesValue = (raw) => {
@@ -87,7 +88,7 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
 
             setAccounts([...safes, ...banks]);
         } catch (error) {
-            console.error('Error fetching accounts:', error);
+            logError('Error fetching accounts:', error);
         }
     };
 
@@ -124,7 +125,7 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                 });
             }
         } catch (error) {
-            console.error('Error fetching transaction:', error);
+            logError('Error fetching transaction:', error);
             toast.error(t('sales.common.error_message'));
             onClose();
         } finally {
@@ -207,7 +208,7 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
             onSave();
             onClose();
         } catch (error) {
-            console.error('Error saving transaction:', error);
+            logError('Error saving transaction:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message');
             toast.error(Array.isArray(msg) ? msg[0] : msg);
         } finally {

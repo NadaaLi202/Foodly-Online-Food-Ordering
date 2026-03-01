@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, RefreshCw, X, Upload, ChevronDown, ArrowLeftRight, Package, Trash2, Edit } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 import { confirmDelete } from '../../utils/confirmDelete';
 
 const Operations = () => {
@@ -37,7 +38,7 @@ const Operations = () => {
             const response = await api.get('/operations');
             setOperations(response.data.operations || []);
         } catch (error) {
-            console.error('Error fetching operations:', error);
+            logError('Error fetching operations:', error);
         } finally {
             setLoading(false);
         }
@@ -49,7 +50,7 @@ const Operations = () => {
             const response = await api.get('/inventory-operations');
             setInventoryOps(response.data.operations || []);
         } catch (error) {
-            console.error('Error fetching inventory operations:', error);
+            logError('Error fetching inventory operations:', error);
         } finally {
             setLoading(false);
         }
@@ -61,7 +62,7 @@ const Operations = () => {
             const response = await api.get('/products');
             setProducts(response.data.products || []);
         } catch (error) {
-            console.error('Error fetching products:', error);
+            logError('Error fetching products:', error);
         }
     };
 
@@ -73,7 +74,7 @@ const Operations = () => {
                 { _id: 'main', name: i18n.language === 'ar' ? '???????? ???????' : 'Main Warehouse' }
             ]);
         } catch (error) {
-            console.error('Error fetching warehouses:', error);
+            logError('Error fetching warehouses:', error);
             setWarehouses([
                 { _id: 'main', name: i18n.language === 'ar' ? '???????? ???????' : 'Main Warehouse' }
             ]);
@@ -90,7 +91,7 @@ const Operations = () => {
                 { _id: '1251', name: i18n.language === 'ar' ? '???????? ???????' : 'Main Warehouse', code: '#1251' }
             ]);
         } catch (error) {
-            console.error('Error fetching accounts:', error);
+            logError('Error fetching accounts:', error);
             setAccounts([
                 { _id: '1211', name: i18n.language === 'ar' ? '?????? ????????' : 'Main Treasury', code: '#1211' },
                 { _id: '1221', name: i18n.language === 'ar' ? '?????? ?????? ???????' : 'Main Bank Account', code: '#1221' },
@@ -354,7 +355,7 @@ const Operations = () => {
             fetchInventoryOps();
             resetForm();
         } catch (error) {
-            console.error('Error creating operation:', error);
+            logError('Error creating operation:', error);
             const errorMsg = error.response?.data?.message || error.message || (i18n.language === 'ar' ? '??? ??? ?? ??????? ????????' : 'Server connection error');
             alert(errorMsg);
         } finally {
@@ -405,7 +406,7 @@ const Operations = () => {
                 alert(i18n.language === 'ar' ? '??? ?????' : 'Deletion failed');
             }
         } catch (error) {
-            console.error('Error deleting operation:', error);
+            logError('Error deleting operation:', error);
         } finally {
             setLoading(false);
         }

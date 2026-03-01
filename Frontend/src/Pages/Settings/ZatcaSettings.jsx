@@ -15,6 +15,7 @@ import {
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import OtpHelpModal from './components/OtpHelpModal';
+import logError from '../../utils/logError';
 
 const ZatcaSettings = () => {
     const { t, i18n } = useTranslation();
@@ -54,7 +55,7 @@ const ZatcaSettings = () => {
                 setSettings(response.data.data.zatca);
             }
         } catch (error) {
-            console.error('Error fetching ZATCA settings:', error);
+            logError('Error fetching ZATCA settings:', error);
             toast.error(t('zatca.error_fetching') || 'Error fetching ZATCA settings');
         } finally {
             setLoading(false);
@@ -99,7 +100,7 @@ const ZatcaSettings = () => {
                 toast.success(t('zatca.save_success') || 'Settings saved successfully');
             }
         } catch (error) {
-            console.error('Error saving ZATCA settings:', error);
+            logError('Error saving ZATCA settings:', error);
             const message = error.response?.data?.message || t('zatca.save_error') || 'Error saving settings';
             toast.error(message);
         } finally {

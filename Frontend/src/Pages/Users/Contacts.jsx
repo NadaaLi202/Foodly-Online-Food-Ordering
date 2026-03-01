@@ -5,6 +5,7 @@ import api from '../../services/api';
 import { confirmDelete } from '../../utils/confirmDelete';
 import { formatCurrency } from '../../utils/currencyFormatter';
 import { prepareContactPayload } from '../../utils/contactUtils';
+import logError from '../../utils/logError';
 
 const Contacts = () => {
     const { t, i18n } = useTranslation();
@@ -40,7 +41,7 @@ const Contacts = () => {
             const response = await api.get(`/contacts/${endpoint}`);
             setContacts(response.data.data || []);
         } catch (error) {
-            console.error('Error fetching contacts:', error);
+            logError('Error fetching contacts:', error);
             // setContacts([]); // Don't clear on error, maybe show notification
         } finally {
             setLoading(false);
@@ -172,7 +173,7 @@ const Contacts = () => {
             fetchContacts();
 
         } catch (error) {
-            console.error('Error saving contact:', error);
+            logError('Error saving contact:', error);
             const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ' : 'An error occurred');
             alert(msg);
         } finally {
@@ -190,7 +191,7 @@ const Contacts = () => {
             alert(i18n.language === 'ar' ? 'تم الحذف بنجاح' : 'Deleted successfully');
             fetchContacts();
         } catch (error) {
-            console.error('Error deleting contact:', error);
+            logError('Error deleting contact:', error);
             const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ في الحذف' : 'Error deleting');
             alert(msg);
         }

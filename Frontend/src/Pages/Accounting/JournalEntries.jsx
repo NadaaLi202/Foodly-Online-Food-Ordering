@@ -98,7 +98,7 @@ const JournalEntries = () => {
                 setEntries(formattedEntries);
             }
         } catch (error) {
-            console.error('Error fetching entries:', error);
+            logError('Error fetching entries:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message');
             if (error.response?.status !== 401 && error.response?.status !== 403) {
                 toast.error(msg);
@@ -263,7 +263,7 @@ const JournalEntries = () => {
             resetForm();
             fetchEntries();
         } catch (error) {
-            console.error('Error saving entry:', error);
+            logError('Error saving entry:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message', 'An error occurred');
             if (error.response?.status === 400) {
                 toast.error(msg);
@@ -308,7 +308,7 @@ const JournalEntries = () => {
             setAttachments([]);
             setIsModalOpen(true);
         } catch (error) {
-            console.error('Error fetching entry:', error);
+            logError('Error fetching entry:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message', 'An error occurred');
             if (error.response?.status !== 401 && error.response?.status !== 403) {
                 toast.error(msg);
@@ -331,7 +331,7 @@ const JournalEntries = () => {
             setEntries(prev => prev.filter(e => e._id !== deleteModal.entryId));
             setDeleteModal({ open: false, entryId: null });
         } catch (error) {
-            console.error('Error deleting entry:', error);
+            logError('Error deleting entry:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message', 'An error occurred');
             if (error.response?.status === 403) {
                 toast.error(msg || t('sales.common.unauthorized', 'You are not authorized to perform this action'));
@@ -356,7 +356,7 @@ const JournalEntries = () => {
                 const response = await journalEntryService.getNextNumber();
                 setEntryNumber(response.nextNumber);
             } catch (error) {
-                console.error('Error fetching next entry number:', error);
+                logError('Error fetching next entry number:', error);
             }
         }
     };
@@ -398,7 +398,7 @@ const JournalEntries = () => {
             });
             if (viewFileInputRef.current) viewFileInputRef.current.value = '';
         } catch (error) {
-            console.error('Error fetching entry:', error);
+            logError('Error fetching entry:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message', 'An error occurred');
             if (error.response?.status !== 401 && error.response?.status !== 403) {
                 toast.error(msg);

@@ -2,6 +2,7 @@ import { safeModel } from "./safe.model.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
 import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
+import logError from "../../utils/logError.js";
 
 // ================= Add =================
 export const addSafe = catchAsyncError(async (req, res, next) => {
@@ -34,7 +35,7 @@ export const addSafe = catchAsyncError(async (req, res, next) => {
             safe
         });
     } catch (error) {
-        console.error('Mongoose Save Error:', error);
+        logError('Mongoose Save Error:', error);
         return next(new AppError(error.message, 400));
     }
 });

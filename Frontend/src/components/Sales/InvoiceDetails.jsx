@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { QRCodeCanvas } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 import DocumentActions from '../common/DocumentActions';
 import InvoiceLayout from '../invoice/InvoiceLayout';
 import InvoicePaymentsTab from './InvoicePaymentsTab';
@@ -27,7 +28,7 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, onRefreshI
             try {
                 await api.get('/products');
             } catch (error) {
-                console.error('Error fetching products:', error);
+                logError('Error fetching products:', error);
             }
         };
         fetchProducts();
@@ -308,77 +309,77 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, onRefreshI
 
                     {/* Sidebar (Details & History) - Hidden on print and on invoice tab to match screen layout */}
                     {viewTab !== 'invoice' && (
-                    <div className="w-full md:w-80 bg-white border-l border-gray-100 p-6 flex flex-col gap-6 print:hidden h-full overflow-y-auto">
+                        <div className="w-full md:w-80 bg-white border-l border-gray-100 p-6 flex flex-col gap-6 print:hidden h-full overflow-y-auto">
 
-                        {/* Attachments Section */}
-                        <div>
-                            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <Paperclip size={14} />
-                                <span>Attachments</span>
-                            </h3>
-                            <div className="space-y-3">
-                                {(invoice.attachments || []).map((file, i) => (
-                                    <a href={file.fileUrl || file.url} target="_blank" rel="noreferrer" key={i} className="block p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50 transition-all group">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-gray-400 group-hover:text-indigo-500 shadow-sm">
-                                                <FileText size={16} />
+                            {/* Attachments Section */}
+                            <div>
+                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <Paperclip size={14} />
+                                    <span>Attachments</span>
+                                </h3>
+                                <div className="space-y-3">
+                                    {(invoice.attachments || []).map((file, i) => (
+                                        <a href={file.fileUrl || file.url} target="_blank" rel="noreferrer" key={i} className="block p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50 transition-all group">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-gray-400 group-hover:text-indigo-500 shadow-sm">
+                                                    <FileText size={16} />
+                                                </div>
+                                                <div className="overflow-hidden">
+                                                    <p className="text-xs font-bold text-gray-700 truncate group-hover:text-indigo-700">{file.fileName || file.name}</p>
+                                                    <p className="text-[10px] text-gray-400 font-medium">Click to view</p>
+                                                </div>
                                             </div>
-                                            <div className="overflow-hidden">
-                                                <p className="text-xs font-bold text-gray-700 truncate group-hover:text-indigo-700">{file.fileName || file.name}</p>
-                                                <p className="text-[10px] text-gray-400 font-medium">Click to view</p>
-                                            </div>
-                                        </div>
-                                    </a>
-                                ))}
-                                {(invoice.attachments || []).length === 0 && (
-                                    <p className="text-xs text-gray-400 italic text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">No attachments</p>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Quick Actions / Notes */}
-                        <div>
-                            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <Edit3 size={14} />
-                                <span>Add Note</span>
-                            </h3>
-                            <form onSubmit={handleAddNote} className="relative">
-                                <textarea
-                                    value={note}
-                                    onChange={(e) => setNote(e.target.value)}
-                                    className="w-full bg-gray-50 border-2 border-transparent focus:bg-white focus:border-indigo-500 rounded-xl p-3 text-xs font-bold text-gray-700 focus:outline-none transition-all resize-none min-h-[100px]"
-                                    placeholder="Type a note here..."
-                                ></textarea>
-                                <button
-                                    type="submit"
-                                    disabled={!note.trim()}
-                                    className="absolute bottom-3 right-3 p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 transition-all shadow-md"
-                                >
-                                    <Send size={12} />
-                                </button>
-                            </form>
-                        </div>
-
-                        {/* Timeline / History (Placeholder) */}
-                        <div>
-                            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <span>History</span>
-                            </h3>
-                            <div className="relative pl-4 border-l-2 border-gray-100 space-y-6">
-                                <div className="relative">
-                                    <div className="absolute -left-[21px] top-0 w-3 h-3 rounded-full bg-green-100 border-2 border-white ring-1 ring-green-500"></div>
-                                    <p className="text-xs font-bold text-gray-800">Created</p>
-                                    <p className="text-[10px] text-gray-400 font-medium">{new Date(invoice.createdAt || Date.now()).toLocaleString()}</p>
-                                </div>
-                                <div className="relative">
-                                    <div className="absolute -left-[21px] top-0 w-3 h-3 rounded-full bg-indigo-100 border-2 border-white ring-1 ring-indigo-500"></div>
-                                    <p className="text-xs font-bold text-gray-800">Last Updated</p>
-                                    <p className="text-[10px] text-gray-400 font-medium">{new Date(invoice.updatedAt || Date.now()).toLocaleString()}</p>
+                                        </a>
+                                    ))}
+                                    {(invoice.attachments || []).length === 0 && (
+                                        <p className="text-xs text-gray-400 italic text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">No attachments</p>
+                                    )}
                                 </div>
                             </div>
-                        </div>
 
-                    </div>
+                            {/* Quick Actions / Notes */}
+                            <div>
+                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <Edit3 size={14} />
+                                    <span>Add Note</span>
+                                </h3>
+                                <form onSubmit={handleAddNote} className="relative">
+                                    <textarea
+                                        value={note}
+                                        onChange={(e) => setNote(e.target.value)}
+                                        className="w-full bg-gray-50 border-2 border-transparent focus:bg-white focus:border-indigo-500 rounded-xl p-3 text-xs font-bold text-gray-700 focus:outline-none transition-all resize-none min-h-[100px]"
+                                        placeholder="Type a note here..."
+                                    ></textarea>
+                                    <button
+                                        type="submit"
+                                        disabled={!note.trim()}
+                                        className="absolute bottom-3 right-3 p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 transition-all shadow-md"
+                                    >
+                                        <Send size={12} />
+                                    </button>
+                                </form>
+                            </div>
+
+                            {/* Timeline / History (Placeholder) */}
+                            <div>
+                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <span>History</span>
+                                </h3>
+                                <div className="relative pl-4 border-l-2 border-gray-100 space-y-6">
+                                    <div className="relative">
+                                        <div className="absolute -left-[21px] top-0 w-3 h-3 rounded-full bg-green-100 border-2 border-white ring-1 ring-green-500"></div>
+                                        <p className="text-xs font-bold text-gray-800">Created</p>
+                                        <p className="text-[10px] text-gray-400 font-medium">{new Date(invoice.createdAt || Date.now()).toLocaleString()}</p>
+                                    </div>
+                                    <div className="relative">
+                                        <div className="absolute -left-[21px] top-0 w-3 h-3 rounded-full bg-indigo-100 border-2 border-white ring-1 ring-indigo-500"></div>
+                                        <p className="text-xs font-bold text-gray-800">Last Updated</p>
+                                        <p className="text-[10px] text-gray-400 font-medium">{new Date(invoice.updatedAt || Date.now()).toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
                     )}
                 </div>
             </div>

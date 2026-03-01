@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
+import logError from '../../utils/logError';
 
 export default function Customers() {
     const { t, i18n } = useTranslation();
@@ -65,7 +66,7 @@ export default function Customers() {
             const data = response.data;
             setCustomers(data.contacts || []);
         } catch (error) {
-            console.error('Error fetching customers:', error);
+            logError('Error fetching customers:', error);
         } finally {
             setLoading(false);
         }
@@ -126,7 +127,7 @@ export default function Customers() {
                 setIsModalOpen(true);
             }
         } catch (error) {
-            console.error('Error fetching customer:', error);
+            logError('Error fetching customer:', error);
         } finally {
             setLoadingCustomer(false);
         }
@@ -248,7 +249,7 @@ export default function Customers() {
             if (response.status !== 200 && response.status !== 201) {
                 throw new Error(result.message || t('sales.common.error_message'));
             }
-            
+
             // Dispatch event for real-time report updates
             if (isEditing && currentCustomerId) {
                 window.dispatchEvent(new CustomEvent('customer-updated'));
@@ -274,7 +275,7 @@ export default function Customers() {
             }, 1500);
 
         } catch (error) {
-            console.error('Error saving customer:', error);
+            logError('Error saving customer:', error);
             setResponseMessage({
                 type: 'error',
                 text: error.message || t('sales.common.error_message')
@@ -384,7 +385,7 @@ export default function Customers() {
                 });
             }
         } catch (err) {
-            console.error(err);
+            logError(err);
             setViewContact(customer);
         }
     };

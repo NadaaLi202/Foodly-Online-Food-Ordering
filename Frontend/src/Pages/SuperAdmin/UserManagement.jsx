@@ -17,6 +17,7 @@ import {
 import userService from '../../services/userService';
 import companyService from '../../services/companyService';
 import { confirmDelete } from '../../utils/confirmDelete';
+import logError from '../../utils/logError';
 
 const UserManagement = () => {
     const { companyId } = useParams();
@@ -50,7 +51,7 @@ const UserManagement = () => {
             setUsers(usersData.users || []);
             setCompany(companyData.company);
         } catch (error) {
-            console.error('Error fetching data:', error);
+            logError('Error fetching users:', error);
         } finally {
             setLoading(false);
         }
@@ -116,7 +117,7 @@ const UserManagement = () => {
             setIsModalOpen(false);
             fetchData();
         } catch (error) {
-            console.error('Error saving user:', error);
+            logError('Error saving user:', error);
             alert(error.response?.data?.message || 'Error saving user');
         } finally {
             setLoading(false);
@@ -131,7 +132,7 @@ const UserManagement = () => {
             await userService.deleteUser(id);
             fetchData();
         } catch (error) {
-            console.error('Error deleting user:', error);
+            logError('Error deleting user:', error);
         } finally {
             setLoading(false);
         }

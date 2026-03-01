@@ -17,6 +17,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 import { confirmDelete } from '../../utils/confirmDelete';
 
 const PERMISSION_TYPES = [
@@ -55,7 +56,7 @@ const Permissions = () => {
             const response = await api.get('/requisitions');
             setPermissions(response.data.requisitions || []);
         } catch (error) {
-            console.error('Error fetching permissions:', error);
+            logError('Error fetching permissions:', error);
             toast.error(error.response?.data?.message || t('stocked.permissions.fetch_error', 'Failed to load permissions'));
         } finally {
             setLoading(false);
@@ -67,7 +68,7 @@ const Permissions = () => {
             const response = await api.get('/products');
             setProducts(response.data.products || []);
         } catch (error) {
-            console.error('Error fetching products:', error);
+            logError('Error fetching products:', error);
         }
     };
 

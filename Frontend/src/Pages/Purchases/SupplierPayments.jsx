@@ -10,6 +10,7 @@ import OperationTypeLink from '../../components/navigation/OperationTypeLink';
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 import PaymentModal from '../../components/Purchases/PaymentModal';
 import { paths } from '../../utils/navigationHelpers';
+import logError from '../../utils/logError';
 
 export default function SupplierPayments() {
     const { t, i18n } = useTranslation();
@@ -45,7 +46,7 @@ export default function SupplierPayments() {
             setTotalPages(response.data.totalPages || 1);
             setTotal(response.data.total || 0);
         } catch (error) {
-            console.error('Error fetching payments:', error);
+            logError('Error fetching payments:', error);
         } finally {
             setLoading(false);
         }
@@ -87,7 +88,7 @@ export default function SupplierPayments() {
                 setViewingPayment(null);
                 setIsModalOpen(true);
             }
-        } catch (err) { console.error(err); }
+        } catch (err) { logError(err); }
         finally { setLoading(false); }
         setMenuOpenId(null);
     };
@@ -99,7 +100,7 @@ export default function SupplierPayments() {
             setViewingPayment(res.data.payment);
             setEditingPayment(null);
             setIsModalOpen(true);
-        } catch (err) { console.error(err); }
+        } catch (err) { logError(err); }
         finally { setLoading(false); }
         setMenuOpenId(null);
     };
@@ -130,7 +131,7 @@ export default function SupplierPayments() {
             a.click();
             window.URL.revokeObjectURL(url);
         } catch (err) {
-            console.error('PDF download failed:', err);
+            logError('PDF download failed:', err);
             alert(err.response?.data?.message || t('sales.common.error_message'));
         }
     };

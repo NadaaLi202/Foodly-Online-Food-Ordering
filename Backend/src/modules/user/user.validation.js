@@ -35,14 +35,14 @@ export const addUserVal = Joi.object({
     companyId: Joi.string().hex().length(24),
     roleId: Joi.string().hex().length(24),
     systemRole: Joi.string().valid('superAdmin'),
-    phone: Joi.string(),
+    phone: Joi.string().optional().allow('', null),
 })
 
 export const updateUserVal = Joi.object({
     id: Joi.string().hex().length(24).required(),
     type: Joi.string().valid('user', 'employee'),
     name: Joi.string().min(3).max(30),
-    email: Joi.string().email().allow('', null),
+    email: Joi.string().email().optional().allow('', null),
     password: Joi.string().pattern(new RegExp('^[a-zA-Z0-9]{3,30}$')).allow('', null),
     confirmPassword: Joi.when('password', {
         is: Joi.exist(),
@@ -57,7 +57,7 @@ export const updateUserVal = Joi.object({
     companyId: Joi.string().hex().length(24),
     roleId: Joi.string().hex().length(24),
     systemRole: Joi.string().valid('superAdmin'),
-    phone: Joi.string(),
+    phone: Joi.string().optional().allow('', null),
 })
 
 export const deleteUserVal = Joi.object({

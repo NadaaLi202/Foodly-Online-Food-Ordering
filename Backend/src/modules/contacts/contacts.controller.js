@@ -2,6 +2,7 @@ import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
 import Contact from "./contacts.model.js";
 import Transaction from "../transaction/transaction.model.js";
+import logError from "../../utils/logError.js";
 
 const CODE_PREFIX = "1";
 const CODE_PATTERN = /^(\d+)-(\d+)$/;
@@ -94,7 +95,7 @@ const addContact = (module) =>
                 });
             } catch (err) {
                 lastError = err;
-                console.error('AddContact Error:', err.message, err.code, err.keyPattern);
+                logError('AddContact Error:', err.message, err.code, err.keyPattern);
                 if (err.code === 11000 && err.keyPattern?.code && shouldAutoGenerateCode) {
                     continue;
                 }

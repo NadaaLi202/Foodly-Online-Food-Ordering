@@ -15,6 +15,7 @@ import api from '../../services/api';
 import rolesService from '../../services/rolesService';
 import { confirmDelete } from '../../utils/confirmDelete';
 import companyService from '../../services/companyService';
+import logError from '../../utils/logError';
 
 const getStoredUser = () => {
     try {
@@ -77,7 +78,7 @@ const Roles = () => {
             const data = await rolesService.getAllRoles();
             setRoles(data.roles || data || []);
         } catch (err) {
-            console.error('Error fetching roles:', err);
+            logError('Error fetching roles:', err);
         } finally {
             setLoading(false);
         }
@@ -198,7 +199,7 @@ const Roles = () => {
                 fetchRoles();
             }
         } catch (err) {
-            console.error('Error saving role:', err);
+            logError('Error saving role:', err);
             const message = err.response?.data?.message || err.message || t('sales.common.error', 'Error saving');
             alert(message);
         } finally {
@@ -214,7 +215,7 @@ const Roles = () => {
             await api.delete(`/roles/${role._id}`);
             fetchRoles();
         } catch (err) {
-            console.error('Error deleting role:', err);
+            logError('Error deleting role:', err);
             alert(err.response?.data?.message || t('sales.common.error', 'Error deleting'));
         } finally {
             setLoading(false);

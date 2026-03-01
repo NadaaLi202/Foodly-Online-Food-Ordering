@@ -6,6 +6,7 @@ import api from '../../services/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
 import AddSupplierModal from '../../components/AddSupplierModal';
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
+import logError from '../../utils/logError';
 
 export default function Suppliers() {
     const { t, i18n } = useTranslation();
@@ -65,7 +66,7 @@ export default function Suppliers() {
             const data = response.data;
             setSuppliers(data.contacts || []);
         } catch (error) {
-            console.error('Error fetching suppliers:', error);
+            logError('Error fetching suppliers:', error);
         } finally {
             setLoading(false);
         }
@@ -127,7 +128,7 @@ export default function Suppliers() {
                 setIsModalOpen(true);
             }
         } catch (error) {
-            console.error('Error fetching supplier:', error);
+            logError('Error fetching supplier:', error);
         } finally {
             setLoadingSupplier(false);
         }
@@ -274,7 +275,7 @@ export default function Suppliers() {
             }, 1500);
 
         } catch (error) {
-            console.error('Error saving supplier:', error);
+            logError('Error saving supplier:', error);
             setResponseMessage({
                 type: 'error',
                 text: error.message || t('sales.common.error_message')
@@ -348,7 +349,7 @@ export default function Suppliers() {
                 setViewTab('summary');
             }
         } catch (err) {
-            console.error(err);
+            logError(err);
             setViewContact(supplier);
         }
     };

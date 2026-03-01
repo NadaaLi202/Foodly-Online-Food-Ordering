@@ -11,6 +11,7 @@ import QRCode from "qrcode";
 import PDFDocument from "pdfkit";
 
 import * as inventoryService from "../product/inventory.service.js";
+import logError from "../../utils/logError.js";
 
 const createTransaction = (module, documentType) =>
     catchAsyncError(async (req, res, next) => {
@@ -20,7 +21,7 @@ const createTransaction = (module, documentType) =>
             try {
                 opData.payment = JSON.parse(opData.payment);
             } catch (e) {
-                console.error("Error parsing payment JSON:", e);
+                logError("Error parsing payment JSON:", e);
             }
         }
         let companyId = resolveCompanyIdForWrite(req);
@@ -65,7 +66,7 @@ const createTransaction = (module, documentType) =>
             try {
                 opData.items = JSON.parse(opData.items);
             } catch (e) {
-                console.error("Error parsing items JSON:", e);
+                logError("Error parsing items JSON:", e);
             }
         }
 
@@ -189,7 +190,7 @@ const updateOne = catchAsyncError(async (req, res, next) => {
         try {
             opData.payment = JSON.parse(opData.payment);
         } catch (e) {
-            console.error("Error parsing payment JSON:", e);
+            logError("Error parsing payment JSON:", e);
         }
     }
     const company = doc.companyId
@@ -242,7 +243,7 @@ const updateOne = catchAsyncError(async (req, res, next) => {
         try {
             opData.items = JSON.parse(opData.items);
         } catch (e) {
-            console.error("Error parsing items JSON:", e);
+            logError("Error parsing items JSON:", e);
         }
     }
 

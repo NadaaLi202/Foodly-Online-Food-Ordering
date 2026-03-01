@@ -48,6 +48,11 @@ const signIn = catchAsyncError(async (req, res, next) => {
         return next(new AppError('invalid email or password', 404));
     }
 
+    if (type === 'company' && account.status && account.status !== 'active') {
+        const statusMsg = account.status === 'pending' ? 'حسابك قيد المراجعة، سيتم إشعارك بعد موافقة الإدارة' : 'عذرا، لقد تم رفض طلب تسجيل حسابكم.';
+        return next(new AppError(statusMsg, 403));
+    }
+
     // 3. Compare password
     const match = await bcrypt.compare(password, account.password);
 
@@ -99,6 +104,12 @@ const companySignIn = catchAsyncError(async (req, res, next) => {
     if (!company) {
         return next(new AppError('Invalid email or password', 401));
     }
+
+    if (company.status && company.status !== 'active') {
+        const statusMsg = company.status === 'pending' ? 'حسابك قيد المراجعة، سيتم إشعارك بعد موافقة الإدارة' : 'عذرا، لقد تم رفض طلب تسجيل حسابكم.';
+        return next(new AppError(statusMsg, 403));
+    }
+
     const match = await bcrypt.compare(password, company.password);
     if (!match) {
         return next(new AppError('Invalid email or password', 401));

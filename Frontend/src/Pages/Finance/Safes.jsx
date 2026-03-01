@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Edit, Trash2, FileText, Plus, Landmark } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 import { confirmDelete } from '../../utils/confirmDelete';
 import SafeModal from './SafeModal';
 
@@ -20,7 +21,7 @@ const Safes = () => {
             const response = await api.get('/safes');
             setSafes(response.data.safes || []);
         } catch (error) {
-            console.error('Error fetching safes:', error);
+            logError('Error fetching safes:', error);
             toast.error(t('sales.common.error_message'));
         } finally {
             setLoading(false);
@@ -39,7 +40,7 @@ const Safes = () => {
             toast.success(t('sales.common.success_message'));
             fetchSafes();
         } catch (error) {
-            console.error('Error deleting safe:', error);
+            logError('Error deleting safe:', error);
             toast.error(t('sales.common.error_message'));
         }
     };

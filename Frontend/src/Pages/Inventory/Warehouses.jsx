@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 import { confirmDelete } from '../../utils/confirmDelete';
 
 const Warehouses = () => {
@@ -40,7 +41,7 @@ const Warehouses = () => {
             const response = await api.get('/warehouses');
             setWarehouses(response.data.warehouses || []);
         } catch (error) {
-            console.error('Error fetching warehouses:', error);
+            logError('Error fetching warehouses:', error);
         } finally {
             setLoading(false);
         }
@@ -51,7 +52,7 @@ const Warehouses = () => {
             const response = await api.get('/users');
             setUsers(response.data.users || response.data || []);
         } catch (error) {
-            console.error('Error fetching users:', error);
+            logError('Error fetching users:', error);
         }
     };
 
@@ -121,7 +122,7 @@ const Warehouses = () => {
             alert(i18n.language === 'ar' ? 'تم الحفظ بنجاح' : 'Saved successfully');
 
         } catch (error) {
-            console.error('Error saving warehouse:', error);
+            logError('Error saving warehouse:', error);
             const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ' : 'An error occurred');
             alert(msg);
         } finally {
@@ -138,7 +139,7 @@ const Warehouses = () => {
             fetchWarehouses();
             alert(i18n.language === 'ar' ? 'تم الحذف بنجاح' : 'Deleted successfully');
         } catch (error) {
-            console.error('Error deleting warehouse:', error);
+            logError('Error deleting warehouse:', error);
             const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ في الحذف' : 'Error deleting');
             alert(msg);
         } finally {
