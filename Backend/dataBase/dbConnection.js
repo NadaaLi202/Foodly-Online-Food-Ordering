@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import logError from "../src/utils/logError.js";
 
 export const dbConnection = async () => {
     try {
@@ -9,7 +10,7 @@ export const dbConnection = async () => {
         await mongoose.connect(process.env.DB_CONNECTION);
         console.log('Database connection successful');
     } catch (err) {
-        console.error('Database connection failed:', err.message);
+        logError('Database connection failed:', err.message);
         process.exit(1);
     }
 };

@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import logError from '../../utils/logError';
+import { confirmDelete } from '../../utils/confirmDelete';
 
 const Warehouses = () => {
     const { t, i18n } = useTranslation();
@@ -39,7 +41,7 @@ const Warehouses = () => {
             const response = await api.get('/warehouses');
             setWarehouses(response.data.warehouses || []);
         } catch (error) {
-            console.error('Error fetching warehouses:', error);
+            logError('Error fetching warehouses:', error);
         } finally {
             setLoading(false);
         }
@@ -50,7 +52,7 @@ const Warehouses = () => {
             const response = await api.get('/users');
             setUsers(response.data.users || response.data || []);
         } catch (error) {
-            console.error('Error fetching users:', error);
+            logError('Error fetching users:', error);
         }
     };
 
@@ -120,7 +122,7 @@ const Warehouses = () => {
             alert(i18n.language === 'ar' ? 'تم الحفظ بنجاح' : 'Saved successfully');
 
         } catch (error) {
-            console.error('Error saving warehouse:', error);
+            logError('Error saving warehouse:', error);
             const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ' : 'An error occurred');
             alert(msg);
         } finally {
@@ -129,14 +131,15 @@ const Warehouses = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد من الحذف؟' : 'Are you sure you want to delete?')) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('sales.common.confirm_delete', 'Are you sure you want to delete?'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
         setLoading(true);
         try {
             await api.delete(`/warehouses/${id}`);
             fetchWarehouses();
             alert(i18n.language === 'ar' ? 'تم الحذف بنجاح' : 'Deleted successfully');
         } catch (error) {
-            console.error('Error deleting warehouse:', error);
+            logError('Error deleting warehouse:', error);
             const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ في الحذف' : 'Error deleting');
             alert(msg);
         } finally {
@@ -391,3 +394,5 @@ const Warehouses = () => {
 };
 
 export default Warehouses;
+
+

@@ -1,5 +1,10 @@
 import Joi from "joi";
 
+const taxesValidator = Joi.alternatives().try(
+    Joi.number().min(0),
+    Joi.string().valid('none', 'vat_14').allow('')
+).optional();
+
 const receiptSchema = Joi.object({
     code: Joi.string().required(),
     date: Joi.date().required(),
@@ -7,7 +12,7 @@ const receiptSchema = Joi.object({
     accountModel: Joi.string().valid('Safe', 'BankAccount').required(),
     externalAccount: Joi.string().allow('').optional(),
     amount: Joi.number().min(0).required(),
-    taxes: Joi.string().allow('').optional(),
+    taxes: taxesValidator,
     description: Joi.string().allow('').optional(),
 }).unknown(true);
 
@@ -18,7 +23,7 @@ const disbursementSchema = Joi.object({
     accountModel: Joi.string().valid('Safe', 'BankAccount').required(),
     externalAccount: Joi.string().allow('').optional(),
     amount: Joi.number().min(0).required(),
-    taxes: Joi.string().allow('').optional(),
+    taxes: taxesValidator,
     description: Joi.string().allow('').optional(),
 }).unknown(true);
 

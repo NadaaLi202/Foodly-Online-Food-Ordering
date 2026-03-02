@@ -4,6 +4,8 @@ import { Plus, RefreshCw, X, Search, MoreVertical, Pencil, Minus, Eye, Check, Tr
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
+import logError from '../../utils/logError';
 
 export default function Customers() {
     const { t, i18n } = useTranslation();
@@ -64,7 +66,7 @@ export default function Customers() {
             const data = response.data;
             setCustomers(data.contacts || []);
         } catch (error) {
-            console.error('Error fetching customers:', error);
+            logError('Error fetching customers:', error);
         } finally {
             setLoading(false);
         }
@@ -125,7 +127,7 @@ export default function Customers() {
                 setIsModalOpen(true);
             }
         } catch (error) {
-            console.error('Error fetching customer:', error);
+            logError('Error fetching customer:', error);
         } finally {
             setLoadingCustomer(false);
         }
@@ -247,7 +249,7 @@ export default function Customers() {
             if (response.status !== 200 && response.status !== 201) {
                 throw new Error(result.message || t('sales.common.error_message'));
             }
-            
+
             // Dispatch event for real-time report updates
             if (isEditing && currentCustomerId) {
                 window.dispatchEvent(new CustomEvent('customer-updated'));
@@ -273,7 +275,7 @@ export default function Customers() {
             }, 1500);
 
         } catch (error) {
-            console.error('Error saving customer:', error);
+            logError('Error saving customer:', error);
             setResponseMessage({
                 type: 'error',
                 text: error.message || t('sales.common.error_message')
@@ -383,7 +385,7 @@ export default function Customers() {
                 });
             }
         } catch (err) {
-            console.error(err);
+            logError(err);
             setViewContact(customer);
         }
     };
@@ -879,39 +881,17 @@ export default function Customers() {
                 );
             })()}
 
-            {/* Delete Confirmation Modal */}
-            {showDeleteConfirm && customerToDelete && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-200">
-                            <h3 className={`text-lg font-bold text-gray-800 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                {t('sales.common.confirm_delete')}
-                            </h3>
-                        </div>
-                        <div className="px-6 py-4">
-                            <p className={`text-sm text-gray-600 mb-4 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                {t('sales.common.confirm_delete')} <strong>#{customerToDelete.code || customerToDelete._id?.slice(-6)} {customerToDelete.name}</strong>?
-                            </p>
-                        </div>
-                        <div className={`px-6 py-4 border-t border-gray-200 flex justify-end gap-3 ${i18n.language === 'ar' ? 'flex-row-reverse' : 'flex-row'}`}>
-                            <button
-                                type="button"
-                                onClick={() => { setShowDeleteConfirm(false); setCustomerToDelete(null); }}
-                                className="border border-gray-300 text-gray-700 px-6 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold"
-                            >
-                                {t('sales.common.cancel')}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={confirmDelete}
-                                className="bg-red-600 text-white px-6 py-2.5 rounded-lg hover:bg-red-700 font-semibold"
-                            >
-                                {t('sales.common.delete')}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmDeleteModal
+                isOpen={showDeleteConfirm && !!customerToDelete}
+                onClose={() => { setShowDeleteConfirm(false); setCustomerToDelete(null); }}
+                onConfirm={confirmDelete}
+                title={t('sales.common.confirm_delete')}
+                message={
+                    customerToDelete
+                        ? `${t('sales.common.confirm_delete')} #${customerToDelete.code || customerToDelete._id?.slice(-6)} ${customerToDelete.name}?`
+                        : t('sales.common.confirm_delete')
+                }
+            />
 
             {/* Add/Edit Modal */}
             {isModalOpen && (

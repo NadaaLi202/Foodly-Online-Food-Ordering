@@ -5,8 +5,16 @@ import AddContactModal from './AddContactModal';
 import AddSupplierModal from '../AddSupplierModal';
 import AttachmentsSection from '../AttachmentsSection';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 import { SUPPORTED_CURRENCIES } from '../../utils/currencyFormatter';
 import { currencySymbols } from '../../utils/currencySymbols';
+
+const TAX_PRESET_VALUES = ['0', '10', '15'];
+const round2 = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+const getTaxMode = (taxValue) => {
+    const normalized = String(taxValue ?? '0');
+    return TAX_PRESET_VALUES.includes(normalized) ? normalized : 'custom';
+};
 
 const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, contactType = 'customers', addTitleKey, editTitleKey, numberPlaceholderKey, clientLabelKey, defaultCurrency = 'EGP' }) => {
     const { t } = useTranslation();
@@ -37,7 +45,8 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                 price: 0,
                 discount: 0,
                 discountType: '%',
-                tax: 0
+                tax: 0,
+                taxMode: '0'
             }
         ],
         notes: '',
@@ -48,7 +57,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
         invoiceDiscountType: '%',
         warehouse: '',
         status: 'unpaid',
-        currency: defaultCurrency
+        currency: defaultCurrency || 'EGP'
     });
 
     useEffect(() => {
@@ -67,7 +76,8 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                     price: item.unitPrice,
                     discount: item.discountPercent || item.discountAmount || 0,
                     discountType: item.discountPercent ? '%' : 'fixed',
-                    tax: item.taxPercent || 0
+                    tax: item.taxPercent || 0,
+                    taxMode: getTaxMode(item.taxPercent || 0)
                 })),
                 notes: invoice.notes || '',
                 paidAmount: invoice.paidAmount || 0,
@@ -95,7 +105,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
             const response = await api.get(`/contacts/${contactType}`);
             setClients(response.data.contacts || response.data.data || []);
         } catch (error) {
-            console.error('Error fetching contacts:', error);
+            logError('Error fetching contacts:', error);
         }
     };
 
@@ -104,7 +114,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
             const response = await api.get('/products');
             setProducts(response.data.products || []);
         } catch (error) {
-            console.error('Error fetching products:', error);
+            logError('Error fetching products:', error);
         }
     };
 
@@ -161,9 +171,23 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
             ...formData,
             items: [
                 ...formData.items,
-                { productId: '', productName: '', description: '', quantity: 1, price: 0, discount: 0, discountType: '%', tax: 0 }
+                { productId: '', productName: '', description: '', quantity: 1, price: 0, discount: 0, discountType: '%', tax: 0, taxMode: '0' }
             ]
         });
+    };
+
+    const handleTaxPresetChange = (index, value) => {
+        const nextItems = [...formData.items];
+        nextItems[index].taxMode = value;
+        nextItems[index].tax = value === 'custom' ? (nextItems[index].tax || 0) : Number(value);
+        setFormData({ ...formData, items: nextItems });
+    };
+
+    const handleCustomTaxChange = (index, value) => {
+        const nextItems = [...formData.items];
+        nextItems[index].taxMode = 'custom';
+        nextItems[index].tax = value;
+        setFormData({ ...formData, items: nextItems });
     };
 
     const removeItem = (index) => {
@@ -176,28 +200,28 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
         const price = parseFloat(item.price) || 0;
         const discount = parseFloat(item.discount) || 0;
 
-        const subtotal = qty * price;
+        const subtotal = round2(qty * price);
         const discountAmount = item.discountType === '%'
-            ? (subtotal * discount / 100)
+            ? round2(subtotal * discount / 100)
             : discount;
-        return subtotal - discountAmount;
+        return round2(subtotal - discountAmount);
     };
 
     const calculateTotals = () => {
-        const subtotal = formData.items.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+        const subtotal = round2(formData.items.reduce((sum, item) => sum + calculateItemTotal(item), 0));
         const totalTax = formData.items.reduce((sum, item) => {
             const itemTotal = calculateItemTotal(item);
             const taxValue = parseFloat(item.tax) || 0;
-            return sum + (itemTotal * taxValue / 100);
+            return sum + round2(itemTotal * taxValue / 100);
         }, 0);
 
         const invDiscount = parseFloat(formData.invoiceDiscount) || 0;
         const invDiscountAmount = formData.invoiceDiscountType === '%'
-            ? (subtotal * invDiscount / 100)
+            ? round2(subtotal * invDiscount / 100)
             : invDiscount;
 
-        const total = subtotal + totalTax - invDiscountAmount;
-        return { subtotal, totalTax, total, invDiscountAmount };
+        const total = round2(subtotal + totalTax - invDiscountAmount);
+        return { subtotal, totalTax: round2(totalTax), total, invDiscountAmount: round2(invDiscountAmount) };
     };
 
     const totals = calculateTotals();
@@ -217,7 +241,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                 await onDeleteAttachment(invoice._id, updated);
                 setExistingAttachments(updated);
             } catch (e) {
-                console.error('Delete attachment failed:', e);
+                logError('Delete attachment failed:', e);
             }
         } else {
             setExistingAttachments(updated);
@@ -234,8 +258,9 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
             if (!item.productName || !item.productId) {
                 newErrors[`item_product_${index}`] = t('sales.common.required');
             }
-            if (item.quantity <= 0) newErrors[`item_quantity_${index}`] = t('sales.common.required');
-            if (item.price < 0) newErrors[`item_price_${index}`] = t('sales.common.required');
+            if ((parseFloat(item.quantity) || 0) <= 0) newErrors[`item_quantity_${index}`] = t('sales.common.required');
+            if ((parseFloat(item.price) || 0) < 0) newErrors[`item_price_${index}`] = t('sales.common.required');
+            if ((parseFloat(item.tax) || 0) < 0) newErrors[`item_tax_${index}`] = t('sales.common.required');
         });
 
         setErrors(newErrors);
@@ -254,11 +279,18 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
         formDataToSend.append('issueDate', formData.issueDate);
         formDataToSend.append('dueDate', formData.dueDate);
         const paymentMethodMap = { cash: 'cash', card: 'credit', bank: 'bank_transfer' };
+        const normalizedCurrency = String(formData.currency || 'EGP').trim().toUpperCase();
+        const paymentPayload = {
+            paidAmount: Number(formData.paidAmount) || 0,
+            paymentMethod: paymentMethodMap[formData.paymentMethod] || formData.paymentMethod,
+            currency: normalizedCurrency
+        };
+
         formDataToSend.append('paymentMethod', paymentMethodMap[formData.paymentMethod] || formData.paymentMethod);
         formDataToSend.append('paidAmount', formData.paidAmount);
         formDataToSend.append('notes', formData.notes);
         formDataToSend.append('warehouse', formData.warehouse);
-        formDataToSend.append('currency', formData.currency || 'EGP');
+        formDataToSend.append('payment', JSON.stringify(paymentPayload));
 
         if (formData.invoiceDiscountType === '%') {
             formDataToSend.append('generalDiscountPercent', formData.invoiceDiscount);
@@ -270,11 +302,11 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
         const mappedItems = formData.items.map(item => ({
             product: item.productId,
             productName: item.productName,
-            quantity: item.quantity,
-            unitPrice: item.price,
-            discountPercent: item.discountType === '%' ? item.discount : 0,
-            discountAmount: item.discountType === 'fixed' ? item.discount : 0,
-            taxPercent: item.tax
+            quantity: parseFloat(item.quantity) || 0,
+            unitPrice: parseFloat(item.price) || 0,
+            discountPercent: item.discountType === '%' ? (parseFloat(item.discount) || 0) : 0,
+            discountAmount: item.discountType === 'fixed' ? (parseFloat(item.discount) || 0) : 0,
+            taxPercent: parseFloat(item.tax) || 0
         }));
         formDataToSend.append('items', JSON.stringify(mappedItems));
 
@@ -436,7 +468,8 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                                                     value={item.quantity}
                                                     onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                                                     className="w-full border border-gray-200 rounded px-3 py-2 text-sm text-gray-700 text-center focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all"
-                                                    min="1"
+                                                    min="0.01"
+                                                    step="0.01"
                                                 />
                                             </td>
                                             <td className="p-3 align-top">
@@ -446,6 +479,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                                                     onChange={(e) => handleItemChange(index, 'price', e.target.value)}
                                                     className="w-full border border-gray-200 rounded px-3 py-2 text-sm text-gray-700 text-center focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none transition-all"
                                                     min="0"
+                                                    step="0.01"
                                                 />
                                             </td>
                                             <td className="p-3 align-top">
@@ -456,6 +490,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                                                         onChange={(e) => handleItemChange(index, 'discount', e.target.value)}
                                                         className="w-full px-2 py-2 text-sm text-gray-700 text-center focus:outline-none"
                                                         min="0"
+                                                        step="0.01"
                                                     />
                                                     <select
                                                         value={item.discountType}
@@ -468,14 +503,29 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                                                 </div>
                                             </td>
                                             <td className="p-3 align-top">
-                                                <select
-                                                    value={item.tax}
-                                                    onChange={(e) => handleItemChange(index, 'tax', e.target.value)}
-                                                    className="w-full border border-gray-200 rounded px-2 py-2 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"
-                                                >
-                                                    <option value="0">{t('sales.common.exempt')}</option>
-                                                    <option value="14">14%</option>
-                                                </select>
+                                                <div className="space-y-1">
+                                                    <select
+                                                        value={item.taxMode || getTaxMode(item.tax)}
+                                                        onChange={(e) => handleTaxPresetChange(index, e.target.value)}
+                                                        className="w-full border border-gray-200 rounded px-2 py-2 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white"
+                                                    >
+                                                        <option value="0">0%</option>
+                                                        <option value="10">10%</option>
+                                                        <option value="15">15%</option>
+                                                        <option value="custom">{t('sales.common.custom') || 'Custom'}</option>
+                                                    </select>
+                                                    {(item.taxMode || getTaxMode(item.tax)) === 'custom' && (
+                                                        <input
+                                                            type="number"
+                                                            value={item.tax}
+                                                            onChange={(e) => handleCustomTaxChange(index, e.target.value)}
+                                                            className={`w-full border ${errors[`item_tax_${index}`] ? 'border-red-500' : 'border-gray-200'} rounded px-2 py-2 text-sm text-gray-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none bg-white`}
+                                                            min="0"
+                                                            step="0.01"
+                                                            placeholder="%"
+                                                        />
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="p-3 align-top text-center font-bold text-gray-800 pt-4">
                                                 {(currencySymbols[formData.currency] || formData.currency || 'EGP')} {calculateItemTotal(item).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -553,9 +603,10 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                                                 onChange={handleInputChange}
                                                 className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-bold text-gray-700 focus:border-indigo-500 focus:outline-none"
                                                 min="0"
+                                                step="0.01"
                                             />
 
-                                            <div className="grid grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 {/* Payment Method */}
                                                 <div>
                                                     <label className="block text-xs text-gray-500 mb-1">{t('sales.common.payment_method')}</label>
@@ -568,6 +619,19 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                                                         <option value="cash">{t('sales.common.cash')}</option>
                                                         <option value="card">{t('sales.common.card')}</option>
                                                         <option value="bank">{t('sales.common.bank')}</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs text-gray-500 mb-1">{t('currency')}</label>
+                                                    <select
+                                                        name="currency"
+                                                        value={formData.currency || 'EGP'}
+                                                        onChange={handleInputChange}
+                                                        className="w-full border border-gray-200 rounded-lg p-2 text-sm text-gray-700 focus:outline-none bg-white"
+                                                    >
+                                                        {SUPPORTED_CURRENCIES.map(code => (
+                                                            <option key={code} value={code}>{t(`currencies.${code}`)}</option>
+                                                        ))}
                                                     </select>
                                                 </div>
                                                 {/* Treasury placeholder */}
@@ -593,6 +657,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                                                         onChange={handleInputChange}
                                                         className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-bold text-gray-700 focus:border-indigo-500 focus:outline-none"
                                                         min="0"
+                                                        step="0.01"
                                                     />
                                                 </div>
                                                 <div className="w-24">
@@ -623,19 +688,6 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                                                         <option value="">{t('sales.common.select_warehouse')}</option>
                                                         <option value="main">{t('sales.common.main_warehouse')}</option>
                                                         <option value="secondary">{t('sales.common.secondary_warehouse')}</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('currency')}</label>
-                                                    <select
-                                                        name="currency"
-                                                        value={formData.currency || 'EGP'}
-                                                        onChange={handleInputChange}
-                                                        className="w-full border border-gray-200 rounded-lg p-2.5 text-sm font-bold text-gray-700 focus:border-indigo-500 focus:outline-none bg-white"
-                                                    >
-                                                        {SUPPORTED_CURRENCIES.map(code => (
-                                                            <option key={code} value={code}>{t(`currencies.${code}`)}</option>
-                                                        ))}
                                                     </select>
                                                 </div>
                                             </div>

@@ -57,6 +57,44 @@ const getCompanyBySlug = catchAsyncError(async (req, res, next) => {
     res.status(200).json({ message: 'Company retrieved successfully', company });
 });
 
+const checkSlug = catchAsyncError(async (req, res, next) => {
+    const { slug } = req.params;
+    const company = await companyModel.findOne({ slug });
+    if (company) {
+        return res.status(200).json({ isAvailable: false, message: 'Slug is already taken' });
+    }
+    res.status(200).json({ isAvailable: true, message: 'Slug is available' });
+});
+
+const signupCompany = catchAsyncError(async (req, res, next) => {
+    const companyData = { ...req.body };
+    companyData.status = 'pending';
+
+    const existingCompany = await companyModel.findOne({
+        $or: [{ email: companyData.email }, { name: companyData.name }, { slug: companyData.slug }]
+    });
+
+    if (existingCompany) {
+        if (existingCompany.email === companyData.email) {
+            return next(new AppError('البريد الإلكتروني مستخدم بالفعل / Email already exists', 409));
+        }
+        if (existingCompany.name === companyData.name) {
+            return next(new AppError('اسم الشركة مستخدم بالفعل / Company name already exists', 409));
+        }
+        if (existingCompany.slug === companyData.slug) {
+            return next(new AppError('رابط الشركة (Slug) مستخدم بالفعل / Company slug already exists', 409));
+        }
+    }
+
+    const company = new companyModel(companyData);
+    await company.save();
+
+    res.status(201).json({
+        success: true,
+        message: 'Account created successfully and is pending approval.'
+    });
+});
+
 const updateCompany = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
     let company = await companyModel.findById(id);
@@ -140,4 +178,34 @@ const sendCredentials = catchAsyncError(async (req, res, next) => {
     });
 });
 
-export { addCompany, getAllCompanies, getCompany, getCompanyBySlug, updateCompany, deleteCompany, loginAsCompany, sendCredentials };
+const approveCompany = catchAsyncError(async (req, res, next) => {
+    const { id } = req.params;
+    const company = await companyModel.findById(id);
+    if (!company) {
+        return next(new AppError('Company not found', 404));
+    }
+
+    company.status = 'active';
+    company.approvedAt = new Date();
+    await company.save();
+
+    res.status(200).json({ message: 'Company approved successfully', company });
+});
+
+const rejectCompany = catchAsyncError(async (req, res, next) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const company = await companyModel.findById(id);
+    if (!company) {
+        return next(new AppError('Company not found', 404));
+    }
+
+    company.status = 'rejected';
+    company.rejectionReason = reason || 'No reason provided';
+    await company.save();
+
+    res.status(200).json({ message: 'Company rejected successfully', company });
+});
+
+export { addCompany, getAllCompanies, getCompany, getCompanyBySlug, updateCompany, deleteCompany, loginAsCompany, sendCredentials, checkSlug, signupCompany, approveCompany, rejectCompany };

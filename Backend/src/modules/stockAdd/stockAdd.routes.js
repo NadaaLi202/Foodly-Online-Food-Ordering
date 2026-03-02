@@ -21,12 +21,13 @@ import {
 
 import { validation } from "../../middleware/validation.js";
 import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadFiles.js";
-import { protectedRoutes } from "../auth/auth.controller.js";
+import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
 import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const router = express.Router();
 
 router.use(protectedRoutes, applyCompanyFilter);
+router.use(requireResourcePermission("inventory_operations"));
 
 // StockAdd routes
 router.route("/")

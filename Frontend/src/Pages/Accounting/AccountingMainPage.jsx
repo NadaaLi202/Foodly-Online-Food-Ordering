@@ -30,6 +30,15 @@ const AccountingMainPage = () => {
             iconColor: 'text-purple-600',
             link: '/dashboard/accounting/chart-of-accounts',
         },
+        {
+            id: 'cost-centers',
+            title: t('sidebar.cost_centers'),
+            description: t('cost_centers.tile_desc'),
+            icon: PieChart,
+            iconBg: 'bg-emerald-50',
+            iconColor: 'text-emerald-600',
+            link: '/dashboard/accounting/cost-centers',
+        },
     ];
 
     return (

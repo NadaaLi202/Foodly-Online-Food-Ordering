@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import chartOfAccountsService from '../../services/chartOfAccountsService';
+import { confirmDelete } from '../../utils/confirmDelete';
 
 /**
  * Build a tree from flat list of accounts (backend returns flat with parentAccount populated).
@@ -142,7 +143,8 @@ export default function ChartOfAccounts() {
 
     const handleDelete = async (account) => {
         const msg = i18n.language === 'ar' ? 'هل أنت متأكد من حذف هذا الحساب؟' : 'Are you sure you want to delete this account?';
-        if (!window.confirm(msg)) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: msg, confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
         try {
             await chartOfAccountsService.deleteAccount(account._id);
             toast.success(t('sales.common.success_message', 'Account deleted successfully'));
@@ -509,3 +511,4 @@ export default function ChartOfAccounts() {
         </div>
     );
 }
+

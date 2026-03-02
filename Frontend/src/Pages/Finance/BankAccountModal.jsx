@@ -3,6 +3,7 @@ import { X, Save, Building, Landmark, ChevronDown, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 
 const BankAccountModal = ({ isOpen, onClose, onSave, accountId = null }) => {
     const { t, i18n } = useTranslation();
@@ -55,7 +56,7 @@ const BankAccountModal = ({ isOpen, onClose, onSave, accountId = null }) => {
             setBranches(branchesRes.data.branches || []);
             setUsers(usersRes.data.users || []);
         } catch (error) {
-            console.error('Error fetching initial data:', error);
+            logError('Error fetching initial data:', error);
         }
     };
 
@@ -74,7 +75,7 @@ const BankAccountModal = ({ isOpen, onClose, onSave, accountId = null }) => {
                 balance: account.balance || 0
             });
         } catch (error) {
-            console.error('Error fetching bank account:', error);
+            logError('Error fetching bank account:', error);
             toast.error(t('sales.common.error_message'));
             onClose();
         } finally {
@@ -123,7 +124,7 @@ const BankAccountModal = ({ isOpen, onClose, onSave, accountId = null }) => {
             onSave();
             onClose();
         } catch (error) {
-            console.error('Error saving bank account:', error);
+            logError('Error saving bank account:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message');
             toast.error(Array.isArray(msg) ? msg[0] : msg);
         } finally {

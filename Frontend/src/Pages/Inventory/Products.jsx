@@ -3,6 +3,8 @@ import { Plus, Search, RefreshCw, X, ChevronDown, Upload, Package } from 'lucide
 import { useTranslation } from 'react-i18next';
 import api, { BASE_URL } from '../../services/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
+import { confirmDelete } from '../../utils/confirmDelete';
+import logError from '../../utils/logError';
 
 const Products = () => {
     const { t, i18n } = useTranslation();
@@ -52,7 +54,7 @@ const Products = () => {
             const response = await api.get(url);
             setProducts(response.data.products || []);
         } catch (error) {
-            console.error('Error fetching products:', error);
+            logError('Error fetching products:', error);
         } finally {
             setLoading(false);
         }
@@ -238,7 +240,7 @@ const Products = () => {
             window.dispatchEvent(new CustomEvent('inventory-updated'));
 
         } catch (error) {
-            console.error('Error saving product:', error);
+            logError('Error saving product:', error);
             const errorMessage = Array.isArray(error.response?.data?.message)
                 ? error.response.data.message.join('\n')
                 : (error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error'));
@@ -284,7 +286,8 @@ const Products = () => {
 
     // Handle Delete
     const handleDelete = async (id) => {
-        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد من حذف هذا المنتج؟' : 'Are you sure you want to delete this product?')) {
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete'), message: t('sales.common.confirm_delete'), confirmText: t('sales.common.confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) {
             return;
         }
 
@@ -293,7 +296,7 @@ const Products = () => {
             alert(i18n.language === 'ar' ? 'تم حذف المنتج بنجاح!' : 'Product deleted successfully!');
             fetchProducts();
         } catch (error) {
-            console.error('Error deleting product:', error);
+            logError('Error deleting product:', error);
             alert(error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ في الحذف' : 'Error deleting product'));
         }
     };
@@ -847,3 +850,5 @@ const Products = () => {
 };
 
 export default Products;
+
+

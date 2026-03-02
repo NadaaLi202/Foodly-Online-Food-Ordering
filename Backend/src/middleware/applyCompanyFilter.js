@@ -1,29 +1,46 @@
 import { AppError } from "../utils/AppError.js";
 
+const isSuperAdminUser = (user) =>
+    user?.role === "superAdmin" || user?.systemRole === "superAdmin";
+
+const firstDefined = (...vals) => vals.find(v => v !== undefined && v !== null && String(v).trim() !== "");
+
+export const resolveCompanyIdForWrite = (req) => {
+    const candidate = firstDefined(
+        req?.companyFilter?.companyId,
+        req?.body?.companyId,
+        req?.query?.companyId,
+        req?.headers?.["x-company-id"],
+        req?.user?.companyId
+    );
+    return candidate ? String(candidate) : null;
+};
+
 export const applyCompanyFilter = (req, res, next) => {
     if (!req.user) {
         return next();
     }
+    req.isSuperAdmin = isSuperAdminUser(req.user);
 
     // 1. Handle 'company' role (Main Account)
     // When a company owner logs in, their 'account' is the company itself.
-    if ((req.user.role === "company" || req.user.systemRole === 'companyOwner') && !req.user.companyId) {
+    if (req.user.role === "company" && !req.user.companyId) {
         req.user.companyId = req.user._id;
     }
 
     // 2. SuperAdmin handles everything (optional filter)
-    if (req.user.role === "superAdmin" || req.user.systemRole === 'superAdmin') {
-        const targetCompanyId = req.query.companyId || req.body.companyId;
+    if (req.isSuperAdmin) {
+        const targetCompanyId = firstDefined(req.query.companyId, req.body.companyId, req.headers["x-company-id"]);
         if (targetCompanyId) {
-            req.companyFilter = { companyId: targetCompanyId };
-            // Also set it on req.user so controllers can use req.user.companyId consistently
-            req.user.companyId = targetCompanyId;
+            const normalized = String(targetCompanyId);
+            req.companyFilter = { companyId: normalized };
+            req.user.companyId = normalized;
+            if (["POST", "PUT", "PATCH"].includes(req.method)) {
+                req.body.companyId = normalized;
+            }
         } else {
             req.companyFilter = {};
         }
-        // Even for superAdmin, if they are POSTing/PUTing without a companyId, 
-        // they might hit validation errors if the model requires it.
-        // But for now, we just proceed.
         next();
         return;
     }
@@ -38,9 +55,9 @@ export const applyCompanyFilter = (req, res, next) => {
 
     // Force companyId on create/update (ensure string for validation)
     if (["POST", "PUT", "PATCH"].includes(req.method)) {
-        const id = req.user.companyId;
+        const id = resolveCompanyIdForWrite(req);
         if (id) {
-            req.body.companyId = String(id);
+            req.body.companyId = id;
         }
     }
 

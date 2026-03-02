@@ -1,295 +1,365 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Home, RefreshCw, GripVertical, MinusCircle, PlusCircle } from 'lucide-react';
-import { Reorder } from 'framer-motion';
+import { Check, Loader2, MinusCircle, PlusCircle, GripVertical, Home } from 'lucide-react';
 import toast from 'react-hot-toast';
 import codingService from '../../services/codingService';
-import api from '../../services/api';
+
+const DEFAULT_FORM = {
+    entity: 'invoices',
+    prefix: 'INV',
+    year: new Date().getFullYear().toString().slice(-2),
+    branchScope: 'branch',
+    minDigits: 6,
+    separator: '-'
+};
 
 const CodingSettings = () => {
     const { t, i18n } = useTranslation();
     const isRTL = i18n.language === 'ar';
-    const [entity, setEntity] = useState('invoices');
-    const [rules, setRules] = useState({
-        parts: [],
-        separator: '-',
-        sequences: {}
-    });
-    const [branches, setBranches] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [newPartType, setNewPartType] = useState('fixed');
-    const [branchSequences, setBranchSequences] = useState({});
-
     const entities = [
-        'invoices', 'returns', 'quotations', 'purchase_invoices',
-        'purchase_returns', 'purchase_requests', 'purchase_orders',
-        'products', 'customers', 'suppliers', 'journal_entries'
+        'invoices',
+        'returns',
+        'quotations',
+        'purchase_invoices',
+        'purchase_returns',
+        'purchase_requests',
+        'purchase_orders',
+        'products',
+        'customers',
+        'suppliers',
+        'journal_entries'
     ];
 
-    const partTypes = ['fixed', 'year', 'branch', 'sequence'];
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [savingBranchId, setSavingBranchId] = useState('');
+    const [form, setForm] = useState(DEFAULT_FORM);
+    const [branchSequences, setBranchSequences] = useState([]);
 
-    const fetchData = useCallback(async () => {
+    const fetchCodingSettings = useCallback(async (entity) => {
         setLoading(true);
         try {
-            const [rulesRes, branchesRes] = await Promise.all([
-                codingService.getRules(entity),
-                api.get('/branch')
-            ]);
-            setRules(rulesRes.rules);
-            setBranches(branchesRes.data.data || []);
+            const response = await codingService.getSettings(entity);
+            const payload = response?.data || {};
 
-            const sequences = {};
-            (branchesRes.data.data || []).forEach(b => {
-                sequences[b._id] = rulesRes.rules.sequences?.[b._id] || 0;
-            });
-            setBranchSequences(sequences);
-        } catch (err) {
+            setForm((prev) => ({
+                ...prev,
+                entity,
+                prefix: payload.prefix || 'INV',
+                year: payload.year || new Date().getFullYear().toString().slice(-2),
+                branchScope: payload.branchScope || 'branch',
+                minDigits: Math.max(1, Number(payload.minDigits || 6)),
+                separator: payload.separator ?? '-'
+            }));
+            setBranchSequences(Array.isArray(payload.branchSequences) ? payload.branchSequences : []);
+        } catch (error) {
             toast.error(t('sales.common.error_message'));
         } finally {
             setLoading(false);
         }
-    }, [entity, t]);
+    }, [t]);
 
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        fetchCodingSettings(form.entity);
+    }, [fetchCodingSettings, form.entity]);
 
-    const handleUpdateRules = async () => {
+    const preview = useMemo(() => {
+        const previewSequence = Math.max(0, Number(branchSequences?.[0]?.currentSequence ?? 1));
+        const paddedSequence = String(previewSequence).padStart(Math.max(1, Number(form.minDigits || 1)), '0');
+        const separator = form.separator ?? '-';
+        return `${form.prefix || ''}${separator}${form.year || ''}${separator}${paddedSequence}`;
+    }, [form.prefix, form.year, form.minDigits, form.separator, branchSequences]);
+
+    const showSuccessToast = (title, subtitle) => {
+        toast.custom((toastObj) => (
+            <div
+                className={`${toastObj.visible ? 'animate-enter' : 'animate-leave'
+                    } max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 p-4 border-l-4 border-green-500`}
+            >
+                <div className="flex-1 w-0">
+                    <div className={`flex items-start ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
+                        <div className={`flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                            <p className="text-sm font-bold text-gray-900">{title}</p>
+                            <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
+                        </div>
+                        <div className={`flex-shrink-0 flex items-center justify-center p-1 bg-green-100 rounded-full ${isRTL ? 'mr-3' : 'ml-3'}`}>
+                            <Check className="h-4 w-4 text-green-600" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        ), {
+            position: isRTL ? 'top-left' : 'top-right',
+            duration: 3000
+        });
+    };
+
+    const onFormChange = (key, value) => {
+        setForm((prev) => ({ ...prev, [key]: value }));
+    };
+
+    const updateBranchSequenceValue = (branchId, nextValue) => {
+        setBranchSequences((prev) => prev.map((item) => (
+            item.branchId === branchId
+                ? { ...item, currentSequence: Math.max(0, Number.isNaN(Number(nextValue)) ? 0 : Number(nextValue)) }
+                : item
+        )));
+    };
+
+    const handleSaveSettings = async () => {
+        if (!form.prefix?.trim()) {
+            toast.error(t('coding_settings.validation.prefix_required'));
+            return;
+        }
+        if (Number(form.minDigits) < 1) {
+            toast.error(t('coding_settings.validation.min_digits'));
+            return;
+        }
+
         setSaving(true);
         try {
-            await codingService.updateRules(entity, {
-                parts: rules.parts,
-                separator: rules.separator
+            await codingService.updateSettings({
+                entity: form.entity,
+                prefix: form.prefix.trim(),
+                year: String(form.year || '').trim(),
+                branchScope: form.branchScope,
+                minDigits: Number(form.minDigits),
+                separator: form.separator
             });
-            toast.success(t('coding_settings.success_save'));
-        } catch (err) {
+            showSuccessToast(
+                t('coding_settings.success_title'),
+                t('coding_settings.success_save')
+            );
+            await fetchCodingSettings(form.entity);
+        } catch (error) {
             toast.error(t('sales.common.error_message'));
         } finally {
             setSaving(false);
         }
     };
 
-    const handleUpdateSequence = async (branchId) => {
+    const handleUpdateBranchSequence = async (branchId) => {
+        const branchItem = branchSequences.find((item) => item.branchId === branchId);
+        const sequenceValue = Number(branchItem?.currentSequence ?? 0);
+
+        if (sequenceValue < 0) {
+            toast.error(t('coding_settings.validation.sequence'));
+            return;
+        }
+
+        setSavingBranchId(branchId);
         try {
-            await codingService.updateBranchSequence(entity, {
+            await codingService.updateBranchSequence({
+                entity: form.entity,
                 branchId,
-                sequence: branchSequences[branchId]
+                sequence: sequenceValue
             });
-            toast.success(t('coding_settings.success_sequence'));
-        } catch (err) {
+            showSuccessToast(
+                t('coding_settings.success_title'),
+                t('coding_settings.success_sequence')
+            );
+        } catch (error) {
             toast.error(t('sales.common.error_message'));
+        } finally {
+            setSavingBranchId('');
         }
     };
 
-    const addPart = () => {
-        const newPart = { id: Date.now().toString(), type: newPartType, value: '', length: 6 };
-        setRules({ ...rules, parts: [...rules.parts, newPart] });
-    };
-
-    const removePart = (index) => {
-        const newParts = [...rules.parts];
-        newParts.splice(index, 1);
-        setRules({ ...rules, parts: newParts });
-    };
-
-    const updatePart = (index, field, value) => {
-        const newParts = [...rules.parts];
-        newParts[index][field] = value;
-        setRules({ ...rules, parts: newParts });
-    };
-
-    const generatePreview = () => {
-        const currentYear = new Date().getFullYear().toString().slice(-2);
-        const exampleBranch = '1';
-
-        return rules.parts.map(part => {
-            if (part.type === 'fixed') return part.value || '???';
-            if (part.type === 'year') return currentYear;
-            if (part.type === 'branch') return exampleBranch;
-            if (part.type === 'sequence') return '1'.padStart(part.length || 6, '0');
-            return '';
-        }).join(rules.separator || '');
-    };
+    if (loading) {
+        return (
+            <div className="flex h-[400px] items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            </div>
+        );
+    }
 
     return (
-        <div className="p-6 bg-[#F8F9FA] min-h-screen font-sans" dir={isRTL ? 'rtl' : 'ltr'}>
-            {/* Toolbar */}
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center bg-white border border-gray-200 rounded overflow-hidden h-10 shadow-sm px-2 gap-2">
-                        <button
-                            type="button"
-                            onClick={() => window.history.back()}
-                            className="text-gray-400 hover:text-gray-600 px-1 border-l border-gray-100 last:border-l-0"
-                        >
-                            <Home size={18} />
-                        </button>
-                        <div className="flex items-center text-[#4B5563] font-medium text-sm gap-1">
-                            <span className="text-gray-400">{t('sidebar.settings')}</span>
-                            <span className="text-gray-400">/</span>
-                            <span className="text-gray-700 font-bold">{t('coding_settings.title')}</span>
-                        </div>
-                        <button
-                            type="button"
-                            onClick={fetchData}
-                            className="text-gray-400 hover:text-gray-600 px-1 border-r border-gray-100 first:border-r-0"
-                        >
-                            <RefreshCw size={16} />
-                        </button>
+        <div className="min-h-screen bg-[#f1f3f5] py-4 px-4 md:px-8" dir={isRTL ? 'rtl' : 'ltr'}>
+            <div className="max-w-[980px] mx-auto">
+                <div className="flex justify-center mb-3">
+                    <div className="inline-flex items-center border border-gray-200 rounded overflow-hidden bg-white text-xs">
+                        <span className="px-4 py-2 text-gray-600">{t('sidebar.settings')}</span>
+                        <span className="px-4 py-2 border-x border-gray-200 text-gray-800 font-bold">{t('coding_settings.title')}</span>
+                        <span className="px-3 py-2 text-gray-500"><Home size={13} /></span>
                     </div>
                 </div>
-            </div>
 
-            {/* Main Content Card */}
-            <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-                <div className="p-8">
-                    {/* Entity Selector */}
-                    <div className="mb-8">
+                <div className="max-w-[570px] ml-auto bg-white border border-gray-200 rounded">
+                    <div className="p-4">
                         <select
-                            value={entity}
-                            onChange={(e) => setEntity(e.target.value)}
-                            className="w-full bg-white border border-gray-200 rounded-md py-2.5 px-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none shadow-sm cursor-pointer"
-                            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236B7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M8 9l4-4 4 4m0 6l-4 4-4-4\' /%3E%3C/svg%3E")', backgroundPosition: isRTL ? 'left 1rem center' : 'right 1rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em' }}
+                            value={form.entity}
+                            onChange={(e) => onFormChange('entity', e.target.value)}
+                            className="w-full h-9 px-3 text-sm rounded border border-gray-300 bg-[#f8fafc] text-gray-700 outline-none mb-4"
                         >
-                            {entities.map(e => (
-                                <option key={e} value={e}>{t(`coding_settings.entities.${e}`)}</option>
+                            {entities.map((entity) => (
+                                <option key={entity} value={entity}>
+                                    {t(`coding_settings.entities.${entity}`)}
+                                </option>
                             ))}
                         </select>
-                    </div>
 
-                    {/* Coding Parts List - Using Reorder for real DND */}
-                    <Reorder.Group axis="y" values={rules.parts} onReorder={(newParts) => setRules({ ...rules, parts: newParts })} className="space-y-4 mb-8">
-                        {rules.parts.map((part, index) => (
-                            <Reorder.Item key={part.id || index} value={part} className="flex items-center gap-4 bg-white border-b border-gray-100 pb-4 group">
-                                <button onClick={() => removePart(index)} className="text-red-500 hover:text-red-700 transition-colors">
-                                    <MinusCircle size={22} className="text-red-500" />
-                                </button>
-
-                                <div className="flex-1 flex items-center justify-between">
-                                    <div className="flex-1 px-4">
-                                        {part.type === 'fixed' && (
-                                            <input
-                                                type="text"
-                                                value={part.value}
-                                                onChange={(e) => updatePart(index, 'value', e.target.value)}
-                                                className="bg-white border border-gray-200 rounded py-2 px-4 text-sm w-full dark:text-gray-700 text-center shadow-inner"
-                                                placeholder={t('coding_settings.field_labels.fixed_value')}
-                                            />
-                                        )}
-                                        {part.type === 'year' && (
-                                            <div className="bg-white border border-gray-200 rounded py-2 px-4 text-sm w-full text-center text-gray-700 shadow-inner">
-                                                {new Date().getFullYear().toString().slice(-2)}
-                                            </div>
-                                        )}
-                                        {part.type === 'branch' && (
-                                            <div className="bg-white border border-gray-200 rounded py-2 px-4 text-sm w-full text-center text-gray-700 shadow-inner">
-                                                {t('coding_settings.parts.branch')}
-                                            </div>
-                                        )}
-                                        {part.type === 'sequence' && (
-                                            <div className="flex items-center justify-center gap-2">
-                                                <span className="text-gray-600 text-sm whitespace-nowrap">{t('coding_settings.field_labels.min_digits')}</span>
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    max="10"
-                                                    value={part.length}
-                                                    onChange={(e) => updatePart(index, 'length', parseInt(e.target.value))}
-                                                    className="bg-white border border-gray-200 rounded py-1 px-2 text-sm w-16 text-center text-gray-700 shadow-inner"
-                                                />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="flex items-center gap-4 min-w-[150px] justify-end">
-                                        <span className="text-gray-700 font-bold text-sm">{t(`coding_settings.parts.${part.type}`)}</span>
-                                        <GripVertical size={20} className="text-gray-400 cursor-grab active:cursor-grabbing" />
-                                    </div>
+                        <div className="border-t border-b border-gray-200">
+                            <div className="flex items-center min-h-[46px] border-b border-gray-200">
+                                <div className="w-7 flex justify-center">
+                                    <MinusCircle size={14} className="text-red-600" />
                                 </div>
-                            </Reorder.Item>
-                        ))}
-                    </Reorder.Group>
+                                <div className="flex-1 grid grid-cols-[98px_1fr_20px] gap-3 items-center px-1">
+                                    <input
+                                        type="text"
+                                        value={form.prefix}
+                                        onChange={(e) => onFormChange('prefix', e.target.value)}
+                                        className="h-7 px-2 text-center text-xs rounded border border-gray-300 outline-none"
+                                    />
+                                    <span className="text-sm text-gray-800">{t('coding_settings.field_labels.fixed_value')}</span>
+                                    <GripVertical size={14} className="text-gray-400" />
+                                </div>
+                            </div>
 
-                    {/* Add Part Row */}
-                    <div className="flex items-center gap-4 mb-2 pb-8 border-b border-gray-100 justify-end">
-                        <select
-                            value={newPartType}
-                            onChange={(e) => setNewPartType(e.target.value)}
-                            className="bg-white border border-gray-200 rounded py-1.5 px-3 text-sm text-gray-700 min-w-[150px] focus:outline-none focus:ring-1 focus:ring-indigo-500 appearance-none text-center"
-                        >
-                            {partTypes.map(pt => (
-                                <option key={pt} value={pt}>{t(`coding_settings.parts.${pt}`)}</option>
-                            ))}
-                        </select>
-                        <button onClick={addPart} className="text-emerald-500 hover:text-emerald-600 transition-colors">
-                            <PlusCircle size={24} className="text-emerald-500" />
-                        </button>
-                    </div>
+                            <div className="flex items-center min-h-[46px] border-b border-gray-200">
+                                <div className="w-7 flex justify-center">
+                                    <MinusCircle size={14} className="text-red-600" />
+                                </div>
+                                <div className="flex-1 grid grid-cols-[98px_1fr_20px] gap-3 items-center px-1">
+                                    <input
+                                        type="text"
+                                        value={form.year}
+                                        onChange={(e) => onFormChange('year', e.target.value)}
+                                        className="h-7 px-2 text-center text-xs rounded border border-gray-300 outline-none"
+                                    />
+                                    <span className="text-sm text-gray-800">{t('coding_settings.parts.year')}</span>
+                                    <GripVertical size={14} className="text-gray-400" />
+                                </div>
+                            </div>
 
-                    {/* Separator & Preview */}
-                    <div className="space-y-6 mb-8 pt-4">
-                        <div className="flex flex-col gap-2">
-                            <label className="text-gray-500 text-sm font-bold">{t('coding_settings.field_labels.separator')}</label>
-                            <select
-                                value={rules.separator}
-                                onChange={(e) => setRules({ ...rules, separator: e.target.value })}
-                                className="bg-white border border-gray-200 rounded-md py-2.5 px-4 text-gray-700 w-full focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none shadow-sm cursor-pointer text-center"
-                                style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236B7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\' /%3E%3C/svg%3E")', backgroundPosition: isRTL ? 'left 1rem center' : 'right 1rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.2em' }}
-                            >
-                                <option value="-">-</option>
-                                <option value="_">_</option>
-                                <option value="/">/</option>
-                                <option value="">None</option>
-                            </select>
+                            <div className="flex items-center min-h-[46px] border-b border-gray-200">
+                                <div className="w-7" />
+                                <div className="flex-1 grid grid-cols-[98px_1fr_20px] gap-3 items-center px-1">
+                                    <select
+                                        value={form.branchScope}
+                                        onChange={(e) => onFormChange('branchScope', e.target.value)}
+                                        className="h-7 px-1 text-center text-xs rounded border border-gray-300 bg-white outline-none"
+                                    >
+                                        <option value="branch">{t('coding_settings.field_labels.branch_scope_branch')}</option>
+                                        <option value="global">{t('coding_settings.field_labels.branch_scope_global')}</option>
+                                    </select>
+                                    <span className="text-sm text-gray-800">{t('coding_settings.parts.branch')}</span>
+                                    <GripVertical size={14} className="text-gray-400" />
+                                </div>
+                            </div>
+
+                            <div className="flex items-center min-h-[46px] border-b border-gray-200">
+                                <div className="w-7" />
+                                <div className="flex-1 grid grid-cols-[98px_1fr_20px] gap-3 items-center px-1">
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        value={form.minDigits}
+                                        onChange={(e) => onFormChange('minDigits', Number(e.target.value))}
+                                        className="h-7 px-2 text-center text-xs rounded border border-gray-300 outline-none"
+                                    />
+                                    <span className="text-sm text-gray-800">{t('coding_settings.field_labels.min_digits')}</span>
+                                    <GripVertical size={14} className="text-gray-400" />
+                                </div>
+                            </div>
+
+                            <div className="flex items-center min-h-[46px] border-b border-gray-200">
+                                <div className="w-7 flex justify-center">
+                                    <PlusCircle size={14} className="text-green-600" />
+                                </div>
+                                <div className="flex-1 grid grid-cols-[98px_1fr_20px] gap-3 items-center px-1">
+                                    <select
+                                        value={form.separator}
+                                        onChange={(e) => onFormChange('separator', e.target.value)}
+                                        className="h-7 px-1 text-center text-xs rounded border border-gray-300 bg-white outline-none"
+                                    >
+                                        <option value="-">-</option>
+                                        <option value="/">/</option>
+                                        <option value="_">_</option>
+                                        <option value="">{t('coding_settings.field_labels.no_separator')}</option>
+                                    </select>
+                                    <span className="text-sm text-gray-800">{t('coding_settings.field_labels.separator')}</span>
+                                    <GripVertical size={14} className="text-gray-400" />
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between min-h-[40px] px-3">
+                                <span className="text-sm text-gray-900 font-medium">{preview}</span>
+                                <span className="text-sm text-gray-700">{t('coding_settings.field_labels.example')}</span>
+                            </div>
                         </div>
 
-                        <div className="bg-gray-50 p-4 rounded-md flex justify-between items-center shadow-inner">
-                            <span className="text-indigo-600 font-mono font-bold tracking-wider text-lg">{generatePreview()}</span>
-                            <span className="text-gray-500 font-bold">{t('coding_settings.field_labels.example')}</span>
-                        </div>
-
-                        <div className="flex justify-start">
+                        <div className="pt-3">
                             <button
-                                onClick={handleUpdateRules}
+                                onClick={handleSaveSettings}
                                 disabled={saving}
-                                className="bg-[#10B981] text-white px-8 py-2 rounded-md font-bold hover:bg-emerald-600 transition-colors shadow-md disabled:opacity-50"
+                                className="h-8 px-5 rounded bg-[#10b981] text-white text-sm font-bold hover:bg-emerald-600 disabled:opacity-50"
                             >
-                                {saving ? t('sales.common.loading') : t('coding_settings.field_labels.save_btn')}
+                                {saving ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : t('coding_settings.field_labels.save_btn')}
                             </button>
                         </div>
-                    </div>
 
-                    {/* Branch Sequences */}
-                    <div className="mt-12 pt-8 border-t border-gray-100">
-                        <h3 className="text-gray-500 font-bold text-center mb-10">{t('coding_settings.field_labels.current_sequence')}</h3>
-                        <div className="space-y-6">
-                            {branches.map(branch => (
-                                <div key={branch._id} className="flex items-center gap-4">
-                                    <span className="text-gray-400 text-sm font-bold min-w-[60px] text-left">{t('coding_settings.field_labels.branch_label')}</span>
-                                    <div className="flex-1 flex justify-between items-center">
-                                        <span className="text-gray-700 font-bold">{branch.name || t('coding_settings.field_labels.main_branch')}</span>
-                                        <div className="flex items-center rounded overflow-hidden shadow-sm border border-gray-100">
+                        <div className="mt-4 border-t border-gray-200 pt-4">
+                            <div className={`grid grid-cols-[1fr_170px] text-sm font-bold text-gray-800 border-b border-gray-200 pb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                <span>{t('coding_settings.field_labels.branch_label')}</span>
+                                <span className="text-center">{t('coding_settings.field_labels.current_sequence')}</span>
+                            </div>
+
+                            <div className="pt-2 space-y-2">
+                                {branchSequences.map((branch) => (
+                                    <div key={branch.branchId} className="grid grid-cols-[1fr_170px] items-center min-h-[34px] border-b border-gray-100 pb-2 last:border-b-0 last:pb-0">
+                                        <span className="text-sm text-gray-800">{branch.branchName || t('coding_settings.field_labels.main_branch')}</span>
+                                        <div className={`flex items-center gap-2 ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                                            <button
+                                                type="button"
+                                                onClick={() => updateBranchSequenceValue(branch.branchId, Number(branch.currentSequence || 0) - 1)}
+                                                className="h-8 w-8 rounded border border-gray-300 bg-white text-gray-700 text-base leading-none hover:bg-gray-50"
+                                            >
+                                                -
+                                            </button>
                                             <input
                                                 type="number"
-                                                value={branchSequences[branch._id] || 0}
-                                                onChange={(e) => setBranchSequences({ ...branchSequences, [branch._id]: parseInt(e.target.value) || 0 })}
-                                                className="bg-white px-4 py-2 w-28 text-center text-gray-700 font-bold focus:outline-none"
+                                                min="0"
+                                                value={branch.currentSequence}
+                                                onChange={(e) => {
+                                                    updateBranchSequenceValue(branch.branchId, e.target.value);
+                                                }}
+                                                className="h-8 w-[72px] px-2 text-center text-sm rounded border border-gray-300 outline-none"
                                             />
                                             <button
-                                                onClick={() => handleUpdateSequence(branch._id)}
-                                                className="bg-[#0095FF] text-white px-6 py-2 hover:bg-blue-600 transition-colors font-bold"
+                                                type="button"
+                                                onClick={() => updateBranchSequenceValue(branch.branchId, Number(branch.currentSequence || 0) + 1)}
+                                                className="h-8 w-8 rounded border border-gray-300 bg-white text-gray-700 text-base leading-none hover:bg-gray-50"
                                             >
-                                                {t('coding_settings.field_labels.save_btn')}
+                                                +
+                                            </button>
+                                            <button
+                                                onClick={() => handleUpdateBranchSequence(branch.branchId)}
+                                                disabled={savingBranchId === branch.branchId}
+                                                className="h-8 px-4 rounded bg-[#0d8eff] text-white text-xs font-bold hover:bg-blue-600 disabled:opacity-50"
+                                            >
+                                                {savingBranchId === branch.branchId ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : t('coding_settings.field_labels.save_btn')}
                                             </button>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <style jsx>{`
+                @keyframes enter {
+                    from { transform: translateY(-20px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+                @keyframes leave {
+                    from { transform: translateY(0); opacity: 1; }
+                    to { transform: translateY(-20px); opacity: 0; }
+                }
+                .animate-enter { animation: enter 0.3s ease-out forwards; }
+                .animate-leave { animation: leave 0.3s ease-in forwards; }
+            `}</style>
         </div>
     );
 };

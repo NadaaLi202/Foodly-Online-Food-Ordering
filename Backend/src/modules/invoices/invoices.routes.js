@@ -15,7 +15,7 @@ import {
     updateInvoiceSchema,
     updateStatusSchema
 } from "./invoices.validation.js";
-import { allowedTo, protectedRoutes } from "../auth/auth.controller.js";
+import { protectedRoutes, requirePermission } from "../auth/auth.controller.js";
 import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const invoiceRouter = express.Router();
@@ -23,20 +23,20 @@ const invoiceRouter = express.Router();
 invoiceRouter.use(protectedRoutes, applyCompanyFilter);
 
 invoiceRouter.route('/')
-    .post(validation(createInvoiceSchema), allowedTo("superAdmin", "admin", "accountant"), createInvoice)
-    .get(allowedTo("superAdmin", "admin", "accountant", "employee"), getAllInvoices);
+    .post(validation(createInvoiceSchema), requirePermission("sales_invoices:add"), createInvoice)
+    .get(requirePermission("sales_invoices:view"), getAllInvoices);
 
-invoiceRouter.get('/search', allowedTo("superAdmin", "admin", "accountant", "employee"), searchInvoices);
+invoiceRouter.get('/search', requirePermission("sales_invoices:view"), searchInvoices);
 
-invoiceRouter.get('/stats', allowedTo("superAdmin", "admin", "accountant"), getInvoiceStats);
+invoiceRouter.get('/stats', requirePermission("sales_invoices:view"), getInvoiceStats);
 
 // Routes للفاتورة المحددة
 invoiceRouter.route('/:id')
-    .get(allowedTo("superAdmin", "admin", "accountant", "employee"), getInvoiceById)
-    .put(validation(updateInvoiceSchema), allowedTo("superAdmin", "admin", "accountant"), updateInvoice)
-    .delete(allowedTo("superAdmin", "admin"), deleteInvoice);
+    .get(requirePermission("sales_invoices:view"), getInvoiceById)
+    .put(validation(updateInvoiceSchema), requirePermission("sales_invoices:edit"), updateInvoice)
+    .delete(requirePermission("sales_invoices:delete"), deleteInvoice);
 
 // Route لتحديث الحالة
-invoiceRouter.patch('/:id/status', validation(updateStatusSchema), allowedTo("superAdmin", "admin", "accountant"), updateInvoiceStatus);
+invoiceRouter.patch('/:id/status', validation(updateStatusSchema), requirePermission("sales_invoices:edit"), updateInvoiceStatus);
 
 export default invoiceRouter;

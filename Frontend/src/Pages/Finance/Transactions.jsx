@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Plus, Search, RefreshCw, Landmark, ArrowLeftRight, Edit, Trash2, ChevronDown, Wallet, FileText, MoreVertical, Copy, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import logError from '../../utils/logError';
+import { confirmDelete } from '../../utils/confirmDelete';
 import FinancialTransactionModal from './FinancialTransactionModal';
 
 const Transactions = () => {
@@ -29,7 +31,7 @@ const Transactions = () => {
             const response = await api.get('/financial-transactions');
             setTransactions(response.data.transactions || []);
         } catch (error) {
-            console.error('Error fetching transactions:', error);
+            logError('Error fetching transactions:', error);
             toast.error(t('sales.common.error_message'));
         } finally {
             setLoading(false);
@@ -37,13 +39,14 @@ const Transactions = () => {
     };
 
     const handleDelete = async (tx) => {
-        if (!window.confirm(t('sales.common.confirm_delete'))) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('sales.common.confirm_delete'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
         try {
             await api.delete(`/financial-transactions/${tx._id}?type=${tx.type}`);
             toast.success(t('sales.common.success_message'));
             fetchTransactions();
         } catch (error) {
-            console.error('Error deleting transaction:', error);
+            logError('Error deleting transaction:', error);
             toast.error(t('sales.common.error_message'));
         }
     };
@@ -303,7 +306,7 @@ const Transactions = () => {
                                                     </div>
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-900 font-black">
-                                                    {tx.amount?.toLocaleString()} {t('currency_label')}
+                                                    {Number(tx.amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('currency_label')}
                                                 </td>
                                             </tr>
                                         ))
@@ -328,3 +331,4 @@ const Transactions = () => {
 };
 
 export default Transactions;
+

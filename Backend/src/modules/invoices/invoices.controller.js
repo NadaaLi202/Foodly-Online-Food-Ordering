@@ -1,6 +1,7 @@
 import { AppError } from "../../utils/AppError.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import Invoice from "./invoices.model.js";
+import { SUPPORTED_CURRENCIES } from "../../constants/currencies.js";
 
 // إنشاء فاتورة جديدة
 const createInvoice = catchAsyncError(async (req, res, next) => {
@@ -8,9 +9,6 @@ const createInvoice = catchAsyncError(async (req, res, next) => {
     // Ensure uniqueness within company if we enforce it, or generally.
     // If invoiceNumber is unique globally in schema, this check is still good.
     // If we want per-company uniqueness, we need schema change (compound index), but let's just check with filter here.
-
-    // Middleware sets req.body.companyId for non-superAdmin.
-    const companyId = req.body.companyId;
 
     if (req.body.invoiceNumber) {
         // If we want to check uniqueness, we should check with companyId if possible, 
@@ -35,10 +33,26 @@ const createInvoice = catchAsyncError(async (req, res, next) => {
         return next(new AppError('تاريخ الاستحقاق يجب أن يكون بعد تاريخ الإصدار', 400));
     }
 
-    // إنشاء الفاتورة (الحسابات ستتم تلقائياً في pre-save middleware)
-    // companyId included in req.body
-    const invoice = new Invoice(req.body);
-    await invoice.save();
+    let paymentData = req.body.payment;
+    if (typeof paymentData === "string") {
+        try {
+            paymentData = JSON.parse(paymentData);
+        } catch {
+            paymentData = null;
+        }
+    }
+    const normalizedCurrency = String(paymentData?.currency || req.body.currency || "")
+        .trim()
+        .toUpperCase();
+
+    // Always enforce tenant companyId from authenticated user/filter.
+    // Keep DB schema-compatible top-level currency while accepting payment.currency payload.
+    const companyId = req.user?.companyId || req.companyFilter?.companyId || req.body.companyId;
+    const invoice = await Invoice.create({
+        ...req.body,
+        currency: SUPPORTED_CURRENCIES.includes(normalizedCurrency) ? normalizedCurrency : (req.body.currency || "EGP"),
+        companyId
+    });
 
     res.status(201).json({
         message: 'تم إنشاء الفاتورة بنجاح',
@@ -144,6 +158,22 @@ const updateInvoice = catchAsyncError(async (req, res, next) => {
     }
 
     // تحديث البيانات
+    let paymentData = req.body.payment;
+    if (typeof paymentData === "string") {
+        try {
+            paymentData = JSON.parse(paymentData);
+        } catch {
+            paymentData = null;
+        }
+    }
+    if (paymentData?.currency || req.body.currency) {
+        const normalizedCurrency = String(paymentData?.currency || req.body.currency || "")
+            .trim()
+            .toUpperCase();
+        req.body.currency = SUPPORTED_CURRENCIES.includes(normalizedCurrency)
+            ? normalizedCurrency
+            : req.body.currency;
+    }
     Object.assign(invoice, req.body);
     // Ensure companyId is not changed or is valid? 
     // Usually companyId shouldn't be changed. Safe to ignore or force check.

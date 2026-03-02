@@ -37,4 +37,22 @@ const companySignInSchema = Joi.object({
     password: Joi.string().required()
 });
 
-export { addCompanySchema, updateCompanySchema, companySignInSchema };
+const companySignupSchema = Joi.object({
+    adminName: Joi.string().min(2).max(100).required().trim(),
+    email: Joi.string().email().required().trim().lowercase(),
+    phone: Joi.string().required().trim(),
+    password: Joi.string().min(8).regex(/^(?=.*[A-Za-z])(?=.*\d).*$/).required()
+        .messages({ 'string.pattern.base': 'Password must contain at least one letter and one number.' }),
+    name: Joi.string().min(3).max(100).required().trim(),
+    slug: Joi.string().regex(/^[a-z0-9]+$/).required().lowercase().trim()
+        .messages({ 'string.pattern.base': 'Slug can only contain lowercase alphanumeric characters with no spaces.' }),
+    commercialRegister: Joi.string().allow('', null).trim(),
+    taxNumber: Joi.string().allow('', null).trim(),
+    country: Joi.string().default('المملكة العربية السعودية'),
+    address: Joi.string().required().trim(),
+    city: Joi.string().required().trim(),
+    priceType: Joi.string().valid('before_vat', 'after_vat').required(),
+    zatcaEnabled: Joi.boolean().default(true)
+});
+
+export { addCompanySchema, updateCompanySchema, companySignInSchema, companySignupSchema };

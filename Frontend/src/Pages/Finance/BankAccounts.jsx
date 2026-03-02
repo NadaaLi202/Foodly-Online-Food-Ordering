@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { Edit, Trash2, FileText, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import logError from '../../utils/logError';
+import { confirmDelete } from '../../utils/confirmDelete';
 import BankAccountModal from './BankAccountModal';
 
 const BankAccounts = () => {
@@ -19,7 +21,7 @@ const BankAccounts = () => {
             const response = await api.get('/bank-accounts');
             setAccounts(response.data.bankAccounts || []);
         } catch (error) {
-            console.error('Error fetching bank accounts:', error);
+            logError('Error fetching bank accounts:', error);
             toast.error(t('sales.common.error_message'));
         } finally {
             setLoading(false);
@@ -31,13 +33,14 @@ const BankAccounts = () => {
     }, []);
 
     const handleDelete = async (id) => {
-        if (!window.confirm(t('sales.common.confirm_delete'))) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('sales.common.confirm_delete'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
         try {
             await api.delete(`/bank-accounts/${id}`);
             toast.success(t('sales.common.success_message'));
             fetchAccounts();
         } catch (error) {
-            console.error('Error deleting bank account:', error);
+            logError('Error deleting bank account:', error);
             toast.error(t('sales.common.error_message'));
         }
     };
@@ -165,3 +168,4 @@ const BankAccounts = () => {
 };
 
 export default BankAccounts;
+

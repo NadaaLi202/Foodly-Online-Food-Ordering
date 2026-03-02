@@ -3,6 +3,7 @@ import { X, Plus, Minus, Pencil } from 'lucide-react';
 import api from '../../services/api';
 import { useTranslation } from 'react-i18next';
 import { prepareContactPayload } from '../../utils/contactUtils';
+import logError from '../../utils/logError';
 
 const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
     const { t } = useTranslation();
@@ -119,7 +120,7 @@ const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
         } catch (error) {
             const msg = error.response?.data?.message || error.message || t('sales.common.error_message');
             setErrors({ submit: msg });
-            console.error('Error saving contact:', error);
+            logError('Error saving contact:', error);
         } finally {
             setLoading(false);
         }

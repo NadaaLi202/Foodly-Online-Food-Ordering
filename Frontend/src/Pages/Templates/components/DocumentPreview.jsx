@@ -427,6 +427,80 @@ export const LabelPreview = ({ width = 40, height = 22, direction = 'rtl', rows 
         </div>
     );
 };
+/**
+ * LivePdfWrapper — seamlessly wraps a HTML preview and turns it into a native PDF embed.
+ * This gives the user the exact Chrome PDF viewer toolbar (Zoom, Print, Download).
+ */
+export const LivePdfWrapper = ({ children, pageFormat = 'a4', direction = 'rtl' }) => {
+    const hiddenRef = useRef(null);
+    const [pdfUrl, setPdfUrl] = useState('');
+    const [isGenerating, setIsGenerating] = useState(true);
+
+    useEffect(() => {
+        let isMounted = true;
+        const generatePdf = async () => {
+            if (!hiddenRef.current) return;
+            setIsGenerating(true);
+            try {
+                const canvas = await html2canvas(hiddenRef.current, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false
+                });
+                if (!isMounted) return;
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                const pdf = new jsPDF('p', 'mm', pageFormat);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                const blob = pdf.output('blob');
+                const url = URL.createObjectURL(blob);
+                setPdfUrl(prev => {
+                    if (prev) URL.revokeObjectURL(prev);
+                    return url;
+                });
+            } catch (err) {
+                logError('PDF Generation Error:', err);
+            } finally {
+                if (isMounted) setIsGenerating(false);
+            }
+        };
+
+        const timer = setTimeout(generatePdf, 600); // 600ms debounce
+        return () => {
+            isMounted = false;
+            clearTimeout(timer);
+        };
+    }, [children, pageFormat]);
+
+    return (
+        <div className="w-full h-full relative" style={{ minHeight: '600px' }}>
+            {/* Off-screen actual HTML rendering */}
+            <div style={{ position: 'absolute', top: 0, left: '-9999px' }}>
+                <div ref={hiddenRef} style={{ width: '794px', minHeight: '1123px', direction, backgroundColor: '#ffffff', color: '#000000' }}>
+                    {children}
+                </div>
+            </div>
+
+            {/* Native PDF Viewer */}
+            {pdfUrl ? (
+                <iframe
+                    src={`${pdfUrl}#toolbar=1&navpanes=0&scrollbar=0`}
+                    className="w-full h-full border-0 rounded shadow-md"
+                    title="PDF Preview"
+                />
+            ) : (
+                <div className="flex items-center justify-center w-full h-full bg-[#525659] rounded shadow-md">
+                    <div className="animate-pulse text-gray-300 font-semibold flex flex-col items-center gap-3">
+                        <svg className="animate-spin h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        جارٍ تهيئة ملف PDF المحاكي...
+                    </div>
+                </div>
+            )}
 
 
 export default InvoicePreview;

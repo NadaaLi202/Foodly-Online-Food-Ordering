@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import reportsService from '../../../services/reportsService';
 import { exportCustomerSummaryToExcel, buildCustomerSummaryPdf } from '../../../utils/customerSupplierInventoryExport';
+import logError from '../../../utils/logError';
 
 const SummaryCustomerReport = () => {
     const { t } = useTranslation();
@@ -68,7 +69,7 @@ const SummaryCustomerReport = () => {
             const list = await reportsService.getCustomersList();
             setCustomers(list);
         } catch (err) {
-            console.error('Error fetching customers:', err);
+            logError('Error fetching customers:', err);
         }
     };
 

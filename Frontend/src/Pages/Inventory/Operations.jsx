@@ -1,7 +1,9 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Search, RefreshCw, X, Upload, ChevronDown, ArrowLeftRight, Package, Trash2, Edit } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import logError from '../../utils/logError';
+import { confirmDelete } from '../../utils/confirmDelete';
 
 const Operations = () => {
     const { t, i18n } = useTranslation();
@@ -36,7 +38,7 @@ const Operations = () => {
             const response = await api.get('/operations');
             setOperations(response.data.operations || []);
         } catch (error) {
-            console.error('Error fetching operations:', error);
+            logError('Error fetching operations:', error);
         } finally {
             setLoading(false);
         }
@@ -48,7 +50,7 @@ const Operations = () => {
             const response = await api.get('/inventory-operations');
             setInventoryOps(response.data.operations || []);
         } catch (error) {
-            console.error('Error fetching inventory operations:', error);
+            logError('Error fetching inventory operations:', error);
         } finally {
             setLoading(false);
         }
@@ -60,7 +62,7 @@ const Operations = () => {
             const response = await api.get('/products');
             setProducts(response.data.products || []);
         } catch (error) {
-            console.error('Error fetching products:', error);
+            logError('Error fetching products:', error);
         }
     };
 
@@ -69,12 +71,12 @@ const Operations = () => {
         try {
             const response = await api.get('/warehouses');
             setWarehouses(response.data.warehouses || [
-                { _id: 'main', name: i18n.language === 'ar' ? 'المستودع الرئيسي' : 'Main Warehouse' }
+                { _id: 'main', name: i18n.language === 'ar' ? '???????? ???????' : 'Main Warehouse' }
             ]);
         } catch (error) {
-            console.error('Error fetching warehouses:', error);
+            logError('Error fetching warehouses:', error);
             setWarehouses([
-                { _id: 'main', name: i18n.language === 'ar' ? 'المستودع الرئيسي' : 'Main Warehouse' }
+                { _id: 'main', name: i18n.language === 'ar' ? '???????? ???????' : 'Main Warehouse' }
             ]);
         }
     };
@@ -84,16 +86,16 @@ const Operations = () => {
         try {
             const response = await api.get('/accounts');
             setAccounts(response.data.accounts || [
-                { _id: '1211', name: i18n.language === 'ar' ? 'الخزنة الرئيسية' : 'Main Treasury', code: '#1211' },
-                { _id: '1221', name: i18n.language === 'ar' ? 'الحساب البنكي الرئيسي' : 'Main Bank Account', code: '#1221' },
-                { _id: '1251', name: i18n.language === 'ar' ? 'المستودع الرئيسي' : 'Main Warehouse', code: '#1251' }
+                { _id: '1211', name: i18n.language === 'ar' ? '?????? ????????' : 'Main Treasury', code: '#1211' },
+                { _id: '1221', name: i18n.language === 'ar' ? '?????? ?????? ???????' : 'Main Bank Account', code: '#1221' },
+                { _id: '1251', name: i18n.language === 'ar' ? '???????? ???????' : 'Main Warehouse', code: '#1251' }
             ]);
         } catch (error) {
-            console.error('Error fetching accounts:', error);
+            logError('Error fetching accounts:', error);
             setAccounts([
-                { _id: '1211', name: i18n.language === 'ar' ? 'الخزنة الرئيسية' : 'Main Treasury', code: '#1211' },
-                { _id: '1221', name: i18n.language === 'ar' ? 'الحساب البنكي الرئيسي' : 'Main Bank Account', code: '#1221' },
-                { _id: '1251', name: i18n.language === 'ar' ? 'المستودع الرئيسي' : 'Main Warehouse', code: '#1251' }
+                { _id: '1211', name: i18n.language === 'ar' ? '?????? ????????' : 'Main Treasury', code: '#1211' },
+                { _id: '1221', name: i18n.language === 'ar' ? '?????? ?????? ???????' : 'Main Bank Account', code: '#1221' },
+                { _id: '1251', name: i18n.language === 'ar' ? '???????? ???????' : 'Main Warehouse', code: '#1251' }
             ]);
         }
     };
@@ -204,7 +206,7 @@ const Operations = () => {
         e.preventDefault();
 
         if (!validateForm()) {
-            alert(i18n.language === 'ar' ? 'الرجاء ملء جميع الحقول المطلوبة' : 'Please fill all required fields');
+            alert(i18n.language === 'ar' ? '?????? ??? ???? ?????? ????????' : 'Please fill all required fields');
             return;
         }
 
@@ -345,7 +347,7 @@ const Operations = () => {
 
             // Success feedback
             alert(i18n.language === 'ar'
-                ? (editingOperation ? 'تم تحديث العملية بنجاح!' : 'تم إضافة العملية بنجاح!')
+                ? (editingOperation ? '?? ????? ??????? ?????!' : '?? ????? ??????? ?????!')
                 : (editingOperation ? 'Operation updated successfully!' : 'Operation added successfully!'));
 
             setIsModalOpen(false);
@@ -353,8 +355,8 @@ const Operations = () => {
             fetchInventoryOps();
             resetForm();
         } catch (error) {
-            console.error('Error creating operation:', error);
-            const errorMsg = error.response?.data?.message || error.message || (i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error');
+            logError('Error creating operation:', error);
+            const errorMsg = error.response?.data?.message || error.message || (i18n.language === 'ar' ? '??? ??? ?? ??????? ????????' : 'Server connection error');
             alert(errorMsg);
         } finally {
             setLoading(false);
@@ -387,7 +389,8 @@ const Operations = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد من الحذف؟' : 'Are you sure you want to delete?')) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('sales.common.confirm_delete', 'Are you sure you want to delete?'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
 
         setLoading(true);
         try {
@@ -397,13 +400,13 @@ const Operations = () => {
             const response = await api.delete(`/${endpoint}/${id}`);
 
             if (response.status === 200) {
-                alert(i18n.language === 'ar' ? 'تم الحذف بنجاح' : 'Deleted successfully');
+                alert(i18n.language === 'ar' ? '?? ????? ?????' : 'Deleted successfully');
                 activeTab === 'operations' ? fetchInventoryOps() : fetchOperations();
             } else {
-                alert(i18n.language === 'ar' ? 'فشل الحذف' : 'Deletion failed');
+                alert(i18n.language === 'ar' ? '??? ?????' : 'Deletion failed');
             }
         } catch (error) {
-            console.error('Error deleting operation:', error);
+            logError('Error deleting operation:', error);
         } finally {
             setLoading(false);
         }
@@ -479,7 +482,7 @@ const Operations = () => {
                                     onClick={() => openModal('inventory_op')}
                                     className={`w-full px-4 py-3 text-${i18n.language === 'ar' ? 'right' : 'left'} hover:bg-gray-50 text-sm text-gray-700`}
                                 >
-                                    {i18n.language === 'ar' ? 'عملية جرد' : 'Inventory Operation'}
+                                    {i18n.language === 'ar' ? '????? ???' : 'Inventory Operation'}
                                 </button>
                             </div>
                         )}
@@ -532,9 +535,9 @@ const Operations = () => {
                     </div>
                 ) : operations.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                        <div className="text-6xl mb-4">📦</div>
+                        <div className="text-6xl mb-4">??</div>
                         <p className="text-lg font-medium text-center">
-                            <span className="text-yellow-500">⚠️</span> {t('stocked.operations.no_operations')}
+                            <span className="text-yellow-500">??</span> {t('stocked.operations.no_operations')}
                         </p>
                         <p className="text-sm">{t('stocked.operations.no_operations_yet')}</p>
                     </div>
@@ -554,7 +557,7 @@ const Operations = () => {
                                 {(activeTab === 'operations' ? inventoryOps : operations).map((operation) => (
                                     <tr key={operation._id} className="hover:bg-gray-50">
                                         <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            {activeTab === 'operations' ? (i18n.language === 'ar' ? 'عملية جرد' : 'Inventory Operation') : (
+                                            {activeTab === 'operations' ? (i18n.language === 'ar' ? '????? ???' : 'Inventory Operation') : (
                                                 <>
                                                     {operation.type === 'add' && t('stocked.operations.add_inventory_operation')}
                                                     {operation.type === 'withdraw' && t('stocked.operations.withdraw_inventory_operation')}
@@ -797,7 +800,7 @@ const Operations = () => {
                                             onDrop={handleDrop}
                                             className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-8 text-center hover:border-green-500 cursor-pointer transition-colors block"
                                         >
-                                            <div className="text-gray-400 mb-2">📎</div>
+                                            <div className="text-gray-400 mb-2">??</div>
                                             <p className="text-sm text-gray-500">
                                                 <span className="text-green-600">{t('sales.common.click_to_upload')}</span> {t('sales.common.or_drag')}
                                             </p>
@@ -870,3 +873,4 @@ const Operations = () => {
 };
 
 export default Operations;
+

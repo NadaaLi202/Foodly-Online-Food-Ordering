@@ -1,9 +1,17 @@
 import { safeModel } from "./safe.model.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
+import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
+import logError from "../../utils/logError.js";
 
 // ================= Add =================
 export const addSafe = catchAsyncError(async (req, res, next) => {
+    const resolvedCompanyId = resolveCompanyIdForWrite(req);
+    if (!resolvedCompanyId) {
+        return next(new AppError("Unable to resolve company context for safe creation", 400));
+    }
+    req.body.companyId = resolvedCompanyId;
+
     // Check for duplicate name within company
     const { name } = req.body;
     const companyId = req.body.companyId;
@@ -27,7 +35,7 @@ export const addSafe = catchAsyncError(async (req, res, next) => {
             safe
         });
     } catch (error) {
-        console.error('Mongoose Save Error:', error);
+        logError('Mongoose Save Error:', error);
         return next(new AppError(error.message, 400));
     }
 });

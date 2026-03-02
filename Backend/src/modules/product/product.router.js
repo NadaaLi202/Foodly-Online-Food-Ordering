@@ -3,17 +3,18 @@ import { addProduct, deleteProduct, getAllProducts, getProductById, updateProduc
 import { validation } from "../../middleware/validation.js";
 import { addProductSchema, updateProductSchema } from "./product.validation.js";
 import { uploadSingleFile } from "../../middleware/uploadFiles.js";
-import { allowedTo, protectedRoutes } from "../auth/auth.controller.js";
+import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
 import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const productRouter = express.Router();
 
 productRouter.use(protectedRoutes, applyCompanyFilter);
+productRouter.use(requireResourcePermission("products"));
 
-productRouter.post('/', uploadSingleFile(['image/'], 'image'), validation(addProductSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), addProduct)
-productRouter.get('/', allowedTo("superAdmin", "admin", "accountant", "employee"), getAllProducts)
-productRouter.get('/:id', allowedTo("superAdmin", "admin", "accountant", "employee"), getProductById)
-productRouter.put('/:id', uploadSingleFile(['image/'], 'image'), validation(updateProductSchema), applyCompanyFilter, allowedTo("superAdmin", "admin", "accountant"), updateProduct)
-productRouter.delete('/:id', allowedTo("superAdmin", "admin"), deleteProduct)
+productRouter.post('/', uploadSingleFile(['image/'], 'image'), validation(addProductSchema), applyCompanyFilter, addProduct)
+productRouter.get('/', getAllProducts)
+productRouter.get('/:id', getProductById)
+productRouter.put('/:id', uploadSingleFile(['image/'], 'image'), validation(updateProductSchema), applyCompanyFilter, updateProduct)
+productRouter.delete('/:id', deleteProduct)
 
 export default productRouter;

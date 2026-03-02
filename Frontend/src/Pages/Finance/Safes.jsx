@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { Edit, Trash2, FileText, Plus, Landmark } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import logError from '../../utils/logError';
+import { confirmDelete } from '../../utils/confirmDelete';
 import SafeModal from './SafeModal';
 
 const Safes = () => {
@@ -19,7 +21,7 @@ const Safes = () => {
             const response = await api.get('/safes');
             setSafes(response.data.safes || []);
         } catch (error) {
-            console.error('Error fetching safes:', error);
+            logError('Error fetching safes:', error);
             toast.error(t('sales.common.error_message'));
         } finally {
             setLoading(false);
@@ -31,13 +33,14 @@ const Safes = () => {
     }, []);
 
     const handleDelete = async (id) => {
-        if (!window.confirm(t('sales.common.confirm_delete'))) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('sales.common.confirm_delete'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
         try {
             await api.delete(`/safes/${id}`);
             toast.success(t('sales.common.success_message'));
             fetchSafes();
         } catch (error) {
-            console.error('Error deleting safe:', error);
+            logError('Error deleting safe:', error);
             toast.error(t('sales.common.error_message'));
         }
     };
@@ -168,3 +171,4 @@ const Safes = () => {
 };
 
 export default Safes;
+

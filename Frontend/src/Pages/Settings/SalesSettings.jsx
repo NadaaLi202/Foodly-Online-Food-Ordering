@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import logError from '../../utils/logError';
 
 const SalesSettings = () => {
     const { t, i18n } = useTranslation();
@@ -57,7 +58,7 @@ const SalesSettings = () => {
                 const customersRes = await api.get('/contacts/customers');
                 setCustomers(customersRes.data?.contacts || []);
             } catch (error) {
-                console.error('Error fetching sales settings data:', error);
+                logError('Error fetching sales settings data:', error);
             } finally {
                 setLoading(false);
             }
@@ -115,7 +116,7 @@ const SalesSettings = () => {
             });
 
         } catch (error) {
-            console.error('Error saving sales settings:', error);
+            logError('Error saving sales settings:', error);
             toast.error(t('sales_settings.error_message'));
         } finally {
             setSaving(false);

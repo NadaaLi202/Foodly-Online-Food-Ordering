@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, RefreshCw, X, FolderTree } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import logError from '../../utils/logError';
+import { confirmDelete } from '../../utils/confirmDelete';
 
 const Categories = () => {
     const { t, i18n } = useTranslation();
@@ -28,7 +30,7 @@ const Categories = () => {
             const response = await api.get(url);
             setCategories(response.data.categories || []);
         } catch (error) {
-            console.error('Error fetching categories:', error);
+            logError('Error fetching categories:', error);
         } finally {
             setLoading(false);
         }
@@ -102,7 +104,7 @@ const Categories = () => {
             resetForm();
 
         } catch (error) {
-            console.error('Error saving category:', error);
+            logError('Error saving category:', error);
             const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error');
             alert(msg);
         } finally {
@@ -123,7 +125,8 @@ const Categories = () => {
 
     // Handle Delete
     const handleDelete = async (id) => {
-        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد من حذف هذا التصنيف؟' : 'Are you sure you want to delete this category?')) {
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete'), message: t('sales.common.confirm_delete'), confirmText: t('sales.common.confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) {
             return;
         }
 
@@ -132,7 +135,7 @@ const Categories = () => {
             alert(i18n.language === 'ar' ? 'تم حذف التصنيف بنجاح!' : 'Category deleted successfully!');
             fetchCategories();
         } catch (error) {
-            console.error('Error deleting category:', error);
+            logError('Error deleting category:', error);
             const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ في الحذف' : 'Error deleting category');
             alert(msg);
         }
@@ -362,3 +365,6 @@ const Categories = () => {
 };
 
 export default Categories;
+
+
+

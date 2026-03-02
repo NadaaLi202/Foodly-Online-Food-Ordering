@@ -2,20 +2,69 @@ import { productModel } from "./product.model.js"
 import { AppError } from "../../utils/AppError.js"
 import { catchAsyncError } from "../../middleware/catchAsyncError.js"
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js"
+import { companyModel } from "../companies/company.model.js"
+import mongoose from "mongoose"
+import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js"
 
+const normalizeExistingCompanyId = async (candidateId) => {
+    if (!candidateId) {
+        return { companyId: null, invalidFormat: false };
+    }
+    if (!mongoose.Types.ObjectId.isValid(candidateId)) {
+        return { companyId: null, invalidFormat: true };
+    }
+
+    const company = await companyModel.findById(candidateId).select("_id").lean();
+    return { companyId: company?._id ? String(company._id) : null, invalidFormat: false };
+};
+
+const resolveSuperAdminProductCompanyId = async (req) => {
+    const explicitCandidate = resolveCompanyIdForWrite(req);
+    const { companyId: explicitCompanyId, invalidFormat } = await normalizeExistingCompanyId(explicitCandidate);
+    if (invalidFormat) {
+        return { companyId: null, error: "Invalid company ID format" };
+    }
+    if (explicitCandidate && !explicitCompanyId) {
+        return { companyId: null, error: "Company not found" };
+    }
+    if (explicitCompanyId) {
+        return { companyId: explicitCompanyId, error: null };
+    }
+
+    // Backward-compatible fallback: when the system has exactly one company,
+    // use it to avoid forcing frontend changes for superAdmin write endpoints.
+    const companies = await companyModel.find({}, { _id: 1 }).limit(2).lean();
+    if (companies.length === 1) {
+        return { companyId: String(companies[0]._id), error: null };
+    }
+
+    return { companyId: null, error: null };
+};
 
 const addProduct = catchAsyncError(async (req, res, next) => {
     const productData = { ...req.body };
+    const isSuperAdmin = req.user?.role === 'superAdmin' || req.user?.systemRole === 'superAdmin';
 
-    // companyId is handled by middleware (forced for non-superAdmin)
-    // If superAdmin calls it, they should provide companyId or it might be null (logic in middleware allows null for superAdmin, 
-    // but model requires it). So superAdmin MUST provide it.
-
-    // Ensure companyId is present (if middleware didn't force it, e.g. superAdmin)
-    if (!productData.companyId && req.user.role === 'superAdmin') {
-        return next(new AppError('Company ID is required for SuperAdmin', 400));
+    let companyId;
+    if (isSuperAdmin) {
+        const resolved = await resolveSuperAdminProductCompanyId(req);
+        if (resolved.error) {
+            const statusCode = resolved.error === "Company not found" ? 404 : 400;
+            return next(new AppError(resolved.error, statusCode));
+        }
+        companyId = resolved.companyId;
+        if (!companyId) {
+            return next(new AppError('Company ID is required for superAdmin product creation. Send it in body/query/header, or ensure a single company exists in the system.', 400));
+        }
+    } else {
+        if (!req.user?.companyId) {
+            return next(new AppError('User is not assigned to a company', 403));
+        }
+        companyId = String(req.user.companyId);
     }
-    // For others, middleware sets req.body.companyId = req.user.companyId
+
+    // Security: never trust tenant assignment from body for non-superAdmin users.
+    productData.companyId = companyId;
 
     // Clean image field if it's an unexpected object (prevent CastError)
     if (productData.image && typeof productData.image !== 'string') {

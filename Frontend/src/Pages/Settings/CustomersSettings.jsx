@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 
 const CustomersSettings = () => {
     const { t, i18n } = useTranslation();
@@ -35,7 +36,7 @@ const CustomersSettings = () => {
                 }));
             }
         } catch (error) {
-            console.error('Error fetching customers settings:', error);
+            logError('Error fetching customers settings:', error);
         } finally {
             setLoading(false);
         }
@@ -77,7 +78,7 @@ const CustomersSettings = () => {
             });
 
         } catch (error) {
-            console.error('Error saving customers settings:', error);
+            logError('Error saving customers settings:', error);
             toast.error(t('customers_settings.error_message'));
         } finally {
             setSaving(false);
@@ -121,8 +122,8 @@ const CustomersSettings = () => {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`px-6 py-4 text-sm font-medium transition-all relative whitespace-nowrap ${activeTab === tab.id
-                                        ? 'text-blue-600 border-b-2 border-blue-600 font-bold'
-                                        : 'text-gray-500 hover:text-gray-700'
+                                    ? 'text-blue-600 border-b-2 border-blue-600 font-bold'
+                                    : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
                                 {tab.label}
