@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Home } from 'lucide-react';
 import SearchFilterPopup from './SearchFilterPopup';
 
 const Breadcrumbs = () => {
@@ -42,7 +42,11 @@ const Breadcrumbs = () => {
     };
 
     const handleRefresh = () => {
-        navigate(0); // Refreshes the current page
+        setSearchParams(prev => {
+            const newParams = new URLSearchParams(prev);
+            newParams.set('t', Date.now());
+            return newParams;
+        });
     };
 
     const handleClearFilters = () => {
@@ -53,71 +57,62 @@ const Breadcrumbs = () => {
     const showActions = !isReportsSection && location.pathname !== '/' && !location.pathname.endsWith('/add');
     const addPath = `${location.pathname}/add`;
 
+    const breadcrumbsItems = [];
+    pathSegments.forEach((segment, index) => {
+        // Skip rendering for long ID strings (e.g. MongoDB ObjectIds or UUIDs)
+        if (/^[a-fA-F0-9]{24}$/.test(segment) || /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(segment)) {
+            return;
+        }
+
+        const routeTo = `/${pathSegments.slice(0, index + 1).join('/')}`;
+        breadcrumbsItems.push({
+            to: routeTo,
+            label: getTranslatedName(segment),
+        });
+    });
+
     return (
         <div className="flex items-center mx-auto max-w-7xl py-4 px-4 sm:px-6 lg:px-8">
-            <nav className="flex" aria-label="Breadcrumb">
-                <ol role="list" className="flex items-center gap-x-1 md:gap-x-4 rounded-md bg-white px-4 py-2 md:px-6 shadow border border-gray-100">
-                    <li className="flex">
-                        <div className="flex items-center">
-                            <Link
-                                to="/"
-                                className="text-gray-400 hover:text-gray-500 transition-colors"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" className="h-5 w-5 flex-shrink-0">
-                                    <path fillRule="evenodd" d="M9.293 2.293a1 1 0 0 1 1.414 0l7 7A1 1 0 0 1 17 11h-1v6a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-6H3a1 1 0 0 1-.707-1.707l7-7Z" clipRule="evenodd" />
-                                </svg>
-                                <span className="sr-only">Home</span>
-                            </Link>
+            <div className="flex drop-shadow-sm flex-1">
+                {/* Home icon block */}
+                <Link to="/"
+                    className="flex items-center justify-center bg-white text-gray-400 hover:text-gray-600 h-10 transition-colors"
+                    style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%)', paddingLeft: '16px', paddingRight: '22px' }}>
+                    <Home size={18} />
+                </Link>
+
+                {breadcrumbsItems.map((b, i) => {
+                    const isLast = i === breadcrumbsItems.length - 1;
+                    const clipPath = isLast
+                        ? 'polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%)'
+                        : 'polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%)';
+
+                    return !isLast ? (
+                        <Link key={i} to={b.to}
+                            className="flex items-center justify-center bg-white text-[13px] font-medium text-gray-500 hover:text-gray-800 transition-colors h-10"
+                            style={{ clipPath, paddingLeft: '28px', paddingRight: '26px', marginLeft: '-6px' }}>
+                            {b.label}
+                        </Link>
+                    ) : (
+                        <div key={i}
+                            className="flex items-center justify-center bg-white text-[13px] font-bold text-gray-700 h-10 gap-2"
+                            style={{ clipPath, paddingLeft: '28px', paddingRight: '16px', marginLeft: '-6px' }}>
+                            {b.label}
+                            {hasFilters && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
+                                    {t('sales.common.filtered', 'Filtered')}
+                                </span>
+                            )}
                         </div>
-                    </li>
-
-                    {pathSegments.map((segment, index) => {
-                        const routeTo = `/${pathSegments.slice(0, index + 1).join('/')}`;
-                        const isLast = index === pathSegments.length - 1;
-
-                        return (
-                            <li key={routeTo} className="flex">
-                                <div className="flex items-center">
-                                    <svg
-                                        className="h-full w-6 flex-shrink-0 text-gray-200 rtl:rotate-180"
-                                        viewBox="0 0 24 44"
-                                        preserveAspectRatio="none"
-                                        fill="currentColor"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        aria-hidden="true"
-                                    >
-                                        <path d="M.293 0l22 22-22 22h1.414l22-22-22-22H.293z" />
-                                    </svg>
-
-                                    {isLast ? (
-                                        <span className="ms-2 md:ms-4 text-sm font-medium text-gray-700 cursor-default flex items-center gap-2">
-                                            {getTranslatedName(segment)}
-                                            {hasFilters && (
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
-                                                    {t('sales.common.filtered', 'Filtered')}
-                                                </span>
-                                            )}
-                                        </span>
-                                    ) : (
-                                        <Link
-                                            to={routeTo}
-                                            className="ms-2 md:ms-4 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
-                                        >
-                                            {getTranslatedName(segment)}
-                                        </Link>
-                                    )}
-                                </div>
-                            </li>
-                        );
-                    })}
-                </ol>
-            </nav>
+                    );
+                })}
+            </div>
 
             {!isReportsSection && (
                 <button
                     type="button"
                     onClick={handleRefresh}
-                    className="ms-1 p-1 text-gray-500 hover:text-gray-700 transition-all"
+                    className="ms-3 p-1 text-gray-500 hover:text-gray-700 transition-colors"
                     title={t('sales.common.refresh')}
                 >
                     <RefreshCw size={20} />

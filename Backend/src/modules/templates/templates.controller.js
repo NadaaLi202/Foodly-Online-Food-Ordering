@@ -24,7 +24,7 @@ const getTemplateById = catchAsyncError(async (req, res, next) => {
 const createTemplate = catchAsyncError(async (req, res, next) => {
     const template = new Template({
         ...req.body,
-        companyId: req.companyFilter.companyId
+        companyId: req.companyFilter.companyId || req.user.companyId || req.user._id
     });
     await template.save();
     res.status(201).json({ message: 'تم إنشاء القالب بنجاح', template });

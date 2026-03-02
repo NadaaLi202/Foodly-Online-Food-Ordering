@@ -7,7 +7,7 @@ import branchService from '../../../services/branchService.js';
 import toast from 'react-hot-toast';
 
 const GeneralTemplateAdd = () => {
-    const { i18n } = useTranslation();
+    const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     const isRtl = i18n.language === 'ar';
 
@@ -28,25 +28,16 @@ const GeneralTemplateAdd = () => {
     }, []);
 
     const templateOptions = [
-        { id: 'general-1', label: 'قالب عام 1' },
+        { id: 'general-1', label: t('General Template 1', 'قالب عام 1') },
     ];
 
     const languageOptions = [
-        { id: 'ar', label: 'العربية', desc: 'سيكون المستند باللغة العربية.' },
-        { id: 'en', label: 'الإنجليزية', desc: 'سيكون المستند باللغة الإنجليزية.' },
-        { id: 'ar-en', label: 'العربية والإنجليزية', desc: 'سيكون المستند باللغة العربية والإنجليزية.' },
+        { id: 'ar', label: t('Arabic', 'العربية'), desc: t('The document will be in Arabic.', 'سيكون المستند باللغة العربية.') },
+        { id: 'en', label: t('English', 'الإنجليزية'), desc: t('The document will be in English.', 'سيكون المستند باللغة الإنجليزية.') },
+        { id: 'ar-en', label: t('Arabic and English', 'العربية والإنجليزية'), desc: t('The document will be in Arabic and English.', 'سيكون المستند باللغة العربية والإنجليزية.') },
     ];
 
     const handleNext = () => {
-        if (step === 2) {
-            const newErrors = {};
-            if (!name.trim()) newErrors.name = 'من فضلك أدخل الاسم';
-            if (selectedBranches.length === 0) newErrors.branches = 'من فضلك اختر فرع واحد على الأقل';
-            if (Object.keys(newErrors).length > 0) {
-                setErrors(newErrors);
-                return;
-            }
-        }
         setErrors({});
         setStep(s => s + 1);
     };
@@ -57,6 +48,14 @@ const GeneralTemplateAdd = () => {
     };
 
     const handleSave = async () => {
+        const newErrors = {};
+        if (!name.trim()) newErrors.name = t('Please enter the name', 'من فضلك أدخل الاسم');
+        if (selectedBranches.length === 0) newErrors.branches = t('Please select at least one branch', 'من فضلك اختر فرع واحد على الأقل');
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            return;
+        }
+
         setSaving(true);
         try {
             const direction = language === 'en' ? 'ltr' : 'rtl';
@@ -66,10 +65,10 @@ const GeneralTemplateAdd = () => {
                 page: { direction },
                 branches: selectedBranches,
             });
-            toast.success('تم إنشاء القالب بنجاح');
+            toast.success(t('Template created successfully', 'تم إنشاء القالب بنجاح'));
             navigate(`/dashboard/templates/general/${data.template._id}/edit`);
         } catch {
-            toast.error('فشل إنشاء القالب');
+            toast.error(t('Failed to create template', 'فشل إنشاء القالب'));
         } finally {
             setSaving(false);
         }
@@ -83,24 +82,11 @@ const GeneralTemplateAdd = () => {
     };
 
     /* ── Breadcrumbs ─────────────────────────────────────────────── */
-    const Breadcrumbs = () => (
-        <div className="flex items-center gap-1 mb-6 px-4 pt-4">
-            <Link to="/dashboard" className="flex items-center justify-center w-9 h-9 rounded bg-white border border-gray-200 hover:bg-gray-50 shadow-sm">
-                <Home size={16} className="text-gray-500" />
-            </Link>
-            <ChevronLeft size={14} className="text-gray-300 mx-1" />
-            <Link to="/dashboard/templates" className="px-3 h-9 flex items-center rounded bg-white border border-gray-200 hover:bg-gray-50 text-sm text-gray-600 shadow-sm">تصاميم القوالب</Link>
-            <ChevronLeft size={14} className="text-gray-300 mx-1" />
-            <Link to="/dashboard/templates/general" className="px-3 h-9 flex items-center rounded bg-white border border-gray-200 hover:bg-gray-50 text-sm text-gray-600 shadow-sm">القوالب العامة</Link>
-            <ChevronLeft size={14} className="text-gray-300 mx-1" />
-            <span className="px-3 h-9 flex items-center rounded bg-white border border-gray-200 text-sm font-semibold text-gray-800 shadow-sm">إضافة</span>
-        </div>
-    );
 
     /* ── Step 1: Select template ──────────────────────────────────── */
     const Step1 = () => (
         <div className="px-6 py-4 max-w-3xl mx-auto" dir={isRtl ? 'rtl' : 'ltr'}>
-            <h2 className="text-lg font-bold text-gray-800 mb-5">اختر القالب</h2>
+            <h2 className="text-lg font-bold text-gray-800 mb-5">{t('Choose Template', 'اختر القالب')}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {templateOptions.map(opt => (
                     <button
@@ -124,7 +110,7 @@ const GeneralTemplateAdd = () => {
             {/* Name */}
             <div className="mb-6">
                 <label className="block text-sm font-bold text-gray-700 mb-2">
-                    الاسم <span className="text-red-500">*</span>
+                    {t('Name', 'الاسم')} <span className="text-red-500">*</span>
                 </label>
                 <input
                     type="text"
@@ -132,7 +118,7 @@ const GeneralTemplateAdd = () => {
                     onChange={e => { setName(e.target.value); setErrors(er => ({ ...er, name: undefined })); }}
                     className={`w-full px-4 py-3 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 transition ${errors.name ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white'
                         }`}
-                    placeholder="أدخل اسم القالب"
+                    placeholder={t('Enter template name', 'أدخل اسم القالب')}
                 />
                 {errors.name && <p className="text-red-500 text-xs mt-1 font-medium">{errors.name}</p>}
             </div>
@@ -140,7 +126,7 @@ const GeneralTemplateAdd = () => {
             {/* Language */}
             <div className="mb-6">
                 <label className="block text-sm font-bold text-gray-700 mb-2">
-                    التصميم الأولي <span className="text-red-500">*</span>
+                    {t('Initial Design', 'التصميم الأولي')} <span className="text-red-500">*</span>
                 </label>
                 <div className="space-y-2">
                     {languageOptions.map(opt => (
@@ -168,7 +154,7 @@ const GeneralTemplateAdd = () => {
             {/* Branches */}
             <div className="mb-6 relative">
                 <label className="block text-sm font-bold text-gray-700 mb-2">
-                    الفروع <span className="text-red-500">*</span>
+                    {t('Branches', 'الفروع')} <span className="text-red-500">*</span>
                 </label>
                 <button
                     type="button"
@@ -179,7 +165,7 @@ const GeneralTemplateAdd = () => {
                     <span className={selectedBranches.length > 0 ? 'text-gray-800' : 'text-gray-400'}>
                         {selectedBranches.length > 0
                             ? branches.filter(b => selectedBranches.includes(b._id)).map(b => b.name).join(', ')
-                            : 'اختر الفروع'}
+                            : t('Choose branches', 'اختر الفروع')}
                     </span>
                     <ChevronLeft size={14} className={`text-gray-400 transition-transform ${branchDropdownOpen ? 'rotate-90' : '-rotate-90'}`} />
                 </button>
@@ -201,7 +187,7 @@ const GeneralTemplateAdd = () => {
                                 {branch.name}
                             </button>
                         ))}
-                        {branches.length === 0 && <p className="px-4 py-3 text-sm text-gray-400 text-center">لا توجد فروع</p>}
+                        {branches.length === 0 && <p className="px-4 py-3 text-sm text-gray-400 text-center">{t('No branches found', 'لا توجد فروع')}</p>}
                     </div>
                 )}
                 {errors.branches && <p className="text-red-500 text-xs mt-1 font-medium">{errors.branches}</p>}
@@ -214,17 +200,17 @@ const GeneralTemplateAdd = () => {
         <div className="flex items-center gap-3 px-6 py-4 border-t border-gray-200 bg-white" dir={isRtl ? 'rtl' : 'ltr'}>
             {step > 1 ? (
                 <button onClick={handleBack} className="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors">
-                    السابق
+                    {t('Previous', 'السابق')}
                 </button>
             ) : (
                 <Link to="/dashboard/templates/general" className="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors">
-                    إلغاء
+                    {t('Cancel', 'إلغاء')}
                 </Link>
             )}
 
             {step < 2 ? (
                 <button onClick={handleNext} className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-sm font-bold transition-colors">
-                    التالي
+                    {t('Next', 'التالي')}
                 </button>
             ) : (
                 <button
@@ -232,7 +218,7 @@ const GeneralTemplateAdd = () => {
                     disabled={saving}
                     className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-lg text-sm font-bold transition-colors"
                 >
-                    {saving ? 'جارٍ الحفظ...' : 'التالي'}
+                    {saving ? t('Saving...', 'جارٍ الحفظ...') : t('Save', 'حفظ')}
                 </button>
             )}
         </div>
@@ -241,7 +227,6 @@ const GeneralTemplateAdd = () => {
     /* ── Main render ──────────────────────────────────────────────── */
     return (
         <div className="min-h-screen bg-[#f5f7f9] flex flex-col" dir={isRtl ? 'rtl' : 'ltr'}>
-            <Breadcrumbs />
             <div className="flex-1 flex flex-col">
                 {/* Step indicator */}
                 <div className="flex items-center justify-center gap-4 py-4">
@@ -252,7 +237,7 @@ const GeneralTemplateAdd = () => {
                                 {s}
                             </div>
                             <span className={`text-sm font-medium ${step >= s ? 'text-indigo-600' : 'text-gray-400'}`}>
-                                {s === 1 ? 'اختيار القالب' : 'البيانات الأساسية'}
+                                {s === 1 ? t('Choose Template', 'اختيار القالب') : t('Basic Details', 'البيانات الأساسية')}
                             </span>
                             {s < 2 && <div className="w-12 h-0.5 bg-gray-200 mx-2" />}
                         </div>

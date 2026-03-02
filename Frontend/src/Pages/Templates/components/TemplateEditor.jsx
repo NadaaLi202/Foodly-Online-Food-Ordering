@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Home, ChevronRight } from 'lucide-react';
 
 /**
@@ -34,40 +35,12 @@ const TemplateEditor = ({
     saving = false,
     backUrl = '/dashboard/templates',
 }) => {
+    const { t } = useTranslation();
+
     return (
         <div className="flex flex-col h-full min-h-0">
             {/* ── Breadcrumb ── */}
-            <div className="flex items-center px-6 py-4 bg-[#f4f5f7] border-b border-gray-200">
-                <div className="flex drop-shadow-sm">
-                    {/* Home icon block */}
-                    <Link to="/dashboard"
-                        className="flex items-center justify-center bg-white text-gray-400 hover:text-gray-600 h-10"
-                        style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%)', paddingLeft: '16px', paddingRight: '22px' }}>
-                        <Home size={18} />
-                    </Link>
 
-                    {breadcrumbs.map((b, i) => {
-                        const isLast = i === breadcrumbs.length - 1;
-                        const clipPath = isLast
-                            ? 'polygon(0 0, 100% 0, 100% 100%, 0 100%, 12px 50%)'
-                            : 'polygon(0 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 0 100%, 12px 50%)';
-
-                        return b.to ? (
-                            <Link key={i} to={b.to}
-                                className="flex items-center justify-center bg-white text-[13px] font-medium text-gray-500 hover:text-gray-800 h-10"
-                                style={{ clipPath, paddingLeft: '28px', paddingRight: isLast ? '16px' : '26px', marginLeft: '-6px' }}>
-                                {b.label}
-                            </Link>
-                        ) : (
-                            <div key={i}
-                                className="flex items-center justify-center bg-white text-[13px] font-bold text-gray-700 h-10"
-                                style={{ clipPath, paddingLeft: '28px', paddingRight: isLast ? '16px' : '26px', marginLeft: '-6px' }}>
-                                {b.label}
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
 
             {/* ── Main 3-column area ── */}
             <div className="flex flex-1 min-h-0 overflow-hidden">
@@ -103,7 +76,7 @@ const TemplateEditor = ({
                     )}
 
                     {/* Document preview */}
-                    <div className="flex-1 overflow-auto p-4">
+                    <div className="flex-1 overflow-hidden p-4 flex flex-col">
                         {previewContent}
                     </div>
 
@@ -113,7 +86,7 @@ const TemplateEditor = ({
                             to={backUrl}
                             className="px-6 py-2 text-sm text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded font-bold transition-colors"
                         >
-                            إلغاء
+                            {t('Cancel', 'إلغاء')}
                         </Link>
                         <button
                             type="button"
@@ -121,7 +94,7 @@ const TemplateEditor = ({
                             disabled={saving}
                             className="px-8 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white py-2 rounded text-sm font-bold transition-colors"
                         >
-                            {saving ? 'جارٍ الحفظ...' : 'حفظ'}
+                            {saving ? t('Saving...', 'جارٍ الحفظ...') : t('Save', 'حفظ')}
                         </button>
                     </div>
                 </div>

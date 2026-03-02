@@ -78,17 +78,34 @@ const templateSchema = new mongoose.Schema({
     // ─── Logo ──────────────────────────────────────────────────────
     logo: {
         url: { type: String, default: '' },
-        size: { type: Number, default: 70 }
+        size: { type: Number, default: 70 },
+        margins: {
+            top: { type: Number, default: 0 },
+            right: { type: Number, default: 0 },
+            bottom: { type: Number, default: 0 },
+            left: { type: Number, default: 0 }
+        }
     },
 
     // ─── Header (General + Invoice: company/invoice info rows) ─────
     header: {
         rows: { type: [rowSchema], default: () => ([{ text: '', format: {} }]) },
         // Invoice-specific header options
-        order: { type: String, default: 'logo,company,invoice' },
+        order: { type: String, default: 'Logo, Company Info, Invoice Info' },
         showBottomBorder: { type: Boolean, default: false },
         // Invoice Info rows
-        invoiceInfoRows: { type: [rowSchema], default: () => ([{ text: '', format: {} }]) }
+        invoiceInfoRows: { type: [rowSchema], default: () => ([{ text: '', format: {} }]) },
+        // Document Titles (Invoice)
+        titles: {
+            saleInvoice: { type: rowSchema, default: () => ({ text: 'فاتورة ضريبية مبسطة\nSIMPLIFIED TAX INVOICE', format: { fontSize: 14, bold: true } }) },
+            saleCreditNote: { type: rowSchema, default: () => ({ text: 'فاتورة مرتجعات\nCREDIT NOTE', format: { fontSize: 14, bold: true } }) },
+            purchaseInvoice: { type: rowSchema, default: () => ({ text: 'فاتورة مشتريات\nPURCHASE INVOICE', format: { fontSize: 14, bold: true } }) },
+            purchaseCreditNote: { type: rowSchema, default: () => ({ text: 'فاتورة مرتجعات مشتريات\nPURCHASE CREDIT NOTE', format: { fontSize: 14, bold: true } }) },
+            quotation: { type: rowSchema, default: () => ({ text: 'عرض سعر\nQUOTATION', format: { fontSize: 14, bold: true } }) },
+            salesOrder: { type: rowSchema, default: () => ({ text: 'أمر بيع\nSALES ORDER', format: { fontSize: 14, bold: true } }) },
+            purchaseRequest: { type: rowSchema, default: () => ({ text: 'طلب شراء\nPURCHASE REQUEST', format: { fontSize: 14, bold: true } }) },
+            purchaseOrder: { type: rowSchema, default: () => ({ text: 'أمر شراء\nPURCHASE ORDER', format: { fontSize: 14, bold: true } }) }
+        }
     },
 
     // ─── Content (General: language only) ─────────────────────────
