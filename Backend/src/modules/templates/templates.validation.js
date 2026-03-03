@@ -89,6 +89,6 @@ export const createTemplateSchema = Joi.object({
         height: Joi.number().min(5).max(500),
         contentRows: rowsArray
     })
-});
+}).unknown(true);
 
 export const updateTemplateSchema = createTemplateSchema;

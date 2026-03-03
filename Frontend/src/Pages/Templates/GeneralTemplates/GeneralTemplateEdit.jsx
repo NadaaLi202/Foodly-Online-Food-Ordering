@@ -5,18 +5,19 @@ import toast from 'react-hot-toast';
 import TemplateEditor from '../components/TemplateEditor.jsx';
 import { TextBlockList } from '../components/TextBlock.jsx';
 import MarginsPopover from '../components/MarginsPopover.jsx';
-import { GeneralPreview, LivePdfWrapper } from '../components/DocumentPreview.jsx';
+import { GeneralPreview } from '../components/DocumentPreview.jsx';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import branchService from '../../../services/branchService.js';
+import { useTranslation } from 'react-i18next';
 import { Upload, X } from 'lucide-react';
 
-const TABS = [
-    { id: 'design', label: 'Design' },
-    { id: 'page', label: 'Page' },
-    { id: 'logo', label: 'Logo' },
-    { id: 'header', label: 'Header' },
-    { id: 'content', label: 'Content' },
-    { id: 'footer', label: 'Footer' },
+const getTabs = (t) => [
+    { id: 'design', label: t('Design', 'التصميم') },
+    { id: 'page', label: t('Page', 'الصفحة') },
+    { id: 'logo', label: t('Logo', 'الشعار') },
+    { id: 'header', label: t('Header', 'الترويسة') },
+    { id: 'content', label: t('Content', 'المحتوى') },
+    { id: 'footer', label: t('Footer', 'التذييل') },
 ];
 
 const ensureRows = (rows) => (rows?.length ? rows : [{ text: '', format: {} }]);
@@ -24,10 +25,10 @@ const inputClass = "w-full border border-gray-300 rounded px-3 py-2 text-sm bg-w
 const selectClass = "w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white outline-none focus:border-indigo-400 appearance-none";
 const Label = ({ children }) => <label className="block text-sm font-semibold text-gray-700 mb-1">{children}</label>;
 
-const SIG_POSITION_OPTIONS = [
-    { value: 'afterNotes', label: 'After Notes' },
-    { value: 'afterContent', label: 'After Content' },
-    { value: 'bottomPage', label: 'Bottom of Page' },
+const getSigPositionOptions = (t) => [
+    { value: 'afterNotes', label: t('After Notes', 'بعد الملاحظات') },
+    { value: 'afterContent', label: t('After Content', 'بعد المحتوى') },
+    { value: 'bottomPage', label: t('Bottom of Page', 'أسفل الصفحة') },
 ];
 
 /** Maps a branch DB record to the placeholder keys used in templates */
@@ -54,7 +55,7 @@ const buildCompanyContext = (user = {}) => ({
     currency: { ar: 'ر.س', en: 'SAR' },
 });
 
-const SignatureSection = ({ title, rows, setRows, dir, imageUrl, onImageUpload, onImageDelete, imageSize, setImageSize }) => (
+const SignatureSection = ({ t, title, rows, setRows, dir, imageUrl, onImageUpload, onImageDelete, imageSize, setImageSize }) => (
     <div className="space-y-3">
         <p className="text-sm font-semibold text-gray-800">{title}</p>
         <TextBlockList rows={rows} setRows={setRows} dir={dir} />
@@ -66,7 +67,7 @@ const SignatureSection = ({ title, rows, setRows, dir, imageUrl, onImageUpload, 
                         type="button"
                         onClick={onImageDelete}
                         className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow"
-                        title="Remove image"
+                        title={t('Remove image', 'إزالة الصورة')}
                     >
                         <X size={12} />
                     </button>
@@ -75,14 +76,14 @@ const SignatureSection = ({ title, rows, setRows, dir, imageUrl, onImageUpload, 
                 <label className="block border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-indigo-400 transition-colors">
                     <div className="flex flex-col items-center gap-1 text-gray-400">
                         <Upload size={20} />
-                        <span className="text-xs">Upload files or drag and drop here</span>
+                        <span className="text-xs">{t('Upload files or drag and drop here', 'قم برفع الملفات أو سحبها وإفلاتها هنا')}</span>
                     </div>
                     <input type="file" accept="image/*" className="hidden" onChange={onImageUpload} />
                 </label>
             )}
         </div>
         <div>
-            <Label>Image Size</Label>
+            <Label>{t('Image Size', 'حجم الصورة')}</Label>
             <input type="number" value={imageSize} min={10} max={500} onChange={e => setImageSize(+e.target.value)}
                 className={inputClass} style={{ width: '100px' }} />
         </div>
@@ -90,6 +91,7 @@ const SignatureSection = ({ title, rows, setRows, dir, imageUrl, onImageUpload, 
 );
 
 const GeneralTemplateEdit = () => {
+    const { t } = useTranslation();
     const { id } = useParams();
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState('design');
@@ -105,11 +107,11 @@ const GeneralTemplateEdit = () => {
 
     // Header tab rows (Company Info TextBlocks)
     const [headerRows, setHeaderRows] = useState([
-        { text: '{{company.name}}', format: { fontSize: 14, bold: true } },
-        { text: 'السجل التجاري : {{company.register}}', format: { fontSize: 12 } },
-        { text: 'الرقم الضريبي : {{company.tax_number}}', format: { fontSize: 12 } },
-        { text: '{{branch.address_line_1}}', format: { fontSize: 11 } },
+        { text: '{{company.name}}', format: { fontSize: 13, bold: true } },
+        { text: 'السجل التجاري - Register Number : {{company.register}}', format: { fontSize: 11 } },
+        { text: 'الرقم الضريبي - Tax Number : {{company.tax_number}}', format: { fontSize: 11 } },
         { text: '{{branch.city}}', format: { fontSize: 11 } },
+        { text: '{{branch.state}}', format: { fontSize: 11 } },
     ]);
 
     // Page tab inline header/footer blocks
@@ -163,7 +165,7 @@ const GeneralTemplateEdit = () => {
                 setBranches(Array.isArray(bl) ? bl : []);
                 // Auto-select first branch
                 if (Array.isArray(bl) && bl.length > 0) setSelectedBranch(bl[0]._id);
-            } catch { toast.error('فشل تحميل القالب'); }
+            } catch { toast.error(t('Failed to load template', 'فشل تحميل القالب')); }
             finally { setLoading(false); }
         })();
     }, [id, user]);
@@ -186,8 +188,8 @@ const GeneralTemplateEdit = () => {
                     ],
                 },
             });
-            toast.success('تم الحفظ بنجاح');
-        } catch { toast.error('فشل الحفظ'); }
+            toast.success(t('Saved successfully', 'تم الحفظ بنجاح'));
+        } catch { toast.error(t('Failed to save', 'فشل الحفظ')); }
         finally { setSaving(false); }
     };
 
@@ -199,8 +201,8 @@ const GeneralTemplateEdit = () => {
         try {
             const { data } = await api.post(`/templates/${id}/logo`, form, { headers: { 'Content-Type': 'multipart/form-data' } });
             setLogo(l => ({ ...l, url: data.imageUrl || data.logoUrl || l.url }));
-            toast.success('تم رفع الشعار');
-        } catch { toast.error('فشل الرفع'); }
+            toast.success(t('Logo uploaded', 'تم رفع الشعار'));
+        } catch { toast.error(t('Failed to upload', 'فشل الرفع')); }
     };
 
     // Signature image upload handler - reads as base64 for local preview
@@ -214,7 +216,7 @@ const GeneralTemplateEdit = () => {
 
     const pageDir = page.direction ?? 'rtl';
 
-    if (loading) return <div className="flex items-center justify-center h-96 text-gray-500">جارٍ التحميل...</div>;
+    if (loading) return <div className="flex items-center justify-center h-96 text-gray-500">{t('Loading...', 'جارٍ التحميل...')}</div>;
 
     const activeBranch = branches.find(b => b._id === selectedBranch) || branches[0] || {};
     const previewContext = {
@@ -241,10 +243,10 @@ const GeneralTemplateEdit = () => {
             case 'design':
                 return (
                     <div className="space-y-5">
-                        <div><Label>Name</Label><input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} /></div>
-                        <div><Label>Branches</Label>
+                        <div><Label>{t('Name', 'الاسم')}</Label><input type="text" value={name} onChange={e => setName(e.target.value)} className={inputClass} /></div>
+                        <div><Label>{t('Branches', 'الفروع')}</Label>
                             <select value={selectedBranch} onChange={e => setSelectedBranch(e.target.value)} className={selectClass}>
-                                <option value="">جميع الفروع</option>
+                                <option value="">{t('All branches', 'جميع الفروع')}</option>
                                 {branches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
                             </select>
                         </div>
@@ -253,15 +255,15 @@ const GeneralTemplateEdit = () => {
             case 'page':
                 return (
                     <div className="space-y-5">
-                        <div><Label>Direction</Label><select value={page.direction} onChange={e => setPage(p => ({ ...p, direction: e.target.value }))} className={selectClass}><option value="rtl">Right to Left</option><option value="ltr">Left to Right</option></select></div>
-                        <div><Label>Page Size</Label><select value={page.pageSize} onChange={e => setPage(p => ({ ...p, pageSize: e.target.value }))} className={selectClass}>{['A4', 'A5', 'Letter', 'Legal'].map(s => <option key={s}>{s}</option>)}</select></div>
-                        <div><Label>Font Size</Label><input type="number" value={page.fontSize} min={6} max={72} onChange={e => setPage(p => ({ ...p, fontSize: +e.target.value }))} className={inputClass} style={{ width: '100px' }} /></div>
-                        <div><Label>Margins</Label><MarginsPopover margins={page.margins} onChange={m => setPage(p => ({ ...p, margins: m }))} /></div>
+                        <div><Label>{t('Direction', 'الاتجاه')}</Label><select value={page.direction} onChange={e => setPage(p => ({ ...p, direction: e.target.value }))} className={selectClass}><option value="rtl">{t('Right to Left', 'من اليمين إلى اليسار')}</option><option value="ltr">{t('Left to Right', 'من اليسار إلى اليمين')}</option></select></div>
+                        <div><Label>{t('Page Size', 'حجم الصفحة')}</Label><select value={page.pageSize} onChange={e => setPage(p => ({ ...p, pageSize: e.target.value }))} className={selectClass}>{['A4', 'A5', 'Letter', 'Legal'].map(s => <option key={s}>{s}</option>)}</select></div>
+                        <div><Label>{t('Font Size', 'حجم الخط')}</Label><input type="number" value={page.fontSize} min={6} max={72} onChange={e => setPage(p => ({ ...p, fontSize: +e.target.value }))} className={inputClass} style={{ width: '100px' }} /></div>
+                        <div><Label>{t('Margins', 'الهوامش')}</Label><MarginsPopover margins={page.margins} onChange={m => setPage(p => ({ ...p, margins: m }))} /></div>
                         <div className="border-t border-gray-200 pt-4">
-                            <TextBlockList rows={pageHeaderRows} setRows={setPageHeaderRows} dir={pageDir} title="Header" />
+                            <TextBlockList rows={pageHeaderRows} setRows={setPageHeaderRows} dir={pageDir} title={t('Header', 'الترويسة')} />
                         </div>
                         <div className="border-t border-gray-200 pt-4">
-                            <TextBlockList rows={pageFooterRows} setRows={setPageFooterRows} dir={pageDir} title="Footer" />
+                            <TextBlockList rows={pageFooterRows} setRows={setPageFooterRows} dir={pageDir} title={t('Footer', 'التذييل')} />
                         </div>
                     </div>
                 );
@@ -275,7 +277,7 @@ const GeneralTemplateEdit = () => {
                                     type="button"
                                     onClick={() => setLogo(l => ({ ...l, url: '' }))}
                                     className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow"
-                                    title="Remove logo"
+                                    title={t('Remove logo', 'إزالة الشعار')}
                                 >
                                     <X size={12} />
                                 </button>
@@ -284,23 +286,23 @@ const GeneralTemplateEdit = () => {
                             <label className="block border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-indigo-400 transition-colors">
                                 <div className="flex flex-col items-center gap-2 text-gray-400">
                                     <Upload size={28} />
-                                    <span className="text-sm">Upload files or drag and drop here</span>
+                                    <span className="text-sm">{t('Upload files or drag and drop here', 'قم برفع الملفات أو سحبها وإفلاتها هنا')}</span>
                                 </div>
                                 <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
                             </label>
                         )}
-                        <div><Label>Size</Label><input type="number" value={logo.size} min={10} max={500} onChange={e => setLogo(l => ({ ...l, size: +e.target.value }))} className={inputClass} style={{ width: '100px' }} /></div>
+                        <div><Label>{t('Size', 'الحجم')}</Label><input type="number" value={logo.size} min={10} max={500} onChange={e => setLogo(l => ({ ...l, size: +e.target.value }))} className={inputClass} style={{ width: '100px' }} /></div>
                     </div>
                 );
             case 'header':
-                return <TextBlockList rows={headerRows} setRows={setHeaderRows} dir={pageDir} title="Company Info" />;
+                return <TextBlockList rows={headerRows} setRows={setHeaderRows} dir={pageDir} title={t('Company Info', 'معلومات الشركة')} />;
             case 'content':
                 return (
                     <div>
-                        <Label>Content Locale</Label>
+                        <Label>{t('Content Locale', 'لغة المحتوى')}</Label>
                         <select value={contentLang} onChange={e => setContentLang(e.target.value)} className={selectClass}>
-                            <option value="ar">Arabic</option>
-                            <option value="en">English</option>
+                            <option value="ar">{t('Arabic', 'العربية')}</option>
+                            <option value="en">{t('English', 'الإنجليزية')}</option>
                         </select>
                     </div>
                 );
@@ -308,25 +310,25 @@ const GeneralTemplateEdit = () => {
                 return (
                     <div className="space-y-6">
                         <div>
-                            <Label>Signature Position</Label>
+                            <Label>{t('Signature Position', 'موضع التوقيع')}</Label>
                             <select value={sigPosition} onChange={e => setSigPosition(e.target.value)} className={selectClass}>
-                                {SIG_POSITION_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                {getSigPositionOptions(t).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                             </select>
                         </div>
                         <div className="border-t border-gray-200 pt-4">
-                            <SignatureSection title="Left Signature" rows={sigRows1} setRows={setSigRows1} dir={pageDir}
+                            <SignatureSection t={t} title={t('Left Signature', 'التوقيع الأيسر')} rows={sigRows1} setRows={setSigRows1} dir={pageDir}
                                 imageUrl={sig1ImageUrl} onImageUpload={handleSigImageUpload(setSig1ImageUrl)}
                                 onImageDelete={() => setSig1ImageUrl('')}
                                 imageSize={sig1ImageSize} setImageSize={setSig1ImageSize} />
                         </div>
                         <div className="border-t border-gray-200 pt-4">
-                            <SignatureSection title="Middle Signature" rows={sigRows2} setRows={setSigRows2} dir={pageDir}
+                            <SignatureSection t={t} title={t('Middle Signature', 'التوقيع الأوسط')} rows={sigRows2} setRows={setSigRows2} dir={pageDir}
                                 imageUrl={sig2ImageUrl} onImageUpload={handleSigImageUpload(setSig2ImageUrl)}
                                 onImageDelete={() => setSig2ImageUrl('')}
                                 imageSize={sig2ImageSize} setImageSize={setSig2ImageSize} />
                         </div>
                         <div className="border-t border-gray-200 pt-4">
-                            <SignatureSection title="Right Signature" rows={sigRows3} setRows={setSigRows3} dir={pageDir}
+                            <SignatureSection t={t} title={t('Right Signature', 'التوقيع الأيمن')} rows={sigRows3} setRows={setSigRows3} dir={pageDir}
                                 imageUrl={sig3ImageUrl} onImageUpload={handleSigImageUpload(setSig3ImageUrl)}
                                 onImageDelete={() => setSig3ImageUrl('')}
                                 imageSize={sig3ImageSize} setImageSize={setSig3ImageSize} />
@@ -339,13 +341,11 @@ const GeneralTemplateEdit = () => {
 
     return (
         <TemplateEditor
-            breadcrumbs={[{ label: 'Template Designs', to: '/dashboard/templates' }, { label: 'General', to: '/dashboard/templates/general' }, { label: 'Edit' }]}
-            tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab}
+            breadcrumbs={[{ label: t('Template Designs', 'تصاميم القوالب'), to: '/dashboard/templates' }, { label: t('General Templates', 'القوالب العامة'), to: '/dashboard/templates/general' }, { label: t('Edit', 'تعديل') }]}
+            tabs={getTabs(t)} activeTab={activeTab} onTabChange={setActiveTab}
             tabContent={renderTab()}
             previewContent={
-                <LivePdfWrapper direction={pageDir}>
-                    <GeneralPreview template={templateData} direction={pageDir} context={previewContext} />
-                </LivePdfWrapper>
+                <GeneralPreview template={templateData} direction={pageDir} context={previewContext} />
             }
             onSave={handleSave} saving={saving} backUrl="/dashboard/templates/general"
         />
