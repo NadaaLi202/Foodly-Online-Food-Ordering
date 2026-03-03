@@ -16,10 +16,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.999.0",
-    "@aws-sdk/s3-request-presigner": "^3.999.0",
+    "@aws-sdk/client-s3": "^3.1000.0",
+    "@aws-sdk/s3-request-presigner": "^3.1000.0",
     "archiver": "^6.0.2",
-    "unzipper": "^0.12.1",
     "bcrypt": "^5.1.1",
     "cloudinary": "^2.9.0",
     "cors": "^2.8.5",
@@ -35,6 +34,7 @@
     "qrcode": "^1.5.4",
     "qrcode-terminal": "^0.12.0",
     "twilio": "^5.4.5",
+    "unzipper": "^0.12.1",
     "uuid": "^11.1.0",
     "whatsapp-web.js": "^1.26.0",
     "xlsx": "^0.18.5"

@@ -73,7 +73,7 @@ const ProductLabelEdit = () => {
     const handleSave = async () => {
         setSaving(true);
         try {
-            await api.put(`/templates/${id}`, { name, page: { direction, fontSize, margins }, label: { width, height, contentRows } });
+            await api.put(`/templates/${id}`, { type: 'product-label', name, page: { direction, fontSize, margins }, label: { width, height, contentRows } });
             toast.success(t('Saved successfully', 'تم الحفظ'));
         } catch { toast.error(t('Failed to save', 'فشل الحفظ')); }
         finally { setSaving(false); }

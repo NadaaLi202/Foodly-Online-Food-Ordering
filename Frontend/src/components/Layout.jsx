@@ -41,15 +41,15 @@ const Layout = () => {
                 />
             )}
 
-            <div className="flex-1 flex flex-col h-screen overflow-hidden">
-                <TopBar onToggleSidebar={toggleSidebar} isMobile={isMobile} />
-                <div className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50/50">
-                    <Breadcrumbs />
-                    <main className="w-full">
+            <main className="w-full">
+                <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+                    <TopBar onToggleSidebar={toggleSidebar} isMobile={isMobile} />
+                    <div className="flex-1 min-h-screen overflow-x-hidden overflow-y-auto bg-gray">
+                        <Breadcrumbs />
                         <Outlet />
-                    </main>
+                    </div>
                 </div>
-            </div>
+            </main>
         </div>
     );
 };
