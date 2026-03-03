@@ -5,6 +5,7 @@ import api from "../services/api";
 import companyService from "../services/companyService";
 import { useTranslation } from "react-i18next";
 import logo from '../assets/logo.jpg';
+import logError from "../utils/logError";
 
 export default function Login() {
     const { t, i18n } = useTranslation();

@@ -14,7 +14,12 @@ const costCenterSchema = new mongoose.Schema({
     parentId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'CostCenter',
+        alias: 'parent_id',
         default: null
+    },
+    isSystem: {
+        type: Boolean,
+        default: false
     },
     isActive: {
         type: Boolean,

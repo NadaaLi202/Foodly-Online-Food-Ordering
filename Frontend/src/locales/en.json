@@ -337,7 +337,7 @@
             "parent": "Parent Cost Center",
             "parent_placeholder": "Search for main cost center...",
             "loading_parents": "Loading main cost centers...",
-            "parent_empty_hint": "No matching main cost centers found (Projects, Departments, Activities, Products)."
+            "parent_empty_hint": "No main cost centers found. Please create a main cost center first."
         },
         "field_labels": {
             "cost_center": "Cost Center",
@@ -352,6 +352,12 @@
             "create": "Cost center created successfully",
             "update": "Cost center updated successfully",
             "delete": "Cost center deleted successfully"
+        },
+        "system": {
+            "projects": "Projects",
+            "departments": "Departments",
+            "activities": "Activities",
+            "products": "Products"
         },
         "delete_title": "Delete Cost Center",
         "delete_message": "Are you sure you want to delete {{name}}?"

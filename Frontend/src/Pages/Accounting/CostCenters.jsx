@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Home, Info, Loader2, Plus, RefreshCw, X } from 'lucide-react';
+import { ArrowLeftRight, Info, Loader2, Plus, RefreshCw, Search, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 import costCentersService from '../../services/costCentersService';
 import settingsService from '../../services/settingsService';
@@ -13,8 +13,16 @@ const INITIAL_FORM = {
     parentId: ''
 };
 
+const SYSTEM_CENTER_KEY_MAP = {
+    projects: 'projects',
+    departments: 'departments',
+    activities: 'activities',
+    products: 'products'
+};
+
 const CostCenters = () => {
     const { t, i18n } = useTranslation();
+    const navigate = useNavigate();
     const isRTL = i18n.language === 'ar';
     const [loading, setLoading] = useState(true);
     const [featureLoading, setFeatureLoading] = useState(true);
@@ -22,8 +30,8 @@ const CostCenters = () => {
     const [saving, setSaving] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [costCenters, setCostCenters] = useState([]);
-    const [mainCostCenterOptions, setMainCostCenterOptions] = useState([]);
-    const [optionsLoading, setOptionsLoading] = useState(true);
+    const [mainCostCenters, setMainCostCenters] = useState([]);
+    const [optionsLoading, setOptionsLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCenter, setEditingCenter] = useState(null);
     const [form, setForm] = useState(INITIAL_FORM);
@@ -34,26 +42,27 @@ const CostCenters = () => {
     const fetchCostCenters = async (silent = false) => {
         if (!silent) setLoading(true);
         if (silent) setRefreshing(true);
-        setOptionsLoading(true);
         try {
             const response = await costCentersService.getAllCostCenters();
             setCostCenters(response?.costCenters || []);
-            const backendOptions = response?.mainCostCenterOptions?.options;
-            if (Array.isArray(backendOptions) && backendOptions.length > 0) {
-                setMainCostCenterOptions(backendOptions);
-            } else {
-                const grouped = response?.mainCostCenterOptions?.grouped || {};
-                const orderedKeys = ['projects', 'departments', 'activities', 'products'];
-                const fallbackOptions = orderedKeys
-                    .map((key) => grouped[key]?.[0])
-                    .filter(Boolean);
-                setMainCostCenterOptions(fallbackOptions);
-            }
         } catch (error) {
             toast.error(t('sales.common.error_message'));
         } finally {
             setLoading(false);
             setRefreshing(false);
+        }
+    };
+
+    const fetchParentCostCenters = async () => {
+        setOptionsLoading(true);
+        try {
+            const response = await costCentersService.getParentCostCenters();
+            setMainCostCenters(response?.costCenters || []);
+        } catch (error) {
+            setMainCostCenters([]);
+            const message = error.response?.data?.message || t('sales.common.error_message');
+            toast.error(message);
+        } finally {
             setOptionsLoading(false);
         }
     };
@@ -105,11 +114,19 @@ const CostCenters = () => {
         return list;
     }, [costCenters, mainCenters]);
 
+    const getDisplayCenterName = (name = '') => {
+        const normalized = String(name).trim().toLowerCase();
+        const systemKey = SYSTEM_CENTER_KEY_MAP[normalized];
+        if (!systemKey) return name;
+        return t(`cost_centers.system.${systemKey}`, { defaultValue: name });
+    };
+
     const openAddModal = () => {
         setEditingCenter(null);
         setForm(INITIAL_FORM);
         setErrors({});
         setIsModalOpen(true);
+        fetchParentCostCenters();
     };
 
     const openEditModal = (center) => {
@@ -121,13 +138,13 @@ const CostCenters = () => {
         });
         setErrors({});
         setIsModalOpen(true);
+        fetchParentCostCenters();
     };
 
     const validateForm = () => {
         const nextErrors = {};
         if (!form.name.trim()) nextErrors.name = t('cost_centers.validation.name_required');
         if (form.type === 'sub' && !form.parentId) nextErrors.parentId = t('cost_centers.validation.parent_required');
-        if (form.type === 'main' && form.parentId) nextErrors.parentId = t('cost_centers.validation.main_parent_null');
         setErrors(nextErrors);
         return Object.keys(nextErrors).length === 0;
     };
@@ -139,7 +156,7 @@ const CostCenters = () => {
             const payload = {
                 type: form.type,
                 name: form.name.trim(),
-                parentId: form.type === 'sub' ? form.parentId : null
+                parentId: form.parentId || null
             };
             if (editingCenter?._id) {
                 await costCentersService.updateCostCenter(editingCenter._id, payload);
@@ -163,6 +180,7 @@ const CostCenters = () => {
     const handleDeleteClick = (center) => {
         setDeleteModal({ open: true, id: center._id, name: center.name });
     };
+    const isSystemCenter = (center) => center?.isSystem === true || center?.isSystem === 1 || center?.isSystem === 'true';
 
     const handleConfirmDelete = async () => {
         if (!deleteModal.id) return;
@@ -213,45 +231,53 @@ const CostCenters = () => {
 
     return (
         <div className="p-6 bg-[#F8F9FA] min-h-screen" dir={isRTL ? 'rtl' : 'ltr'}>
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                <div className="flex items-center bg-white border border-gray-200 rounded overflow-hidden h-10 shadow-sm px-2 gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                <button
+                    type="button"
+                    onClick={openAddModal}
+                    className={`flex items-center gap-2 bg-[#4F46E5] text-white px-4 h-10 rounded-md hover:bg-indigo-700 transition-colors font-bold shadow-sm text-sm ${isRTL ? 'order-2' : 'order-1'}`}
+                >
+                    <Plus size={18} strokeWidth={2.8} />
+                    <span>{t('cost_centers.add_btn')}</span>
+                </button>
+
+                <div className={`flex items-center gap-4 ${isRTL ? 'order-1 flex-row' : 'order-2 flex-row-reverse'}`}>
                     <button
                         type="button"
-                        onClick={() => window.history.back()}
-                        className="text-gray-400 hover:text-gray-600 px-1 border-l border-gray-100 last:border-l-0"
+                        onClick={() => navigate('/dashboard/reports/accounting')}
+                        className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-md h-9 px-3 text-gray-600 hover:text-gray-800 shadow-sm"
                     >
-                        <Home size={18} />
+                        <ArrowLeftRight size={15} />
+                        <span className="text-sm font-semibold">{t('sidebar.cost_centers')}</span>
                     </button>
-                    <div className="flex items-center text-[#4B5563] font-medium text-sm gap-1">
-                        <span className="text-gray-400">{t('sidebar.accounting')}</span>
-                        <span className="text-gray-400">/</span>
-                        <span className="text-gray-700 font-bold">{t('sidebar.cost_centers')}</span>
-                    </div>
+                </div>
+            </div>
+
+            <div className={`flex items-center justify-between mb-3 ${isRTL ? 'flex-row' : 'flex-row-reverse'}`}>
+                <div className={`flex items-center gap-2 text-sm font-bold text-gray-700 ${isRTL ? 'flex-row' : 'flex-row-reverse'}`}>
+                    <span>{t('cost_centers.table.name')}</span>
+                </div>
+                <div className={`flex items-center gap-3 ${isRTL ? 'flex-row' : 'flex-row-reverse'}`}>
+                    <button type="button" className="text-gray-500 hover:text-gray-700" aria-label={t('sales.common.search')}>
+                        <Search size={16} />
+                    </button>
                     <button
                         type="button"
                         onClick={() => fetchCostCenters(true)}
-                        className="text-gray-400 hover:text-gray-600 px-1 border-r border-gray-100 first:border-r-0"
+                        className="text-gray-400 hover:text-gray-600"
+                        aria-label={t('sales.common.loading')}
                     >
                         <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
                     </button>
                 </div>
-
-                <button
-                    type="button"
-                    onClick={openAddModal}
-                    className="flex items-center gap-2 bg-[#4F46E5] text-white px-4 h-10 rounded hover:bg-indigo-700 transition-colors font-bold shadow-sm text-sm"
-                >
-                    <Plus size={18} strokeWidth={3} />
-                    <span>{t('cost_centers.add_btn')}</span>
-                </button>
             </div>
 
             <div className="bg-white border border-gray-100 rounded shadow-sm overflow-hidden">
                 <table className="w-full text-sm text-start">
                     <thead className="bg-[#F9FAFB] text-gray-700 font-bold border-b border-gray-100">
                         <tr>
-                            <th className="px-6 py-4 text-start font-bold whitespace-nowrap">{t('cost_centers.table.name')}</th>
-                            <th className="px-6 py-4 text-start font-bold whitespace-nowrap">{t('cost_centers.table.actions')}</th>
+                            <th className="px-6 py-3.5 text-start font-bold whitespace-nowrap">{t('cost_centers.table.name')}</th>
+                            <th className={`px-6 py-3.5 font-bold whitespace-nowrap ${isRTL ? 'text-start' : 'text-end'}`}>{t('cost_centers.table.actions')}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -274,26 +300,45 @@ const CostCenters = () => {
                                     <td className="px-6 py-4 text-gray-800 font-bold">
                                         {center.rowType === 'sub' ? (
                                             <span className="inline-flex items-center gap-2">
-                                                <span className="text-gray-400">└</span>
-                                                <span>{center.name}</span>
-                                            </span>
-                                        ) : center.name}
+                                                <span className="text-gray-400">+</span>
+                                            <span>{getDisplayCenterName(center.name)}</span>
+                                        </span>
+                                        ) : getDisplayCenterName(center.name)}
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="flex items-center gap-4 whitespace-nowrap">
+                                        <div className={`flex items-center gap-3 whitespace-nowrap ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                                            <div className="inline-flex items-center gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => navigate('/dashboard/reports/accounting')}
+                                                    className="w-8 h-8 rounded-md flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-600 cursor-pointer transition-colors"
+                                                    aria-label={t('sidebar.accounting_reports')}
+                                                >
+                                                    <ArrowLeftRight size={18} />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={openAddModal}
+                                                    className="w-8 h-8 rounded-md flex items-center justify-center bg-emerald-100 hover:bg-emerald-200 text-emerald-600 cursor-pointer transition-colors"
+                                                    aria-label={t('cost_centers.add_btn')}
+                                                >
+                                                    <Plus size={18} />
+                                                </button>
+                                            </div>
                                             <button
                                                 type="button"
                                                 onClick={() => openEditModal(center)}
-                                                className="text-blue-500 hover:text-blue-700 font-bold text-sm"
+                                                className="font-bold text-sm text-[#2563EB] hover:text-[#1D4ED8]"
                                             >
                                                 {t('sales.common.edit')}
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => handleDeleteClick(center)}
-                                                className="text-red-500 hover:text-red-700 font-bold text-sm"
+                                                disabled={isSystemCenter(center)}
+                                                className={`relative z-10 pointer-events-auto font-bold text-sm text-red-500 ${isSystemCenter(center) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:text-red-700'}`}
                                             >
-                                                {t('sales.common.delete')}
+                                                حذف
                                             </button>
                                         </div>
                                     </td>
@@ -325,7 +370,7 @@ const CostCenters = () => {
                                         <input
                                             type="radio"
                                             checked={form.type === 'main'}
-                                            onChange={() => setForm((prev) => ({ ...prev, type: 'main', parentId: '' }))}
+                                            onChange={() => setForm((prev) => ({ ...prev, type: 'main' }))}
                                         />
                                         {t('cost_centers.modal.main')}
                                     </label>
@@ -366,11 +411,11 @@ const CostCenters = () => {
                                             ? t('cost_centers.modal.loading_parents')
                                             : t('cost_centers.modal.parent_placeholder')}
                                     </option>
-                                    {mainCostCenterOptions.map((center) => (
-                                        <option key={center._id} value={center._id}>{center.name}</option>
+                                    {mainCostCenters.map((center) => (
+                                        <option key={center.id || center._id} value={center.id || center._id}>{getDisplayCenterName(center.name)}</option>
                                     ))}
                                 </select>
-                                {!optionsLoading && mainCostCenterOptions.length === 0 && (
+                                {!optionsLoading && mainCostCenters.length === 0 && (
                                     <p className="text-xs text-amber-600 font-medium">{t('cost_centers.modal.parent_empty_hint')}</p>
                                 )}
                                 {errors.parentId && <p className="text-xs text-red-500 font-medium">{errors.parentId}</p>}
@@ -411,3 +456,4 @@ const CostCenters = () => {
 };
 
 export default CostCenters;
+

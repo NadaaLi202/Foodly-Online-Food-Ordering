@@ -5,6 +5,11 @@ const getAllCostCenters = async (params = {}) => {
     return response.data;
 };
 
+const getParentCostCenters = async () => {
+    const response = await api.get('/cost-centers/parents');
+    return response.data;
+};
+
 const createCostCenter = async (data) => {
     const response = await api.post('/cost-centers', data);
     return response.data;
@@ -22,6 +27,7 @@ const deleteCostCenter = async (id) => {
 
 export default {
     getAllCostCenters,
+    getParentCostCenters,
     createCostCenter,
     updateCostCenter,
     deleteCostCenter
