@@ -34,14 +34,29 @@ const signup = catchAsyncError(async (req, res, next) => {
 const signIn = catchAsyncError(async (req, res, next) => {
     const { email, password } = req.body;
 
+    // Normalize email to match how it is stored in the DB (both User and Company schemas use lowercase)
+    const normalizedEmail = typeof email === 'string'
+        ? email.trim().toLowerCase()
+        : email;
+
+    // [DEBUG] Temporary signIn logs – remove after verifying credentials
+    const debug = process.env.SIGNIN_DEBUG === 'true';
+    if (debug) {
+        console.log('[signIn] normalizedEmail:', normalizedEmail);
+    }
+
     // 1. Check User model
-    let account = await userModel.findOne({ email });
+    let account = await userModel.findOne({ email: normalizedEmail });
     let type = 'user';
 
     // 2. If not found, check Company model
     if (!account) {
-        account = await companyModel.findOne({ email });
+        account = await companyModel.findOne({ email: normalizedEmail });
         type = 'company';
+    }
+
+    if (debug) {
+        console.log('[signIn] account found:', !!account, 'type:', account ? type : 'none');
     }
 
     if (!account) {
@@ -55,6 +70,11 @@ const signIn = catchAsyncError(async (req, res, next) => {
 
     // 3. Compare password
     const match = await bcrypt.compare(password, account.password);
+
+    if (debug) {
+        const hasHash = !!account.password && String(account.password).startsWith('$2');
+        console.log('[signIn] password compare:', match, '| stored looks like bcrypt:', hasHash);
+    }
 
     if (match) {
         const isSuperAdminUser = type === 'user' && (account.role === 'superAdmin' || account.systemRole === 'superAdmin');

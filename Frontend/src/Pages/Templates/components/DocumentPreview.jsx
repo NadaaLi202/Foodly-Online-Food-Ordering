@@ -64,8 +64,11 @@ export const resolvePlaceholders = (text = '', context = {}) => {
         const parts = trimmed.split('.');
         let val = context;
         for (const p of parts) {
-            val = val?.[p];
-            if (val === undefined || val === null) return match; // keep placeholder if unresolved
+            if (val && Object.prototype.hasOwnProperty.call(val, p)) {
+                val = val[p];
+            } else {
+                return match; // keep placeholder if unresolved
+            }
         }
         return val;
     });
@@ -130,7 +133,7 @@ const InvoicePreview = ({ template = {}, direction = 'rtl', context = {} }) => {
     const sampleTotals = { subtotal: computedSubtotal.toFixed(2), discount: '0.00', vat: computedVat.toFixed(2), total: computedTotal.toFixed(2), paid: computedTotal.toFixed(2), remaining: '0.00' };
 
     const getPageDimensions = () => {
-        const pSize = page.pageSize?.toLowerCase() || 'a4';
+        const pSize = page && page.pageSize ? String(page.pageSize).toLowerCase() : 'a4';
         switch (pSize) {
             case '80mm': return { width: '302px', minHeight: '500px', fontSizeMod: 0.75 }; // thermal receipt
             case 'a5': return { width: '559px', minHeight: '794px', fontSizeMod: 0.9 };
@@ -270,7 +273,7 @@ const InvoicePreview = ({ template = {}, direction = 'rtl', context = {} }) => {
                                         </div>
                                     );
                                 } else if (item === 'invoice info' || item === 'invoice') {
-                                    const titleObj = header.titles?.saleInvoice || { text: 'فاتورة ضريبية مبسطة\nSIMPLIFIED TAX INVOICE', format: { fontSize: 14, bold: true } };
+                                const titleObj = (header.titles && header.titles.saleInvoice) || { text: 'فاتورة ضريبية مبسطة\nSIMPLIFIED TAX INVOICE', format: { fontSize: 14, bold: true } };
                                     return (
                                         <div key="invoice" className="flex flex-col gap-1" style={{ alignItems: page.pageSize === '80mm' ? 'center' : 'center', textAlign: page.pageSize === '80mm' ? 'center' : 'center', flex: 1, padding: '0 16px' }}>
                                             <StyledRow row={{ ...titleObj, format: { ...titleObj.format, align: page.pageSize === '80mm' ? 'center' : 'center' } }} defaultFontSize={14} isRtl={isRtl} context={context} />
@@ -285,10 +288,10 @@ const InvoicePreview = ({ template = {}, direction = 'rtl', context = {} }) => {
                                     return (
                                         <div key="logo" style={{
                                             display: 'flex', alignItems: 'center', justifyContent: isRtl ? 'flex-end' : 'flex-start', minWidth: '70px', flex: 1,
-                                            marginTop: logo.margins?.top ? `${logo.margins.top}px` : 0,
-                                            marginRight: logo.margins?.right ? `${logo.margins.right}px` : 0,
-                                            marginBottom: logo.margins?.bottom ? `${logo.margins.bottom}px` : 0,
-                                            marginLeft: logo.margins?.left ? `${logo.margins.left}px` : 0
+                                            marginTop: logo.margins && logo.margins.top ? `${logo.margins.top}px` : 0,
+                                            marginRight: logo.margins && logo.margins.right ? `${logo.margins.right}px` : 0,
+                                            marginBottom: logo.margins && logo.margins.bottom ? `${logo.margins.bottom}px` : 0,
+                                            marginLeft: logo.margins && logo.margins.left ? `${logo.margins.left}px` : 0
                                         }}>
                                             {logo.url ? (
                                                 <img src={logo.url} alt="Logo" style={{ width: `${logo.size || 70}px`, maxHeight: '80px', objectFit: 'contain' }} />
@@ -330,9 +333,9 @@ const InvoicePreview = ({ template = {}, direction = 'rtl', context = {} }) => {
                                     {enabledCols.map(col => (
                                         <th key={col.key} className={`${page.pageSize === '80mm' ? 'p-1' : 'p-2'} font-bold text-center`} style={{
                                             border: page.pageSize !== '80mm' && table.showTableLines !== false ? '1px solid #ddd' : 'none',
-                                            fontSize: `${col.labelFormat?.fontSize || 11}px`,
-                                            color: col.labelFormat?.color || '#333',
-                                            fontWeight: col.labelFormat?.bold ? 'bold' : 'bold',
+                                            fontSize: `${(col.labelFormat && col.labelFormat.fontSize) || 11}px`,
+                                            color: (col.labelFormat && col.labelFormat.color) || '#333',
+                                            fontWeight: (col.labelFormat && col.labelFormat.bold) ? 'bold' : 'bold',
                                         }}>
                                             {col.label}
                                         </th>
@@ -345,8 +348,8 @@ const InvoicePreview = ({ template = {}, direction = 'rtl', context = {} }) => {
                                         {enabledCols.map(col => (
                                             <td key={col.key} className={`${page.pageSize === '80mm' ? 'p-1' : 'p-2'} text-center`} style={{
                                                 border: page.pageSize !== '80mm' && table.showTableLines !== false ? '1px solid #ddd' : 'none',
-                                                fontSize: `${col.valueFormat?.fontSize || 11}px`,
-                                                color: col.valueFormat?.color || '#000',
+                                                fontSize: `${(col.valueFormat && col.valueFormat.fontSize) || 11}px`,
+                                                color: (col.valueFormat && col.valueFormat.color) || '#000',
                                             }}>
                                                 {row[col.key] || '-'}
                                             </td>
@@ -375,7 +378,7 @@ const InvoicePreview = ({ template = {}, direction = 'rtl', context = {} }) => {
                     {/* Signatures */}
                     {page.pageSize !== '80mm' && (
                         <div className="flex justify-around mt-8 mb-4">
-                            {(footer.signatures || []).filter(s => s.rows?.[0]?.text).map((sig, i) => (
+                            {(footer.signatures || []).filter(s => s.rows && s.rows[0] && s.rows[0].text).map((sig, i) => (
                                 <div key={i} className="text-center text-xs">
                                     {sig.rows.map((r, j) => (
                                         <StyledRow key={j} row={r} defaultFontSize={10} isRtl={isRtl} context={context} />
@@ -384,7 +387,7 @@ const InvoicePreview = ({ template = {}, direction = 'rtl', context = {} }) => {
                                     <p className="text-gray-400 mt-1">التوقيع</p>
                                 </div>
                             ))}
-                            {(!footer.signatures || footer.signatures.every(s => !s.rows?.[0]?.text)) && (
+                            {(!footer.signatures || footer.signatures.every(s => !(s.rows && s.rows[0] && s.rows[0].text))) && (
                                 <div className="text-center text-xs">
                                     <div className="w-24 border-b border-gray-400 mb-1" />
                                     <span className="text-gray-400">التوقيع</span>
@@ -406,6 +409,7 @@ const InvoicePreview = ({ template = {}, direction = 'rtl', context = {} }) => {
                         </div>
                     </div>
                 </div>
+            </div>
 
             {/* Visible native PDF viewer */}
             <div className="flex-1 w-full h-full relative z-10">
@@ -440,10 +444,13 @@ export const GeneralPreview = ({ template = {}, direction = 'rtl', context = {} 
     const footer = template.footer || {};
     const isRtl = direction === 'rtl';
     const margins = page.margins || { top: 40, right: 40, bottom: 40, left: 40 };
-    const sigs = (footer.signatures || []).filter(s => s.rows?.[0]?.text || s.imageUrl);
+    const sigs = (footer.signatures || []).filter((s) => {
+        const firstRow = s?.rows?.[0];
+        return firstRow?.text || s?.imageUrl;
+    });
 
     const getPageDimensions = () => {
-        const pSize = page.pageSize?.toLowerCase() || 'a4';
+        const pSize = page && page.pageSize ? String(page.pageSize).toLowerCase() : 'a4';
         switch (pSize) {
             case '80mm': return { width: '302px', minHeight: '500px', fontSizeMod: 0.75 };
             case 'a5': return { width: '559px', minHeight: '794px', fontSizeMod: 0.9 };
@@ -576,8 +583,8 @@ export const GeneralPreview = ({ template = {}, direction = 'rtl', context = {} 
 
                     {/* Address rows from branch context */}
                     <div style={{ fontSize: '11px', color: '#666666', marginBottom: '4px' }}>
-                        <p style={{ margin: 0 }}>{context.branch?.address_line_1 || 'dammam'}</p>
-                        <p style={{ margin: 0 }}>{context.branch?.city || 'region'}</p>
+                        <p style={{ margin: 0 }}>{(context.branch && context.branch.address_line_1) || 'dammam'}</p>
+                        <p style={{ margin: 0 }}>{(context.branch && context.branch.city) || 'region'}</p>
                     </div>
 
                     {/* Page inline header TextBlocks */}

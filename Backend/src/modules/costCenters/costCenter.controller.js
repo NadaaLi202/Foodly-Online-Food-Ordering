@@ -7,98 +7,57 @@ const normalizeOptionalId = (value) => {
     return value;
 };
 
-const normalizeName = (value = '') =>
-    String(value)
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, ' ');
+const DEFAULT_SYSTEM_COST_CENTERS = ['Projects', 'Departments', 'Activities', 'Products'];
+const normalizeName = (value = '') => String(value).trim().toLowerCase().replace(/\s+/g, ' ');
 
-const normalizeArabic = (value = '') =>
-    String(value)
-        .replace(/[\u064B-\u0652]/g, '')
-        .replace(/\u0640/g, '')
-        .replace(/[\u0623\u0625\u0622]/g, '\u0627')
-        .replace(/\u0649/g, '\u064a')
-        .replace(/\u0629/g, '\u0647')
-        .trim();
+const getCompanyIdFromRequest = (req) =>
+    req?.companyFilter?.companyId || req?.user?.companyId || null;
 
-const normalizeLookupValue = (value = '') => normalizeArabic(normalizeName(value));
+const normalizeParentIdFromBody = (body = {}) => (
+    normalizeOptionalId(body.parentId ?? body.parent_id)
+);
 
-const MAIN_CATEGORY_DEFINITIONS = [
-    {
-        key: 'projects',
-        labelEn: 'Projects',
-        labelAr: '\u0627\u0644\u0645\u0634\u0627\u0631\u064a\u0639',
-        aliases: ['projects', 'project', '\u0627\u0644\u0645\u0634\u0627\u0631\u064a\u0639', '\u0645\u0634\u0627\u0631\u064a\u0639']
-    },
-    {
-        key: 'departments',
-        labelEn: 'Departments',
-        labelAr: '\u0627\u0644\u0623\u0642\u0633\u0627\u0645',
-        aliases: ['departments', 'department', '\u0627\u0644\u0623\u0642\u0633\u0627\u0645', '\u0627\u0644\u0627\u0642\u0633\u0627\u0645', '\u0623\u0642\u0633\u0627\u0645', '\u0627\u0642\u0633\u0627\u0645']
-    },
-    {
-        key: 'activities',
-        labelEn: 'Activities',
-        labelAr: '\u0627\u0644\u0623\u0646\u0634\u0637\u0629',
-        aliases: ['activities', 'activity', '\u0627\u0644\u0623\u0646\u0634\u0637\u0629', '\u0627\u0644\u0627\u0646\u0634\u0637\u0629', '\u0623\u0646\u0634\u0637\u0629', '\u0627\u0646\u0634\u0637\u0629']
-    },
-    {
-        key: 'products',
-        labelEn: 'Products',
-        labelAr: '\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a',
-        aliases: ['products', 'product', '\u0627\u0644\u0645\u0646\u062a\u062c\u0627\u062a', '\u0645\u0646\u062a\u062c\u0627\u062a']
-    }
-];
+const ensureDefaultSystemCostCenters = async (companyId) => {
+    if (!companyId) return;
 
-const isAliasMatch = (normalizedName, normalizedAlias) =>
-    normalizedName === normalizedAlias ||
-    normalizedName.includes(normalizedAlias) ||
-    normalizedAlias.includes(normalizedName);
+    const existingMainCenters = await costCenterModel
+        .find({ companyId, type: 'main' })
+        .select('_id name isSystem parentId');
 
-const getCategoryKeyByName = (name = '') => {
-    const normalizedName = normalizeLookupValue(name);
-    if (!normalizedName) return null;
+    const byNormalizedName = new Map();
+    existingMainCenters.forEach((center) => {
+        byNormalizedName.set(normalizeName(center.name), center);
+    });
 
-    const matched = MAIN_CATEGORY_DEFINITIONS.find((category) =>
-        category.aliases.some((alias) => isAliasMatch(normalizedName, normalizeLookupValue(alias)))
-    );
+    const updates = [];
+    const inserts = [];
 
-    return matched?.key || null;
-};
+    DEFAULT_SYSTEM_COST_CENTERS.forEach((name) => {
+        const existing = byNormalizedName.get(normalizeName(name));
+        if (!existing) {
+            inserts.push({
+                name,
+                type: 'main',
+                parentId: null,
+                isSystem: true,
+                isActive: true,
+                companyId
+            });
+            return;
+        }
 
-const buildMainCostCenterOptions = (centers = []) => {
-    const grouped = MAIN_CATEGORY_DEFINITIONS.reduce((acc, category) => {
-        acc[category.key] = [];
-        return acc;
-    }, {});
-
-    centers.forEach((center) => {
-        const categoryKey = getCategoryKeyByName(center.name);
-        if (categoryKey) {
-            grouped[categoryKey].push(center);
+        if (!existing.isSystem || existing.parentId) {
+            updates.push({
+                updateOne: {
+                    filter: { _id: existing._id },
+                    update: { $set: { isSystem: true, type: 'main', parentId: null } }
+                }
+            });
         }
     });
 
-    const orderedKeys = MAIN_CATEGORY_DEFINITIONS.map((category) => category.key);
-    const options = orderedKeys
-        .map((key) => grouped[key][0])
-        .filter(Boolean)
-        .map((center) => ({
-            _id: center._id,
-            name: center.name,
-            type: center.type,
-            category: getCategoryKeyByName(center.name)
-        }));
-
-    const categorized = MAIN_CATEGORY_DEFINITIONS.map((category) => ({
-        key: category.key,
-        labelEn: category.labelEn,
-        labelAr: category.labelAr,
-        options: grouped[category.key] || []
-    }));
-
-    return { grouped, options, categorized };
+    if (updates.length) await costCenterModel.bulkWrite(updates);
+    if (inserts.length) await costCenterModel.insertMany(inserts, { ordered: false });
 };
 
 const getListQuery = (companyFilter, query) => {
@@ -113,15 +72,11 @@ const getListQuery = (companyFilter, query) => {
 };
 
 const validateHierarchy = async ({ companyId, type, parentId, currentId = null }) => {
-    if (type === 'main') {
-        if (parentId) {
-            throw new AppError('Main cost center cannot have a parent', 400);
+    if (!parentId) {
+        if (type === 'sub') {
+            throw new AppError('Parent is required when type is sub', 400);
         }
         return;
-    }
-
-    if (!parentId) {
-        throw new AppError('Parent is required when type is sub', 400);
     }
 
     if (currentId && String(parentId) === String(currentId)) {
@@ -135,29 +90,59 @@ const validateHierarchy = async ({ companyId, type, parentId, currentId = null }
     if (parent.type !== 'main') {
         throw new AppError('Parent must be a main cost center', 400);
     }
-    if (!getCategoryKeyByName(parent.name)) {
-        throw new AppError('Parent must be one of: Projects, Departments, Activities, Products', 400);
+
+    if (!currentId) return;
+
+    let walker = parent;
+    const visited = new Set();
+
+    while (walker?.parentId) {
+        const walkerId = String(walker._id);
+        if (visited.has(walkerId)) {
+            throw new AppError('Circular hierarchy detected', 400);
+        }
+        visited.add(walkerId);
+
+        if (String(walker.parentId) === String(currentId)) {
+            throw new AppError('Circular hierarchy is not allowed', 400);
+        }
+
+        // eslint-disable-next-line no-await-in-loop
+        walker = await costCenterModel.findOne({ _id: walker.parentId, companyId }).select('_id parentId');
     }
 };
 
 export const getAllCostCenters = catchAsyncError(async (req, res) => {
+    const companyId = getCompanyIdFromRequest(req);
+    await ensureDefaultSystemCostCenters(companyId);
+
     const query = getListQuery(req.companyFilter, req.query);
     const centers = await costCenterModel
         .find(query)
         .populate('parentId', 'name type')
-        .sort({ createdAt: -1 });
-
-    const parentCandidates = await costCenterModel
-        .find({ ...req.companyFilter, type: 'main' })
-        .select('_id name type')
-        .sort({ createdAt: -1 });
-
-    const mainCostCenterOptions = buildMainCostCenterOptions(parentCandidates);
+        .sort({ isSystem: -1, createdAt: -1 });
 
     res.status(200).json({
         message: 'Cost centers retrieved successfully',
-        costCenters: centers,
-        mainCostCenterOptions
+        costCenters: centers
+    });
+});
+
+export const getParentCostCenters = catchAsyncError(async (req, res) => {
+    const companyId = getCompanyIdFromRequest(req);
+    await ensureDefaultSystemCostCenters(companyId);
+
+    const parents = await costCenterModel
+        .find({ ...req.companyFilter, type: 'main' })
+        .select('_id name')
+        .sort({ isSystem: -1, createdAt: -1 });
+
+    res.status(200).json({
+        message: 'Parent cost centers retrieved successfully',
+        costCenters: parents.map((center) => ({
+            id: center._id,
+            name: center.name
+        }))
     });
 });
 
@@ -168,7 +153,7 @@ export const createCostCenter = catchAsyncError(async (req, res, next) => {
     const payload = {
         name: String(req.body.name || '').trim(),
         type: req.body.type,
-        parentId: normalizeOptionalId(req.body.parentId),
+        parentId: normalizeParentIdFromBody(req.body),
         isActive: req.body.isActive !== undefined ? Boolean(req.body.isActive) : true,
         branchId: normalizeOptionalId(req.body.branchId),
         companyId
@@ -194,9 +179,15 @@ export const updateCostCenter = catchAsyncError(async (req, res) => {
         throw new AppError('Cost center not found', 404);
     }
 
+    if (existing.isSystem && req.body.type && req.body.type !== 'main') {
+        throw new AppError('System cost center must remain main', 400);
+    }
+
     const nextType = req.body.type ?? existing.type;
-    const nextParentId = req.body.hasOwnProperty('parentId')
-        ? normalizeOptionalId(req.body.parentId)
+    const hasParentField = Object.prototype.hasOwnProperty.call(req.body, 'parentId')
+        || Object.prototype.hasOwnProperty.call(req.body, 'parent_id');
+    const nextParentId = hasParentField
+        ? normalizeParentIdFromBody(req.body)
         : existing.parentId;
 
     await validateHierarchy({
@@ -209,7 +200,7 @@ export const updateCostCenter = catchAsyncError(async (req, res) => {
     const updateData = {};
     if (req.body.name !== undefined) updateData.name = String(req.body.name).trim();
     if (req.body.type !== undefined) updateData.type = req.body.type;
-    if (req.body.hasOwnProperty('parentId')) updateData.parentId = nextParentId;
+    if (hasParentField) updateData.parentId = nextParentId;
     if (req.body.isActive !== undefined) updateData.isActive = Boolean(req.body.isActive);
     if (req.body.hasOwnProperty('branchId')) updateData.branchId = normalizeOptionalId(req.body.branchId);
 
@@ -230,6 +221,9 @@ export const deleteCostCenter = catchAsyncError(async (req, res) => {
     const center = await costCenterModel.findOne({ _id: id, companyId });
     if (!center) {
         throw new AppError('Cost center not found', 404);
+    }
+    if (center.isSystem) {
+        throw new AppError('System cost centers cannot be deleted', 403);
     }
 
     const childrenCount = await costCenterModel.countDocuments({ companyId, parentId: id });
