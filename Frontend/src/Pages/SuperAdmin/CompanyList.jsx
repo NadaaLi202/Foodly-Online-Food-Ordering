@@ -3,7 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import companyService from '../../services/companyService';
 import { useAuth } from '../../context/AuthContext';
-import { Plus, Edit, Trash2, LogIn, Search, Building, Users, Mail, ExternalLink } from 'lucide-react';
+import { Plus, Edit, Trash2, LogIn, Search, Building, Users, Mail, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
+import toast from 'react-hot-toast';
+import logError from '../../utils/logError';
 
 const CompanyList = () => {
     const { t, i18n } = useTranslation();
@@ -12,7 +15,11 @@ const CompanyList = () => {
     const [companies, setCompanies] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [activeTab, setActiveTab] = useState('all');
     const [deleteModal, setDeleteModal] = useState({ show: false, company: null });
+    const [rejectModal, setRejectModal] = useState({ show: false, company: null, reason: '' });
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const [actionLoading, setActionLoading] = useState(false);
 
     useEffect(() => {
         fetchCompanies();
@@ -24,7 +31,7 @@ const CompanyList = () => {
             const response = await companyService.getAllCompanies();
             setCompanies(response.companies || []);
         } catch (error) {
-            console.error('Error fetching companies:', error);
+            logError('Failed to fetch companies:', error);
         } finally {
             setLoading(false);
         }
@@ -32,12 +39,15 @@ const CompanyList = () => {
 
     const handleDelete = async () => {
         if (!deleteModal.company) return;
+        setDeleteLoading(true);
         try {
             await companyService.deleteCompany(deleteModal.company._id);
             setCompanies(companies.filter(c => c._id !== deleteModal.company._id));
             setDeleteModal({ show: false, company: null });
         } catch (error) {
-            console.error('Error deleting company:', error);
+            logError('Failed to toggle status:', error);
+        } finally {
+            setDeleteLoading(false);
         }
     };
 
@@ -48,7 +58,7 @@ const CompanyList = () => {
             navigate('/dashboard');
             window.location.reload();
         } catch (error) {
-            console.error('Error logging in as company:', error);
+            logError('Error logging in as company:', error);
             alert(error.response?.data?.message || 'Failed to login as company');
         }
     };
@@ -58,17 +68,66 @@ const CompanyList = () => {
             await companyService.sendCredentials(company._id);
             alert(t('superAdmin.credentialsSent') || 'Credentials sent successfully');
         } catch (error) {
-            console.error('Error sending credentials:', error);
+            logError('Error sending credentials:', error);
             alert(error.response?.data?.message || 'Failed to send credentials');
+        }
+    };
+
+    const handleApprove = async (company) => {
+        setActionLoading(true);
+        try {
+            const res = await companyService.approveCompany(company._id);
+            setCompanies(companies.map(c => c._id === company._id ? { ...c, status: 'active' } : c));
+            toast.success('تم قبول الشركة بنجاح');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to approve company');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const submitReject = async () => {
+        if (!rejectModal.reason) {
+            toast.error('يرجى إدخال سبب الرفض');
+            return;
+        }
+        setActionLoading(true);
+        try {
+            await companyService.rejectCompany(rejectModal.company._id, rejectModal.reason);
+            setCompanies(companies.map(c => c._id === rejectModal.company._id ? { ...c, status: 'rejected', rejectionReason: rejectModal.reason } : c));
+            setRejectModal({ show: false, company: null, reason: '' });
+            toast.success('تم رفض الشركة');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to reject company');
+        } finally {
+            setActionLoading(false);
         }
     };
 
     const appBaseUrl = window.location.origin;
 
-    const filteredCompanies = companies.filter(company =>
-        company.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        company.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredCompanies = companies.filter(company => {
+        const matchesSearch = company.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            company.email?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesTab = activeTab === 'all' || company.status === activeTab || (!company.status && activeTab === 'active');
+        return matchesSearch && matchesTab;
+    });
+
+    const tabs = [
+        { id: 'all', label: 'الكل' },
+        { id: 'pending', label: 'قيد المراجعة' },
+        { id: 'active', label: 'مفعّل' },
+        { id: 'rejected', label: 'مرفوض' }
+    ];
+
+    const getStatusBadge = (status) => {
+        switch (status) {
+            case 'pending': return <span className="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">قيد المراجعة</span>;
+            case 'active': return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">مفعّل</span>;
+            case 'rejected': return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700">مرفوض</span>;
+            default: return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">مفعّل</span>;
+        }
+    };
 
     const isRTL = i18n.language === 'ar';
 
@@ -97,6 +156,24 @@ const CompanyList = () => {
                         className={`w-full p-3 border border-gray-300 rounded-lg ${isRTL ? 'pr-10' : 'pl-10'}`}
                     />
                 </div>
+
+                {/* Tabs */}
+                <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
+                    {tabs.map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${activeTab === tab.id ? 'bg-[#4f46e5] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                        >
+                            {tab.label}
+                            {tab.id === 'pending' && companies.filter(c => c.status === 'pending').length > 0 && (
+                                <span className={`inline-block w-5 h-5 text-center leading-5 text-xs rounded-full ${isRTL ? 'mr-2' : 'ml-2'} ${activeTab === tab.id ? 'bg-white text-[#4f46e5]' : 'bg-amber-500 text-white'}`}>
+                                    {companies.filter(c => c.status === 'pending').length}
+                                </span>
+                            )}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             {/* Company List Table */}
@@ -114,6 +191,7 @@ const CompanyList = () => {
                             <tr>
                                 <th className={`px-6 py-4 text-${isRTL ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('superAdmin.companyName')}</th>
                                 <th className={`px-6 py-4 text-${isRTL ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('superAdmin.email')}</th>
+                                <th className={`px-6 py-4 text-${isRTL ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>الحالة</th>
                                 <th className={`px-6 py-4 text-${isRTL ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('superAdmin.subscription')}</th>
                                 <th className={`px-6 py-4 text-${isRTL ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>Slug</th>
                                 <th className={`px-6 py-4 text-${isRTL ? 'right' : 'left'} text-xs font-medium text-gray-500 uppercase`}>{t('common.actions')}</th>
@@ -136,6 +214,9 @@ const CompanyList = () => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-gray-600">{company.email}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
+                                        {getStatusBadge(company.status)}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-2 py-1 text-xs rounded-full ${company.subscriptionStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                             {company.subscriptionStatus || 'N/A'}
                                         </span>
@@ -155,6 +236,27 @@ const CompanyList = () => {
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <div className="flex items-center gap-2 flex-wrap">
+                                            {company.status === 'pending' && (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleApprove(company)}
+                                                        disabled={actionLoading}
+                                                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg disabled:opacity-50"
+                                                        title="تفعيل"
+                                                    >
+                                                        <CheckCircle size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setRejectModal({ show: true, company, reason: '' })}
+                                                        disabled={actionLoading}
+                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                                                        title="رفض"
+                                                    >
+                                                        <XCircle size={18} />
+                                                    </button>
+                                                </>
+                                            )}
+
                                             <button
                                                 onClick={() => navigate(`/super-admin/companies/${company._id}/users`)}
                                                 className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg"
@@ -199,26 +301,44 @@ const CompanyList = () => {
                 )}
             </div>
 
-            {/* Delete Confirmation Modal */}
-            {deleteModal.show && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
-                        <h3 className="text-lg font-semibold mb-4">{t('superAdmin.confirmDelete')}</h3>
-                        <p className="text-gray-600 mb-6">
-                            {t('superAdmin.deleteCompanyWarning', { name: deleteModal.company?.name })}
-                        </p>
-                        <div className="flex justify-end gap-3">
+            <ConfirmDeleteModal
+                isOpen={deleteModal.show}
+                onClose={() => setDeleteModal({ show: false, company: null })}
+                onConfirm={handleDelete}
+                loading={deleteLoading}
+                title={t('superAdmin.confirmDelete')}
+                message={t('superAdmin.deleteCompanyWarning', { name: deleteModal.company?.name })}
+            />
+
+            {/* Reject Modal */}
+            {rejectModal.show && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[1px]">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                            <h2 className="text-lg font-bold text-gray-800">رفض الشركة</h2>
+                        </div>
+                        <div className="p-6">
+                            <p className="mb-4 text-sm text-gray-600">يرجى كتابة سبب الرفض لـ {rejectModal.company?.name}:</p>
+                            <textarea
+                                value={rejectModal.reason}
+                                onChange={(e) => setRejectModal({ ...rejectModal, reason: e.target.value })}
+                                className="w-full h-32 p-3 border border-gray-200 rounded-lg outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 resize-none text-sm"
+                                placeholder="سبب الرفض..."
+                            />
+                        </div>
+                        <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
                             <button
-                                onClick={() => setDeleteModal({ show: false, company: null })}
-                                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                                onClick={() => setRejectModal({ show: false, company: null, reason: '' })}
+                                className="px-4 py-2 text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
                             >
-                                {t('common.cancel')}
+                                إلغاء
                             </button>
                             <button
-                                onClick={handleDelete}
-                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                                onClick={submitReject}
+                                disabled={actionLoading || !rejectModal.reason}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
                             >
-                                {t('common.delete')}
+                                تأكيد الرفض
                             </button>
                         </div>
                     </div>

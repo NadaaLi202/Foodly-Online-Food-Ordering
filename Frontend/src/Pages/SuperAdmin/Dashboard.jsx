@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import companyService from '../../services/companyService';
+import logError from '../../utils/logError';
 import { Plus, Building, Users, LogIn } from 'lucide-react';
 
 const SuperAdminDashboard = () => {
@@ -19,7 +20,7 @@ const SuperAdminDashboard = () => {
             // Assuming stats might come from a different endpoint or we calculate from list
             setStats({ companies: companies.length || 0, users: 0 });
         } catch (error) {
-            console.error('Error fetching stats:', error);
+            logError('Error fetching stats:', error);
         }
     };
 

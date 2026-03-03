@@ -174,6 +174,7 @@ const GeneralTemplateEdit = () => {
         setSaving(true);
         try {
             await api.put(`/templates/${id}`, {
+                type: 'general',
                 name,
                 page: { ...page, headerRows: pageHeaderRows, footerRows: pageFooterRows },
                 logo,

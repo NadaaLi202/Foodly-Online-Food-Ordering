@@ -12,22 +12,23 @@ import {
     addWarehouseSchema,
     updateWarehouseSchema
 } from "./warehouse.validation.js";
-import { allowedTo, protectedRoutes } from "../auth/auth.controller.js";
+import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
 import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const router = express.Router();
 
 router.use(protectedRoutes, applyCompanyFilter);
+router.use(requireResourcePermission("inventory_operations"));
 
 router
     .route("/")
-    .post(validation(addWarehouseSchema), allowedTo("superAdmin", "admin"), addWarehouse)
-    .get(allowedTo("superAdmin", "admin", "accountant", "employee"), getAllWarehouses);
+    .post(validation(addWarehouseSchema), addWarehouse)
+    .get(getAllWarehouses);
 
 router
     .route("/:id")
-    .get(allowedTo("superAdmin", "admin", "accountant", "employee"), getWarehouseById)
-    .put(validation(updateWarehouseSchema), allowedTo("superAdmin", "admin"), updateWarehouse)
-    .delete(allowedTo("superAdmin", "admin"), deleteWarehouse);
+    .get(getWarehouseById)
+    .put(validation(updateWarehouseSchema), updateWarehouse)
+    .delete(deleteWarehouse);
 
 export default router;

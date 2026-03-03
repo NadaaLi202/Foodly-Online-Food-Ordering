@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { SUPPORTED_CURRENCIES } from "../../constants/currencies.js";
+const round2 = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 
 const invoiceItemSchema = new mongoose.Schema({
     productId: {
@@ -17,7 +17,7 @@ const invoiceItemSchema = new mongoose.Schema({
     },
     quantity: {
         type: Number,
-        min: [1, 'Quantity must be at least 1']
+        min: [0.01, 'Quantity must be at least 0.01']
     },
     price: {
         type: Number,
@@ -191,8 +191,9 @@ const invoiceSchema = new mongoose.Schema({
 
     currency: {
         type: String,
-        enum: SUPPORTED_CURRENCIES,
-        default: "EGP"
+        enum: ["EGP", "USD", "EUR", "SAR", "AED", "GBP"],
+        default: "EGP",
+        required: true
     },
 
     lastModifiedBy: {
@@ -248,20 +249,22 @@ invoiceSchema.pre('save', function (next) {
     let totalTax = 0;
 
     this.items.forEach(item => {
-        const itemSubtotal = (item.quantity || 1) * (item.price || 0);
+        const qty = Number(item.quantity || 0);
+        const price = Number(item.price || 0);
+        const itemSubtotal = round2(qty * price);
 
         // حساب الخصم على المنتج
         const itemDiscount = item.discountType === '%'
-            ? (itemSubtotal * (item.discount || 0) / 100)
+            ? round2(itemSubtotal * (item.discount || 0) / 100)
             : (item.discount || 0);
 
-        const itemTotal = itemSubtotal - itemDiscount;
+        const itemTotal = round2(itemSubtotal - itemDiscount);
 
         // حساب الضريبة على المنتج
-        const itemTax = itemTotal * ((item.tax || 0) / 100);
+        const itemTax = round2(itemTotal * ((item.tax || 0) / 100));
 
-        subtotal += itemTotal;
-        totalTax += itemTax;
+        subtotal = round2(subtotal + itemTotal);
+        totalTax = round2(totalTax + itemTax);
     });
 
     this.subtotal = subtotal;
@@ -269,11 +272,11 @@ invoiceSchema.pre('save', function (next) {
 
     // حساب الخصم الإجمالي على الفاتورة
     const invoiceDiscountAmount = this.invoiceDiscountType === '%'
-        ? (subtotal * (this.invoiceDiscount || 0) / 100)
+        ? round2(subtotal * (this.invoiceDiscount || 0) / 100)
         : (this.invoiceDiscount || 0);
 
     // المجموع النهائي
-    this.total = subtotal + totalTax - invoiceDiscountAmount;
+    this.total = round2(subtotal + totalTax - invoiceDiscountAmount);
 
     // تحديث الحالة بناءً على المبلغ المدفوع
     if (this.paidAmount >= this.total && this.total > 0) {

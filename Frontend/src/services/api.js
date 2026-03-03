@@ -75,9 +75,15 @@ api.interceptors.response.use(
             const loginPath = from.startsWith("/super-admin") ? "/login" : "/login";
             window.location.href = `${loginPath}?redirect=${encodeURIComponent(from)}`;
         } else if (status === 403) {
-            if (typeof window !== "undefined" && !error.config?._handled403) {
+            if (!error.config?._handled403) {
                 error.config = error.config || {};
                 error.config._handled403 = true;
+                import('react-hot-toast').then(({ default: toast }) => {
+                    toast.error('ليس لديك صلاحية للوصول لهذه الصفحة', {
+                        id: 'forbidden-toast',
+                        duration: 4000,
+                    });
+                });
             }
         }
         return Promise.reject(error);

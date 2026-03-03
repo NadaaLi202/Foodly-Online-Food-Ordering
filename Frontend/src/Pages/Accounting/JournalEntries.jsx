@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 import journalEntryService from '../../services/journalEntryService';
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 import { buildJournalEntryPdf, downloadJournalEntryPdf, openJournalEntryPdfInNewTab } from '../../utils/journalEntryPdf';
+import costCentersService from '../../services/costCentersService';
+import settingsService from '../../services/settingsService';
 
 const JournalEntries = () => {
     const { t, i18n } = useTranslation();
@@ -19,7 +21,7 @@ const JournalEntries = () => {
     const [description, setDescription] = useState('');
     const [attachments, setAttachments] = useState([]);
     const [rows, setRows] = useState([
-        { id: 1, account: '', description: '', debit: '', credit: '' },
+        { id: 1, account: '', costCenterId: '', description: '', debit: '', credit: '' },
     ]);
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -32,6 +34,8 @@ const JournalEntries = () => {
     const [deleteModal, setDeleteModal] = useState({ open: false, entryId: null });
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [pdfLoading, setPdfLoading] = useState(false);
+    const [costCentersEnabled, setCostCentersEnabled] = useState(false);
+    const [activeCostCenters, setActiveCostCenters] = useState([]);
 
     // Description Modal State
     const [isDescModalOpen, setIsDescModalOpen] = useState(false);
@@ -52,7 +56,25 @@ const JournalEntries = () => {
     // Fetch entries on component mount
     useEffect(() => {
         fetchEntries();
+        fetchCostCenterDependencies();
     }, []);
+
+    const fetchCostCenterDependencies = async () => {
+        try {
+            const settings = await settingsService.getAccountingSettings();
+            const enabled = Boolean(settings?.enable_cost_centers);
+            setCostCentersEnabled(enabled);
+            if (!enabled) {
+                setActiveCostCenters([]);
+                return;
+            }
+            const response = await costCentersService.getAllCostCenters({ activeOnly: true });
+            setActiveCostCenters(response?.costCenters || []);
+        } catch (error) {
+            setCostCentersEnabled(false);
+            setActiveCostCenters([]);
+        }
+    };
 
     // Fetch all journal entries
     const fetchEntries = async () => {
@@ -76,7 +98,7 @@ const JournalEntries = () => {
                 setEntries(formattedEntries);
             }
         } catch (error) {
-            console.error('Error fetching entries:', error);
+            logError('Error fetching entries:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message');
             if (error.response?.status !== 401 && error.response?.status !== 403) {
                 toast.error(msg);
@@ -88,7 +110,7 @@ const JournalEntries = () => {
 
     // Handle adding a new row
     const addRow = () => {
-        setRows([...rows, { id: Date.now(), account: '', description: '', debit: '', credit: '' }]);
+        setRows([...rows, { id: Date.now(), account: '', costCenterId: '', description: '', debit: '', credit: '' }]);
     };
 
     // Handle removing a row (keep at least one row)
@@ -170,7 +192,7 @@ const JournalEntries = () => {
         setSource('');
         setDescription('');
         setAttachments([]);
-        setRows([{ id: 1, account: '', description: '', debit: '', credit: '' }]);
+        setRows([{ id: 1, account: '', costCenterId: '', description: '', debit: '', credit: '' }]);
         setEditingEntry(null);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -194,6 +216,7 @@ const JournalEntries = () => {
         // Build entries as array (single entry or multiple; no balance check)
         const entriesPayload = validRows.map(row => ({
             accountId: row.account.trim(),
+            costCenterId: row.costCenterId || '',
             debit: Number(row.debit || 0),
             credit: Number(row.credit || 0),
             description: row.description || ''
@@ -240,7 +263,7 @@ const JournalEntries = () => {
             resetForm();
             fetchEntries();
         } catch (error) {
-            console.error('Error saving entry:', error);
+            logError('Error saving entry:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message', 'An error occurred');
             if (error.response?.status === 400) {
                 toast.error(msg);
@@ -271,20 +294,21 @@ const JournalEntries = () => {
                 const formattedRows = entryData.entries.map((entryRow, index) => ({
                     id: entryRow._id || Date.now() + index,
                     account: entryRow.account || '',
+                    costCenterId: entryRow.costCenterId || '',
                     description: entryRow.description || '',
                     debit: entryRow.debit != null ? entryRow.debit.toString() : '',
                     credit: entryRow.credit != null ? entryRow.credit.toString() : ''
                 }));
                 setRows(formattedRows);
             } else {
-                setRows([{ id: 1, account: '', description: '', debit: '', credit: '' }]);
+                setRows([{ id: 1, account: '', costCenterId: '', description: '', debit: '', credit: '' }]);
             }
 
             // Don't set attachment file (browser restriction), but keep reference
             setAttachments([]);
             setIsModalOpen(true);
         } catch (error) {
-            console.error('Error fetching entry:', error);
+            logError('Error fetching entry:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message', 'An error occurred');
             if (error.response?.status !== 401 && error.response?.status !== 403) {
                 toast.error(msg);
@@ -307,7 +331,7 @@ const JournalEntries = () => {
             setEntries(prev => prev.filter(e => e._id !== deleteModal.entryId));
             setDeleteModal({ open: false, entryId: null });
         } catch (error) {
-            console.error('Error deleting entry:', error);
+            logError('Error deleting entry:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message', 'An error occurred');
             if (error.response?.status === 403) {
                 toast.error(msg || t('sales.common.unauthorized', 'You are not authorized to perform this action'));
@@ -332,7 +356,7 @@ const JournalEntries = () => {
                 const response = await journalEntryService.getNextNumber();
                 setEntryNumber(response.nextNumber);
             } catch (error) {
-                console.error('Error fetching next entry number:', error);
+                logError('Error fetching next entry number:', error);
             }
         }
     };
@@ -358,11 +382,12 @@ const JournalEntries = () => {
             const formRows = (data.entries || []).map((row, i) => ({
                 id: row._id || Date.now() + i,
                 account: row.account || '',
+                costCenterId: row.costCenterId || '',
                 description: row.description || '',
                 debit: row.debit != null ? String(row.debit) : '',
                 credit: row.credit != null ? String(row.credit) : ''
             }));
-            if (formRows.length === 0) formRows.push({ id: 1, account: '', description: '', debit: '', credit: '' });
+            if (formRows.length === 0) formRows.push({ id: 1, account: '', costCenterId: '', description: '', debit: '', credit: '' });
             setViewForm({
                 date: dateStr,
                 number: data.number || '',
@@ -373,7 +398,7 @@ const JournalEntries = () => {
             });
             if (viewFileInputRef.current) viewFileInputRef.current.value = '';
         } catch (error) {
-            console.error('Error fetching entry:', error);
+            logError('Error fetching entry:', error);
             const msg = error.response?.data?.message || t('sales.common.error_message', 'An error occurred');
             if (error.response?.status !== 401 && error.response?.status !== 403) {
                 toast.error(msg);
@@ -386,7 +411,7 @@ const JournalEntries = () => {
         setViewForm({ date: '', number: '', source: '', description: '', rows: [], attachments: [] });
     };
 
-    const addViewRow = () => setViewForm(prev => ({ ...prev, rows: [...prev.rows, { id: Date.now(), account: '', description: '', debit: '', credit: '' }] }));
+    const addViewRow = () => setViewForm(prev => ({ ...prev, rows: [...prev.rows, { id: Date.now(), account: '', costCenterId: '', description: '', debit: '', credit: '' }] }));
     const removeViewRow = (id) => {
         if (viewForm.rows.length <= 1) return;
         setViewForm(prev => ({ ...prev, rows: prev.rows.filter(r => r.id !== id) }));
@@ -420,6 +445,7 @@ const JournalEntries = () => {
             formData.append('totalCredit', String(viewTotalCredit));
             formData.append('entries', JSON.stringify(validRows.map(r => ({
                 accountId: r.account.trim(),
+                costCenterId: r.costCenterId || '',
                 debit: Number(r.debit || 0),
                 credit: Number(r.credit || 0),
                 description: r.description || ''
@@ -728,6 +754,9 @@ const JournalEntries = () => {
                                             <th className="px-4 py-3 text-start">
                                                 <span className="text-red-500 ml-1">*</span>{t('accounting.journal_entries.account')}
                                             </th>
+                                            {costCentersEnabled && (
+                                                <th className="px-4 py-3 text-start w-[180px]">{t('cost_centers.field_labels.cost_center')}</th>
+                                            )}
                                             <th className="px-4 py-3 text-start w-[35%]">{t('accounting.journal_entries.description')}</th>
                                             <th className="px-4 py-3 text-center w-[120px]">{t('accounting.journal_entries.debit')}</th>
                                             <th className="px-4 py-3 text-center w-[120px]">{t('accounting.journal_entries.credit')}</th>
@@ -796,6 +825,22 @@ const JournalEntries = () => {
                                                         </div>
                                                     </div>
                                                 </td>
+                                                {costCentersEnabled && (
+                                                    <td className="p-0 border-e border-gray-100">
+                                                        <select
+                                                            value={row.costCenterId || ''}
+                                                            onChange={(e) => handleRowChange(row.id, 'costCenterId', e.target.value)}
+                                                            className="w-full h-11 px-3 bg-transparent outline-none text-gray-700 appearance-none text-start"
+                                                        >
+                                                            <option value="">{t('cost_centers.field_labels.choose_cost_center')}</option>
+                                                            {activeCostCenters.map((center) => (
+                                                                <option key={center._id} value={center._id}>
+                                                                    {center.type === 'sub' && center.parentId?.name ? `${center.parentId.name} / ${center.name}` : center.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </td>
+                                                )}
                                                 <td className="p-0 border-e border-gray-100 relative">
                                                     <div className="flex items-center w-full h-11 px-3">
                                                         <input
@@ -856,6 +901,7 @@ const JournalEntries = () => {
                                             <td className="px-4 bg-white text-center font-bold">
                                                 {t('accounting.journal_entries.total')}
                                             </td>
+                                            {costCentersEnabled && <td className="bg-white"></td>}
                                             <td className="text-center text-[#10B981] text-md font-bold">
                                                 {formatCurrency(totalDebit, 'EGP')}
                                             </td>
@@ -1044,6 +1090,9 @@ const JournalEntries = () => {
                                         <tr className="text-gray-600 font-bold">
                                             <th className="w-10 py-3"></th>
                                             <th className="px-4 py-3 text-start"><span className="text-red-500">*</span> {t('accounting.journal_entries.account')}</th>
+                                            {costCentersEnabled && (
+                                                <th className="px-4 py-3 text-start w-[180px]">{t('cost_centers.field_labels.cost_center')}</th>
+                                            )}
                                             <th className="px-4 py-3 text-start w-[35%]">{t('accounting.journal_entries.description')}</th>
                                             <th className="px-4 py-3 text-center w-28">{t('accounting.journal_entries.debit')}</th>
                                             <th className="px-4 py-3 text-center w-28">{t('accounting.journal_entries.credit')}</th>
@@ -1106,6 +1155,22 @@ const JournalEntries = () => {
                                                         </select>
                                                     </div>
                                                 </td>
+                                                {costCentersEnabled && (
+                                                    <td className="p-0 border-e border-gray-100">
+                                                        <select
+                                                            value={row.costCenterId || ''}
+                                                            onChange={(e) => handleViewRowChange(row.id, 'costCenterId', e.target.value)}
+                                                            className="w-full h-11 px-3 bg-transparent outline-none text-gray-700 appearance-none text-start border-0"
+                                                        >
+                                                            <option value="">{t('cost_centers.field_labels.choose_cost_center')}</option>
+                                                            {activeCostCenters.map((center) => (
+                                                                <option key={center._id} value={center._id}>
+                                                                    {center.type === 'sub' && center.parentId?.name ? `${center.parentId.name} / ${center.name}` : center.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </td>
+                                                )}
                                                 <td className="p-0 border-e border-gray-100">
                                                     <input
                                                         type="text"
@@ -1145,6 +1210,7 @@ const JournalEntries = () => {
                                                 </button>
                                             </td>
                                             <td className="px-4 bg-white text-center font-bold">{t('accounting.journal_entries.total')}</td>
+                                            {costCentersEnabled && <td className="bg-white"></td>}
                                             <td className="text-center text-[#10B981] text-md font-bold">{formatCurrency(viewTotalDebit, 'EGP')}</td>
                                             <td className="text-center text-[#10B981] text-md font-bold">{formatCurrency(viewTotalCredit, 'EGP')}</td>
                                         </tr>

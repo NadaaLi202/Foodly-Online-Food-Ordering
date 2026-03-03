@@ -76,7 +76,7 @@ const TemplateEditor = ({
                     )}
 
                     {/* Document preview */}
-                    <div className="flex-1 overflow-hidden p-4 flex flex-col">
+                    <div className="flex-1 overflow-hidden p-3 flex min-h-screen">
                         {previewContent}
                     </div>
 

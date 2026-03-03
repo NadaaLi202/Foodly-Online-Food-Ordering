@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { v2 as cloudinary } from "cloudinary";
+import logError from "./logError.js";
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -33,7 +34,7 @@ export const deleteFromCloudinary = async (publicId) => {
     try {
         await cloudinary.uploader.destroy(publicId);
     } catch (error) {
-        console.error("Cloudinary delete error:", error);
+        logError("Cloudinary delete error:", error);
     }
 };
 

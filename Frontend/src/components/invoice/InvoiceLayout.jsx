@@ -33,6 +33,7 @@ const InvoiceLayout = ({
         company: companyName,
         date: invoice?.issueDate
     });
+    const fmt2 = (v) => Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     return (
         <div className="bg-white shadow-sm border border-gray-100 rounded-2xl p-10 max-w-4xl mx-auto print:shadow-none print:border-none print:rounded-none" dir={dir}>
@@ -130,10 +131,10 @@ const InvoiceLayout = ({
                                         {item.productName || item.product?.name || '—'}
                                     </p>
                                 </td>
-                                <td className="py-4 px-4 text-center text-sm font-medium text-gray-600">{item.quantity}</td>
-                                <td className="py-4 px-4 text-center text-sm font-medium text-gray-600">{(item.unitPrice ?? 0).toLocaleString()}</td>
+                                <td className="py-4 px-4 text-center text-sm font-medium text-gray-600">{fmt2(item.quantity)}</td>
+                                <td className="py-4 px-4 text-center text-sm font-medium text-gray-600">{fmt2(item.unitPrice)}</td>
                                 <td className="py-4 px-4 text-center text-xs font-bold text-red-400">
-                                    {discount > 0 ? `-${discount.toLocaleString()}` : '—'}
+                                    {discount > 0 ? `-${fmt2(discount)}` : '—'}
                                 </td>
                                 <td className={`py-4 px-4 text-sm font-black text-gray-800 ${isRTL ? 'text-left' : 'text-right'}`}>
                                     {formatCurrency(item.total != null ? item.total : final, currency)}

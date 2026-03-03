@@ -23,7 +23,7 @@ export const transactionSchema = Joi.object({
             unitPrice: Joi.number().min(0).required(),
             discountPercent: Joi.number().min(0).max(100).optional(),
             discountAmount: Joi.number().min(0).optional(),
-            taxPercent: Joi.number().min(0).optional()
+            taxPercent: Joi.number().min(0).max(100).optional()
         })
     ).min(1).required(),
 
@@ -32,5 +32,10 @@ export const transactionSchema = Joi.object({
     generalDiscountPercent: Joi.number().min(0).max(100).optional(),
 
     paidAmount: Joi.number().min(0).optional(),
-    paymentMethod: Joi.string().optional()
+    paymentMethod: Joi.string().optional(),
+    payment: Joi.object({
+        paidAmount: Joi.number().min(0).optional(),
+        paymentMethod: Joi.string().optional(),
+        currency: currencyValidator
+    }).optional()
 }).unknown(true);

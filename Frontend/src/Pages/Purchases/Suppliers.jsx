@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
 import AddSupplierModal from '../../components/AddSupplierModal';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
+import logError from '../../utils/logError';
 
 export default function Suppliers() {
     const { t, i18n } = useTranslation();
@@ -64,7 +66,7 @@ export default function Suppliers() {
             const data = response.data;
             setSuppliers(data.contacts || []);
         } catch (error) {
-            console.error('Error fetching suppliers:', error);
+            logError('Error fetching suppliers:', error);
         } finally {
             setLoading(false);
         }
@@ -126,7 +128,7 @@ export default function Suppliers() {
                 setIsModalOpen(true);
             }
         } catch (error) {
-            console.error('Error fetching supplier:', error);
+            logError('Error fetching supplier:', error);
         } finally {
             setLoadingSupplier(false);
         }
@@ -273,7 +275,7 @@ export default function Suppliers() {
             }, 1500);
 
         } catch (error) {
-            console.error('Error saving supplier:', error);
+            logError('Error saving supplier:', error);
             setResponseMessage({
                 type: 'error',
                 text: error.message || t('sales.common.error_message')
@@ -347,7 +349,7 @@ export default function Suppliers() {
                 setViewTab('summary');
             }
         } catch (err) {
-            console.error(err);
+            logError(err);
             setViewContact(supplier);
         }
     };
@@ -752,39 +754,17 @@ export default function Suppliers() {
                 );
             })()}
 
-            {/* Delete Confirmation Modal */}
-            {showDeleteConfirm && supplierToDelete && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-200">
-                            <h3 className={`text-lg font-bold text-gray-800 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                {t('sales.common.confirm_delete')}
-                            </h3>
-                        </div>
-                        <div className="px-6 py-4">
-                            <p className={`text-sm text-gray-600 mb-4 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                {t('sales.common.confirm_delete')} <strong>#{supplierToDelete.code || supplierToDelete._id?.slice(-6)} {supplierToDelete.name}</strong>?
-                            </p>
-                        </div>
-                        <div className={`px-6 py-4 border-t border-gray-200 flex justify-end gap-3 ${i18n.language === 'ar' ? 'flex-row-reverse' : 'flex-row'}`}>
-                            <button
-                                type="button"
-                                onClick={() => { setShowDeleteConfirm(false); setSupplierToDelete(null); }}
-                                className="border border-gray-300 text-gray-700 px-6 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 font-semibold"
-                            >
-                                {t('sales.common.cancel')}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={confirmDelete}
-                                className="bg-red-600 text-white px-6 py-2.5 rounded-lg hover:bg-red-700 font-semibold"
-                            >
-                                {t('sales.common.delete')}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+            <ConfirmDeleteModal
+                isOpen={showDeleteConfirm && !!supplierToDelete}
+                onClose={() => { setShowDeleteConfirm(false); setSupplierToDelete(null); }}
+                onConfirm={confirmDelete}
+                title={t('sales.common.confirm_delete')}
+                message={
+                    supplierToDelete
+                        ? `${t('sales.common.confirm_delete')} #${supplierToDelete.code || supplierToDelete._id?.slice(-6)} ${supplierToDelete.name}?`
+                        : t('sales.common.confirm_delete')
+                }
+            />
             {/* Add / Edit Supplier Modal */}
             <AddSupplierModal
                 isOpen={isModalOpen}

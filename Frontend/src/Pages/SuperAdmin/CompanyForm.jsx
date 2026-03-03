@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import companyService from '../../services/companyService';
 import { ArrowLeft, Upload, X } from 'lucide-react';
+import logError from '../../utils/logError';
 
 const CompanyForm = () => {
     const { t, i18n } = useTranslation();
@@ -44,7 +45,7 @@ const CompanyForm = () => {
                 setLogoPreview(company.logo.url);
             }
         } catch (error) {
-            console.error('Error fetching company:', error);
+            logError('Error fetching company:', error);
         } finally {
             setLoading(false);
         }
@@ -114,7 +115,7 @@ const CompanyForm = () => {
             }
             navigate('/super-admin/companies');
         } catch (error) {
-            console.error('Error saving company:', error);
+            logError('Error saving company:', error);
             const msg = error.response?.data?.message;
             setErrors({ form: Array.isArray(msg) ? msg.join(' ') : msg || error.message || 'Failed to save company' });
         } finally {

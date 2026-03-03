@@ -2,8 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, RefreshCw, X, Phone, MapPin, Mail, User, Building, FileText, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import { confirmDelete } from '../../utils/confirmDelete';
 import { formatCurrency } from '../../utils/currencyFormatter';
 import { prepareContactPayload } from '../../utils/contactUtils';
+import logError from '../../utils/logError';
 
 const Contacts = () => {
     const { t, i18n } = useTranslation();
@@ -39,7 +41,7 @@ const Contacts = () => {
             const response = await api.get(`/contacts/${endpoint}`);
             setContacts(response.data.data || []);
         } catch (error) {
-            console.error('Error fetching contacts:', error);
+            logError('Error fetching contacts:', error);
             // setContacts([]); // Don't clear on error, maybe show notification
         } finally {
             setLoading(false);
@@ -171,7 +173,7 @@ const Contacts = () => {
             fetchContacts();
 
         } catch (error) {
-            console.error('Error saving contact:', error);
+            logError('Error saving contact:', error);
             const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ' : 'An error occurred');
             alert(msg);
         } finally {
@@ -181,14 +183,15 @@ const Contacts = () => {
 
     // Handle Delete
     const handleDelete = async (id) => {
-        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد؟' : 'Are you sure?')) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('sales.common.confirm_delete', 'Are you sure?'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
 
         try {
             await api.delete(`/contacts/${id}`);
             alert(i18n.language === 'ar' ? 'تم الحذف بنجاح' : 'Deleted successfully');
             fetchContacts();
         } catch (error) {
-            console.error('Error deleting contact:', error);
+            logError('Error deleting contact:', error);
             const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ في الحذف' : 'Error deleting');
             alert(msg);
         }
@@ -570,3 +573,6 @@ const Contacts = () => {
 };
 
 export default Contacts;
+
+
+

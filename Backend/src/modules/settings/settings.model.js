@@ -8,7 +8,7 @@ const settingsSchema = new mongoose.Schema({
     },
     category: {
         type: String,
-        enum: ['general', 'sales', 'purchases', 'customers', 'suppliers', 'accounting', 'export'],
+        enum: ['general', 'sales', 'purchases', 'customers', 'suppliers', 'accounting', 'export', 'coding'],
         required: true
     },
     settings: {

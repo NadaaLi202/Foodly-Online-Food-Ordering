@@ -29,6 +29,9 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
     const { user } = useAuth();
     const [openMenu, setOpenMenu] = useState(null);
     const isSuperAdmin = user?.role === 'superAdmin';
+    const canAccessBackups = isSuperAdmin || user?.role === 'company' || user?.systemRole === 'companyOwner';
+    const adminRoles = ['superAdmin', 'admin', 'company', 'manager'];
+    const isAdmin = adminRoles.includes(user?.role);
 
     useEffect(() => {
         const path = location.pathname;
@@ -118,6 +121,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
             children: [
                 { key: 'journal_entries', path: '/dashboard/accounting/journal-entries' },
                 { key: 'chart_of_accounts', path: '/dashboard/accounting/chart-of-accounts' },
+                { key: 'cost_centers', path: '/dashboard/accounting/cost-centers' },
             ]
         },
         {
@@ -139,6 +143,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
             icon: Users,
             path: '/dashboard/users',
             hasSub: true,
+            adminOnly: true,
             children: [
                 { key: 'users', path: '/dashboard/users/list' },
                 { key: 'roles', path: '/dashboard/users/roles' }
@@ -149,6 +154,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
             icon: Building2,
             path: '/dashboard/branches',
             hasSub: true,
+            adminOnly: true,
             children: [
                 { key: 'branches_list', path: '/dashboard/branches/list' },
                 { key: 'partners_lists', path: '/dashboard/branches/partner-lists' },
@@ -160,6 +166,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
             icon: Settings,
             path: '/settings/general',
             hasSub: true,
+            adminOnly: true,
             children: [
                 { key: 'settings_general', path: '/settings/general' },
                 { key: 'settings_sales', path: '/settings/sales' },
@@ -173,6 +180,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                 { key: 'settings_export', path: '/settings/export' },
                 { key: 'settings_coding', path: '/settings/coding' },
                 { key: 'settings_api', path: '/settings/api' },
+                ...(canAccessBackups ? [{ key: 'settings_backups', path: '/settings/backups' }] : []),
             ]
         },
         {
@@ -180,6 +188,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
             icon: LayoutTemplate,
             path: '/dashboard/templates',
             hasSub: true,
+            adminOnly: true,
             children: [
                 { key: 'general_templates', path: '/dashboard/templates/general' },
                 { key: 'invoice_templates', path: '/dashboard/templates/invoices' },
@@ -200,7 +209,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
             </div>
 
             <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto pt-2 font-sans">
-                {navItems.map((item) => {
+                {navItems.filter(item => !item.adminOnly || isAdmin).map((item) => {
                     return (
                         <div key={item.key}>
                             {/* لو ليه children → زرار بس */}

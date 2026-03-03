@@ -58,6 +58,43 @@ const companySchema = new mongoose.Schema({
         type: String,
         enum: SUPPORTED_CURRENCIES,
         default: "EGP"
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'active', 'rejected', 'suspended'],
+        default: 'pending'
+    },
+    rejectionReason: {
+        type: String
+    },
+    approvedAt: {
+        type: Date
+    },
+    adminName: {
+        type: String // Name of personal account owner
+    },
+    commercialRegister: {
+        type: String
+    },
+    taxNumber: {
+        type: String
+    },
+    country: {
+        type: String,
+        default: 'المملكة العربية السعودية'
+    },
+    address: {
+        type: String
+    },
+    city: {
+        type: String
+    },
+    priceType: {
+        type: String, // e.g., 'before_vat', 'after_vat'
+    },
+    zatcaEnabled: {
+        type: Boolean,
+        default: true
     }
 }, {
     timestamps: true

@@ -195,6 +195,7 @@ const InvoiceTemplateEdit = () => {
         setSaving(true);
         try {
             await api.put(`/templates/${id}`, {
+                type: 'invoice',
                 name, page, logo: { ...logo, margins: logoMargins },
                 header: { rows: headerRows, invoiceInfoRows, order: headerOrder, showBottomBorder, titles },
                 partner: { clientRows, supplierRows },

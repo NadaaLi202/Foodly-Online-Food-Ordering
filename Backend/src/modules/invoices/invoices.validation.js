@@ -10,7 +10,7 @@ const itemSchema = Joi.object({
         'string.empty': 'وصف المنتج مطلوب',
         'any.required': 'وصف المنتج مطلوب'
     }),
-    quantity: Joi.number().min(1).required().messages({
+    quantity: Joi.number().min(0.01).required().messages({
         'number.min': 'الكمية يجب أن تكون على الأقل 1',
         'any.required': 'الكمية مطلوبة'
     }),
@@ -79,6 +79,11 @@ const createInvoiceSchema = Joi.object({
     notes: Joi.string().trim().allow("").optional(),
 
     paymentMethod: Joi.string().valid("cash", "card", "bank", "check", "other").default("cash").optional(),
+    payment: Joi.object({
+        paidAmount: Joi.number().min(0).optional().allow('', null),
+        paymentMethod: Joi.string().valid("cash", "card", "bank", "check", "other").optional(),
+        currency: currencyValidator.optional()
+    }).optional(),
 
     attachments: Joi.alternatives().try(
         Joi.array().items(
@@ -132,6 +137,11 @@ const updateInvoiceSchema = Joi.object({
     notes: Joi.string().trim().allow("").optional(),
 
     paymentMethod: Joi.string().valid("cash", "card", "bank", "check", "other").optional(),
+    payment: Joi.object({
+        paidAmount: Joi.number().min(0).optional().allow('', null),
+        paymentMethod: Joi.string().valid("cash", "card", "bank", "check", "other").optional(),
+        currency: currencyValidator.optional()
+    }).optional(),
 
     attachments: Joi.alternatives().try(
         Joi.array().items(
@@ -178,3 +188,4 @@ export {
     updateInvoiceSchema,
     updateStatusSchema
 };
+

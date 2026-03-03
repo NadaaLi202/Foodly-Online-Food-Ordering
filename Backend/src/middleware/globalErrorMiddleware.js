@@ -1,10 +1,11 @@
 import multer from "multer";
 import mongoose from "mongoose";
+import logError from "../utils/logError.js";
 
 export const globalErrorMiddleware = (err, req, res, next) => {
     const statusCode = err.statusCode || err.status || 500;
     if (statusCode >= 500) {
-        console.error('[ERROR] Global Error Handler:', err);
+        logError('[ERROR] Global Error Handler:', err);
     } else {
         console.warn(`[${statusCode}] ${req.method} ${req.url} -`, err.message);
     }

@@ -3,8 +3,11 @@ import { Plus, Trash2, X, DollarSign } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 import { formatCurrency } from '../../utils/currencyFormatter';
 import ClientLink from '../navigation/ClientLink';
+import { confirmDelete } from '../../utils/confirmDelete';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
     const { t, i18n } = useTranslation();
@@ -21,17 +24,27 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
         notes: ''
     });
     const [errors, setErrors] = useState({});
+    const { hasPermission } = usePermissions();
+
+    const paymentPermModule = paymentsModule === 'sales' ? 'customer_payments' : 'supplier_payments';
+    const canViewPayments = hasPermission(paymentPermModule, 'view');
+    const canAddPayments = hasPermission(paymentPermModule, 'add');
+    const canDeletePayments = hasPermission(paymentPermModule, 'delete');
 
     const isRTL = i18n.language === 'ar';
 
     const fetchPayments = async () => {
         if (!invoice?._id) return;
+        if (!canViewPayments) {
+            setPayments([]);
+            return;
+        }
         setLoading(true);
         try {
             const res = await api.get(`/payments/${paymentsModule}`, { params: { invoiceId: invoice._id } });
             setPayments(res.data.payments || []);
         } catch (err) {
-            console.error('Error fetching payments:', err);
+            logError('Error fetching payments:', err);
             setPayments([]);
         } finally {
             setLoading(false);
@@ -40,7 +53,7 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
 
     useEffect(() => {
         fetchPayments();
-    }, [invoice?._id, paymentsModule]);
+    }, [invoice?._id, paymentsModule, canViewPayments]);
 
     const getStatusBadge = (status) => {
         const s = status || 'unpaid';
@@ -68,6 +81,10 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
 
     const handleAddPayment = async (e) => {
         e.preventDefault();
+        if (!canAddPayments) {
+            toast.error(t('sales.common.error_message'));
+            return;
+        }
         if (!validate()) return;
 
         const amount = parseFloat(formData.amount);
@@ -104,7 +121,17 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
     };
 
     const handleDelete = async (paymentId) => {
-        if (!window.confirm(t('sales.common.confirm_delete', 'Are you sure?'))) return;
+        if (!canDeletePayments) {
+            toast.error(t('sales.common.error_message'));
+            return;
+        }
+        const confirmed = await confirmDelete({
+            title: t('sales.common.confirm_delete', 'Confirm Delete'),
+            message: t('sales.common.confirm_delete', 'Are you sure?'),
+            confirmText: t('sales.common.confirm', 'Confirm'),
+            cancelText: t('sales.common.cancel')
+        });
+        if (!confirmed) return;
         try {
             await api.delete(`/payments/${paymentId}`);
             toast.success(t('sales.common.success_message', 'Success'));
@@ -120,6 +147,16 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
     const paid = invoice?.paidAmount ?? 0;
     const remaining = invoice?.remainingAmount ?? (total - paid);
     const currency = invoice?.currency || 'EGP';
+
+    if (!canViewPayments) {
+        return (
+            <div className={`space-y-6 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <div className="bg-white rounded-xl border border-red-100 p-6 text-red-600 text-sm font-bold">
+                    {t('sales.common.error_message')}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={`space-y-6 ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -167,7 +204,7 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
                     <button
                         type="button"
                         onClick={() => setIsAddModalOpen(true)}
-                        disabled={remaining <= 0}
+                        disabled={!canAddPayments || remaining <= 0}
                         className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-bold"
                     >
                         <Plus size={18} />
@@ -215,14 +252,16 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
                                         <td className="px-6 py-4 text-sm font-bold text-gray-800">{formatCurrency(p.amount ?? 0, p.currency || currency)}</td>
                                         <td className="px-6 py-4 text-sm text-gray-600 max-w-[200px] truncate">{p.notes || '—'}</td>
                                         <td className="px-6 py-4 text-center">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleDelete(p._id)}
-                                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                                                title={t('sales.common.delete')}
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
+                                            {canDeletePayments && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDelete(p._id)}
+                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                                                    title={t('sales.common.delete')}
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}

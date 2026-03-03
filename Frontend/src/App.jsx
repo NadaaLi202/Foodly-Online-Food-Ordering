@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
 import { AuthProvider } from './context/AuthContext';
@@ -16,6 +16,7 @@ import ImportingSettings from './Pages/Settings/ImportingSettings';
 import ExportingSettings from './Pages/Settings/ExportingSettings';
 import CodingSettings from './Pages/Settings/CodingSettings';
 import ApiSettings from './Pages/Settings/ApiSettings';
+import BackupSettings from './Pages/Settings/BackupSettings';
 import ImportEntityPage from './Pages/Settings/ImportEntityPage';
 import PurchasesPage from './Pages/PurchasesPage';
 import PurchaseInvoices from './Pages/Purchases/PurchaseInvoices';
@@ -37,6 +38,7 @@ import Warehouses from './Pages/Inventory/Warehouses';
 import Inventories from './Pages/Inventory/Inventories';
 import JournalEntries from './Pages/Accounting/JournalEntries';
 import ChartOfAccounts from './Pages/Accounting/ChartOfAccounts';
+import CostCenters from './Pages/Accounting/CostCenters';
 import Branches from './Pages/Branches/Branches';
 import PartnerLists from './Pages/Branches/PartnerLists';
 import Activities from './Pages/Branches/Activities';
@@ -45,13 +47,12 @@ import Transactions from './Pages/Finance/Transactions';
 import PermissionsFinance from './Pages/Finance/Permissions';
 import Safes from './Pages/Finance/Safes';
 import BankAccounts from './Pages/Finance/BankAccounts';
-import Contacts from './Pages/Users/Contacts';
 import Users from './Pages/Users/Users';
 import Roles from './Pages/Users/Roles';
 import LandingPage from './Pages/LandingPage';
 import Login from './Pages/login';
 
-import CompanyLogin from './Pages/CompanyLogin';
+// import CompanyLogin from './Pages/CompanyLogin';
 import SalesMainPage from './Pages/Sales/SalesMainPage';
 import InventoryMainPage from './Pages/Inventory/InventoryMainPage';
 import PurchasesMainPage from './Pages/Purchases/PurchasesMainPage';
@@ -59,6 +60,13 @@ import FinanceMainPage from './Pages/Finance/FinanceMainPage';
 import AccountingMainPage from './Pages/Accounting/AccountingMainPage';
 import UsersMainPage from './Pages/Users/UsersMainPage';
 import BranchesMainPage from './Pages/Branches/BranchesMainPage';
+
+// Signup
+import SignupLayout from './Pages/Signup/SignupLayout';
+import SignupForm from './Pages/Signup/SignupForm';
+import SignupCompanyForm from './Pages/Signup/CompanyForm';
+import TaxSettings from './Pages/Signup/TaxSettings';
+import PendingPage from './Pages/Signup/PendingPage';
 
 // Templates
 import TemplatesMainPage from './Pages/Templates/TemplatesMainPage';
@@ -115,6 +123,11 @@ const PlaceholderPage = ({ title }) => (
   </div>
 );
 
+const CompanyLoginRedirect = () => {
+  const { slug } = useParams();
+  return <Navigate to={`/login${slug ? `?company=${slug}` : ''}`} replace />;
+};
+
 function App() {
   return (
     <BrowserRouter>
@@ -125,8 +138,16 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
 
-          <Route path="/company-login" element={<CompanyLogin />} />
-          <Route path="/company/:slug/login" element={<CompanyLogin />} />
+          {/* Signup Flow */}
+          <Route path="/signup" element={<SignupLayout />}>
+            <Route index element={<SignupForm />} />
+            <Route path="company" element={<SignupCompanyForm />} />
+            <Route path="tax" element={<TaxSettings />} />
+            <Route path="pending" element={<PendingPage />} />
+          </Route>
+
+          <Route path="/company-login" element={<CompanyLoginRedirect />} />
+          <Route path="/company/:slug/login" element={<CompanyLoginRedirect />} />
 
           {/* SuperAdmin Layout Route */}
           <Route
@@ -179,6 +200,7 @@ function App() {
               <Route index element={<AccountingMainPage />} />
               <Route path="journal-entries" element={<JournalEntries />} />
               <Route path="chart-of-accounts" element={<ChartOfAccounts />} />
+              <Route path="cost-centers" element={<CostCenters />} />
             </Route>
 
             <Route path="reports">
@@ -245,7 +267,6 @@ function App() {
             <Route path="users">
               <Route index element={<UsersMainPage />} />
               <Route path="list" element={<Users />} />
-              <Route path="contacts" element={<Contacts />} />
               <Route path="roles" element={<Roles />} />
             </Route>
 
@@ -293,6 +314,7 @@ function App() {
             <Route path="export" element={<ExportingSettings />} />
             <Route path="coding" element={<CodingSettings />} />
             <Route path="api" element={<ApiSettings />} />
+            <Route path="backups" element={<BackupSettings />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

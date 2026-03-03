@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
+import companyService from "../services/companyService";
 import { useTranslation } from "react-i18next";
 import logo from '../assets/logo.jpg';
 
@@ -11,16 +12,35 @@ export default function Login() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const redirectTo = searchParams.get("redirect");
+    const companySlug = searchParams.get("company");
+
     const { login } = useAuth();
+    const [companyInfo, setCompanyInfo] = useState(null);
     const [form, setForm] = useState({
         email: "",
         password: "",
     });
-
+    const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (companySlug) {
+            companyService.getCompanyBySlug(companySlug)
+                .then((res) => {
+                    setCompanyInfo(res.company);
+                })
+                .catch((err) => {
+                    logError("Failed to fetch company info", err);
+                    setCompanyInfo(null);
+                });
+        } else {
+            setCompanyInfo(null);
+        }
+    }, [companySlug]);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
+        setError("");
     };
 
     const handleSubmit = async (e) => {
@@ -28,19 +48,30 @@ export default function Login() {
         setLoading(true);
 
         try {
-            const res = await api.post("/auth/signIn", {
-                email: form.email,
-                password: form.password,
-            });
+            let res;
+            if (companySlug) {
+                // Use company dedicated sign in
+                res = await api.post("/auth/company/signIn", {
+                    email: form.email,
+                    password: form.password,
+                });
+            } else {
+                // Use standard sign in
+                res = await api.post("/auth/signIn", {
+                    email: form.email,
+                    password: form.password,
+                });
+            }
 
             const data = res.data;
             setLoading(false);
 
             // Save token via context
             if (data.token) {
-                login(data.isUserExist, data.token);
+                const userObj = data.isUserExist || data.company;
+                login(userObj, data.token);
 
-                const role = data.isUserExist.role;
+                const role = userObj.role;
                 const target = redirectTo && redirectTo.startsWith("/") ? redirectTo : null;
 
                 if (target) {
@@ -50,27 +81,50 @@ export default function Login() {
                 } else {
                     navigate("/dashboard", { replace: true });
                 }
+
+                // Ensure page refresh if needed for state consistency
+                if (companySlug) {
+                    window.location.reload();
+                }
             }
 
         } catch (error) {
             setLoading(false);
-            console.error(error);
+            logError(error);
             const message = error.response?.data?.message || t('auth.login_failed');
-            alert(message);
+            setError(message);
         }
     };
 
     return (
-        <div className={`min-h-screen bg-[#F8F9FA] flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans ${isRtl ? 'text-right' : 'text-left'}`} dir={isRtl ? 'rtl' : 'ltr'}>
+        <div className={`min-h-screen bg-[#F8F9FA] flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans ${isRtl ? 'text-right' : 'text-left'} relative`} dir={isRtl ? 'rtl' : 'ltr'}>
+            <Link to="/" className={`absolute top-6 ${isRtl ? 'left-6' : 'right-6'} flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-indigo-600 transition-colors bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100`}>
+                <span className={isRtl ? '' : 'rotate-180'}>&rarr;</span>
+                {t('auth.back_home', 'العودة للرئيسية')}
+            </Link>
             <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-                <img src={logo} alt="Dafater Logo" className="mx-auto h-16 w-auto object-contain mix-blend-multiply" />
+                <img src={logo} alt="Daftar Almohaseb Logo" className="mx-auto h-16 w-auto object-contain mix-blend-multiply" />
                 <h2 className="mt-6 text-center text-[22px] font-bold text-[#1f2937]">
-                    {t('auth.signin_hero_title', 'Sign in to your account')}
+                    {companyInfo
+                        ? (isRtl ? `تسجيل الدخول في ${companyInfo.name}` : `Sign in to ${companyInfo.name}`)
+                        : t('auth.signin_hero_title', 'Sign in to your account')}
                 </h2>
+                {companyInfo && (
+                    <p className="mt-2 text-sm text-gray-500">
+                        {isRtl ? 'الوصول إلى بوابة الشركة المخصصة' : 'Access your dedicated company portal'}
+                    </p>
+                )}
             </div>
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="bg-white py-8 px-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] sm:rounded-xl sm:px-10 border border-gray-100">
+
+                    {error && (
+                        <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-700 rounded-lg text-sm text-center font-medium shadow-sm">
+                            {error}
+                        </div>
+                    )}
+
                     <form className="space-y-5" onSubmit={handleSubmit}>
                         <div>
                             <label className="block text-[13px] font-bold text-[#4b5563] mb-1.5 w-full">
@@ -111,6 +165,22 @@ export default function Login() {
                                 {loading ? t('auth.signing_in', 'Signing in...') : t('auth.signin', 'Sign in')}
                             </button>
                         </div>
+
+                        {!companySlug && (
+                            <div className="pt-2 text-center pb-2 border-t border-gray-100 mt-4">
+                                <Link to="/signup" className="text-sm font-bold text-[#5340FF] hover:underline">
+                                    {isRtl ? 'ليس لديك حساب؟ إنشاء حساب جديد' : "Don't have an account? Create one"}
+                                </Link>
+                            </div>
+                        )}
+
+                        {companySlug && (
+                            <div className="pt-2 text-center pb-2 border-t border-gray-100 mt-4">
+                                <Link to="/login" className="text-sm font-bold text-[#5340FF] hover:underline">
+                                    {isRtl ? 'تسجيل دخول مستخدم عام' : 'Standard user login'}
+                                </Link>
+                            </div>
+                        )}
                     </form>
                 </div>
 
@@ -130,124 +200,3 @@ export default function Login() {
         </div>
     );
 }
-
-/* 
-// OLD SPLIT-SCREEN LAYOUT
-// (Imports removed from top)
-// import { BarChart3, ArrowLeft, Mail, Lock, CheckCircle } from 'lucide-react';
-
-    return (
-        <div className={`min-h-screen bg-white flex relative overflow-hidden font-sans ${isRtl ? 'text-right' : 'text-left'}`} dir={isRtl ? 'rtl' : 'ltr'}>
-
-            {/* Left Side - Form *\/}
-            <div className="w-full lg:w-1/2 flex flex-col justify-between p-8 relative z-10 bg-white">
-                <div className={isRtl ? 'text-right' : 'text-left'}>
-                    <Link to="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-colors text-sm font-bold">
-                        <ArrowLeft className={`w-4 h-4 ${isRtl ? 'rotate-180' : ''}`} />
-                        {t('auth.back_home', 'Back to Home')}
-                    </Link>
-                </div>
-
-                <div className="max-w-md w-full mx-auto">
-                    <div className="mb-10">
-                        <div className={`w-12 h-12 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200 mb-6 ${isRtl ? 'mr-0' : 'ml-0'}`}>
-                            <BarChart3 className="text-white w-7 h-7" />
-                        </div>
-                        <h1 className="text-4xl font-black text-gray-900 mb-2">{t('auth.welcome_back')}</h1>
-                        <p className="text-gray-500">{t('auth.signin_details')}</p>
-                    </div>
-
-                    <form className="space-y-6" onSubmit={handleSubmit}>
-                        <div>
-                            <label className={`block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest ${isRtl ? 'text-right' : 'text-left'}`}>
-                                {t('auth.email_address')}
-                            </label>
-                            <div className="relative">
-                                <Mail className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5`} />
-                                <input
-                                    required
-                                    name="email"
-                                    type="email"
-                                    value={form.email}
-                                    onChange={handleChange}
-                                    placeholder={t('auth.email_placeholder')}
-                                    className={`w-full ${isRtl ? 'pr-12 pl-4 text-right' : 'pl-12 pr-4 text-left'} py-4 bg-gray-50 border-2 border-gray-100 rounded-xl text-gray-900 font-bold focus:outline-none focus:border-indigo-500 focus:bg-white transition-all`}
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className={`block text-xs font-black text-gray-400 mb-2 uppercase tracking-widest ${isRtl ? 'text-right' : 'text-left'}`}>
-                                {t('auth.password')}
-                            </label>
-                            <div className="relative">
-                                <Lock className={`absolute ${isRtl ? 'right-4' : 'left-4'} top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5`} />
-                                <input
-                                    required
-                                    type="password"
-                                    name="password"
-                                    value={form.password}
-                                    onChange={handleChange}
-                                    placeholder={t('auth.password_placeholder')}
-                                    className={`w-full ${isRtl ? 'pr-12 pl-4 text-right' : 'pl-12 pr-4 text-left'} py-4 bg-gray-50 border-2 border-gray-100 rounded-xl text-gray-900 font-bold focus:outline-none focus:border-indigo-500 focus:bg-white transition-all`}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                <span className="text-sm font-bold text-gray-500">{t('auth.remember_me')}</span>
-                            </label>
-                            <a href="#" className="text-sm font-bold text-indigo-600 hover:text-indigo-700">{t('auth.forgot_password')}</a>
-                        </div>
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full bg-gray-900 text-white rounded-xl py-4 font-bold text-lg hover:bg-gray-800 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-2"
-                        >
-                            {loading ? t('auth.signing_in') : t('auth.signin')}
-                        </button>
-                    </form>
-
-
-                </div>
-
-                <div className={`text-sm text-gray-400 font-medium ${isRtl ? 'text-right' : 'text-left'}`}>
-                    {t('auth.copyright', { year: new Date().getFullYear() })}
-                </div>
-            </div>
-
-            {/* Right Side - Image/Decoration *\/}
-            <div className="hidden lg:flex w-1/2 bg-gray-900 relative overflow-hidden items-center justify-center">
-                <div className="absolute inset-0 z-0 opacity-40">
-                    <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600 rounded-full mix-blend-overlay filter blur-3xl animate-blob"></div>
-                    <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600 rounded-full mix-blend-overlay filter blur-3xl animate-blob animation-delay-2000"></div>
-                </div>
-
-                <div className="relative z-10 max-w-lg p-10 text-white text-center">
-                    <h2 className="text-4xl font-black mb-6">{t('auth.signin_hero_title')}</h2>
-                    <p className="text-gray-400 text-lg mb-8">{t('auth.signin_hero_desc')}</p>
-
-                    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/10 text-left">
-                        <div className={`flex items-center gap-4 mb-4 ${isRtl ? 'flex-row-reverse' : ''}`}>
-                            <div className="w-12 h-12 bg-indigo-500 rounded-full flex items-center justify-center font-bold text-xl">
-                                {isRtl ? 'ج د' : 'JD'}
-                            </div>
-                            <div className={isRtl ? 'text-right' : 'text-left'}>
-                                <h4 className="font-bold text-lg">{t('auth.testimonial.name')}</h4>
-                                <p className="text-indigo-200 text-sm">{t('auth.testimonial.role')}</p>
-                            </div>
-                        </div>
-                        <p className={`italic text-gray-300 ${isRtl ? 'text-right' : 'text-left'}`}>{t('auth.testimonial.text')}</p>
-                        <div className={`flex gap-1 mt-4 text-yellow-400 ${isRtl ? 'flex-row-reverse' : ''}`}>
-                            {[1, 2, 3, 4, 5].map(i => <span key={i}>★</span>)}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    );
-*/

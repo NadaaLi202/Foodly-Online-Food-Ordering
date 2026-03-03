@@ -1,4 +1,4 @@
-import { getSettings, updateSettings } from "./settings.service.js";
+import { getSettings, updateSettings, getCodingSettings, updateCodingSettings, updateCodingSequence } from "./settings.service.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
@@ -26,7 +26,7 @@ export const updateSettingsController = catchAsyncError(async (req, res, next) =
     const { settings } = req.body;
     const companyId = req.user.companyId;
 
-    if (!category || !['general', 'sales', 'purchases', 'customers', 'suppliers', 'accounting', 'export'].includes(category)) {
+    if (!category || !['general', 'sales', 'purchases', 'customers', 'suppliers', 'accounting', 'export', 'coding'].includes(category)) {
         return next(new AppError('Invalid category', 400));
     }
 
@@ -35,6 +35,44 @@ export const updateSettingsController = catchAsyncError(async (req, res, next) =
     res.status(200).json({
         status: 'success',
         message: 'Settings updated successfully',
+        data: updated
+    });
+});
+
+export const getCodingSettingsController = catchAsyncError(async (req, res) => {
+    const companyId = req.user.companyId;
+    const entity = req.query.entity || 'invoices';
+
+    const settings = await getCodingSettings(companyId, entity);
+
+    res.status(200).json({
+        status: 'success',
+        data: settings
+    });
+});
+
+export const updateCodingSettingsController = catchAsyncError(async (req, res) => {
+    const companyId = req.user.companyId;
+    const entity = req.body.entity || 'invoices';
+
+    const updated = await updateCodingSettings(companyId, req.body, entity);
+
+    res.status(200).json({
+        status: 'success',
+        message: 'Coding settings updated successfully',
+        data: updated
+    });
+});
+
+export const updateCodingSequenceController = catchAsyncError(async (req, res) => {
+    const companyId = req.user.companyId;
+    const entity = req.body.entity || 'invoices';
+
+    const updated = await updateCodingSequence(companyId, req.body, entity);
+
+    res.status(200).json({
+        status: 'success',
+        message: 'Sequence updated successfully',
         data: updated
     });
 });

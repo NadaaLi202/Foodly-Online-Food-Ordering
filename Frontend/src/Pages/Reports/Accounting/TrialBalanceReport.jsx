@@ -1,15 +1,24 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, ChevronRight, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import { exportTrialBalanceToExcel, buildTrialBalancePdf } from '../../../utils/accountingReportsExport';
+import api from '../../../services/api';
+
+const getMonthRange = (date = new Date()) => {
+    const start = new Date(date.getFullYear(), date.getMonth(), 1);
+    const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    const toISO = (d) => d.toISOString().slice(0, 10);
+    return { startDate: toISO(start), endDate: toISO(end) };
+};
 
 const TrialBalanceReport = () => {
     const { t } = useTranslation();
+    const { startDate: defaultFrom, endDate: defaultTo } = getMonthRange();
 
     const [filters, setFilters] = useState({
         period: 'current_month',
-        fromDate: '1-2-2026',
-        toDate: '28-2-2026',
+        fromDate: defaultFrom,
+        toDate: defaultTo,
         branch: 'all',
         displayedAccounts: 'all',
     });
@@ -39,90 +48,91 @@ const TrialBalanceReport = () => {
         { value: 'current_year', label: t('reports.filters.current_year') },
     ];
 
-    // Data Structure for Trial Balance
-    const initialData = [
-        {
-            id: 'assets', label: 'Assets #1', type: 'header',
-            initial: { debit: 0, credit: 0 },
-            transaction: { debit: 200.00, credit: 100.00 },
-            end: { debit: 100.00, credit: 0 },
-            children: [
-                {
-                    id: 'assets-current', label: 'Current Assets #12', type: 'subheader',
-                    initial: { debit: 0, credit: 0 },
-                    transaction: { debit: 200.00, credit: 100.00 },
-                    end: { debit: 100.00, credit: 0 },
-                    children: [
-                        { id: 'inv', label: 'Inventories #125', type: 'item', initial: { debit: 0, credit: 0 }, transaction: { debit: 100.00, credit: 0 }, end: { debit: 100.00, credit: 0 } },
-                        { id: 'pur', label: 'Purchases under receipt #129', type: 'item', initial: { debit: 0, credit: 0 }, transaction: { debit: 100.00, credit: 100.00 }, end: { debit: 0.00, credit: 0 } },
-                    ]
-                }
-            ]
-        },
-        {
-            id: 'liabilities', label: 'Liabilities #2', type: 'header',
-            initial: { debit: 0, credit: 0 },
-            transaction: { debit: 14.00, credit: 114.00 },
-            end: { debit: 0, credit: 100.00 },
-            children: [
-                {
-                    id: 'liabilities-current', label: 'Current Liabilities #21', type: 'subheader',
-                    initial: { debit: 0, credit: 0 },
-                    transaction: { debit: 14.00, credit: 114.00 },
-                    end: { debit: 0, credit: 100.00 },
-                    children: [
-                        { id: 'cred', label: 'Creditors #211', type: 'item', initial: { debit: 0, credit: 0 }, transaction: { debit: 0, credit: 114.00 }, end: { debit: 0, credit: 114.00 } },
-                        { id: 'vat', label: 'VAT #214', type: 'item', initial: { debit: 0, credit: 0 }, transaction: { debit: 14.00, credit: 0 }, end: { debit: 0, credit: 14.00 } }, // Adjusted logic visually to match Image 4 if needed, but keeping std math
-                    ]
-                }
-            ]
-        }
-    ];
+    const [loading, setLoading] = useState(false);
+    const [reportData, setReportData] = useState([]);
+    const [totals, setTotals] = useState({
+        initialDebit: 0,
+        initialCredit: 0,
+        transactionDebit: 0,
+        transactionCredit: 0,
+        endDebit: 0,
+        endCredit: 0
+    });
 
-    const totals = {
-        initial: { debit: 0.00, credit: 0.00 },
-        transaction: { debit: 214.00, credit: 214.00 },
-        end: { debit: 100.00, credit: 100.00 }
+    const applyPeriod = (value) => {
+        const now = new Date();
+        if (value === 'current_month') {
+            return getMonthRange(now);
+        }
+        if (value === 'last_month') {
+            const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            return getMonthRange(prev);
+        }
+        if (value === 'current_quarter') {
+            const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+            const start = new Date(now.getFullYear(), quarterStartMonth, 1);
+            const end = new Date(now.getFullYear(), quarterStartMonth + 3, 0);
+            return { startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) };
+        }
+        if (value === 'current_year') {
+            const start = new Date(now.getFullYear(), 0, 1);
+            const end = new Date(now.getFullYear(), 11, 31);
+            return { startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10) };
+        }
+        return { startDate: filters.fromDate, endDate: filters.toDate };
     };
+
+    const handleViewReport = useCallback(async () => {
+        setLoading(true);
+        try {
+            const response = await api.get('/reports/accounting/trial-balance', {
+                params: {
+                    startDate: filters.fromDate,
+                    endDate: filters.toDate,
+                    branch: filters.branch !== 'all' ? filters.branch : undefined,
+                }
+            });
+            setReportData(response.data?.data || []);
+            setTotals(response.data?.totals || {
+                initialDebit: 0,
+                initialCredit: 0,
+                transactionDebit: 0,
+                transactionCredit: 0,
+                endDebit: 0,
+                endCredit: 0
+            });
+        } catch (error) {
+            setReportData([]);
+            setTotals({
+                initialDebit: 0,
+                initialCredit: 0,
+                transactionDebit: 0,
+                transactionCredit: 0,
+                endDebit: 0,
+                endCredit: 0
+            });
+        } finally {
+            setLoading(false);
+        }
+    }, [filters.branch, filters.fromDate, filters.toDate]);
 
     // Transform data for export (convert to API format structure)
-    const transformDataForExport = () => {
-        const transform = (items) => {
-            return items.map(item => ({
-                name: item.label,
-                code: item.id,
-                type: item.type,
-                level: 0,
-                initialDebit: item.initial?.debit || 0,
-                initialCredit: item.initial?.credit || 0,
-                transactionDebit: item.transaction?.debit || 0,
-                transactionCredit: item.transaction?.credit || 0,
-                endDebit: item.end?.debit || 0,
-                endCredit: item.end?.credit || 0,
-                children: item.children ? transform(item.children) : []
-            }));
-        };
-        return transform(initialData);
-    };
-
-    const exportTotals = {
-        initialDebit: totals.initial.debit,
-        initialCredit: totals.initial.credit,
-        transactionDebit: totals.transaction.debit,
-        transactionCredit: totals.transaction.credit,
-        endDebit: totals.end.debit,
-        endCredit: totals.end.credit
-    };
+    const exportTotals = useMemo(() => ({
+        initialDebit: totals.initialDebit || 0,
+        initialCredit: totals.initialCredit || 0,
+        transactionDebit: totals.transactionDebit || 0,
+        transactionCredit: totals.transactionCredit || 0,
+        endDebit: totals.endDebit || 0,
+        endCredit: totals.endCredit || 0
+    }), [totals]);
 
     const handleExportExcel = () => {
-        const exportData = transformDataForExport();
-        exportTrialBalanceToExcel(exportData, exportTotals, t);
+        exportTrialBalanceToExcel(reportData, exportTotals, t);
     };
 
     const handleExportPdf = () => {
-        const exportData = transformDataForExport();
         const dateRange = `${t('reports.filters.from_date')} ${filters.fromDate} ${t('reports.filters.to_date')} ${filters.toDate}`;
-        const blob = buildTrialBalancePdf(exportData, exportTotals, t, t('reports.accounting.trial_balance') || 'Trial Balance', dateRange);
+        const blob = buildTrialBalancePdf(reportData, exportTotals, t, t('reports.accounting.trial_balance') || 'Trial Balance', dateRange);
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -138,6 +148,12 @@ const TrialBalanceReport = () => {
     const renderRow = (item, indent = 0) => {
         const isOpen = expandedSections[item.id];
         const hasChildren = item.children && item.children.length > 0;
+        const initialDebit = item.initialDebit || 0;
+        const initialCredit = item.initialCredit || 0;
+        const transactionDebit = item.transactionDebit || 0;
+        const transactionCredit = item.transactionCredit || 0;
+        const endDebit = item.endDebit || 0;
+        const endCredit = item.endCredit || 0;
 
         return (
             <React.Fragment key={item.id}>
@@ -149,23 +165,27 @@ const TrialBalanceReport = () => {
                             )}
                             {!hasChildren && <div className="w-4 h-4 mr-1"></div>}
                             {item.type === 'item' && <div className="w-2 h-2 rounded-full bg-indigo-500 mr-2"></div>}
-                            <span>{item.label}</span>
+                            <span>{item.name || item.label}</span>
                         </div>
                     </td>
                     {/* Initial Balance */}
-                    <td className="px-4 py-3 text-sm text-center border-r border-gray-100 w-24">{item.initial.debit > 0 ? item.initial.debit.toFixed(2) : ''}</td>
-                    <td className="px-4 py-3 text-sm text-center border-r border-gray-100 w-24">{item.initial.credit > 0 ? item.initial.credit.toFixed(2) : ''}</td>
+                    <td className="px-4 py-3 text-sm text-center border-r border-gray-100 w-24">{initialDebit > 0 ? initialDebit.toFixed(2) : ''}</td>
+                    <td className="px-4 py-3 text-sm text-center border-r border-gray-100 w-24">{initialCredit > 0 ? initialCredit.toFixed(2) : ''}</td>
                     {/* Transaction Totals */}
-                    <td className="px-4 py-3 text-sm text-center border-r border-gray-100 w-24 font-medium">{item.transaction.debit > 0 ? item.transaction.debit.toFixed(2) : ''}</td>
-                    <td className="px-4 py-3 text-sm text-center border-r border-gray-100 w-24 font-medium">{item.transaction.credit > 0 ? item.transaction.credit.toFixed(2) : ''}</td>
+                    <td className="px-4 py-3 text-sm text-center border-r border-gray-100 w-24 font-medium">{transactionDebit > 0 ? transactionDebit.toFixed(2) : ''}</td>
+                    <td className="px-4 py-3 text-sm text-center border-r border-gray-100 w-24 font-medium">{transactionCredit > 0 ? transactionCredit.toFixed(2) : ''}</td>
                     {/* End Balance */}
-                    <td className="px-4 py-3 text-sm text-center border-r border-gray-100 w-24 font-semibold">{item.end.debit > 0 ? item.end.debit.toFixed(2) : ''}</td>
-                    <td className="px-4 py-3 text-sm text-center w-24 font-semibold">{item.end.credit > 0 ? item.end.credit.toFixed(2) : (item.end.credit < 0 ? Math.abs(item.end.credit).toFixed(2) : '')}</td>
+                    <td className="px-4 py-3 text-sm text-center border-r border-gray-100 w-24 font-semibold">{endDebit > 0 ? endDebit.toFixed(2) : ''}</td>
+                    <td className="px-4 py-3 text-sm text-center w-24 font-semibold">{endCredit > 0 ? endCredit.toFixed(2) : (endCredit < 0 ? Math.abs(endCredit).toFixed(2) : '')}</td>
                 </tr>
                 {hasChildren && isOpen && item.children.map(child => renderRow(child, indent + 1))}
             </React.Fragment>
         );
     };
+
+    useEffect(() => {
+        handleViewReport();
+    }, [handleViewReport]);
 
     return (
         <>
@@ -177,9 +197,13 @@ const TrialBalanceReport = () => {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.period')}</label>
                             <div className="relative">
-                                <select value={filters.period} onChange={(e) => handleFilterChange('period', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                    {periodOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
-                                </select>
+                            <select value={filters.period} onChange={(e) => {
+                                const value = e.target.value;
+                                const range = applyPeriod(value);
+                                setFilters(prev => ({ ...prev, period: value, fromDate: range.startDate, toDate: range.endDate }));
+                            }} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                {periodOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
+                            </select>
                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                             </div>
                         </div>
@@ -227,7 +251,9 @@ const TrialBalanceReport = () => {
 
                     {/* View Report Button */}
                     <div className="mb-6 no-print">
-                        <button className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">{t('reports.view_report')}</button>
+                        <button onClick={handleViewReport} className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
+                            {loading ? t('reports.loading') || 'Loading...' : t('reports.view_report')}
+                        </button>
                     </div>
 
                     {/* Report Header & Export */}
@@ -271,16 +297,16 @@ const TrialBalanceReport = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {initialData.map(item => renderRow(item))}
+                                {reportData.map(item => renderRow(item))}
                                 {/* Total Row */}
                                 <tr className="bg-gray-100 font-bold border-t border-gray-200">
                                     <td className="px-4 py-3 text-sm text-gray-900 border-r border-gray-200">{t('reports.total') || 'Total'}</td>
-                                    <td className="px-4 py-3 text-sm text-center border-r border-gray-200">{totals.initial.debit.toFixed(2)}</td>
-                                    <td className="px-4 py-3 text-sm text-center border-r border-gray-200">{totals.initial.credit.toFixed(2)}</td>
-                                    <td className="px-4 py-3 text-sm text-center border-r border-gray-200">{totals.transaction.debit.toFixed(2)}</td>
-                                    <td className="px-4 py-3 text-sm text-center border-r border-gray-200">{totals.transaction.credit.toFixed(2)}</td>
-                                    <td className="px-4 py-3 text-sm text-center border-r border-gray-200">{totals.end.debit.toFixed(2)}</td>
-                                    <td className="px-4 py-3 text-sm text-center">{totals.end.credit.toFixed(2)}</td>
+                                    <td className="px-4 py-3 text-sm text-center border-r border-gray-200">{Number(totals.initialDebit || 0).toFixed(2)}</td>
+                                    <td className="px-4 py-3 text-sm text-center border-r border-gray-200">{Number(totals.initialCredit || 0).toFixed(2)}</td>
+                                    <td className="px-4 py-3 text-sm text-center border-r border-gray-200">{Number(totals.transactionDebit || 0).toFixed(2)}</td>
+                                    <td className="px-4 py-3 text-sm text-center border-r border-gray-200">{Number(totals.transactionCredit || 0).toFixed(2)}</td>
+                                    <td className="px-4 py-3 text-sm text-center border-r border-gray-200">{Number(totals.endDebit || 0).toFixed(2)}</td>
+                                    <td className="px-4 py-3 text-sm text-center">{Number(totals.endCredit || 0).toFixed(2)}</td>
                                 </tr>
                             </tbody>
                         </table>

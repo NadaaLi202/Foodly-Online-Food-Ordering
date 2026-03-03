@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import logError from '../../utils/logError';
+import { confirmDelete } from '../../utils/confirmDelete';
 
 const Inventories = () => {
     const { t, i18n } = useTranslation();
@@ -39,7 +41,7 @@ const Inventories = () => {
             const response = await api.get('/inventory-operations');
             setInventories(response.data.operations || response.data || []);
         } catch (error) {
-            console.error('Error fetching inventories:', error);
+            logError('Error fetching inventories:', error);
         } finally {
             setLoading(false);
         }
@@ -50,7 +52,7 @@ const Inventories = () => {
             const response = await api.get('/warehouses/all');
             setWarehouses(response.data.warehouses || response.data || []);
         } catch (error) {
-            console.error('Error fetching warehouses:', error);
+            logError('Error fetching warehouses:', error);
         }
     };
 
@@ -88,7 +90,8 @@ const Inventories = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد من الحذف؟' : 'Are you sure you want to delete?')) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('sales.common.confirm_delete', 'Are you sure you want to delete?'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
 
         setLoading(true);
         try {
@@ -101,7 +104,7 @@ const Inventories = () => {
                 alert(i18n.language === 'ar' ? 'فشل الحذف' : 'Deletion failed');
             }
         } catch (error) {
-            console.error('Error deleting inventory:', error);
+            logError('Error deleting inventory:', error);
         } finally {
             setLoading(false);
         }
@@ -304,3 +307,5 @@ const Inventories = () => {
 };
 
 export default Inventories;
+
+

@@ -40,6 +40,11 @@ const dailyRestrictionSchema = new mongoose.Schema({
             type: String, // Storing as string specifically requested or generic until Account model is confirmed
             required: true
         },
+        costCenterId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'CostCenter',
+            default: null
+        },
         description: {
             type: String,
             trim: true

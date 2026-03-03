@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -34,7 +35,7 @@ const DownloadInvoiceButton = ({ transactionId, filenamePrefix = 'invoice', clas
             window.URL.revokeObjectURL(url);
             a.remove();
         } catch (err) {
-            console.error('Download failed:', err);
+            logError('Download failed:', err);
             const message = err.response?.data?.message || err.message || t('sales.invoices.pdf_capture_failed');
             if (typeof window !== 'undefined' && window.alert) window.alert(message);
         } finally {

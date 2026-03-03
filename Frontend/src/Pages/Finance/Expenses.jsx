@@ -4,6 +4,8 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import logError from '../../utils/logError';
+import { confirmDelete } from '../../utils/confirmDelete';
 
 const Expenses = () => {
     const { t, i18n } = useTranslation();
@@ -37,7 +39,7 @@ const Expenses = () => {
             const response = await api.get(url);
             setExpenses(response.data.expenses || []);
         } catch (error) {
-            console.error('Error fetching expenses:', error);
+            logError('Error fetching expenses:', error);
         } finally {
             setLoading(false);
         }
@@ -180,7 +182,7 @@ const Expenses = () => {
                 alert(errorMessage);
             }
         } catch (error) {
-            console.error('Error saving expense:', error);
+            logError('Error saving expense:', error);
             const msg = error.response?.data?.message || (i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error');
             alert(msg);
         } finally {
@@ -278,7 +280,7 @@ const Expenses = () => {
                 printWindow.onafterprint = () => printWindow.close();
             }, 350);
         } catch (err) {
-            console.error('Print error:', err);
+            logError('Print error:', err);
             alert(i18n.language === 'ar' ? 'فشلت عملية الطباعة' : 'Failed to print');
         }
     };
@@ -299,7 +301,7 @@ const Expenses = () => {
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             } catch (blobErr) {
-                console.error('PDF save and blob fallback failed:', saveErr, blobErr);
+                logError('PDF save and blob fallback failed:', saveErr, blobErr);
                 throw new Error('Download failed. Please allow downloads for this site.');
             }
         }
@@ -392,7 +394,7 @@ const Expenses = () => {
             pdf.addImage(imgData, 'PNG', 0, 0, pageW, imgHeightMm);
             triggerPdfDownload(pdf, filename);
         } catch (error) {
-            console.error('PDF export error:', error);
+            logError('PDF export error:', error);
             alert(i18n.language === 'ar' ? 'حدث خطأ أثناء تصدير PDF' : 'Error exporting PDF');
         }
     };
@@ -412,7 +414,7 @@ const Expenses = () => {
             link.parentNode.removeChild(link);
             window.URL.revokeObjectURL(url);
         } catch (error) {
-            console.error('Download error:', error);
+            logError('Download error:', error);
             window.open(file.url, '_blank');
         }
     };
@@ -428,14 +430,14 @@ const Expenses = () => {
             try {
                 await navigator.share(shareData);
             } catch (err) {
-                console.error('Error sharing:', err);
+                logError('Error sharing:', err);
             }
         } else {
             try {
                 await navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
                 alert(i18n.language === 'ar' ? 'تم نسخ الرابط والمحتوى!' : 'Link and content copied!');
             } catch (err) {
-                console.error('Failed to copy text:', err);
+                logError('Failed to copy text:', err);
             }
         }
     };
@@ -446,7 +448,8 @@ const Expenses = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm(i18n.language === 'ar' ? 'هل أنت متأكد من حذف هذا المصروف؟' : 'Are you sure you want to delete this expense?')) {
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete'), message: t('sales.common.confirm_delete'), confirmText: t('sales.common.confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) {
             return;
         }
 
@@ -462,7 +465,7 @@ const Expenses = () => {
                 alert(error.message || (i18n.language === 'ar' ? 'حدث خطأ في الحذف' : 'Error deleting expense'));
             }
         } catch (error) {
-            console.error('Error deleting expense:', error);
+            logError('Error deleting expense:', error);
             alert(i18n.language === 'ar' ? 'حدث خطأ في الاتصال بالسيرفر' : 'Server connection error');
         }
     };
@@ -996,3 +999,5 @@ const Expenses = () => {
 };
 
 export default Expenses;
+
+

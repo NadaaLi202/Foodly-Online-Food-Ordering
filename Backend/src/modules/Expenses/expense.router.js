@@ -4,12 +4,13 @@ import { validation } from "../../middleware/validation.js";
 import { addExpenseSchema, updateExpenseSchema } from "./expense.validation.js";
 import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadFiles.js";
 
-import { protectedRoutes } from "../auth/auth.controller.js";
+import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
 import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const expenseRouter = express.Router();
 
 expenseRouter.use(protectedRoutes, applyCompanyFilter);
+expenseRouter.use(requireResourcePermission("finance_operations"));
 
 // Routes
 expenseRouter.post('/', uploadMultiFiles(ATTACHMENT_MIMETYPES, [{ name: 'attachments', maxCount: 10 }]), validation(addExpenseSchema), applyCompanyFilter, addExpense)

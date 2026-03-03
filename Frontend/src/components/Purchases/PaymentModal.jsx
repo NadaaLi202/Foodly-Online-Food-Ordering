@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Calendar, User, DollarSign, FileText, CheckCircle, Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 
 const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
     const { t, i18n } = useTranslation();
@@ -62,7 +63,7 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
             const response = await api.get('/contacts/suppliers');
             setSuppliers(response.data.contacts || []);
         } catch (error) {
-            console.error('Error fetching suppliers:', error);
+            logError('Error fetching suppliers:', error);
         }
     };
 
@@ -125,7 +126,7 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
                 onClose();
             }
         } catch (error) {
-            console.error("Save error", error);
+            logError("Save error", error);
             // Show error
             // Maybe set a specific error state
         } finally {

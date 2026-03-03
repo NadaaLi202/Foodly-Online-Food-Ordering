@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url'
 import { dbConnection } from './dataBase/dbConnection.js'
 import { routes } from './src/modules/index.routes.js'
 import { startBackupCron } from './src/backups/backup.cron.js'
+import logError from './src/utils/logError.js'
 
 import cors from 'cors'
 import * as  dotenv from 'dotenv'
@@ -52,8 +53,8 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
     const status = err.statusCode || err.status || 500;
     const message = err.message || 'Internal server error';
-    console.error(`[${new Date().toISOString()}] Error ${status} - ${req.method} ${req.url}`, message);
-    if (err.stack) console.error(err.stack);
+    logError(`[${new Date().toISOString()}] Error ${status} - ${req.method} ${req.url}`, message);
+    if (err.stack) logError(err.stack);
     res.status(status).json({ message, ...(err.response?.data && { details: err.response.data }) });
 });
 
@@ -90,7 +91,7 @@ const isDirectRun = process.argv[1] && (path.resolve(process.argv[1]) === path.r
 if (isDirectRun) {
     console.log("🚀 Starting application in direct mode...");
     bootstrap().catch((err) => {
-        console.error('❌ Bootstrap failed:', err);
+        logError('❌ Bootstrap failed:', err);
         process.exit(1);
     })
 } else {
@@ -98,7 +99,7 @@ if (isDirectRun) {
 }
 
 process.on('unhandledRejection', (err) => {
-    console.error('unhandledRejection', err)
+    logError('unhandledRejection', err)
 })
 
 export default app;

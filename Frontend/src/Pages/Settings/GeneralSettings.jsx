@@ -12,7 +12,9 @@ import {
     Info
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { confirmDelete } from '../../utils/confirmDelete';
 import api from '../../services/api';
+import logError from '../../utils/logError';
 
 const GeneralSettings = () => {
     const { t, i18n } = useTranslation();
@@ -51,7 +53,7 @@ const GeneralSettings = () => {
                 }));
             }
         } catch (error) {
-            console.error('Error fetching general settings:', error);
+            logError('Error fetching general settings:', error);
         } finally {
             setLoading(false);
         }
@@ -101,7 +103,7 @@ const GeneralSettings = () => {
                 toast.success(t('general_settings.upload_success'));
             }
         } catch (error) {
-            console.error('Error uploading logo:', error);
+            logError('Error uploading logo:', error);
             toast.error(t('general_settings.error_message'));
         } finally {
             setUploading(false);
@@ -109,7 +111,8 @@ const GeneralSettings = () => {
     };
 
     const handleLogoDelete = async () => {
-        if (!window.confirm(t('general_settings.delete_confirm'))) return;
+        const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('general_settings.delete_confirm'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
+        if (!confirmed) return;
 
         try {
             const response = await api.delete('/settings/general/logo');
@@ -122,7 +125,7 @@ const GeneralSettings = () => {
                 toast.success(t('general_settings.delete_success'));
             }
         } catch (error) {
-            console.error('Error deleting logo:', error);
+            logError('Error deleting logo:', error);
             toast.error(t('general_settings.error_message'));
         }
     };
@@ -185,7 +188,7 @@ const GeneralSettings = () => {
             });
 
         } catch (error) {
-            console.error('Error saving general settings:', error);
+            logError('Error saving general settings:', error);
             toast.error(t('general_settings.error_message') || t('customers_settings.error_message'));
         } finally {
             setSaving(false);
@@ -254,8 +257,8 @@ const GeneralSettings = () => {
                                         onChange={handleInputChange}
                                         placeholder={t('general_settings.enter_company_name')}
                                         className={`w-full h-11 px-4 rounded-lg border focus:ring-2 transition-all outline-none ${errors.company_name
-                                                ? 'border-red-500 focus:ring-red-500/20'
-                                                : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
+                                            ? 'border-red-500 focus:ring-red-500/20'
+                                            : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                                             }`}
                                     />
                                     {errors.company_name && (
@@ -506,3 +509,4 @@ const GeneralSettings = () => {
 };
 
 export default GeneralSettings;
+

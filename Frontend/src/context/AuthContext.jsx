@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import logError from "../utils/logError";
 
 const AuthContext = createContext();
 
@@ -19,7 +20,7 @@ export const AuthProvider = ({ children }) => {
             try {
                 setUser(JSON.parse(storedUser));
             } catch (e) {
-                console.error("Failed to parse user from local storage", e);
+                logError("Failed to parse user from local storage", e);
                 localStorage.removeItem("user");
                 localStorage.removeItem("token");
                 localStorage.removeItem("role");
@@ -56,7 +57,7 @@ export const AuthProvider = ({ children }) => {
                 sessionStorage.removeItem("superAdminUser");
                 navigate("/super-admin/companies");
             } catch (e) {
-                console.error("Failed to restore SuperAdmin session", e);
+                logError("Failed to restore SuperAdmin session", e);
             }
         }
     };

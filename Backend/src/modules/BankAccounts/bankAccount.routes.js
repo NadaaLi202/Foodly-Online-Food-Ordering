@@ -9,12 +9,13 @@ import {
 import { validation } from "../../middleware/validation.js";
 import { addBankAccountSchema, updateBankAccountSchema } from "./bankAccount.validation.js";
 
-import { protectedRoutes } from "../auth/auth.controller.js";
+import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
 import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const bankAccountRouter = express.Router();
 
 bankAccountRouter.use(protectedRoutes, applyCompanyFilter);
+bankAccountRouter.use(requireResourcePermission("finance_operations"));
 
 bankAccountRouter.route("/")
     .post(validation(addBankAccountSchema), addBankAccount)

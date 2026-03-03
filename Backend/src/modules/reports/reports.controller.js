@@ -226,17 +226,17 @@ export const getGeneralLedger = catchAsyncError(async (req, res) => {
 });
 
 export const getTaxSummary = catchAsyncError(async (req, res) => {
-    const { startDate, endDate, branch } = req.query;
+    const { startDate, endDate, branch, taxId, taxPercent } = req.query;
     const companyFilter = req.companyFilter || {};
-    const filters = { branch };
+    const filters = { branch, taxId, taxPercent };
     const data = await reportsService.getTaxSummary(startDate, endDate, companyFilter, filters);
     res.status(200).json({ message: "OK", data });
 });
 
 export const getTaxDetailed = catchAsyncError(async (req, res) => {
-    const { startDate, endDate, branch } = req.query;
+    const { startDate, endDate, branch, taxId, taxPercent, groupBy } = req.query;
     const companyFilter = req.companyFilter || {};
-    const filters = { branch };
+    const filters = { branch, taxId, taxPercent, groupBy };
     const data = await reportsService.getTaxDetailed(startDate, endDate, companyFilter, filters);
     res.status(200).json({ message: "OK", data });
 });

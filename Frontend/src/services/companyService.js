@@ -15,6 +15,16 @@ const getCompanyBySlug = async (slug) => {
     return response.data;
 };
 
+const checkSlug = async (slug) => {
+    const response = await api.get(`/companies/check-slug/${slug}`);
+    return response.data;
+};
+
+const signupCompany = async (data) => {
+    const response = await api.post('/companies/signup', data);
+    return response.data;
+};
+
 const createCompany = async (data) => {
     const config = data instanceof FormData ? {} : {};
     const response = await api.post('/companies', data, config);
@@ -42,6 +52,16 @@ const companySignIn = async (email, password) => {
     return response.data;
 };
 
+const approveCompany = async (id) => {
+    const response = await api.post(`/companies/${id}/approve`);
+    return response.data;
+};
+
+const rejectCompany = async (id, reason) => {
+    const response = await api.post(`/companies/${id}/reject`, { reason });
+    return response.data;
+};
+
 const sendCredentials = async (companyId) => {
     const response = await api.post(`/companies/${companyId}/send-credentials`);
     return response.data;
@@ -51,10 +71,14 @@ export default {
     getAllCompanies,
     getCompany,
     getCompanyBySlug,
+    checkSlug,
+    signupCompany,
     createCompany,
     updateCompany,
     deleteCompany,
     loginAsCompany,
     companySignIn,
+    approveCompany,
+    rejectCompany,
     sendCredentials,
 };
