@@ -406,7 +406,6 @@ const InvoicePreview = ({ template = {}, direction = 'rtl', context = {} }) => {
                         </div>
                     </div>
                 </div>
-            </div>
 
             {/* Visible native PDF viewer */}
             <div className="flex-1 w-full h-full relative z-10">
