@@ -22,7 +22,7 @@ const parseFilenameFromHeader = (headerValue) => {
 const BackupSettings = () => {
     const { t, i18n } = useTranslation();
     const isRTL = i18n.language === "ar";
-    const { user } = useAuth();
+    const { user, companyId } = useAuth();
     const [backups, setBackups] = useState([]);
     const [loading, setLoading] = useState(false);
     const [creating, setCreating] = useState(false);
@@ -44,7 +44,7 @@ const BackupSettings = () => {
             const list = response.data?.backups || [];
             const filtered = isSuperAdmin
                 ? list
-                : list.filter((b) => String(b.backupForCompanyId || "") === String(user?.companyId || ""));
+                : list.filter((b) => String(b.backupForCompanyId || "") === String(companyId || ""));
             setBackups(filtered);
         } catch (error) {
             toast.error(t("sales.common.error_message") || "Failed to fetch backups");
