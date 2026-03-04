@@ -18,17 +18,20 @@ const OtpHelpModal = ({ isOpen, onClose }) => {
         {
             id: 2,
             title: t('zatca.help_step2_title'),
-            desc: t('zatca.help_step2_desc')
+            desc: t('zatca.help_step2_desc'),
+            image: 'https://t12230.alostaz.io/zatca-get-otp/1.jpg'
         },
         {
             id: 3,
             title: t('zatca.help_step3_title'),
-            desc: t('zatca.help_step3_desc')
+            desc: t('zatca.help_step3_desc'),
+            image: 'https://t12230.alostaz.io/zatca-get-otp/2.jpg'
         },
         {
             id: 4,
             title: t('zatca.help_step4_title'),
-            desc: t('zatca.help_step4_desc')
+            desc: t('zatca.help_step4_desc'),
+            image: 'https://t12230.alostaz.io/zatca-get-otp/3.jpg'
         },
         {
             id: 5,
@@ -95,10 +98,16 @@ const OtpHelpModal = ({ isOpen, onClose }) => {
                                 </div>
                             </div>
 
-                            {/* Placeholder for Design Screenshots - In a real app we would use image assets */}
-                            <div className="mr-12 bg-gray-100 rounded-xl border border-gray-200 flex items-center justify-center h-48 text-gray-400 text-xs italic">
-                                {t('zatca.visual_guide_placeholder')}
-                            </div>
+                            {step.image && (
+                                <div className={`${isRTL ? 'mr-12' : 'ml-12'} rounded-xl border border-gray-200 overflow-hidden bg-gray-50`}>
+                                    <img
+                                        src={step.image}
+                                        alt={step.title}
+                                        className="w-full h-auto object-contain"
+                                        loading="lazy"
+                                    />
+                                </div>
+                            )}
                         </div>
                     ))}
 
