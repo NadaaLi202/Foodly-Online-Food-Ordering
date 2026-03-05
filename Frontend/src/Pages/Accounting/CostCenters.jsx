@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeftRight, Info, Loader2, Plus, RefreshCw, Search, X } from 'lucide-react';
+import { ArrowLeftRight, ChevronLeft, ChevronRight, Info, Loader2, Plus, RefreshCw, Search, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
@@ -39,6 +40,11 @@ const CostCenters = () => {
     const [errors, setErrors] = useState({});
     const [deleteModal, setDeleteModal] = useState({ open: false, id: null, name: '' });
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [expandedId, setExpandedId] = useState(null);
+
+    const toggleExpand = (id) => {
+        setExpandedId(prev => (prev === id ? null : id));
+    };
 
     const fetchCostCenters = async (silent = false) => {
         if (!silent) setLoading(true);
@@ -95,10 +101,9 @@ const CostCenters = () => {
     const uniqueCostCenters = useMemo(() => {
         const seen = new Set();
         return costCenters.filter((center) => {
-            const type = center?.type || 'main';
             const name = normalizeCenterName(center?.name);
             const parentId = center?.parentId?._id || center?.parentId || '';
-            const key = type === 'sub'
+            const key = parentId
                 ? `sub:${parentId}:${name}`
                 : `main:${name}`;
             if (seen.has(key)) return false;
@@ -107,28 +112,22 @@ const CostCenters = () => {
         });
     }, [costCenters]);
 
-    const mainCenters = useMemo(
-        () => uniqueCostCenters.filter((center) => center.type === 'main'),
-        [uniqueCostCenters]
-    );
 
-    const displayedCenters = useMemo(() => {
-        const childrenByParent = new Map();
+    const { childrenByParent, mainCentersList } = useMemo(() => {
+        const children = new Map();
+        const mainList = [];
         uniqueCostCenters.forEach((center) => {
-            if (center.type === 'sub' && center.parentId?._id) {
-                if (!childrenByParent.has(center.parentId._id)) childrenByParent.set(center.parentId._id, []);
-                childrenByParent.get(center.parentId._id).push(center);
+            const pId = center.parentId?._id || center.parentId;
+            if (pId) {
+                const parentIdStr = String(pId);
+                if (!children.has(parentIdStr)) children.set(parentIdStr, []);
+                children.get(parentIdStr).push(center);
+            } else {
+                mainList.push(center);
             }
         });
-
-        const list = [];
-        mainCenters.forEach((main) => {
-            list.push({ ...main, rowType: 'main' });
-            const children = childrenByParent.get(main._id) || [];
-            children.forEach((child) => list.push({ ...child, rowType: 'sub' }));
-        });
-        return list;
-    }, [uniqueCostCenters, mainCenters]);
+        return { childrenByParent: children, mainCentersList: mainList };
+    }, [uniqueCostCenters]);
 
     const uniqueParentCostCenters = useMemo(() => {
         const seen = new Set();
@@ -191,6 +190,10 @@ const CostCenters = () => {
             } else {
                 await costCentersService.createCostCenter(payload);
                 toast.success(t('cost_centers.success.create'));
+                // Automatically expand the parent section when adding a new sub-center
+                if (payload.parentId) {
+                    setExpandedId(payload.parentId);
+                }
             }
             setIsModalOpen(false);
             setForm(INITIAL_FORM);
@@ -315,63 +318,124 @@ const CostCenters = () => {
                                     {t('sales.common.loading')}
                                 </td>
                             </tr>
-                        ) : displayedCenters.length === 0 ? (
+                        ) : mainCentersList.length === 0 ? (
                             <tr>
                                 <td colSpan={2} className="px-6 py-12 text-center text-gray-500 font-medium">
                                     {t('cost_centers.empty')}
                                 </td>
                             </tr>
                         ) : (
-                            displayedCenters.map((center) => (
-                                <tr key={center._id} className="hover:bg-gray-50/50 transition-colors">
-                                    <td className="px-6 py-4 text-gray-800 font-bold">
-                                        {center.rowType === 'sub' ? (
-                                            <span className="inline-flex items-center gap-2">
-                                                <span className="text-gray-400">+</span>
-                                                <span>{getDisplayCenterName(center.name)}</span>
-                                            </span>
-                                        ) : getDisplayCenterName(center.name)}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className={`flex items-center gap-3 whitespace-nowrap ${isRTL ? 'justify-start' : 'justify-end'}`}>
-                                            <div className="inline-flex items-center gap-1">
+                            mainCentersList.map((main) => (
+                                <React.Fragment key={main._id}>
+                                    <tr
+                                        className="hover:bg-gray-50/50 transition-colors cursor-pointer group"
+                                        onClick={() => toggleExpand(main._id)}
+                                    >
+                                        <td className="px-6 py-4 text-gray-800 font-bold">
+                                            <div className="flex items-center gap-2">
+                                                <div className="bg-gray-100 p-1 rounded-md text-gray-400 group-hover:text-blue-600 transition-colors">
+                                                    <motion.div
+                                                        animate={{ rotate: expandedId === main._id ? 90 : 0 }}
+                                                        transition={{ duration: 0.2 }}
+                                                    >
+                                                        {isRTL ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+                                                    </motion.div>
+                                                </div>
+                                                <span>{getDisplayCenterName(main.name)}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className={`flex items-center gap-3 whitespace-nowrap ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                                                <div className="inline-flex items-center gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate('/dashboard/reports/accounting');
+                                                        }}
+                                                        className="w-8 h-8 rounded-md flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-600 cursor-pointer transition-colors"
+                                                        aria-label={t('sidebar.accounting_reports')}
+                                                    >
+                                                        <ArrowLeftRight size={18} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            openAddModal();
+                                                        }}
+                                                        className="w-8 h-8 rounded-md flex items-center justify-center bg-emerald-100 hover:bg-emerald-200 text-emerald-600 cursor-pointer transition-colors"
+                                                        aria-label={t('cost_centers.add_btn')}
+                                                    >
+                                                        <Plus size={18} />
+                                                    </button>
+                                                </div>
                                                 <button
                                                     type="button"
-                                                    onClick={() => navigate('/dashboard/reports/accounting')}
-                                                    className="w-8 h-8 rounded-md flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-600 cursor-pointer transition-colors"
-                                                    aria-label={t('sidebar.accounting_reports')}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        openEditModal(main);
+                                                    }}
+                                                    className="font-bold text-sm text-[#2563EB] hover:text-[#1D4ED8]"
                                                 >
-                                                    <ArrowLeftRight size={18} />
+                                                    {t('sales.common.edit')}
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={openAddModal}
-                                                    className="w-8 h-8 rounded-md flex items-center justify-center bg-emerald-100 hover:bg-emerald-200 text-emerald-600 cursor-pointer transition-colors"
-                                                    aria-label={t('cost_centers.add_btn')}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDeleteClick(main);
+                                                    }}
+                                                    className="font-bold text-sm text-red-500 cursor-pointer hover:text-red-700"
                                                 >
-                                                    <Plus size={18} />
+                                                    {t('sales.common.delete', 'حذف')}
                                                 </button>
                                             </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => openEditModal(center)}
-                                                className="font-bold text-sm text-[#2563EB] hover:text-[#1D4ED8]"
-                                            >
-                                                {t('sales.common.edit')}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDeleteClick(center);
-                                                }}
-                                                className="font-bold text-sm text-red-500 cursor-pointer hover:text-red-700"
-                                            >
-                                                {t('sales.common.delete', 'حذف')}
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
+                                        </td>
+                                    </tr>
+
+                                    <AnimatePresence initial={false}>
+                                        {expandedId === main._id && (
+                                            <>
+                                                {(childrenByParent.get(String(main._id)) || []).map((child) => (
+                                                    <motion.tr
+                                                        key={child._id}
+                                                        initial={{ opacity: 0, height: 0 }}
+                                                        animate={{ opacity: 1, height: 'auto' }}
+                                                        exit={{ opacity: 0, height: 0 }}
+                                                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                                        className="bg-gray-50/30 hover:bg-gray-50 transition-colors"
+                                                    >
+                                                        <td className="px-6 py-3 text-gray-700 ps-14">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-1.5 h-1.5 rounded-full bg-gray-300" />
+                                                                <span>{getDisplayCenterName(child.name)}</span>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-3">
+                                                            <div className={`flex items-center gap-3 whitespace-nowrap ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => openEditModal(child)}
+                                                                    className="font-bold text-xs text-[#2563EB] hover:text-[#1D4ED8]"
+                                                                >
+                                                                    {t('sales.common.edit')}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDeleteClick(child)}
+                                                                    className="font-bold text-xs text-red-500 cursor-pointer hover:text-red-700"
+                                                                >
+                                                                    {t('sales.common.delete', 'حذف')}
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </motion.tr>
+                                                ))}
+                                            </>
+                                        )}
+                                    </AnimatePresence>
+                                </React.Fragment>
                             ))
                         )}
                     </tbody>
