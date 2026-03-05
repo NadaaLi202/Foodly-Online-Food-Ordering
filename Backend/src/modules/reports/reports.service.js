@@ -1641,15 +1641,32 @@ export async function getInventoryMovementsDetailed(filters, companyFilter) {
  */
 async function getAccountBalances(startDate, endDate, companyFilter, accountCodes = null, branch = null) {
     const { start, end } = getDateRange(startDate, endDate);
-    const query = { ...companyFilter, date: { $lte: end } };
-    // Note: branch filtering not available in dailyRestrictionModel yet - can be added when model supports it
+
+    // Ensure companyId is handled as ObjectId if present in filter
+    const effectiveFilter = { ...companyFilter };
+    if (effectiveFilter.companyId && typeof effectiveFilter.companyId === "string") {
+        try { effectiveFilter.companyId = new mongoose.Types.ObjectId(effectiveFilter.companyId); } catch (e) { /* ignore */ }
+    }
+
+    const query = { ...effectiveFilter, date: { $lte: end } };
+    console.log("[reports] getAccountBalances query:", JSON.stringify(query));
+
+    // Fetch accounts to map ID -> Code
+    const accounts = await chartOfAccountsModel.find(effectiveFilter).select("_id code").lean();
+    const idToCode = {};
+    accounts.forEach(a => idToCode[a._id.toString()] = a.code);
+
     const restrictions = await dailyRestrictionModel.find(query).select("date entries").lean();
+    console.log("[reports] getAccountBalances found restrictions:", restrictions.length);
+
     const balances = {};
     for (const restriction of restrictions) {
         const isBeforePeriod = restriction.date < start;
         for (const entry of restriction.entries || []) {
-            const code = String(entry.account || "").trim();
-            if (!code) continue;
+            const id = String(entry.account || "").trim();
+            if (!id) continue;
+            const code = idToCode[id] || id; // Fallback to id if not found in CoA
+
             if (accountCodes && !accountCodes.includes(code)) continue;
             if (!balances[code]) {
                 balances[code] = { openingDebit: 0, openingCredit: 0, periodDebit: 0, periodCredit: 0 };
@@ -1705,6 +1722,7 @@ async function buildAccountTree(companyFilter, accountCodes = null) {
  */
 export async function getTrialBalance(startDate, endDate, companyFilter, filters = {}) {
     const { branch, accountCodes } = filters;
+    console.log("[reports] getTrialBalance companyFilter:", JSON.stringify(companyFilter));
     const balances = await getAccountBalances(startDate, endDate, companyFilter, accountCodes, branch);
     const tree = await buildAccountTree(companyFilter, accountCodes);
     const flatten = (nodes, level = 0) => {
@@ -1875,14 +1893,22 @@ async function resolveTaxPercent(taxId, taxPercent, companyFilter) {
 export async function getTaxSummary(startDate, endDate, companyFilter, filters = {}) {
     const { branch, taxId, taxPercent } = filters;
     const { start, end } = getDateRange(startDate, endDate);
+
+    // Ensure companyId is handled as ObjectId for aggregate match
+    const effectiveFilter = { ...companyFilter };
+    if (effectiveFilter.companyId && typeof effectiveFilter.companyId === "string") {
+        try { effectiveFilter.companyId = new mongoose.Types.ObjectId(effectiveFilter.companyId); } catch (e) { /* ignore */ }
+    }
+
     const baseMatch = {
-        ...companyFilter,
+        ...effectiveFilter,
         $or: [{ module: "sales" }, { module: "purchases" }],
         documentType: { $in: ["invoice", "return"] },
         issueDate: { $gte: start, $lte: end },
         status: { $ne: "draft" },
         deletedAt: { $in: [null, undefined] },
     };
+    console.log("[reports] getTaxSummary baseMatch:", JSON.stringify(baseMatch));
     if (branch && branch !== "all") baseMatch.warehouse = branch;
 
     const resolvedPercent = await resolveTaxPercent(taxId, taxPercent, companyFilter);
@@ -1980,8 +2006,15 @@ export async function getTaxSummary(startDate, endDate, companyFilter, filters =
 export async function getTaxDetailed(startDate, endDate, companyFilter, filters = {}) {
     const { branch, taxId, taxPercent, groupBy } = filters;
     const { start, end } = getDateRange(startDate, endDate);
+
+    // Ensure companyId is handled as ObjectId
+    const effectiveFilter = { ...companyFilter };
+    if (effectiveFilter.companyId && typeof effectiveFilter.companyId === "string") {
+        try { effectiveFilter.companyId = new mongoose.Types.ObjectId(effectiveFilter.companyId); } catch (e) { /* ignore */ }
+    }
+
     const baseMatch = {
-        ...companyFilter,
+        ...effectiveFilter,
         $or: [{ module: "sales" }, { module: "purchases" }],
         documentType: { $in: ["invoice", "return"] },
         issueDate: { $gte: start, $lte: end },

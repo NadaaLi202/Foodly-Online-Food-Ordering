@@ -1,5 +1,5 @@
 import express from "express";
-import { addCompany, deleteCompany, getAllCompanies, getCompany, getCompanyBySlug, updateCompany, loginAsCompany, sendCredentials, checkSlug, signupCompany, approveCompany, rejectCompany } from "./company.controller.js";
+import { addCompany, deleteCompany, getAllCompanies, getCompany, getCompanyBySlug, updateCompany, loginAsCompany, impersonateCompany, sendCredentials, checkSlug, signupCompany, approveCompany, rejectCompany } from "./company.controller.js";
 import { validation } from "../../middleware/validation.js";
 import { addCompanySchema, updateCompanySchema, companySignupSchema } from "./company.validation.js";
 import { uploadSingleFile } from "../../middleware/uploadFiles.js";
@@ -9,6 +9,7 @@ const companyRouter = express.Router();
 
 companyRouter.post('/', uploadSingleFile(['image'], 'logo'), validation(addCompanySchema), protectedRoutes, allowedTo('superAdmin'), addCompany);
 companyRouter.post('/signup', validation(companySignupSchema), signupCompany);
+companyRouter.post('/impersonate', protectedRoutes, allowedTo('superAdmin'), impersonateCompany);
 companyRouter.get('/check-slug/:slug', checkSlug);
 companyRouter.get('/', protectedRoutes, allowedTo('superAdmin'), getAllCompanies);
 companyRouter.get('/slug/:slug', getCompanyBySlug);

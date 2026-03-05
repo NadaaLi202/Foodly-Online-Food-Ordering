@@ -31,7 +31,8 @@ const TaxesSettings = () => {
             setTaxes(taxesRes.taxes || []);
             setAccounts(accountsRes.accounts || []);
         } catch (err) {
-            toast.error(t('taxes_settings.error_load'));
+            const errorMessage = err.response?.data?.message || t('taxes_settings.error_load');
+            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -73,7 +74,8 @@ const TaxesSettings = () => {
             await fetchData();
             setIsModalOpen(false);
         } catch (err) {
-            toast.error(t('taxes_settings.error_save'));
+            const errorMessage = err.response?.data?.message || t('taxes_settings.error_save');
+            toast.error(errorMessage);
         } finally {
             setSubmitLoading(false);
         }

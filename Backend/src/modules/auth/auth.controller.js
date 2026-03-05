@@ -333,6 +333,11 @@ const enforcePermissions = async (req, next, permissions = []) => {
 
 const requirePermission = (...permissions) => {
     return catchAsyncError(async (req, res, next) => {
+        // Bypass permission checks for superAdmin and company roles
+        if (req.user?.role === 'superAdmin' || req.user?.systemRole === 'superAdmin' || req.user?.role === 'company') {
+            return next();
+        }
+
         const ok = await enforcePermissions(req, next, permissions);
         if (ok !== true) return;
         return next();

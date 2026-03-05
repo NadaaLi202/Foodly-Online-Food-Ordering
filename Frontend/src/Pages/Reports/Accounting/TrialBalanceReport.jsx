@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, ChevronRight, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import { exportTrialBalanceToExcel, buildTrialBalancePdf } from '../../../utils/accountingReportsExport';
@@ -58,6 +58,7 @@ const TrialBalanceReport = () => {
         endDebit: 0,
         endCredit: 0
     });
+    const hasFetched = useRef(false);
 
     const applyPeriod = (value) => {
         const now = new Date();
@@ -184,8 +185,10 @@ const TrialBalanceReport = () => {
     };
 
     useEffect(() => {
+        if (hasFetched.current) return;
+        hasFetched.current = true;
         handleViewReport();
-    }, [handleViewReport]);
+    }, []); // Run only once on initial mount to prevent duplicate calls
 
     return (
         <>
@@ -197,13 +200,13 @@ const TrialBalanceReport = () => {
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.period')}</label>
                             <div className="relative">
-                            <select value={filters.period} onChange={(e) => {
-                                const value = e.target.value;
-                                const range = applyPeriod(value);
-                                setFilters(prev => ({ ...prev, period: value, fromDate: range.startDate, toDate: range.endDate }));
-                            }} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                {periodOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
-                            </select>
+                                <select value={filters.period} onChange={(e) => {
+                                    const value = e.target.value;
+                                    const range = applyPeriod(value);
+                                    setFilters(prev => ({ ...prev, period: value, fromDate: range.startDate, toDate: range.endDate }));
+                                }} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                    {periodOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
+                                </select>
                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                             </div>
                         </div>

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import { exportTaxReportToExcel, buildAccountingReportPdf } from '../../../utils/accountingReportsExport';
@@ -39,6 +39,7 @@ const DetailedTaxReport = () => {
         totalTax: 0,
     });
     const [taxes, setTaxes] = useState([]);
+    const hasFetched = useRef(false);
 
     const handleFilterChange = (field, value) => {
         setFilters(prev => ({ ...prev, [field]: value }));
@@ -133,12 +134,11 @@ const DetailedTaxReport = () => {
     }, []);
 
     useEffect(() => {
+        if (hasFetched.current) return;
+        hasFetched.current = true;
         fetchReport();
-    }, [fetchReport]);
-
-    useEffect(() => {
         fetchTaxes();
-    }, [fetchTaxes]);
+    }, []); // Run only once on initial mount to prevent duplicate calls
 
     const fmtNum = (n) => (n == null || n === '' || n === undefined) ? '' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const fmtDate = (d) => d ? new Date(d).toLocaleDateString() : '';

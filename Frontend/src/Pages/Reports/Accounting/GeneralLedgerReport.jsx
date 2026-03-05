@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
@@ -36,6 +36,7 @@ const GeneralLedgerReport = () => {
         entries: [],
         totalEntries: 0,
     });
+    const hasFetched = useRef(false);
 
     const handleFilterChange = (field, value) => {
         setFilters(prev => ({ ...prev, [field]: value }));
@@ -109,12 +110,11 @@ const GeneralLedgerReport = () => {
     }, [filters.branch, filters.fromDate, filters.journalAccount, filters.toDate]);
 
     useEffect(() => {
+        if (hasFetched.current) return;
+        hasFetched.current = true;
         fetchAccounts();
-    }, [fetchAccounts]);
-
-    useEffect(() => {
         fetchReport();
-    }, [fetchReport]);
+    }, []); // Run only once on initial mount to prevent duplicate calls
 
     // Placeholder column headers for General Ledger
     const tableColumns = [

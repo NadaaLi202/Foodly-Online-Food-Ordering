@@ -47,6 +47,11 @@ const loginAsCompany = async (id) => {
     return response.data;
 };
 
+const impersonateCompany = async (companyId) => {
+    const response = await api.post('/companies/impersonate', { companyId });
+    return response.data;
+};
+
 const companySignIn = async (email, password) => {
     const response = await api.post('/auth/company/signIn', { email, password });
     return response.data;
@@ -77,6 +82,7 @@ export default {
     updateCompany,
     deleteCompany,
     loginAsCompany,
+    impersonateCompany,
     companySignIn,
     approveCompany,
     rejectCompany,

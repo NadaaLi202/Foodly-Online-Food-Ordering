@@ -29,7 +29,8 @@ api.interceptors.request.use((config) => {
         config.headers.Authorization = `Bearer ${token}`;
     }
 
-    const isSuperAdmin = getStoredUserRole() === "superAdmin";
+    const role = getStoredUserRole();
+    const isSuperAdmin = role === "superAdmin" || role === "super_admin";
 
     // SuperAdmin: allow companyId in query params and body for filtering / creating records for specific companies
     if (isSuperAdmin) {
@@ -68,6 +69,9 @@ api.interceptors.response.use(
             console.warn("[API Error]", error.config?.method?.toUpperCase(), error.config?.url, status, backendMessage || error.message);
         }
         if (status === 401) {
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast.error(backendMessage || 'انتهت الجلسة، يرجى تسجيل الدخول مجدداً', { id: 'unauth-toast' });
+            });
             localStorage.clear();
             sessionStorage.removeItem("superAdminToken");
             sessionStorage.removeItem("superAdminUser");
@@ -79,12 +83,16 @@ api.interceptors.response.use(
                 error.config = error.config || {};
                 error.config._handled403 = true;
                 import('react-hot-toast').then(({ default: toast }) => {
-                    toast.error('ليس لديك صلاحية للوصول لهذه الصفحة', {
+                    toast.error(backendMessage || 'ليس لديك صلاحية للوصول لهذه الصفحة', {
                         id: 'forbidden-toast',
                         duration: 4000,
                     });
                 });
             }
+        } else if (status >= 500) {
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast.error(backendMessage || 'حدث خطأ في الخادم، يرجى المحاولة لاحقاً', { id: 'server-error-toast' });
+            });
         }
         return Promise.reject(error);
     }

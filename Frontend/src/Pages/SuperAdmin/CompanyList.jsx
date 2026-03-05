@@ -52,14 +52,18 @@ const CompanyList = () => {
     };
 
     const handleLoginAsCompany = async (company) => {
+        const toastId = toast.loading(`جاري الدخول إلى ${company.name}...`);
         try {
-            const response = await companyService.loginAsCompany(company._id);
+            const response = await companyService.impersonateCompany(company._id);
+            if (!response?.token || !response?.company) {
+                throw new Error('Invalid impersonation response');
+            }
             loginAsCompany(response.company, response.token);
-            navigate('/dashboard');
-            window.location.reload();
+            toast.success(`تم الدخول إلى ${company.name} بنجاح`, { id: toastId });
+            // Use full navigation to avoid ProtectedRoute race condition during role switch
+            window.location.href = '/dashboard';
         } catch (error) {
-            logError('Error logging in as company:', error);
-            alert(error.response?.data?.message || 'Failed to login as company');
+            toast.error(error.response?.data?.message || 'فشل الدخول إلى الشركة', { id: toastId });
         }
     };
 
