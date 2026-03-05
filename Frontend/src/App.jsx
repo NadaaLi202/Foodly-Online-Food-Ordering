@@ -1,7 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams, useNavigate } from 'react-router-dom';
+import api from './services/api';
 import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardPage from './Pages/DashboardPage';
 import SalesSettings from './Pages/Settings/SalesSettings';
@@ -123,8 +125,73 @@ const PlaceholderPage = ({ title }) => (
   </div>
 );
 
-const CompanyLoginRedirect = () => {
+const CompanyAutoLogin = () => {
   const { slug } = useParams();
+  const { loginAsCompany } = useAuth();
+  const [status, setStatus] = useState('checking');
+  const [debugLog, setDebugLog] = useState([]);
+
+  const addLog = (msg) => {
+    console.log(`[AutoLogin] ${msg}`);
+    setDebugLog(prev => [...prev, msg]);
+  };
+
+  useEffect(() => {
+    addLog(`Checking slug: ${slug}`);
+    const storedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    let user = null;
+    try {
+      user = storedUser ? JSON.parse(storedUser) : null;
+    } catch (e) {
+      addLog(`User parse error: ${e.message}`);
+    }
+
+    addLog(`Auth check - Token: ${!!token}, Role: ${user?.role}`);
+
+    if (token && user?.role === 'superAdmin' && slug) {
+      addLog(`Starting impersonation for slug: ${slug}`);
+      api.get(`/companies/slug/${slug}`)
+        .then(res => {
+          const company = res.data.company;
+          addLog(`Company lookup success: ${company?.name} (ID: ${company?._id})`);
+          if (!company?._id) throw new Error("ID_NOT_FOUND");
+          return api.post('/companies/impersonate', { companyId: company._id });
+        })
+        .then(res => {
+          addLog(`Impersonation response success - Redirecting...`);
+          loginAsCompany(res.data.company, res.data.token);
+          window.location.href = '/dashboard';
+        })
+        .catch((err) => {
+          const errorMsg = err.response?.data?.message || err.message;
+          addLog(`Error: ${errorMsg}`);
+          // Wait 2 seconds before fallback if there's an error to show the logs if needed
+          setTimeout(() => setStatus('fallback'), 2000);
+        });
+    } else {
+      addLog(`No superAdmin session or slug - falling back`);
+      setStatus('fallback');
+    }
+  }, [slug, loginAsCompany]);
+
+  if (status === 'checking') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 flex-col gap-4 p-6">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <span className="text-gray-600 font-bold text-lg">جاري التحقق من صلاحيات الدخول...</span>
+        <div className="mt-8 p-4 bg-gray-100 rounded-lg w-full max-w-lg overflow-auto max-h-64 border border-gray-200">
+          <p className="text-xs font-mono text-gray-500 mb-2 uppercase tracking-widest">Debug Info:</p>
+          {debugLog.map((log, i) => (
+            <div key={i} className="text-xs font-mono text-gray-700 py-1 border-b border-gray-200 last:border-0">
+              {`> ${log}`}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return <Navigate to={`/login${slug ? `?company=${slug}` : ''}`} replace />;
 };
 
@@ -146,8 +213,8 @@ function App() {
             <Route path="pending" element={<PendingPage />} />
           </Route>
 
-          <Route path="/company-login" element={<CompanyLoginRedirect />} />
-          <Route path="/company/:slug/login" element={<CompanyLoginRedirect />} />
+          <Route path="/company-login" element={<CompanyAutoLogin />} />
+          <Route path="/company/:slug/login" element={<CompanyAutoLogin />} />
 
           {/* SuperAdmin Layout Route */}
           <Route

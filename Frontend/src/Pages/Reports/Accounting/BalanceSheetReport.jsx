@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, ChevronRight, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import { exportBalanceSheetToExcel, buildAccountingReportPdf } from '../../../utils/accountingReportsExport';
@@ -22,6 +22,7 @@ const BalanceSheetReport = () => {
     });
 
     const [loading, setLoading] = useState(false);
+    const hasFetched = useRef(false);
     const [reportData, setReportData] = useState({
         assets: { fixed: [], current: [], total: 0 },
         liabilities: { current: [], longTerm: [], total: 0 },
@@ -68,8 +69,10 @@ const BalanceSheetReport = () => {
     }, [filters.branch, filters.toDate]);
 
     useEffect(() => {
+        if (hasFetched.current) return;
+        hasFetched.current = true;
         fetchReport();
-    }, [fetchReport]);
+    }, []); // Run only once on initial mount to prevent duplicate calls
 
     const fixedTotal = useMemo(
         () => (reportData.assets?.fixed || []).reduce((sum, item) => sum + (item.amount || 0), 0),

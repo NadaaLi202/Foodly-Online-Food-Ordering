@@ -50,7 +50,7 @@ const getCompany = catchAsyncError(async (req, res, next) => {
 
 const getCompanyBySlug = catchAsyncError(async (req, res, next) => {
     const { slug } = req.params;
-    const company = await companyModel.findOne({ slug }).select('name slug logo');
+    const company = await companyModel.findOne({ slug }).select('_id name slug logo');
     if (!company) {
         return next(new AppError('Company not found', 404));
     }
@@ -163,6 +163,37 @@ const loginAsCompany = catchAsyncError(async (req, res, next) => {
     res.status(200).json({ message: 'Login as company successful', token, company: companyObj });
 });
 
+const impersonateCompany = catchAsyncError(async (req, res, next) => {
+    const { companyId } = req.body;
+    if (!companyId) {
+        return next(new AppError('companyId is required', 400));
+    }
+
+    const company = await companyModel.findById(companyId).select('-password');
+    if (!company) {
+        return next(new AppError('Company not found', 404));
+    }
+
+    const token = jwt.sign({
+        userId: company._id,
+        companyId: company._id,
+        role: 'company',
+        systemRole: 'companyOwner',
+        type: 'company',
+        impersonatedBy: req.user?._id || null,
+        impersonation: true
+    }, process.env.SECRET_KEY, { expiresIn: '2h' });
+
+    const companyObj = company.toObject ? company.toObject() : company;
+    companyObj.role = 'company';
+
+    res.status(200).json({
+        message: 'Company impersonation successful',
+        token,
+        company: companyObj
+    });
+});
+
 const sendCredentials = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
     const company = await companyModel.findById(id).select('-password');
@@ -208,4 +239,4 @@ const rejectCompany = catchAsyncError(async (req, res, next) => {
     res.status(200).json({ message: 'Company rejected successfully', company });
 });
 
-export { addCompany, getAllCompanies, getCompany, getCompanyBySlug, updateCompany, deleteCompany, loginAsCompany, sendCredentials, checkSlug, signupCompany, approveCompany, rejectCompany };
+export { addCompany, getAllCompanies, getCompany, getCompanyBySlug, updateCompany, deleteCompany, loginAsCompany, impersonateCompany, sendCredentials, checkSlug, signupCompany, approveCompany, rejectCompany };

@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeftRight, Info, Loader2, Plus, RefreshCw, Search, X } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -19,6 +19,7 @@ const SYSTEM_CENTER_KEY_MAP = {
     activities: 'activities',
     products: 'products'
 };
+const normalizeCenterName = (name = '') => String(name).trim().toLowerCase();
 
 const CostCenters = () => {
     const { t, i18n } = useTranslation();
@@ -91,14 +92,29 @@ const CostCenters = () => {
         initialize();
     }, []);
 
+    const uniqueCostCenters = useMemo(() => {
+        const seen = new Set();
+        return costCenters.filter((center) => {
+            const type = center?.type || 'main';
+            const name = normalizeCenterName(center?.name);
+            const parentId = center?.parentId?._id || center?.parentId || '';
+            const key = type === 'sub'
+                ? `sub:${parentId}:${name}`
+                : `main:${name}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }, [costCenters]);
+
     const mainCenters = useMemo(
-        () => costCenters.filter((center) => center.type === 'main'),
-        [costCenters]
+        () => uniqueCostCenters.filter((center) => center.type === 'main'),
+        [uniqueCostCenters]
     );
 
     const displayedCenters = useMemo(() => {
         const childrenByParent = new Map();
-        costCenters.forEach((center) => {
+        uniqueCostCenters.forEach((center) => {
             if (center.type === 'sub' && center.parentId?._id) {
                 if (!childrenByParent.has(center.parentId._id)) childrenByParent.set(center.parentId._id, []);
                 childrenByParent.get(center.parentId._id).push(center);
@@ -112,7 +128,18 @@ const CostCenters = () => {
             children.forEach((child) => list.push({ ...child, rowType: 'sub' }));
         });
         return list;
-    }, [costCenters, mainCenters]);
+    }, [uniqueCostCenters, mainCenters]);
+
+    const uniqueParentCostCenters = useMemo(() => {
+        const seen = new Set();
+        return mainCostCenters.filter((center) => {
+            const name = normalizeCenterName(center?.name);
+            if (!name) return false;
+            if (seen.has(name)) return false;
+            seen.add(name);
+            return true;
+        });
+    }, [mainCostCenters]);
 
     const getDisplayCenterName = (name = '') => {
         const normalized = String(name).trim().toLowerCase();
@@ -301,8 +328,8 @@ const CostCenters = () => {
                                         {center.rowType === 'sub' ? (
                                             <span className="inline-flex items-center gap-2">
                                                 <span className="text-gray-400">+</span>
-                                            <span>{getDisplayCenterName(center.name)}</span>
-                                        </span>
+                                                <span>{getDisplayCenterName(center.name)}</span>
+                                            </span>
                                         ) : getDisplayCenterName(center.name)}
                                     </td>
                                     <td className="px-6 py-4">
@@ -334,11 +361,13 @@ const CostCenters = () => {
                                             </button>
                                             <button
                                                 type="button"
-                                                onClick={() => handleDeleteClick(center)}
-                                                disabled={isSystemCenter(center)}
-                                                className={`relative z-10 pointer-events-auto font-bold text-sm text-red-500 ${isSystemCenter(center) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:text-red-700'}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDeleteClick(center);
+                                                }}
+                                                className="font-bold text-sm text-red-500 cursor-pointer hover:text-red-700"
                                             >
-                                                حذف
+                                                {t('sales.common.delete', 'حذف')}
                                             </button>
                                         </div>
                                     </td>
@@ -411,11 +440,11 @@ const CostCenters = () => {
                                             ? t('cost_centers.modal.loading_parents')
                                             : t('cost_centers.modal.parent_placeholder')}
                                     </option>
-                                    {mainCostCenters.map((center) => (
+                                    {uniqueParentCostCenters.map((center) => (
                                         <option key={center.id || center._id} value={center.id || center._id}>{getDisplayCenterName(center.name)}</option>
                                     ))}
                                 </select>
-                                {!optionsLoading && mainCostCenters.length === 0 && (
+                                {!optionsLoading && uniqueParentCostCenters.length === 0 && (
                                     <p className="text-xs text-amber-600 font-medium">{t('cost_centers.modal.parent_empty_hint')}</p>
                                 )}
                                 {errors.parentId && <p className="text-xs text-red-500 font-medium">{errors.parentId}</p>}
@@ -456,4 +485,5 @@ const CostCenters = () => {
 };
 
 export default CostCenters;
+
 

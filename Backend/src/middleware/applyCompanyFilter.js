@@ -16,33 +16,48 @@ export const resolveCompanyIdForWrite = (req) => {
     return candidate ? String(candidate) : null;
 };
 
-export const applyCompanyFilter = (req, res, next) => {
+export const applyCompanyFilter = async (req, res, next) => {
     if (!req.user) {
         return next();
     }
     req.isSuperAdmin = isSuperAdminUser(req.user);
 
-    // 1. Handle 'company' role (Main Account)
-    // When a company owner logs in, their 'account' is the company itself.
-    if (req.user.role === "company" && !req.user.companyId) {
-        req.user.companyId = req.user._id;
+    // 1) SuperAdmin: Bypass ALL company filtering (unrestricted access)
+    if (req.isSuperAdmin || req.user.role === "superAdmin") {
+        req.companyFilter = {};
+
+        const targetCompanyId = resolveCompanyIdForWrite(req);
+        if (targetCompanyId) {
+            req.body.companyId = targetCompanyId;
+            req.companyFilter.companyId = targetCompanyId; // Ensure GET requests also use the filter
+        } else {
+            try {
+                const { companyModel } = await import("../modules/companies/company.model.js");
+                const firstCompany = await companyModel.findOne().select('_id').lean();
+                if (firstCompany) {
+                    const cid = String(firstCompany._id);
+                    req.body.companyId = cid;
+                    req.user.companyId = cid;
+                    req.companyFilter.companyId = cid;
+                }
+            } catch (err) {
+                console.error("SuperAdmin company fallback error:", err);
+            }
+        }
+
+        return next();
     }
 
-    // 2. SuperAdmin handles everything (optional filter)
-    if (req.isSuperAdmin) {
-        const targetCompanyId = firstDefined(req.query.companyId, req.body.companyId, req.headers["x-company-id"]);
-        if (targetCompanyId) {
-            const normalized = String(targetCompanyId);
-            req.companyFilter = { companyId: normalized };
-            req.user.companyId = normalized;
-            if (["POST", "PUT", "PATCH"].includes(req.method)) {
-                req.body.companyId = normalized;
-            }
-        } else {
-            req.companyFilter = {};
+    // 2) Company Role: strictly enforce own company, no override allowed
+    if (req.user.role === "company") {
+        const companyId = String(req.user.companyId || req.user._id);
+        req.user.companyId = companyId;
+        req.companyFilter = { companyId: companyId };
+
+        if (["POST", "PUT", "PATCH"].includes(req.method)) {
+            req.body.companyId = companyId;
         }
-        next();
-        return;
+        return next();
     }
 
     // 3. Strict Check for regular users

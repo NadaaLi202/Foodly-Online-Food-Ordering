@@ -29,9 +29,12 @@ const ApiSettings = () => {
                 api.get('/branches')
             ]);
             setClients(clientsRes.data || []);
-            setBranches(branchesRes.data.data || []);
+            setBranches(branchesRes.data.branches || branchesRes.data.data || []);
         } catch (err) {
-            toast.error(t('sales.common.error_message'));
+            const status = err.response?.status;
+            if (status !== 401 && status !== 403 && !(status >= 500)) {
+                toast.error(err.response?.data?.message || t('sales.common.error_message'));
+            }
         } finally {
             setLoading(false);
         }
@@ -51,7 +54,10 @@ const ApiSettings = () => {
             setFormData({ name: '', role: '', branches: [] });
             fetchData();
         } catch (err) {
-            toast.error(err.response?.data?.message || t('sales.common.error_message'));
+            const status = err.response?.status;
+            if (status !== 401 && status !== 403 && !(status >= 500)) {
+                toast.error(err.response?.data?.message || t('sales.common.error_message'));
+            }
         } finally {
             setSaving(false);
         }
