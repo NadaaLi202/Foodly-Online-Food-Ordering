@@ -12,7 +12,9 @@
         "node": ">=20.0.0"
     },
     "dependencies": {
+        "@vitejs/plugin-react": "^5.1.4",
         "concurrently": "^9.1.2",
-        "react-scripts": "^5.0.1"
+        "react-scripts": "^5.0.1",
+        "vite": "^7.3.1"
     }
 }
