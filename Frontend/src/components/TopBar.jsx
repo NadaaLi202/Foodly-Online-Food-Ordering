@@ -6,12 +6,13 @@ import { useAuth } from '../context/AuthContext';
 const TopBar = ({ onToggleSidebar, isMobile }) => {
     const { t, i18n } = useTranslation();
     const isRtl = i18n.language === 'ar';
-    const { user, isImpersonating, restoreSuperAdmin } = useAuth();
+    const { user, isImpersonating, restoreSuperAdmin, updateCompanySettings } = useAuth();
     const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
     const langMenuRef = useRef(null);
 
     const changeLanguage = (lang) => {
         i18n.changeLanguage(lang);
+        updateCompanySettings({ language: lang });
         setIsLangMenuOpen(false);
     };
 
