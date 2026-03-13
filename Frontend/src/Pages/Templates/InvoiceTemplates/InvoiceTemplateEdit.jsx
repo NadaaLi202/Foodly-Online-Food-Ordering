@@ -93,6 +93,7 @@ const InvoiceTemplateEdit = () => {
     const [selectedBranch, setSelectedBranch] = useState('');
 
     const [name, setName] = useState('');
+    const [designId, setDesignId] = useState('design-1');
     const [page, setPage] = useState({ direction: 'rtl', pageSize: 'A4', fontSize: 12, margins: { top: 40, right: 40, bottom: 40, left: 40 } });
     const [logo, setLogo] = useState({ url: '', size: 70 });
     const [headerOrder, setHeaderOrder] = useState('Logo, Company Info, Invoice Info');
@@ -147,6 +148,7 @@ const InvoiceTemplateEdit = () => {
                 ]);
                 const t = tmplRes.data.template;
                 setName(t.name ?? '');
+                setDesignId(t.designId ?? 'design-1');
                 setPage(t.page ?? { direction: 'rtl', pageSize: 'A4', fontSize: 12, margins: { top: 40, right: 40, bottom: 40, left: 40 } });
                 setLogo(t.logo ?? { url: '', size: 70 });
                 setLogoMargins(t.logo?.margins ?? { top: 0, right: 0, bottom: 0, left: 0 });
@@ -196,6 +198,7 @@ const InvoiceTemplateEdit = () => {
         try {
             await api.put(`/templates/${id}`, {
                 type: 'invoice',
+                designId,
                 name, page, logo: { ...logo, margins: logoMargins },
                 header: { rows: headerRows, invoiceInfoRows, order: headerOrder, showBottomBorder, titles },
                 partner: { clientRows, supplierRows },
@@ -235,7 +238,7 @@ const InvoiceTemplateEdit = () => {
         invoice: { number: 'INV-25-1-000001', date: '2025-09-04' },
     };
 
-    const templateData = { page, logo: { ...logo, margins: logoMargins }, header: { rows: headerRows, invoiceInfoRows, showBottomBorder, order: headerOrder, titles }, partner: { clientRows, supplierRows }, table: tableCfg, footer: { notesRows: footerRows, signatures: [{ label: 'right', rows: sigRows1 }, { label: 'middle', rows: sigRows2 }, { label: 'left', rows: sigRows3 }] } };
+    const templateData = { designId, page, logo: { ...logo, margins: logoMargins }, header: { rows: headerRows, invoiceInfoRows, showBottomBorder, order: headerOrder, titles }, partner: { clientRows, supplierRows }, table: tableCfg, footer: { notesRows: footerRows, signatures: [{ label: 'right', rows: sigRows1 }, { label: 'middle', rows: sigRows2 }, { label: 'left', rows: sigRows3 }] } };
 
     const subTabBtn = (k, l) => (
         <button key={k} onClick={() => setTableSub(k)}

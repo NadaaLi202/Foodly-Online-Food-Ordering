@@ -33,10 +33,7 @@ const InvoiceTemplateAdd = () => {
         { id: 'thermal', label: t('Thermal', 'حراري'), desc: '' },
     ];
 
-    const designOptions = [
-        'design-1', 'design-2', 'design-3', 'design-4', 'design-5',
-        'design-6', 'design-7', 'design-8', 'design-9', 'design-10'
-    ];
+    const designOptions = ['design-1', 'design-2'];
 
     /* ── SVG building blocks ─────────────────────────────────── */
     const QRBlock = ({ x, y, s = 18 }) => (
@@ -55,278 +52,191 @@ const InvoiceTemplateAdd = () => {
     const LogoBox = ({ x, y, w = 26, h = 20 }) => (
         <g>
             <rect x={x} y={y} width={w} height={h} fill="none" stroke="#aaa" strokeWidth="0.7" strokeDasharray="3,2" />
-            <text x={x + w / 2} y={y + h / 2 + 2} textAnchor="middle" fontSize="4" fill="#bbb">{t('Logo', 'شعار')}</text>
+            <text x={x + w / 2} y={y + h / 2 - 2} textAnchor="middle" fontSize="3.5" fill="#bbb">ضــع</text>
+            <text x={x + w / 2} y={y + h / 2 + 2} textAnchor="middle" fontSize="3.5" fill="#bbb">شعارك</text>
+            <text x={x + w / 2} y={y + h / 2 + 6} textAnchor="middle" fontSize="3.5" fill="#bbb">هنــا</text>
         </g>
     );
     const Lines = ({ x, y, w, count = 3, gap = 4, color = '#e5e7eb' }) => (
         <g>{Array.from({ length: count }).map((_, i) => <rect key={i} x={x} y={y + i * gap} width={w} height={1.5} fill={color} rx="0.5" />)}</g>
     );
-    const TableHeader = ({ y, bg = '#f0f2f5', borders = false }) => (
-        <g>
-            <rect x={10} y={y} width={100} height={7} fill={bg} stroke={borders ? '#ccc' : 'none'} strokeWidth={borders ? 0.5 : 0} />
-            {[10, 32, 55, 78, 98].map((cx, i) => <rect key={i} x={cx} y={y + 1} width={i === 0 ? 20 : i === 4 ? 12 : 18} height={5} fill={bg === '#f0f2f5' ? '#d1d5db' : '#c7d2fe'} rx="0.5" />)}
-        </g>
-    );
-    const TableRows = ({ y, rows = 3, borders = false }) => (
-        <g>{Array.from({ length: rows }).map((_, i) => (
-            <g key={i}>
-                <rect x={10} y={y + i * 6} width={100} height={5} fill={i % 2 === 0 ? 'white' : '#fafafa'} stroke={borders ? '#ccc' : 'none'} strokeWidth={borders ? 0.3 : 0} />
-                {[10, 32, 55, 78, 98].map((cx, j) => <rect key={j} x={cx} y={y + i * 6 + 1} width={j === 0 ? 20 : j === 4 ? 12 : 18} height={3} fill="#e5e7eb" rx="0.5" />)}
-            </g>
-        ))}</g>
-    );
 
-    /* ── 10 Design SVGs (matching reference exactly) ──── */
-
-    // D1: Company info + title top-right, Logo dashed top-left, QR bottom-right
+    /* ── Design 1: Arabic-Only Invoice ──── */
     const D1 = ({ borders }) => (
-        <svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
-            <rect width="120" height="160" fill="white" />
-            <text x="95" y="10" textAnchor="middle" fontSize="4.5" fontWeight="bold" fill="#1a1a1a">{t('Dafater Advertising', 'دفاتر للدعاية والإعلان')}</text>
-            <text x="60" y="10" textAnchor="middle" fontSize="4.5" fontWeight="bold" fill="#1a1a1a">{t('Simplified Tax Invoice', 'فاتورة ضريبية مبسطة')}</text>
-            <LogoBox x={8} y={4} w={22} h={16} />
-            <Lines x={80} y={14} w={30} count={3} gap={3} />
-            <Lines x={10} y={14} w={25} count={2} gap={3} />
-            <Lines x={10} y={28} w={30} count={2} gap={3} />
-            <Lines x={75} y={28} w={35} count={2} gap={3} />
-            <Lines x={10} y={40} w={55} count={2} gap={3} />
-            <TableHeader y={50} borders={borders} />
-            <TableRows y={57} rows={3} borders={borders} />
-            <Lines x={60} y={80} w={50} count={4} gap={4} />
-            <line x1={10} y1={105} x2={55} y2={105} stroke="#ccc" strokeWidth="0.8" />
-            <text x="32" y="110" textAnchor="middle" fontSize="4" fill="#999">{t('Signature', 'التوقيع')}</text>
-            <QRBlock x={87} y={96} s={22} />
-            <text x="98" y={120} textAnchor="middle" fontSize="3.5" fill="#999">{t('Notes', 'ملاحظات')}</text>
+        <svg viewBox="0 0 120 170" xmlns="http://www.w3.org/2000/svg">
+            <rect width="120" height="170" fill="white" />
+            {/* Border */}
+            <rect x="3" y="3" width="114" height="164" fill="none" stroke="#e0e0e0" strokeWidth="0.5" />
+            {/* Header: QR left, Title center, Logo right */}
+            <QRBlock x={8} y={7} s={18} />
+            <text x="60" y="12" textAnchor="middle" fontSize="5" fontWeight="bold" fill="#1a1a1a">فاتورة ضريبية</text>
+            <text x="60" y="18" textAnchor="middle" fontSize="3.5" fill="#666">الرقم   INV-25-1-000014</text>
+            <text x="60" y="22" textAnchor="middle" fontSize="3.5" fill="#666">التاريخ   2025/09/24</text>
+            <LogoBox x={88} y={6} w={22} h={20} />
+            {/* From / To section */}
+            <text x="110" y="34" textAnchor="end" fontSize="3.5" fill="#888">من :</text>
+            <text x="110" y="39" textAnchor="end" fontSize="4" fontWeight="bold" fill="#1a1a1a">ضع اسم شركتك</text>
+            <text x="110" y="43" textAnchor="end" fontSize="3" fill="#666">العنوان :</text>
+            <Lines x={75} y={44} w={35} count={2} gap={3} />
+            <text x="60" y="34" textAnchor="end" fontSize="3.5" fill="#888">إلى :</text>
+            <Lines x={10} y={36} w={45} count={3} gap={3} />
+            {/* Table */}
+            <rect x={8} y={54} width={104} height={7} fill="#f3f4f6" stroke={borders ? '#ccc' : 'none'} strokeWidth={borders ? 0.3 : 0} />
+            <text x="107" y="59" textAnchor="end" fontSize="3.5" fontWeight="bold" fill="#333">البند</text>
+            <text x="78" y="59" textAnchor="middle" fontSize="3.5" fontWeight="bold" fill="#333">الوصف</text>
+            <text x="52" y="59" textAnchor="middle" fontSize="3.5" fontWeight="bold" fill="#333">السعر</text>
+            <text x="36" y="59" textAnchor="middle" fontSize="3.5" fontWeight="bold" fill="#333">الكمية</text>
+            <text x="18" y="59" textAnchor="middle" fontSize="3.5" fontWeight="bold" fill="#333">المجموع</text>
+            {/* Table row */}
+            <rect x={8} y={61} width={104} height={6} fill="white" stroke={borders ? '#eee' : 'none'} strokeWidth={borders ? 0.3 : 0} />
+            <text x="107" y="65" textAnchor="end" fontSize="3" fill="#333">شاشة كمبيوتر حديثة</text>
+            <text x="52" y="65" textAnchor="middle" fontSize="3" fill="#333">5,000.00</text>
+            <text x="36" y="65" textAnchor="middle" fontSize="3" fill="#333">1</text>
+            <text x="18" y="65" textAnchor="middle" fontSize="3" fill="#333">5,000.00</text>
+            {/* Totals */}
+            <text x="50" y="76" textAnchor="end" fontSize="3.5" fill="#333">المجموع</text>
+            <text x="18" y="76" textAnchor="middle" fontSize="3.5" fill="#333">5,000.00</text>
+            <line x1={8} y1={78} x2={55} y2={78} stroke="#e5e7eb" strokeWidth="0.5" />
+            <text x="50" y="83" textAnchor="end" fontSize="3.5" fill="#333">القيمة المضافة 15%</text>
+            <text x="18" y="83" textAnchor="middle" fontSize="3.5" fill="#333">750.00</text>
+            <line x1={8} y1={85} x2={55} y2={85} stroke="#e5e7eb" strokeWidth="0.5" />
+            <text x="50" y="90" textAnchor="end" fontSize="3.5" fontWeight="bold" fill="#333">الإجمالي ( ﷼ )</text>
+            <text x="18" y="90" textAnchor="middle" fontSize="3.5" fontWeight="bold" fill="#333">5,750.00</text>
+            <line x1={8} y1={92} x2={55} y2={92} stroke="#333" strokeWidth="0.8" />
+            <text x="50" y="97" textAnchor="end" fontSize="3.5" fill="#333">المدفوع</text>
+            <text x="18" y="97" textAnchor="middle" fontSize="3.5" fill="#333">5,750.00</text>
+            <line x1={8} y1={99} x2={55} y2={99} stroke="#e5e7eb" strokeWidth="0.5" />
+            <text x="50" y="104" textAnchor="end" fontSize="3.5" fill="#333">المستحق ( ﷼ )</text>
+            <text x="18" y="104" textAnchor="middle" fontSize="3.5" fill="#333">0.00</text>
+            {/* Signature */}
+            <line x1={8} y1={120} x2={45} y2={120} stroke="#ccc" strokeWidth="0.8" />
+            <text x="26" y="125" textAnchor="middle" fontSize="3.5" fill="#999">التوقيع</text>
+            {/* Notes */}
+            <text x="108" y="135" textAnchor="end" fontSize="4" fontWeight="bold" fill="#333">ملاحظات</text>
         </svg>
     );
 
-    // D2: Company info top-right, Logo center, QR bottom-right
+    /* ── Design 2: Bilingual Invoice ──── */
     const D2 = ({ borders }) => (
-        <svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
-            <rect width="120" height="160" fill="white" />
-            <text x="95" y="10" textAnchor="middle" fontSize="4.5" fontWeight="bold" fill="#1a1a1a">{t('Dafater Advertising', 'دفاتر للدعاية والإعلان')}</text>
-            <text x="60" y="10" textAnchor="middle" fontSize="4.5" fontWeight="bold" fill="#1a1a1a">{t('Simplified Tax Invoice', 'فاتورة ضريبية مبسطة')}</text>
-            <LogoBox x={8} y={4} w={22} h={16} />
-            <QRBlock x={38} y={4} s={18} />
-            <Lines x={80} y={14} w={30} count={3} gap={3} />
-            <Lines x={10} y={28} w={30} count={2} gap={3} />
-            <Lines x={75} y={28} w={35} count={2} gap={3} />
-            <Lines x={10} y={40} w={55} count={2} gap={3} />
-            <TableHeader y={50} borders={borders} />
-            <TableRows y={57} rows={3} borders={borders} />
-            <Lines x={60} y={80} w={50} count={4} gap={4} />
-            <line x1={10} y1={105} x2={55} y2={105} stroke="#ccc" strokeWidth="0.8" />
-            <text x="32" y="110" textAnchor="middle" fontSize="4" fill="#999">{t('Signature', 'التوقيع')}</text>
-            <text x="98" y={110} textAnchor="middle" fontSize="3.5" fill="#999">{t('Notes', 'ملاحظات')}</text>
+        <svg viewBox="0 0 120 170" xmlns="http://www.w3.org/2000/svg">
+            <rect width="120" height="170" fill="white" />
+            {/* Header: Company AR right, Logo center, Company EN left */}
+            <text x="112" y="10" textAnchor="end" fontSize="4" fontWeight="bold" fill="#1a1a1a">ضع اسم شركتك</text>
+            <Lines x={82} y={12} w={30} count={2} gap={3} />
+            <LogoBox x={47} y={5} w={26} h={18} />
+            <text x="8" y="10" textAnchor="start" fontSize="3.5" fontWeight="bold" fill="#1a1a1a">Company Name</text>
+            <Lines x={8} y={12} w={30} count={2} gap={3} />
+            {/* Title */}
+            <text x="60" y="30" textAnchor="middle" fontSize="5" fontWeight="bold" fill="#1a1a1a">فاتورة ضريبية</text>
+            <text x="60" y="35" textAnchor="middle" fontSize="4" fontWeight="bold" fill="#1a1a1a">TAX INVOICE</text>
+            {/* Invoice info left, Client info right */}
+            <text x="30" y="42" textAnchor="middle" fontSize="3" fill="#666">الرقم - Number   INV-25-1-000014</text>
+            <text x="30" y="46" textAnchor="middle" fontSize="3" fill="#666">التاريخ - Date   2025/09/24</text>
+            <Lines x={65} y={40} w={45} count={3} gap={3} />
+            {/* Table with bilingual headers */}
+            <rect x={8} y={53} width={104} height={8} fill="#f3f4f6" stroke={borders ? '#ccc' : 'none'} strokeWidth={borders ? 0.3 : 0} />
+            <text x="105" y="57" textAnchor="end" fontSize="3" fontWeight="bold" fill="#333">البند</text>
+            <text x="105" y="60" textAnchor="end" fontSize="2.5" fill="#666">Item</text>
+            <text x="75" y="57" textAnchor="middle" fontSize="3" fontWeight="bold" fill="#333">الوصف</text>
+            <text x="75" y="60" textAnchor="middle" fontSize="2.5" fill="#666">Description</text>
+            <text x="50" y="57" textAnchor="middle" fontSize="3" fontWeight="bold" fill="#333">السعر</text>
+            <text x="50" y="60" textAnchor="middle" fontSize="2.5" fill="#666">Price</text>
+            <text x="34" y="57" textAnchor="middle" fontSize="3" fontWeight="bold" fill="#333">الكمية</text>
+            <text x="34" y="60" textAnchor="middle" fontSize="2.5" fill="#666">Quantity</text>
+            <text x="16" y="57" textAnchor="middle" fontSize="3" fontWeight="bold" fill="#333">المجموع</text>
+            <text x="16" y="60" textAnchor="middle" fontSize="2.5" fill="#666">Total</text>
+            {/* Table row */}
+            <rect x={8} y={61} width={104} height={6} fill="white" stroke={borders ? '#eee' : 'none'} strokeWidth={borders ? 0.3 : 0} />
+            <text x="105" y="65" textAnchor="end" fontSize="3" fill="#333">شاشة كمبيوتر حديثة</text>
+            <text x="50" y="65" textAnchor="middle" fontSize="3" fill="#333">5,000.00</text>
+            <text x="34" y="65" textAnchor="middle" fontSize="3" fill="#333">1</text>
+            <text x="16" y="65" textAnchor="middle" fontSize="3" fill="#333">5,000.00</text>
+            {/* Bilingual Totals */}
+            <text x="50" y="76" textAnchor="end" fontSize="3" fill="#333">المجموع</text>
+            <text x="50" y="79" textAnchor="end" fontSize="2.5" fill="#666">Subtotal</text>
+            <text x="16" y="77" textAnchor="middle" fontSize="3" fill="#333">5,000.00</text>
+            <line x1={8} y1={81} x2={55} y2={81} stroke="#e5e7eb" strokeWidth="0.5" />
+            <text x="50" y="86" textAnchor="end" fontSize="3" fill="#333">القيمة المضافة 15%</text>
+            <text x="16" y="86" textAnchor="middle" fontSize="3" fill="#333">750.00</text>
+            <line x1={8} y1={88} x2={55} y2={88} stroke="#e5e7eb" strokeWidth="0.5" />
+            <text x="50" y="93" textAnchor="end" fontSize="3" fontWeight="bold" fill="#333">الإجمالي ( ﷼ )</text>
+            <text x="50" y="96" textAnchor="end" fontSize="2.5" fill="#666">Total (SAR)</text>
+            <text x="16" y="94" textAnchor="middle" fontSize="3" fontWeight="bold" fill="#333">5,750.00</text>
+            <line x1={8} y1={98} x2={55} y2={98} stroke="#333" strokeWidth="0.8" />
+            <text x="50" y="103" textAnchor="end" fontSize="3" fill="#333">المدفوع</text>
+            <text x="50" y="106" textAnchor="end" fontSize="2.5" fill="#666">Paid</text>
+            <text x="16" y="104" textAnchor="middle" fontSize="3" fill="#333">5,750.00</text>
+            <line x1={8} y1={108} x2={55} y2={108} stroke="#e5e7eb" strokeWidth="0.5" />
+            <text x="50" y="113" textAnchor="end" fontSize="3" fill="#333">المستحق ( ﷼ )</text>
+            <text x="50" y="116" textAnchor="end" fontSize="2.5" fill="#666">Due (SAR)</text>
+            <text x="16" y="114" textAnchor="middle" fontSize="3" fill="#333">0.00</text>
+            {/* Signature */}
+            <line x1={8} y1={126} x2={45} y2={126} stroke="#ccc" strokeWidth="0.8" />
+            <text x="26" y="131" textAnchor="middle" fontSize="3" fill="#999">Signature - التوقيع</text>
+            {/* Notes + QR bottom right */}
+            <text x="100" y="131" textAnchor="middle" fontSize="3" fill="#999">Notes - ملاحظات</text>
+            <QRBlock x={88} y={133} s={18} />
+            {/* Bank info bar */}
+            <rect x={3} y={157} width={114} height={10} fill="#f3f4f6" />
+            <text x="60" y="163" textAnchor="middle" fontSize="2.8" fill="#666">مصرف الراجحي    رقم الحساب : 00000000000000    رقم الايبان : SA0000000000000000000</text>
         </svg>
     );
 
-    // D3: Large QR top-left, title center, logo top-right
-    const D3 = ({ borders }) => (
-        <svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
-            <rect width="120" height="160" fill="white" />
-            <QRBlock x={8} y={4} s={24} />
-            <text x="60" y="12" textAnchor="middle" fontSize="4.5" fontWeight="bold" fill="#1a1a1a">{t('Simplified Tax Invoice', 'فاتورة ضريبية مبسطة')}</text>
-            <Lines x={42} y={16} w={40} count={2} gap={3} />
-            <LogoBox x={90} y={4} w={22} h={18} />
-            <rect x={10} y={32} width={47} height={18} fill="#f9fafb" stroke="#e5e7eb" strokeWidth="0.5" />
-            <text x="13" y="38" fontSize="4" fill="#555">{t('From:', 'من:')}</text>
-            <Lines x={13} y={40} w={40} count={3} gap={3} />
-            <rect x={63} y={32} width={47} height={18} fill="#f9fafb" stroke="#e5e7eb" strokeWidth="0.5" />
-            <text x="66" y="38" fontSize="4" fill="#555">{t('To:', 'إلى:')}</text>
-            <Lines x={66} y={40} w={40} count={3} gap={3} />
-            <TableHeader y={54} borders={borders} />
-            <TableRows y={61} rows={3} borders={borders} />
-            <Lines x={60} y={84} w={50} count={4} gap={4} />
-            <line x1={10} y1={109} x2={55} y2={109} stroke="#ccc" strokeWidth="0.8" />
-            <text x="32" y="114" textAnchor="middle" fontSize="4" fill="#999">{t('Signature', 'التوقيع')}</text>
-            <text x="98" y="114" textAnchor="middle" fontSize="3.5" fill="#999">{t('Notes', 'ملاحظات')}</text>
-        </svg>
-    );
-
-    // D4: Invoice info top-left, Logo top-right, QR top-center
-    const D4 = ({ borders }) => (
-        <svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
-            <rect width="120" height="160" fill="white" />
-            <text x="60" y="10" textAnchor="middle" fontSize="4.5" fontWeight="bold" fill="#1a1a1a">{t('Simplified Tax Invoice', 'فاتورة ضريبية مبسطة')}</text>
-            <Lines x={10} y={14} w={35} count={2} gap={3} />
-            <QRBlock x={47} y={4} s={24} />
-            <LogoBox x={90} y={4} w={22} h={18} />
-            <Lines x={10} y={28} w={30} count={2} gap={3} />
-            <Lines x={75} y={28} w={35} count={2} gap={3} />
-            <rect x={10} y={38} width={47} height={18} fill="#f9fafb" stroke="#e5e7eb" strokeWidth="0.5" />
-            <text x="13" y="44" fontSize="4" fill="#555">{t('From:', 'من:')}</text>
-            <Lines x={13} y={46} w={40} count={2} gap={3} />
-            <rect x={63} y={38} width={47} height={18} fill="#f9fafb" stroke="#e5e7eb" strokeWidth="0.5" />
-            <text x="66" y="44" fontSize="4" fill="#555">{t('To:', 'إلى:')}</text>
-            <Lines x={66} y={46} w={40} count={2} gap={3} />
-            <TableHeader y={60} borders={borders} />
-            <TableRows y={67} rows={3} borders={borders} />
-            <Lines x={60} y={90} w={50} count={4} gap={4} />
-            <line x1={10} y1={115} x2={55} y2={115} stroke="#ccc" strokeWidth="0.8" />
-            <text x="32" y="120" textAnchor="middle" fontSize="4" fill="#999">{t('Signature', 'التوقيع')}</text>
-            <text x="98" y="120" textAnchor="middle" fontSize="3.5" fill="#999">{t('Notes', 'ملاحظات')}</text>
-        </svg>
-    );
-
-    // D5: Logo center-top, company info sides, QR below header
-    const D5 = ({ borders }) => (
-        <svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
-            <rect width="120" height="160" fill="white" />
-            <LogoBox x={47} y={4} w={26} h={20} />
-            <text x="60" y="30" textAnchor="middle" fontSize="4.5" fontWeight="bold" fill="#1a1a1a">{t('Simplified Tax Invoice', 'فاتورة ضريبية مبسطة')}</text>
-            <Lines x={10} y={8} w={35} count={3} gap={3} />
-            <Lines x={80} y={8} w={30} count={3} gap={3} />
-            <Lines x={10} y={35} w={30} count={2} gap={3} />
-            <Lines x={75} y={35} w={35} count={2} gap={3} />
-            <Lines x={10} y={47} w={55} count={2} gap={3} />
-            <TableHeader y={56} borders={borders} />
-            <TableRows y={63} rows={3} borders={borders} />
-            <Lines x={60} y={86} w={50} count={4} gap={4} />
-            <line x1={10} y1={111} x2={55} y2={111} stroke="#ccc" strokeWidth="0.8" />
-            <text x="32" y="116" textAnchor="middle" fontSize="4" fill="#999">{t('Signature', 'التوقيع')}</text>
-            <text x="98" y="116" textAnchor="middle" fontSize="3.5" fill="#999">{t('Notes', 'ملاحظات')}</text>
-        </svg>
-    );
-
-    // D6: Company name bold top, details columns, logo center, invoice title below
-    const D6 = ({ borders }) => (
-        <svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
-            <rect width="120" height="160" fill="white" />
-            <text x="95" y="10" textAnchor="middle" fontSize="4.5" fontWeight="bold" fill="#1a1a1a">{t('Dafater Advertising', 'دفاتر للدعاية والإعلان')}</text>
-            <Lines x={10} y={14} w={45} count={3} gap={3} />
-            <LogoBox x={47} y={4} w={26} h={18} />
-            <Lines x={80} y={14} w={30} count={3} gap={3} />
-            <text x="60" y="30" textAnchor="middle" fontSize="4.5" fontWeight="bold" fill="#1a1a1a">{t('Simplified Tax Invoice', 'فاتورة ضريبية مبسطة')}</text>
-            <Lines x={25} y={33} w={30} count={2} gap={3} />
-            <Lines x={65} y={33} w={30} count={2} gap={3} />
-            <Lines x={10} y={44} w={55} count={3} gap={3} />
-            <TableHeader y={56} borders={borders} />
-            <TableRows y={63} rows={3} borders={borders} />
-            <Lines x={60} y={86} w={50} count={4} gap={4} />
-            <line x1={10} y1={111} x2={55} y2={111} stroke="#ccc" strokeWidth="0.8" />
-            <text x="32" y="116" textAnchor="middle" fontSize="4" fill="#999">{t('Signature', 'التوقيع')}</text>
-            <QRBlock x={87} y={96} s={22} />
-            <text x="98" y={120} textAnchor="middle" fontSize="3.5" fill="#999">{t('Notes', 'ملاحظات')}</text>
-        </svg>
-    );
-
-    // D7: Large QR center-top, title+details below, logo top-right
-    const D7 = ({ borders }) => (
-        <svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
-            <rect width="120" height="160" fill="white" />
-            <Lines x={10} y={8} w={35} count={3} gap={3} />
-            <QRBlock x={47} y={4} s={26} />
-            <LogoBox x={90} y={4} w={22} h={18} />
-            <text x="60" y="36" textAnchor="middle" fontSize="4.5" fontWeight="bold" fill="#1a1a1a">{t('Simplified Tax Invoice', 'فاتورة ضريبية مبسطة')}</text>
-            <Lines x={10} y={39} w={30} count={2} gap={3} />
-            <Lines x={75} y={39} w={35} count={2} gap={3} />
-            <rect x={10} y={48} width={47} height={16} fill="#f9fafb" stroke="#e5e7eb" strokeWidth="0.5" />
-            <text x="13" y="54" fontSize="4" fill="#555">{t('From:', 'من:')}</text>
-            <Lines x={13} y={56} w={40} count={2} gap={3} />
-            <rect x={63} y={48} width={47} height={16} fill="#f9fafb" stroke="#e5e7eb" strokeWidth="0.5" />
-            <text x="66" y="54" fontSize="4" fill="#555">{t('To:', 'إلى:')}</text>
-            <Lines x={66} y={56} w={40} count={2} gap={3} />
-            <TableHeader y={68} borders={borders} />
-            <TableRows y={75} rows={3} borders={borders} />
-            <Lines x={60} y={98} w={50} count={4} gap={4} />
-            <line x1={10} y1={123} x2={55} y2={123} stroke="#ccc" strokeWidth="0.8" />
-            <text x="32" y="128" textAnchor="middle" fontSize="4" fill="#999">{t('Signature', 'التوقيع')}</text>
-            <text x="98" y="128" textAnchor="middle" fontSize="3.5" fill="#999">{t('Notes', 'ملاحظات')}</text>
-        </svg>
-    );
-
-    // D8: Logo top-left, Large QR top-center, company info top-right
-    const D8 = ({ borders }) => (
-        <svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
-            <rect width="120" height="160" fill="white" />
-            <LogoBox x={8} y={4} w={22} h={20} />
-            <QRBlock x={47} y={4} s={24} />
-            <Lines x={80} y={8} w={30} count={4} gap={3} />
-            <text x="60" y="34" textAnchor="middle" fontSize="4.5" fontWeight="bold" fill="#1a1a1a">{t('Simplified Tax Invoice', 'فاتورة ضريبية مبسطة')}</text>
-            <Lines x={10} y={37} w={30} count={2} gap={3} />
-            <Lines x={75} y={37} w={35} count={2} gap={3} />
-            <rect x={10} y={46} width={47} height={16} fill="#f9fafb" stroke="#e5e7eb" strokeWidth="0.5" />
-            <text x="13" y="52" fontSize="4" fill="#555">{t('From:', 'من:')}</text>
-            <Lines x={13} y={54} w={40} count={2} gap={3} />
-            <rect x={63} y={46} width={47} height={16} fill="#f9fafb" stroke="#e5e7eb" strokeWidth="0.5" />
-            <text x="66" y="52" fontSize="4" fill="#555">{t('To:', 'إلى:')}</text>
-            <Lines x={66} y={54} w={40} count={2} gap={3} />
-            <TableHeader y={66} borders={borders} />
-            <TableRows y={73} rows={3} borders={borders} />
-            <Lines x={60} y={96} w={50} count={4} gap={4} />
-            <line x1={10} y1={121} x2={55} y2={121} stroke="#ccc" strokeWidth="0.8" />
-            <text x="32" y="126" textAnchor="middle" fontSize="4" fill="#999">{t('Signature', 'التوقيع')}</text>
-            <text x="98" y="126" textAnchor="middle" fontSize="3.5" fill="#999">{t('Notes', 'ملاحظات')}</text>
-        </svg>
-    );
-
-    // D9: QR top-left, title center, Logo top-right
-    const D9 = ({ borders }) => (
-        <svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
-            <rect width="120" height="160" fill="white" />
-            <QRBlock x={8} y={4} s={22} />
-            <text x="60" y="12" textAnchor="middle" fontSize="4.5" fontWeight="bold" fill="#1a1a1a">{t('Simplified Tax Invoice', 'فاتورة ضريبية مبسطة')}</text>
-            <Lines x={38} y={16} w={35} count={2} gap={3} />
-            <LogoBox x={90} y={4} w={22} h={18} />
-            <Lines x={10} y={30} w={30} count={2} gap={3} />
-            <Lines x={75} y={30} w={35} count={3} gap={3} />
-            <rect x={10} y={42} width={47} height={16} fill="#f9fafb" stroke="#e5e7eb" strokeWidth="0.5" />
-            <text x="13" y="48" fontSize="4" fill="#555">{t('From:', 'من:')}</text>
-            <Lines x={13} y={50} w={40} count={2} gap={3} />
-            <rect x={63} y={42} width={47} height={16} fill="#f9fafb" stroke="#e5e7eb" strokeWidth="0.5" />
-            <text x="66" y="48" fontSize="4" fill="#555">{t('To:', 'إلى:')}</text>
-            <Lines x={66} y={50} w={40} count={2} gap={3} />
-            <TableHeader y={62} borders={borders} />
-            <TableRows y={69} rows={3} borders={borders} />
-            <Lines x={60} y={92} w={50} count={4} gap={4} />
-            <line x1={10} y1={117} x2={55} y2={117} stroke="#ccc" strokeWidth="0.8" />
-            <text x="32" y="122" textAnchor="middle" fontSize="4" fill="#999">{t('Signature', 'التوقيع')}</text>
-            <text x="98" y="122" textAnchor="middle" fontSize="3.5" fill="#999">{t('Notes', 'ملاحظات')}</text>
-        </svg>
-    );
-
-    // D10: Logo top-left, Very large QR top-center, company info top-right
-    const D10 = ({ borders }) => (
-        <svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg">
-            <rect width="120" height="160" fill="white" />
-            <LogoBox x={6} y={4} w={20} h={22} />
-            <text x="60" y="10" textAnchor="middle" fontSize="4.5" fontWeight="bold" fill="#1a1a1a">{t('Simplified Tax Invoice', 'فاتورة ضريبية مبسطة')}</text>
-            <Lines x={80} y={8} w={30} count={4} gap={3} />
-            <Lines x={10} y={30} w={30} count={2} gap={3} />
-            <Lines x={75} y={30} w={35} count={2} gap={3} />
-            <Lines x={10} y={42} w={55} count={2} gap={3} />
-            <TableHeader y={52} borders={borders} />
-            <TableRows y={59} rows={3} borders={borders} />
-            <Lines x={60} y={82} w={50} count={4} gap={4} />
-            <line x1={10} y1={107} x2={55} y2={107} stroke="#ccc" strokeWidth="0.8" />
-            <text x="32" y="112" textAnchor="middle" fontSize="4" fill="#999">{t('Signature', 'التوقيع')}</text>
-            <QRBlock x={85} y={94} s={24} />
-            <text x="98" y={120} textAnchor="middle" fontSize="3.5" fill="#999">{t('Notes', 'ملاحظات')}</text>
-        </svg>
-    );
-
+    /* ── Thermal Design ──── */
     const ThermalDesign = ({ borders }) => (
-        <svg viewBox="0 0 80 160" xmlns="http://www.w3.org/2000/svg">
-            <rect width="80" height="160" fill="white" />
-            <LogoBox x={29} y={4} w={22} h={16} />
-            <text x="40" y="28" textAnchor="middle" fontSize="4.5" fontWeight="bold" fill="#1a1a1a">{t('Simplified Tax Invoice', 'فاتورة ضريبية مبسطة')}</text>
-            <Lines x={15} y={32} w={50} count={3} gap={3} />
-            <line x1={5} y1={44} x2={75} y2={44} stroke="#ccc" strokeDasharray="2,2" strokeWidth="0.8" />
-            <Lines x={5} y={48} w={70} count={2} gap={3} />
-            <line x1={5} y1={56} x2={75} y2={56} stroke="#ccc" strokeDasharray="2,2" strokeWidth="0.8" />
-            <TableHeader y={58} bg="white" borders={false} />
-            <TableRows y={65} rows={4} borders={false} />
-            <line x1={5} y1={92} x2={75} y2={92} stroke="#ccc" strokeDasharray="2,2" strokeWidth="0.8" />
-            <Lines x={40} y={96} w={35} count={4} gap={4} />
-            <line x1={5} y1={115} x2={75} y2={115} stroke="#ccc" strokeDasharray="2,2" strokeWidth="0.8" />
-            <text x="40" y="122" textAnchor="middle" fontSize="3.5" fill="#999">{t('Notes', 'ملاحظات')}</text>
-            <Lines x={15} y={125} w={50} count={2} gap={3} />
-            <QRBlock x={29} y={135} s={22} />
+        <svg viewBox="0 0 80 180" xmlns="http://www.w3.org/2000/svg">
+            <rect width="80" height="180" fill="white" />
+            {/* Logo */}
+            <LogoBox x={22} y={4} w={36} h={28} />
+            {/* Company info centered */}
+            <text x="40" y="38" textAnchor="middle" fontSize="4.5" fontWeight="bold" fill="#1a1a1a">ضع اسم شركتك</text>
+            <text x="40" y="43" textAnchor="middle" fontSize="3" fill="#666">7860 محمد بن عبدالجليل</text>
+            <text x="40" y="47" textAnchor="middle" fontSize="3" fill="#666">الرياض</text>
+            {/* Title */}
+            <text x="40" y="54" textAnchor="middle" fontSize="5" fontWeight="bold" fill="#1a1a1a">فاتورة ضريبية</text>
+            <text x="40" y="59" textAnchor="middle" fontSize="3.5" fill="#333">INV-25-1-000012</text>
+            <text x="40" y="64" textAnchor="middle" fontSize="3.5" fill="#333">21/09/2025</text>
+            {/* Client info centered */}
+            <text x="40" y="71" textAnchor="middle" fontSize="3" fill="#333">العميل : مؤسسة النخبة للتجارة العامة</text>
+            <text x="40" y="75" textAnchor="middle" fontSize="3" fill="#333">الرقم الضريبي : 302112233400003</text>
+            <text x="40" y="79" textAnchor="middle" fontSize="2.5" fill="#333">العنوان : 350 طريق الملك عبدالله, المدينة المنورة</text>
+            {/* Table separator */}
+            <line x1={5} y1={82} x2={75} y2={82} stroke="#ccc" strokeWidth="0.5" />
+            {/* Table header */}
+            <text x="72" y="87" textAnchor="end" fontSize="3" fontWeight="bold" fill="#333">البند</text>
+            <text x="42" y="87" textAnchor="middle" fontSize="3" fontWeight="bold" fill="#333">السعر</text>
+            <text x="28" y="87" textAnchor="middle" fontSize="3" fontWeight="bold" fill="#333">الكمية</text>
+            <text x="12" y="87" textAnchor="middle" fontSize="3" fontWeight="bold" fill="#333">المجموع</text>
+            <line x1={5} y1={89} x2={75} y2={89} stroke="#ccc" strokeWidth="0.5" />
+            {/* Table row */}
+            <text x="72" y="94" textAnchor="end" fontSize="3" fill="#333">شاشة كمبيوتر حديثة</text>
+            <text x="42" y="94" textAnchor="middle" fontSize="3" fill="#333">5,000.00</text>
+            <text x="28" y="94" textAnchor="middle" fontSize="3" fill="#333">1</text>
+            <text x="12" y="94" textAnchor="middle" fontSize="3" fill="#333">5,000.00</text>
+            {/* Totals */}
+            <line x1={5} y1={98} x2={75} y2={98} stroke="#ccc" strokeDasharray="2,2" strokeWidth="0.5" />
+            <text x="45" y="104" textAnchor="end" fontSize="3" fill="#333">المجموع</text>
+            <text x="12" y="104" textAnchor="middle" fontSize="3" fill="#333">5,000.00</text>
+            <line x1={5} y1={106} x2={75} y2={106} stroke="#e5e7eb" strokeDasharray="2,2" strokeWidth="0.5" />
+            <text x="45" y="111" textAnchor="end" fontSize="3" fill="#333">القيمة المضافة 15%</text>
+            <text x="12" y="111" textAnchor="middle" fontSize="3" fill="#333">750.00</text>
+            <line x1={5} y1={113} x2={75} y2={113} stroke="#e5e7eb" strokeDasharray="2,2" strokeWidth="0.5" />
+            <text x="45" y="118" textAnchor="end" fontSize="3" fontWeight="bold" fill="#333">الإجمالي ( ﷼ )</text>
+            <text x="12" y="118" textAnchor="middle" fontSize="3" fontWeight="bold" fill="#333">5,750.00</text>
+            <line x1={5} y1={120} x2={75} y2={120} stroke="#e5e7eb" strokeDasharray="2,2" strokeWidth="0.5" />
+            <text x="45" y="125" textAnchor="end" fontSize="3" fill="#333">المدفوع</text>
+            <text x="12" y="125" textAnchor="middle" fontSize="3" fill="#333">5,750.00</text>
+            <line x1={5} y1={127} x2={75} y2={127} stroke="#e5e7eb" strokeDasharray="2,2" strokeWidth="0.5" />
+            <text x="45" y="132" textAnchor="end" fontSize="3" fill="#333">المستحق ( ﷼ )</text>
+            <text x="12" y="132" textAnchor="middle" fontSize="3" fill="#333">0.00</text>
+            {/* Notes */}
+            <text x="40" y="142" textAnchor="middle" fontSize="4" fontWeight="bold" fill="#333">ملاحظات</text>
+            {/* QR */}
+            <QRBlock x={25} y={148} s={30} />
         </svg>
     );
 
-    const designComponents = [D1, D2, D3, D4, D5, D6, D7, D8, D9, D10];
+    const designComponents = [D1, D2];
 
     /* ── Navigation ──────────────────────────────────────────── */
     const handleNext = () => {
@@ -410,21 +320,6 @@ const InvoiceTemplateAdd = () => {
         finally { setSaving(false); }
     };
 
-    /* ── Breadcrumbs ─────────────────────────────────────────── */
-    const Breadcrumbs = () => (
-        <div className="flex items-center gap-1 mb-4 px-4 pt-4">
-            <Link to="/dashboard" className="flex items-center justify-center w-9 h-9 rounded bg-white border border-gray-200 hover:bg-gray-50 shadow-sm">
-                <Home size={16} className="text-gray-500" />
-            </Link>
-            <ChevronLeft size={14} className="text-gray-300 mx-1" />
-            <Link to="/dashboard/templates" className="px-3 h-9 flex items-center rounded bg-white border border-gray-200 hover:bg-gray-50 text-sm text-gray-600 shadow-sm">{t('Template Designs', 'تصاميم القوالب')}</Link>
-            <ChevronLeft size={14} className="text-gray-300 mx-1" />
-            <Link to="/dashboard/templates/invoices" className="px-3 h-9 flex items-center rounded bg-white border border-gray-200 hover:bg-gray-50 text-sm text-gray-600 shadow-sm">{t('Invoice Templates', 'قوالب الفواتير')}</Link>
-            <ChevronLeft size={14} className="text-gray-300 mx-1" />
-            <span className="px-3 h-9 flex items-center rounded bg-white border border-gray-200 text-sm font-semibold text-gray-800 shadow-sm">{t('Add', 'إضافة')}</span>
-        </div>
-    );
-
     /* ── RadioCard ─────────────────────────────────────────── */
     const RadioCard = ({ selected, onClick, label, desc }) => (
         <button onClick={onClick} className={`w-full flex items-center gap-3 p-4 rounded-lg border text-right transition-all ${selected ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
@@ -440,40 +335,11 @@ const InvoiceTemplateAdd = () => {
 
     /* ── Step Indicator ────────────────────────────────────── */
     const getStepLabels = (t) => [t('Basic Options', 'الخيارات الأساسية'), t('Choose Design', 'اختيار التصميم'), t('Table Settings', 'إعدادات الجدول')];
-    const StepIndicator = () => (
-        <div className="flex items-center justify-between px-8 py-4 border-b border-gray-200">
-            {getStepLabels(t).map((label, i) => {
-                const s = i + 1;
-                const isActive = step >= s;
-                const isClickable = s < step;
-                return (
-                    <React.Fragment key={s}>
-                        <button
-                            onClick={() => isClickable && handleStepClick(s)}
-                            className={`flex flex-col items-start gap-1 ${isClickable ? 'cursor-pointer' : 'cursor-default'}`}
-                            disabled={!isClickable}
-                        >
-                            <span className={`text-xs font-bold ${isActive ? 'text-indigo-600' : 'text-gray-400'}`}>
-                                Step {s}
-                            </span>
-                            <span className={`text-sm font-bold ${isActive ? 'text-gray-800' : 'text-gray-400'}`}>
-                                {label}
-                            </span>
-                        </button>
-                        {s < 3 && (
-                            <div className={`flex-1 h-1 mx-4 rounded-full ${step > s ? 'bg-indigo-500' : 'bg-gray-200'}`} />
-                        )}
-                    </React.Fragment>
-                );
-            })}
-        </div>
-    );
 
     const Step3DesignComponent = invoiceType === 'thermal' ? ThermalDesign : (designComponents[parseInt(selectedDesign.replace('design-', '')) - 1] || D1);
 
     return (
         <div className="min-h-screen bg-[#f5f7f9] flex flex-col" dir={isRtl ? 'rtl' : 'ltr'}>
-            {/* <Breadcrumbs /> */}
             <div className="flex-1 flex flex-col mx-4 mb-4">
                 <div className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col flex-1">
                     {/* ── Step Indicator ── */}
@@ -505,7 +371,7 @@ const InvoiceTemplateAdd = () => {
                     </div>
 
                     <div className="flex-1 overflow-y-auto">
-                        {/* ── Step 1: Basic Options (inline) ── */}
+                        {/* ── Step 1: Basic Options ── */}
                         {step === 1 && (
                             <div className="px-6 py-6 max-w-xl" dir={isRtl ? 'rtl' : 'ltr'}>
                                 <div className="mb-6">
@@ -530,7 +396,7 @@ const InvoiceTemplateAdd = () => {
                             </div>
                         )}
 
-                        {/* ── Step 2: Design Gallery (inline) ── */}
+                        {/* ── Step 2: Design Gallery ── */}
                         {step === 2 && (
                             <div className="bg-gray-100 p-6">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -566,7 +432,7 @@ const InvoiceTemplateAdd = () => {
                             </div>
                         )}
 
-                        {/* ── Step 3: Table Settings + Live Preview (inline) ── */}
+                        {/* ── Step 3: Table Settings + Live Preview ── */}
                         {step === 3 && (
                             <div className="flex flex-col lg:flex-row gap-6 p-6" dir={isRtl ? 'rtl' : 'ltr'}>
                                 <div className="lg:w-72 shrink-0 space-y-4">

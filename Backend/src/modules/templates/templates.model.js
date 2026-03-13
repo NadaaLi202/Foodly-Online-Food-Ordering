@@ -58,6 +58,12 @@ const templateSchema = new mongoose.Schema({
         required: [true, 'Template type is required']
     },
 
+    // Design ID for invoice templates
+    designId: {
+        type: String,
+        default: 'design-1'
+    },
+
     // Which branches this template applies to (empty = all branches)
     branches: [{
         type: mongoose.Schema.Types.ObjectId,

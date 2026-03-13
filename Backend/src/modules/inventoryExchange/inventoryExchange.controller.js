@@ -1,7 +1,7 @@
 import { inventoryExchangeModel } from "./inventoryExchange.model.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
-import { operationModel } from "../Operations/operations.model.js";
+import { operationModel } from "../operations/operations.model.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
 
 
