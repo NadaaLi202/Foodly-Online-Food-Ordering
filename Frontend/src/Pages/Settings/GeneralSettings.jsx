@@ -15,9 +15,12 @@ import toast from 'react-hot-toast';
 import { confirmDelete } from '../../utils/confirmDelete';
 import api from '../../services/api';
 import logError from '../../utils/logError';
+import { useAuth } from '../../context/AuthContext';
+import { SUPPORTED_CURRENCIES } from '../../utils/currencyFormatter';
 
 const GeneralSettings = () => {
     const { t, i18n } = useTranslation();
+    const { updateCompanySettings } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
@@ -65,6 +68,12 @@ const GeneralSettings = () => {
             ...prev,
             [name]: value
         }));
+
+        // Special handling for language switch (instant)
+        if (name === 'language') {
+            handleLanguageChange(value);
+        }
+
         // Clear error when typing
         if (errors[name]) {
             setErrors(prev => {
@@ -73,6 +82,14 @@ const GeneralSettings = () => {
                 return newErrors;
             });
         }
+    };
+
+    const handleLanguageChange = (lang) => {
+        i18n.changeLanguage(lang);
+        document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+        document.documentElement.lang = lang;
+        // Also update AuthContext immediately for sidebars/layouts
+        updateCompanySettings({ language: lang });
     };
 
     const handleLogoUpload = async (e) => {
@@ -163,6 +180,12 @@ const GeneralSettings = () => {
         setSaving(true);
         try {
             await api.patch('/settings/general', { settings });
+
+            // Propagate settings to global AuthContext
+            updateCompanySettings({
+                currency: settings.currency,
+                language: settings.language
+            });
 
             toast.custom((t_toast) => (
                 <div className={`${t_toast.visible ? 'animate-enter' : 'animate-leave'} max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 p-4 border-l-4 border-green-500`}>
@@ -404,14 +427,18 @@ const GeneralSettings = () => {
                                     <label className="block text-sm font-bold text-gray-700">
                                         {t('general_settings.currency')}
                                     </label>
-                                    <input
-                                        type="text"
+                                    <select
                                         name="currency"
                                         value={settings.currency}
                                         onChange={handleInputChange}
-                                        className="w-full h-11 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-gray-50"
-                                        readOnly
-                                    />
+                                        className="w-full h-11 px-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none bg-white appearance-none"
+                                    >
+                                        {SUPPORTED_CURRENCIES.map(curr => (
+                                            <option key={curr} value={curr}>
+                                                {curr} — {t(`currencies.${curr}`)}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 {/* Language */}

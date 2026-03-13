@@ -7,18 +7,39 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(null);
+    const [companySettings, setCompanySettings] = useState({
+        currency: localStorage.getItem('companyCurrency') || 'EGP',
+        language: localStorage.getItem('i18nextLng') || 'ar'
+    });
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+
+    const fetchCompanySettings = async () => {
+        try {
+            const response = await api.get('/settings?category=general');
+            if (response.data.status === 'success' && response.data.data.settings) {
+                const settings = response.data.data.settings;
+                const newSettings = {
+                    currency: settings.currency || 'EGP',
+                    language: settings.language || 'ar'
+                };
+                setCompanySettings(newSettings);
+                localStorage.setItem('companyCurrency', newSettings.currency);
+            }
+        } catch (error) {
+            logError("Failed to fetch company settings", error);
+        }
+    };
 
     useEffect(() => {
         const storedToken = localStorage.getItem("token");
         const storedUser = localStorage.getItem("user");
-        const storedRole = localStorage.getItem("role");
 
         if (storedToken && storedUser) {
             setToken(storedToken);
             try {
                 setUser(JSON.parse(storedUser));
+                fetchCompanySettings();
             } catch (e) {
                 logError("Failed to parse user from local storage", e);
                 localStorage.removeItem("user");
@@ -35,6 +56,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("token", authToken);
         localStorage.setItem("user", JSON.stringify(userData));
         localStorage.setItem("role", userData?.role);
+        fetchCompanySettings();
     };
 
     const loginAsCompany = (companyData, companyToken) => {
@@ -67,17 +89,29 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setToken(null);
         setUser(null);
+        setCompanySettings({ currency: 'EGP', language: 'ar' });
         sessionStorage.removeItem("superAdminToken");
         sessionStorage.removeItem("superAdminUser");
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         localStorage.removeItem("role");
+        localStorage.removeItem("companyCurrency");
         navigate("/login");
+    };
+
+    const updateCompanySettings = (newSettings) => {
+        setCompanySettings(prev => ({ ...prev, ...newSettings }));
+        if (newSettings.currency) {
+            localStorage.setItem('companyCurrency', newSettings.currency);
+        }
     };
 
     const value = {
         user,
         token,
+        companySettings,
+        updateCompanySettings,
+        fetchCompanySettings,
         login,
         loginAsCompany,
         restoreSuperAdmin,
