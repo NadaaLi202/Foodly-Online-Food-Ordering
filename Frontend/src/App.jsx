@@ -28,7 +28,7 @@ import PurchaseReturns from './Pages/Purchases/PurchaseReturns';
 import Suppliers from './Pages/Purchases/Suppliers';
 import SupplierPayments from './Pages/Purchases/SupplierPayments';
 import Invoices from './Pages/Sales/Invoices';
-import Returns from './Pages/Sales/Returns';
+import Returns from './Pages/Sales/returns';
 import Quotations from './Pages/Sales/Quotations';
 import Customers from './Pages/Sales/Customers';
 import Payments from './Pages/Sales/Payments';

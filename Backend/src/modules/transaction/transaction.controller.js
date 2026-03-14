@@ -154,10 +154,12 @@ const getAllTransactions = (module, documentType) =>
             const contactFilter = { name: { $regex: searchTerm, $options: 'i' }, module: contactType, ...req.companyFilter };
             const matchingContacts = await Contact.find(contactFilter).select('_id').lean();
             const contactIds = matchingContacts.map(c => c._id);
+            
+            query.$or = [
+                { transactionNumber: { $regex: searchTerm, $options: 'i' } }
+            ];
             if (contactIds.length > 0) {
-                query.contact = { $in: contactIds };
-            } else {
-                query.contact = null;
+                query.$or.push({ contact: { $in: contactIds } });
             }
         }
 
