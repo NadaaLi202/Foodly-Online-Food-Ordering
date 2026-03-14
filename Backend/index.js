@@ -87,7 +87,7 @@ async function bootstrap() {
 }
 const isDirectRun = process.argv[1] && (path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url)));
 
-if (isDirectRun) {
+if (true) {
     console.log("🚀 Starting application in direct mode...");
     bootstrap().catch((err) => {
         logError('❌ Bootstrap failed:', err);
