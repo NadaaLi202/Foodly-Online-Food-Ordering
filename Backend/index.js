@@ -1,17 +1,15 @@
-import express from 'express'
-import path from 'path'
-import { fileURLToPath } from 'url'
-import { dbConnection } from './dataBase/dbConnection.js'
-import { routes } from './src/modules/index.routes.js'
-import { startBackupCron } from './src/backups/backup.cron.js'
-import logError from './src/utils/logError.js'
+import 'dotenv/config';
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dbConnection } from './dataBase/dbConnection.js';
+import { routes } from './src/modules/index.routes.js';
+import { startBackupCron } from './src/backups/backup.cron.js';
+import logError from './src/utils/logError.js';
+import cors from 'cors';
 
-import cors from 'cors'
-import * as  dotenv from 'dotenv'
-dotenv.config()
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 console.log('Current working directory:', process.cwd());
 
