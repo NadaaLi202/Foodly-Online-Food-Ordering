@@ -86,6 +86,9 @@ const InvoiceTemplateEdit = () => {
     const [tableSub, setTableSub] = useState('general');
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [previewSearch, setPreviewSearch] = useState('');
+    const [fetchedPreviewData, setFetchedPreviewData] = useState(null);
+    const [fetchingPreview, setFetchingPreview] = useState(false);
 
     // Company + branch context for placeholder resolution
     const [companyData, setCompanyData] = useState({});
@@ -108,8 +111,6 @@ const InvoiceTemplateEdit = () => {
         { text: '{{branch.state}}', format: { fontSize: 11 } },
     ]);
     const [invoiceInfoRows, setInvoiceInfoRows] = useState([
-        { text: t('Simplified Tax Invoice', 'فاتورة ضريبية مبسطة'), format: { fontSize: 14, bold: true } },
-        { text: 'SIMPLIFIED TAX INVOICE', format: { fontSize: 13, bold: true } },
         { text: `${t('Number', 'الرقم - Number')} : {{invoice.number}}`, format: { fontSize: 11 } },
         { text: `${t('Date', 'التاريخ - Date')} : {{invoice.date}}`, format: { fontSize: 11 } },
     ]);
@@ -138,7 +139,7 @@ const InvoiceTemplateEdit = () => {
     const [prevModule, setPrevModule] = useState('Sales');
     const [prevDocType, setPrevDocType] = useState('Invoice');
 
-    // Load template + company + branches
+    // Load template + company + branches + latest invoice for preview
     useEffect(() => {
         (async () => {
             try {
@@ -164,8 +165,8 @@ const InvoiceTemplateEdit = () => {
                         deductTaxFromAmounts: t.table.deductTaxFromAmounts ?? false,
                         showTableLines: t.table.showTableLines ?? true,
                         cellMargins: t.table.cellMargins ?? { top: 3, right: 5, bottom: 3, left: 5 },
-                        columns: t.table.columns?.length ? t.table.columns : getTableColsDefault(t),
-                        footerRows: t.table.footerRows?.length ? t.table.footerRows : getTableFooterDefault(t),
+                        columns: t.table.columns?.length ? t.table.columns : getTableColsDefault(tmplRes.data.template),
+                        footerRows: t.table.footerRows?.length ? t.table.footerRows : getTableFooterDefault(tmplRes.data.template),
                     });
                 }
                 if (t.footer?.notesRows?.length) setFooterRows(t.footer.notesRows);
@@ -188,6 +189,18 @@ const InvoiceTemplateEdit = () => {
                     tax_number: user?.taxNumber || user?.tax_number || '300545522455',
                     currency: { ar: 'ر.س', en: 'SAR' },
                 });
+
+                // AUTO-LOAD LATEST INVOICE
+                try {
+                    const { data } = await api.get('/transactions/sales/invoices', { params: { limit: 1 } });
+                    if (data.data && data.data.length > 0) {
+                        setFetchedPreviewData(data.data[0]);
+                        setPreviewSearch(data.data[0].transactionNumber);
+                    }
+                } catch (e) {
+                    console.error('Failed to auto-load preview data', e);
+                }
+
             } catch { toast.error(t('Failed to load template', 'فشل تحميل القالب')); }
             finally { setLoading(false); }
         })();
@@ -225,6 +238,32 @@ const InvoiceTemplateEdit = () => {
     const updateCol = (idx, f, v) => { const cols = [...tableCfg.columns]; cols[idx] = { ...cols[idx], [f]: v }; setTableCfg(c => ({ ...c, columns: cols })); };
     const updateFooterRow = (idx, f, v) => { const rows = [...tableCfg.footerRows]; rows[idx] = { ...rows[idx], [f]: v }; setTableCfg(c => ({ ...c, footerRows: rows })); };
 
+    const handlePreviewFetch = async () => {
+        if (!previewSearch.trim()) return;
+        setFetchingPreview(true);
+        try {
+            const module = prevModule.toLowerCase(); // 'sales' or 'purchases'
+            const type = prevDocType === 'Invoice' ? 'invoices' : (prevDocType === 'Return' ? 'returns' : (prevDocType === 'Quote' ? 'quotations' : 'purchaseOrder'));
+            
+            // Fixed endpoint to use /transactions which handles both modules and all doc types
+            const { data } = await api.get(`/transactions/${module}/${type}`, { params: { search: previewSearch } });
+            const list = data.data || [];
+            if (list.length > 0) {
+                // Take the first match or the exact number match
+                const match = list.find(it => it.transactionNumber === previewSearch.toUpperCase()) || list[0];
+                setFetchedPreviewData(match);
+                toast.success(t('Preview loaded', 'تم تحميل المعاينة'));
+            } else {
+                toast.error(t('Document not found', 'لم يتم العثور على المستند'));
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error(t('Failed to fetch preview', 'فشل جلب المعاينة'));
+        } finally {
+            setFetchingPreview(false);
+        }
+    };
+
     const pageDir = page.direction ?? 'rtl';
 
     if (loading) return <div className="flex items-center justify-center h-96 text-gray-500">{t('Loading...', 'جارٍ التحميل...')}</div>;
@@ -234,8 +273,34 @@ const InvoiceTemplateEdit = () => {
     const previewContext = {
         company: companyData,
         branch: buildBranchContext(activeBranch),
-        partner: { name: 'عبدالعزيز بن ناصر الشهري', tax_number: '{{partner.tax_number}}', address: 'طريق الملك فهد الرياض' },
-        invoice: { number: 'INV-25-1-000001', date: '2025-09-04' },
+        partner: { 
+            name: fetchedPreviewData?.contactSnapshot?.name || fetchedPreviewData?.contact?.name || 'عبدالعزيز بن ناصر الشهري', 
+            tax_number: fetchedPreviewData?.contact?.taxNumber || '{{partner.tax_number}}', 
+            address: fetchedPreviewData?.contact?.address?.address1 || 'طريق الملك فهد الرياض' 
+        },
+        invoice: { 
+            number: fetchedPreviewData?.transactionNumber || 'INV-25-1-000001', 
+            date: fetchedPreviewData?.issueDate ? new Date(fetchedPreviewData.issueDate).toLocaleDateString('en-CA') : '2025-09-04' 
+        },
+        items: fetchedPreviewData?.items?.map((it, idx) => ({
+            lineNumber: String(idx + 1),
+            description: it.productName || it.product?.name || it.description || '',
+            quantity: String(it.quantity || 0),
+            price: (it.unitPrice || 0).toFixed(2),
+            taxRate: (it.taxPercent || 0) + '%',
+            subtotal: (it.subtotal || 0).toFixed(2),
+            taxAmount: (it.taxAmount || 0).toFixed(2),
+            total: (it.total || 0).toFixed(2),
+            code: it.product?.code || ''
+        })),
+        totals: fetchedPreviewData ? {
+            subtotal: (fetchedPreviewData.subtotal || 0).toFixed(2),
+            discount: (fetchedPreviewData.totalDiscount || 0).toFixed(2),
+            vat: (fetchedPreviewData.totalTax || 0).toFixed(2),
+            total: (fetchedPreviewData.totalAmount || 0).toFixed(2),
+            paid: (fetchedPreviewData.paidAmount || 0).toFixed(2),
+            remaining: (fetchedPreviewData.remainingAmount || 0).toFixed(2)
+        } : null
     };
 
     const templateData = { designId, page, logo: { ...logo, margins: logoMargins }, header: { rows: headerRows, invoiceInfoRows, showBottomBorder, order: headerOrder, titles }, partner: { clientRows, supplierRows }, table: tableCfg, footer: { notesRows: footerRows, signatures: [{ label: 'right', rows: sigRows1 }, { label: 'middle', rows: sigRows2 }, { label: 'left', rows: sigRows3 }] } };
@@ -437,8 +502,21 @@ const InvoiceTemplateEdit = () => {
                     <select value={prevDocType} onChange={e => setPrevDocType(e.target.value)} className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white outline-none cursor-pointer text-gray-700 hover:border-gray-300 transition-colors">
                         <option value="Invoice">{t('Invoice', 'Invoice')}</option><option value="Return">{t('Return', 'Return')}</option><option value="Quote">{t('Quote', 'Quote')}</option>
                     </select>
-                    <input type="text" placeholder="" className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white outline-none focus:border-indigo-400 transition-colors" />
-                    <button className="bg-[#6366f1] text-white rounded-md px-4 py-2 text-sm font-bold shadow-sm hover:bg-indigo-600 transition-colors">{t('Preview', 'Preview')}</button>
+                    <input 
+                        type="text" 
+                        placeholder={t('Search Invoice #...', 'ابحث برقم الفاتورة...')} 
+                        value={previewSearch}
+                        onChange={e => setPreviewSearch(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && handlePreviewFetch()}
+                        className="border border-gray-200 rounded-md px-3 py-2 text-sm bg-white outline-none focus:border-indigo-400 transition-colors" 
+                    />
+                    <button 
+                        onClick={handlePreviewFetch}
+                        disabled={fetchingPreview}
+                        className="bg-[#6366f1] text-white rounded-md px-4 py-2 text-sm font-bold shadow-sm hover:bg-indigo-600 transition-colors disabled:opacity-50"
+                    >
+                        {fetchingPreview ? t('Searching...', 'جارٍ البحث...') : t('Preview', 'Preview')}
+                    </button>
                 </div>
             }
             onSave={handleSave} saving={saving} backUrl="/dashboard/templates/invoices"
