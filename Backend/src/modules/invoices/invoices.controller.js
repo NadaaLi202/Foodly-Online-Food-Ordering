@@ -2,6 +2,72 @@ import { AppError } from "../../utils/AppError.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import Invoice from "./invoices.model.js";
 import { SUPPORTED_CURRENCIES } from "../../constants/currencies.js";
+import { dailyRestrictionModel } from "../dailyRestrictions/dailyRestrictions.model.js";
+import { chartOfAccountsModel } from "../chartOfAccounts/chartOfAccounts.model.js";
+import mongoose from "mongoose";
+
+// Helper function to create or update journal entry for an invoice
+const createOrUpdateJournalEntryForInvoice = async (invoice) => {
+    if (invoice.status === 'draft') return;
+
+    const source = `Invoice: ${invoice.invoiceNumber}`;
+    
+    // Find existing entry if any
+    let existingEntry = await dailyRestrictionModel.findOne({ 
+        companyId: invoice.companyId,
+        source: source
+    });
+
+    // Debit: Accounts Receivable (Simplified: for now use a default or find "Accounts Receivable" type)
+    // Credit: Sales Revenue
+    // Credit: VAT (if any)
+
+    // Note: In a real system, these would come from settings. 
+    // Since I cannot run seed or query DB easily now, I will assume generic names/codes or find them by name.
+    
+    const entries = [
+        {
+            account: 'حساب العملاء', // Accounts Receivable
+            debit: invoice.total,
+            credit: 0,
+            description: `Invoice ${invoice.invoiceNumber} - Client: ${invoice.clientName}`
+        },
+        {
+            account: 'مبيعات', // Sales
+            debit: 0,
+            credit: invoice.subtotal,
+            description: `Sales revenue for invoice ${invoice.invoiceNumber}`
+        }
+    ];
+
+    if (invoice.tax > 0) {
+        entries.push({
+            account: 'ضريبة القيمة المضافة', // VAT
+            debit: 0,
+            credit: invoice.tax,
+            description: `VAT for invoice ${invoice.invoiceNumber}`
+        });
+    }
+
+    const restrictionData = {
+        number: existingEntry?.number, // Keep existing number if updating
+        date: invoice.issueDate || new Date(),
+        description: `قيد آلي للفاتورة رقم ${invoice.invoiceNumber}`,
+        source: source,
+        totalDebit: invoice.total,
+        totalCredit: invoice.total,
+        entries: entries,
+        companyId: invoice.companyId
+    };
+
+    if (existingEntry) {
+        Object.assign(existingEntry, restrictionData);
+        await existingEntry.save();
+    } else {
+        const newEntry = new dailyRestrictionModel(restrictionData);
+        await newEntry.save();
+    }
+};
 
 // إنشاء فاتورة جديدة
 const createInvoice = catchAsyncError(async (req, res, next) => {
@@ -53,6 +119,9 @@ const createInvoice = catchAsyncError(async (req, res, next) => {
         currency: SUPPORTED_CURRENCIES.includes(normalizedCurrency) ? normalizedCurrency : (req.body.currency || "EGP"),
         companyId
     });
+
+    // إنشاء قيد يومية إذا لم تكن مسودة
+    await createOrUpdateJournalEntryForInvoice(invoice);
 
     res.status(201).json({
         message: 'تم إنشاء الفاتورة بنجاح',
@@ -184,6 +253,9 @@ const updateInvoice = catchAsyncError(async (req, res, next) => {
 
     await invoice.save(); // سيؤدي هذا لتشغيل الـ pre-save middleware
 
+    // تحديث أو إنشاء قيد يومية
+    await createOrUpdateJournalEntryForInvoice(invoice);
+
     res.status(200).json({
         message: 'تم تحديث الفاتورة بنجاح',
         invoice
@@ -243,6 +315,9 @@ const updateInvoiceStatus = catchAsyncError(async (req, res, next) => {
     }
 
     await invoice.updateStatus(status);
+
+    // تحديث أو إنشاء قيد يومية
+    await createOrUpdateJournalEntryForInvoice(invoice);
 
     res.status(200).json({
         message: 'تم تحديث حالة الفاتورة بنجاح',

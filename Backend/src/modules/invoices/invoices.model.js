@@ -241,9 +241,6 @@ invoiceSchema.virtual('daysUntilDue').get(function () {
 
 // Pre-save middleware لحساب المجاميع تلقائياً
 invoiceSchema.pre('save', function (next) {
-    // إذا كانت الفاتورة مسودة، لا نحسب الحالات
-    if (this.status === 'draft') return next();
-
     // حساب subtotal من جميع المنتجات
     let subtotal = 0;
     let totalTax = 0;
@@ -277,6 +274,9 @@ invoiceSchema.pre('save', function (next) {
 
     // المجموع النهائي
     this.total = round2(subtotal + totalTax - invoiceDiscountAmount);
+
+    // إذا كانت الفاتورة مسودة، لا نحسب الحالات إلا إذا تغيرت
+    if (this.status === 'draft') return next();
 
     // تحديث الحالة بناءً على المبلغ المدفوع
     if (this.paidAmount >= this.total && this.total > 0) {
