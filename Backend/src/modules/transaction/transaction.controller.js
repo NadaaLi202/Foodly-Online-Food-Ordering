@@ -12,6 +12,7 @@ import PDFDocument from "pdfkit";
 
 import * as inventoryService from "../product/inventory.service.js";
 import logError from "../../utils/logError.js";
+import { createInvoiceJournalEntry } from "./transaction.accounting.js";
 
 const createTransaction = (module, documentType) =>
     catchAsyncError(async (req, res, next) => {
@@ -108,6 +109,12 @@ const createTransaction = (module, documentType) =>
             }
 
             await session.commitTransaction();
+
+            // Auto-create journal entry when invoice is confirmed (non-fatal)
+            if (txn.documentType === 'invoice' && txn.module === 'sales' && txn.status !== 'draft') {
+                createInvoiceJournalEntry(txn, companyId).catch(() => { });
+            }
+
             res.status(201).json({
                 message: "تم الإنشاء بنجاح",
                 transaction: txn

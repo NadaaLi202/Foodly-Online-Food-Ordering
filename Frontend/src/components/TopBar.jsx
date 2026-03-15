@@ -28,7 +28,7 @@ const TopBar = ({ onToggleSidebar, isMobile }) => {
     }, []);
 
     return (
-        <div className="bg-white border-b border-gray-200 h-16 px-6 flex items-center justify-between shadow-sm sticky top-0 z-10 w-full" dir={isRtl ? 'rtl' : 'ltr'}>
+        <div className="bg-white border-b border-gray-200 h-16 px-6 flex items-center justify-between shadow-sm sticky top-0 z-10 w-full print:hidden" dir={isRtl ? 'rtl' : 'ltr'}>
 
             {/* Left Side (LTR) / Right Side (RTL): Menu + Actions */}
             <div className="flex items-center gap-4">

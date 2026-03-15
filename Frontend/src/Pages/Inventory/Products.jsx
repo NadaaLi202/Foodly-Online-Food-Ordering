@@ -76,12 +76,12 @@ const Products = () => {
             newErrors.code = `${t('stocked.products.code')} ${t('sales.common.required')}`;
         }
 
-        if (!formData.sellingPrice || parseFloat(formData.sellingPrice) < 0) {
-            newErrors.sellingPrice = `${t('stocked.products.sale_price')} ${t('sales.common.required')}`;
+        if (formData.sellingPrice && parseFloat(formData.sellingPrice) < 0) {
+            newErrors.sellingPrice = i18n.language === 'ar' ? 'السعر لا يمكن أن يكون سالباً' : 'Price cannot be negative';
         }
 
-        if (!formData.purchasePrice || parseFloat(formData.purchasePrice) < 0) {
-            newErrors.purchasePrice = `${t('stocked.products.purchase_price')} ${t('sales.common.required')}`;
+        if (formData.purchasePrice && parseFloat(formData.purchasePrice) < 0) {
+            newErrors.purchasePrice = i18n.language === 'ar' ? 'السعر لا يمكن أن يكون سالباً' : 'Price cannot be negative';
         }
 
         setErrors(newErrors);
@@ -197,8 +197,8 @@ const Products = () => {
             formDataToSend.append('category', formData.category || '');
             formDataToSend.append('type', formData.type || 'tracked');
             formDataToSend.append('unitName', formData.unitName || '');
-            formDataToSend.append('purchasePrice', formData.purchasePrice);
-            formDataToSend.append('sellingPrice', formData.sellingPrice);
+            formDataToSend.append('purchasePrice', formData.purchasePrice || 0);
+            formDataToSend.append('sellingPrice', formData.sellingPrice || 0);
             formDataToSend.append('description', formData.description || '');
             formDataToSend.append('stockQuantity', formData.stockQuantity || 0);
             formDataToSend.append('warehouse', formData.warehouse || 'main');
@@ -625,7 +625,7 @@ const Products = () => {
                                         </div>
                                         <div>
                                             <label className={`block text-sm text-gray-600 mb-1 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                {t('stocked.products.purchase_price')} <span className="text-red-500">*</span>
+                                                {t('stocked.products.purchase_price')}
                                             </label>
                                             <input
                                                 type="number"
@@ -645,7 +645,7 @@ const Products = () => {
                                         </div>
                                         <div>
                                             <label className={`block text-sm text-gray-600 mb-1 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                {t('stocked.products.sale_price')} <span className="text-red-500">*</span>
+                                                {t('stocked.products.sale_price')}
                                             </label>
                                             <input
                                                 type="number"

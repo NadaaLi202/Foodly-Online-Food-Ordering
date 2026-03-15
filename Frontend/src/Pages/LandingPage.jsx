@@ -43,8 +43,8 @@ const LandingPage = () => {
     const pricingPlans = [
         {
             name: 'الاقتصادية',
-            monthlyPrice: 52,
-            annualPrice: 39,
+            monthlyPrice: 50,
+            annualPrice: 34,
             recommended: false,
             features: [
                 { category: 'الفواتير والمصروفات', items: ['الفواتير والمصروفات: غير محدود', 'العملاء والموردين: غير محدود', 'فواتير المبيعات: ✓', 'عروض الأسعار: ✓', 'أوامر البيع: ✓', 'فواتير الشراء: ✓', 'فواتير المرتجع: ✓'] },
@@ -57,8 +57,8 @@ const LandingPage = () => {
         },
         {
             name: 'الأساسية',
-            monthlyPrice: 82,
-            annualPrice: 58,
+            monthlyPrice: 90,
+            annualPrice: 60,
             recommended: true,
             features: [
                 { category: 'الفواتير والمصروفات', items: ['الفواتير والمصروفات: غير محدود', 'العملاء والموردين: غير محدود', 'فواتير المبيعات: ✓', 'عروض الأسعار: ✓', 'أوامر البيع: ✓', 'فواتير الشراء: ✓', 'فواتير المرتجع: ✓'] },
@@ -71,8 +71,8 @@ const LandingPage = () => {
         },
         {
             name: 'الشاملة',
-            monthlyPrice: 174,
-            annualPrice: 116,
+            monthlyPrice: 150,
+            annualPrice: 100,
             recommended: false,
             features: [
                 { category: 'الفواتير والمصروفات', items: ['الفواتير والمصروفات: غير محدود', 'العملاء والموردين: غير محدود', 'فواتير المبيعات: ✓', 'عروض الأسعار: ✓', 'أوامر البيع: ✓', 'فواتير الشراء: ✓', 'فواتير المرتجع: ✓'] },

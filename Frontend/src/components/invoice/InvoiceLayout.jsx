@@ -3,6 +3,7 @@ import { Building2, MapPin, Phone, Mail } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../../utils/currencyFormatter';
+import PrintHeader from '../common/PrintHeader';
 
 /**
  * Reusable invoice layout: company header, client card, items table, summary box, QR bottom-right.
@@ -38,39 +39,23 @@ const InvoiceLayout = ({
     return (
         <div className="bg-white shadow-sm border border-gray-100 rounded-2xl p-10 max-w-4xl mx-auto print:shadow-none print:border-none print:rounded-none" dir={dir}>
             {/* Company Logo + Name & Invoice Header */}
-            <div className={`flex justify-between items-start mb-12 border-b border-gray-50 pb-8 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <div className={isRTL ? 'text-right' : ''}>
-                    <div className={`flex items-center gap-3 mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        {companyLogoUrl ? (
-                            <img src={companyLogoUrl} alt={companyName} className="w-10 h-10 rounded-lg object-cover" />
-                        ) : (
-                            <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black text-xl">
-                                {companyName.charAt(0).toUpperCase()}
-                            </div>
-                        )}
-                        <h1 className="text-2xl font-black text-gray-900 tracking-tight">
-                            {companyName}<span className="text-indigo-600">.App</span>
-                        </h1>
-                    </div>
-                    <div className={`text-xs text-gray-500 space-y-1 font-medium ${isRTL ? 'text-right' : ''}`}>
-                        <p>—</p>
-                    </div>
-                </div>
-                <div className={isRTL ? 'text-left' : 'text-right'}>
-                    <h2 className="text-4xl font-black text-indigo-600/10 uppercase tracking-widest mb-2">{title}</h2>
-                    <p className="text-lg font-bold text-gray-800">#{invoice?.transactionNumber}</p>
+            <PrintHeader
+                title={title}
+                isRTL={isRTL}
+                rightContent={
                     <div className="mt-4 space-y-1">
-                        <p className="text-xs font-bold text-gray-500">
+                        <p className="text-lg font-bold text-gray-800 text-start">#{invoice?.transactionNumber}</p>
+                        <p className="text-xs font-bold text-gray-500 text-start">
                             <span className="text-gray-400 uppercase tracking-widest mr-2">{t('sales.invoices.issue_date')}:</span>
                             {invoice?.issueDate ? new Date(invoice.issueDate).toLocaleDateString() : '—'}
                         </p>
-                        <p className="text-xs font-bold text-gray-500">
+                        <p className="text-xs font-bold text-gray-500 text-start">
                             <span className="text-gray-400 uppercase tracking-widest mr-2">{t('sales.invoices.due_date')}:</span>
                             {invoice?.dueDate ? new Date(invoice.dueDate).toLocaleDateString() : '—'}
                         </p>
                     </div>
-                </div>
-            </div>
+                }
+            />
 
             {/* Client / Supplier Card */}
             <div className={`flex justify-between gap-12 mb-12 ${isRTL ? 'flex-row-reverse' : ''}`}>

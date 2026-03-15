@@ -824,8 +824,8 @@ const Expenses = () => {
                                             onChange={handleInputChange}
                                             className={`w-full border ${errors.wallet ? 'border-red-500' : 'border-gray-300'} rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white font-medium`}
                                         >
-                                            <option value="main">{i18n.language === 'ar' ? 'خزنة رئيسية' : 'Main Safe'}</option>
-                                            <option value="bank">{i18n.language === 'ar' ? 'بنك' : 'Bank'}</option>
+                                            <option value="main">{i18n.language === 'ar' ? 'الخزنة الرئيسية' : 'Main Safe'}</option>
+                                            <option value="bank">{i18n.language === 'ar' ? 'الحساب البنكي الرئيسي' : 'Main Bank Account'}</option>
                                         </select>
                                         {errors.wallet && <p className="text-red-500 text-xs mt-1">{errors.wallet}</p>}
                                     </div>

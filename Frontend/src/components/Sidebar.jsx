@@ -198,9 +198,9 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
     ];
 
     const sidebarClasses = isMobile
-        ? `fixed top-0 bottom-0 z-50 w-64 bg-indigo-700 text-white transition-transform duration-300 ease-in-out ltr:left-0 rtl:right-0 ${isOpen ? 'translate-x-0 shadow-2xl' : 'ltr:-translate-x-full rtl:translate-x-full'
+        ? `fixed top-0 bottom-0 z-50 w-64 bg-indigo-700 text-white transition-transform duration-300 ease-in-out ltr:left-0 rtl:right-0 print:hidden ${isOpen ? 'translate-x-0 shadow-2xl' : 'ltr:-translate-x-full rtl:translate-x-full'
         }`
-        : 'w-64 bg-indigo-700 text-white min-h-screen flex flex-col transition-all duration-300';
+        : 'w-64 bg-indigo-700 text-white min-h-screen flex flex-col transition-all duration-300 print:hidden';
 
     return (
         <aside className={sidebarClasses}>

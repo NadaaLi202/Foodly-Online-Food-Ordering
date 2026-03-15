@@ -72,7 +72,7 @@ const Breadcrumbs = () => {
     });
 
     return (
-        <div className="flex items-center mx-auto max-w-7xl py-4 px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center mx-auto max-w-7xl py-4 px-4 sm:px-6 lg:px-8 print:hidden">
             <div className="flex drop-shadow-sm flex-1">
                 {/* Home icon block */}
                 <Link to="/"

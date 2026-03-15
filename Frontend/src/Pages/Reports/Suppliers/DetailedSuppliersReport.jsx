@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronDown, FileSpreadsheet, Printer } from 'lucide-react';
 import reportsService from '../../../services/reportsService';
 import * as XLSX from 'xlsx';
+import PrintHeader from '../../../components/common/PrintHeader';
 
 const DetailedSuppliersReport = () => {
     const { t, i18n } = useTranslation();
@@ -120,6 +121,9 @@ const DetailedSuppliersReport = () => {
         <>
             <div className="p-6" id="detailed-suppliers-report-root">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div className="hidden print:block mb-6">
+                        <PrintHeader title={t('reports.view_report')} isRTL={isRTL} />
+                    </div>
                     {/* Filters Section */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 no-print">
                         <div>

@@ -22,6 +22,9 @@ export default function Payments() {
 
     const [payments, setPayments] = useState([]);
     const [customers, setCustomers] = useState([]);
+    const [safes, setSafes] = useState([]);
+    const [bankAccounts, setBankAccounts] = useState([]);
+    const [paymentMethod, setPaymentMethod] = useState('cash');
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [viewingPayment, setViewingPayment] = useState(null);
@@ -88,12 +91,26 @@ export default function Payments() {
         }
     };
 
+    const fetchAccounts = async () => {
+        try {
+            const [safesRes, banksRes] = await Promise.all([
+                api.get('/safes'),
+                api.get('/bank-accounts')
+            ]);
+            setSafes(safesRes.data?.safes || safesRes.data?.data || []);
+            setBankAccounts(banksRes.data?.data || []);
+        } catch (error) {
+            logError('Error fetching accounts:', error);
+        }
+    };
+
     useEffect(() => {
         fetchPayments();
     }, [fetchPayments]);
 
     useEffect(() => {
         fetchCustomers();
+        fetchAccounts();
     }, []);
 
     const handlePageChange = (newPage) => {
@@ -158,6 +175,7 @@ export default function Payments() {
             amount: '',
             notes: ''
         });
+        setPaymentMethod('cash');
         setResponseMessage({ type: '', text: '' });
         setErrors({});
     };
@@ -352,7 +370,7 @@ export default function Payments() {
                                             <OperationTypeLink operationType={payment.operationType} contact={payment.contact} module="sales" label={payment.operationType === 'receive' ? t('sales.payments.receive') : t('sales.payments.spend')} />
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-gray-600">
-                                            <TreasuryLink treasury={payment.treasury} label={payment.treasury === 'main' ? t('sales.payments.main_treasury') : t('sales.payments.main_bank_account')} />
+                                            <TreasuryLink treasury={payment.treasury} label={safes.find(s => s._id === payment.treasury)?.name || bankAccounts.find(b => b._id === payment.treasury)?.name || (payment.treasury === 'main' ? t('sales.payments.main_treasury') : payment.treasury === 'bank' ? t('sales.payments.main_bank_account') : payment.treasury)} />
                                         </td>
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-800">{formatCurrency(payment.amount ?? 0, payment.currency || 'EGP')}</td>
                                         <td className="px-6 py-5 whitespace-nowrap text-sm font-medium">
@@ -427,7 +445,7 @@ export default function Payments() {
                                     <div><span className="text-xs font-black text-gray-400 uppercase">{t('sales.common.client')}</span><p className="font-bold"><ClientLink client={viewingPayment.contact} clientId={viewingPayment.contact?._id}>{contactName(viewingPayment)}</ClientLink></p></div>
                                     <div><span className="text-xs font-black text-gray-400 uppercase">{t('sales.common.date')}</span><p className="font-bold">{viewingPayment.date ? new Date(viewingPayment.date).toLocaleDateString() : '—'}</p></div>
                                     <div><span className="text-xs font-black text-gray-400 uppercase">{t('sales.payments.operation_type')}</span><p className="font-bold">{viewingPayment.operationType === 'receive' ? t('sales.payments.receive') : t('sales.payments.spend')}</p></div>
-                                    <div><span className="text-xs font-black text-gray-400 uppercase">{t('sales.payments.treasury')}</span><p className="font-bold">{viewingPayment.treasury === 'main' ? t('sales.payments.main_treasury') : t('sales.payments.main_bank_account')}</p></div>
+                                    <div><span className="text-xs font-black text-gray-400 uppercase">{t('sales.payments.treasury')}</span><p className="font-bold">{safes.find(s => s._id === viewingPayment.treasury)?.name || bankAccounts.find(b => b._id === viewingPayment.treasury)?.name || (viewingPayment.treasury === 'main' ? t('sales.payments.main_treasury') : viewingPayment.treasury === 'bank' ? t('sales.payments.main_bank_account') : viewingPayment.treasury)}</p></div>
                                     <div><span className="text-xs font-black text-gray-400 uppercase">{t('sales.common.amount')}</span><p className="font-black text-lg">{formatCurrency(viewingPayment.amount ?? 0)}</p></div>
                                     {viewingPayment.invoice && (
                                         <div>
@@ -480,9 +498,25 @@ export default function Payments() {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.payments.treasury')} <span className="text-red-500">*</span></label>
-                                        <select name="treasury" value={formData.treasury} onChange={handleInputChange} className={`w-full border-2 rounded-lg px-3 py-2.5 text-sm font-bold bg-white ${errors.treasury ? 'border-red-500' : 'border-gray-100 focus:border-indigo-500'}`}>
-                                            <option value="">{t('sales.payments.select_treasury')}</option>
+                                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">{t('sales.common.payment_method')}</label>
+                                        <select
+                                            value={paymentMethod}
+                                            onChange={(e) => {
+                                                setPaymentMethod(e.target.value);
+                                                setFormData(f => ({ ...f, treasury: '' }));
+                                            }}
+                                            className="w-full border-2 border-gray-100 rounded-lg px-3 py-2.5 text-sm font-bold bg-white focus:border-indigo-500"
+                                        >
+                                            <option value="cash">{t('sales.common.cash')}</option>
+                                            <option value="bank">{t('sales.common.bank')}</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
+                                            {paymentMethod === 'cash' ? t('finance.safe') : t('finance.bank_account')} <span className="text-red-500">*</span>
+                                        </label>
+                                        <select name="treasury" value={formData.treasury || ''} onChange={handleInputChange} className={`w-full border-2 rounded-lg px-3 py-2.5 text-sm font-bold bg-white ${errors.treasury ? 'border-red-500' : 'border-gray-100 focus:border-indigo-500'}`}>
+                                            <option value="">{t('sales.payments.select_treasury') || 'Select...'}</option>
                                             <option value="main">{t('sales.payments.main_treasury')}</option>
                                             <option value="bank">{t('sales.payments.main_bank_account')}</option>
                                         </select>

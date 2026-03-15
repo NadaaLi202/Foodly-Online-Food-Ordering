@@ -189,6 +189,24 @@ export default function ChartOfAccounts() {
         }
     };
 
+    const handleSeedDefaultAccounts = async () => {
+        setSubmitLoading(true);
+        try {
+            const res = await chartOfAccountsService.seedDefaultAccounts();
+            if (res.seeded) {
+                toast.success(res.message);
+                fetchAccounts();
+            } else {
+                toast.error(res.message);
+            }
+        } catch (err) {
+            const msg = err.response?.data?.message || t('sales.common.error_message', 'An error occurred while seeding accounts');
+            toast.error(msg);
+        } finally {
+            setSubmitLoading(false);
+        }
+    };
+
     const goToAccountingReports = () => {
         navigate('/dashboard/reports/accounting');
     };
@@ -336,10 +354,21 @@ export default function ChartOfAccounts() {
                             {t('sales.common.loading', 'Loading...')}
                         </div>
                     ) : accountsTree.length === 0 ? (
-                        <div className="py-12 text-center text-gray-500">
-                            {searchTerm
-                                ? t('sales.common.no_results', 'No results found')
-                                : t('accounting.chart_of_accounts.no_accounts_yet', 'No accounts yet. Add an account to get started.')}
+                        <div className="py-12 flex flex-col items-center justify-center text-gray-500">
+                            <p className="mb-4">
+                                {searchTerm
+                                    ? t('sales.common.no_results', 'No results found')
+                                    : t('accounting.chart_of_accounts.no_accounts_yet', 'No accounts yet. Add an account to get started.')}
+                            </p>
+                            {!searchTerm && (
+                                <button
+                                    onClick={handleSeedDefaultAccounts}
+                                    disabled={submitLoading}
+                                    className="px-6 py-2 bg-[#10B981] text-white font-bold rounded-lg hover:bg-emerald-600 transition-colors shadow-sm disabled:opacity-50"
+                                >
+                                    {submitLoading ? t('sales.common.loading', 'Loading...') : 'تهيئة شجرة الحسابات الافتراضية'}
+                                </button>
+                            )}
                         </div>
                     ) : (
                         accountsTree.map((account) => renderAccountRow(account))

@@ -6,6 +6,7 @@ import reportsService from '../../../services/reportsService';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import PrintHeader from '../../../components/common/PrintHeader';
 
 const PurchasesReport = () => {
     const { t, i18n } = useTranslation();
@@ -338,6 +339,9 @@ const PurchasesReport = () => {
                         </div>
                     </div>
 
+                                        <div className="hidden print:block mb-6">
+                        <PrintHeader title={t('reports.purchase_reports') || 'Purchase Reports'} isRTL={isRTL} />
+                    </div>
                     {/* Table Section */}
                     <div className="border border-gray-200 rounded-lg overflow-hidden bg-white" ref={printRef}>
                         <div className="overflow-x-auto">

@@ -5,6 +5,7 @@ import { useLocation } from 'react-router-dom';
 import { buildAccountingReportPdf, exportGeneralLedgerToExcel } from '../../../utils/accountingReportsExport';
 import api from '../../../services/api';
 import chartOfAccountsService from '../../../services/chartOfAccountsService';
+import PrintHeader from '../../../components/common/PrintHeader';
 
 const getMonthRange = (date = new Date()) => {
     const start = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -174,6 +175,9 @@ const GeneralLedgerReport = () => {
     return (
         <div className="p-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div className="hidden print:block mb-6">
+                        <PrintHeader title={t('reports.accounting.general_ledger_title') || 'General Ledger'} isRTL={false} />
+                    </div>
                 {/* Filters Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                     {/* Period */}

@@ -5,6 +5,7 @@ import { exportInventoryValueToExcel, buildInventoryValuePdf } from '../../../ut
 import reportsService from '../../../services/reportsService';
 import api from '../../../services/api';
 import logError from '../../../utils/logError';
+import PrintHeader from '../../../components/common/PrintHeader';
 
 const InventoryValueReport = () => {
     const { t, i18n } = useTranslation();
@@ -110,6 +111,9 @@ const InventoryValueReport = () => {
     return (
         <div className="p-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div className="hidden print:block mb-6">
+                        <PrintHeader title={''} isRTL={false} />
+                    </div>
                 {/* Filters Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 no-print">
                     <div className={textStart}>
