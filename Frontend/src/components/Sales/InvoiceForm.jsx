@@ -342,6 +342,15 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
             formDataToSend.append('attachments', file);
         });
 
+        // Set status based on button clicked
+        const clickedButton = e.nativeEvent?.submitter?.id;
+        if (clickedButton === 'save-draft-btn') {
+            formDataToSend.set('status', 'draft');
+        } else if (clickedButton === 'issue-invoice-btn') {
+            // Let backend calculate based on paidAmount or force 'unpaid' if 0
+            formDataToSend.set('status', formData.paidAmount > 0 ? (formData.paidAmount >= totals.total ? 'paid' : 'partial') : 'unpaid');
+        }
+
         onSave(formDataToSend);
     };
 
@@ -795,13 +804,15 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
                         {t('sales.common.cancel')}
                     </button>
                     <button
-                        type="button"
-                        onClick={handleSubmit}
+                        id="save-draft-btn"
+                        type="submit"
+                        disabled={loading}
                         className="px-6 py-2.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 transition-all text-sm font-bold shadow-sm"
                     >
                         {t('sales.common.save_draft')}
                     </button>
                     <button
+                        id="issue-invoice-btn"
                         form="invoice-form"
                         type="submit"
                         disabled={loading}
