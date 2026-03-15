@@ -718,19 +718,10 @@ const JournalEntries = () => {
 
                                 <div className="space-y-1.5">
                                     <label className="block text-sm font-bold text-gray-600 px-1 text-start">{t('accounting.journal_entries.date')}</label>
-                                    <div className="flex items-center bg-white border border-gray-200 rounded-lg h-11 px-3 group relative">
-                                        <div className="flex-1 flex items-center gap-2 cursor-pointer h-full" onClick={() => dateInputRef.current?.showPicker()}>
+                                    <div className="flex items-center bg-white border border-gray-200 rounded-lg h-11 px-3 group relative cursor-pointer" onClick={() => dateInputRef.current?.showPicker()}>
+                                        <div className="flex-1 flex items-center gap-2 h-full">
                                             <Calendar size={18} className="text-gray-400" />
                                             <span className="text-gray-700 font-medium">{formattedDate}</span>
-                                        </div>
-                                        <div
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setEntryDate('');
-                                            }}
-                                            className="text-red-500 cursor-pointer hover:text-red-700 transition px-1 h-full flex items-center"
-                                        >
-                                            <X size={16} />
                                         </div>
                                         <input
                                             type="date"
@@ -766,8 +757,13 @@ const JournalEntries = () => {
                                     <tbody className="divide-y divide-gray-100">
                                         {rows.map((row) => (
                                             <tr key={row.id} className="group h-12">
-                                                <td className="bg-gray-50/30 flex items-center justify-center">
-                                                    <MoreVertical size={16} className="text-gray-300" />
+                                                <td className="w-[45px] bg-gray-50/30 flex items-center justify-center">
+                                                    <button
+                                                        onClick={() => removeRow(row.id)}
+                                                        className="w-5 h-5 rounded-full bg-[#EF4444] text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm"
+                                                    >
+                                                        <Minus size={12} strokeWidth={4} />
+                                                    </button>
                                                 </td>
                                                 <td className="p-0 border-x border-gray-100 relative bg-white">
                                                     <div className="flex items-center w-full h-11 px-3 gap-2">
@@ -819,9 +815,6 @@ const JournalEntries = () => {
                                                                 <option value="542">{t('accounting.journal_entries.accounts.inventory_shortage_excess')} #542</option>
                                                                 <option value="543">{t('accounting.journal_entries.accounts.other_expenses')} #543</option>
                                                             </select>
-                                                            <div className="absolute left-0 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                                                                <ChevronsUpDown size={14} />
-                                                            </div>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -875,13 +868,8 @@ const JournalEntries = () => {
                                                         className="w-full h-11 px-3 bg-transparent outline-none text-center text-gray-700 font-medium"
                                                     />
                                                 </td>
-                                                <td className="flex items-center justify-center">
-                                                    <button
-                                                        onClick={() => removeRow(row.id)}
-                                                        className="w-5 h-5 rounded-full bg-[#EF4444] text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm"
-                                                    >
-                                                        <Minus size={12} strokeWidth={4} />
-                                                    </button>
+                                                <td className="w-[45px] flex items-center justify-center">
+                                                    {/* empty — delete moved to left */}
                                                 </td>
                                             </tr>
                                         ))}
@@ -1025,28 +1013,36 @@ const JournalEntries = () => {
                                 <X size={24} />
                             </button>
                             <h2 className="text-xl font-bold text-gray-800 flex-1 text-center">{t('accounting.journal_entries.view_entry')}</h2>
-                            <div className="flex items-center gap-2 order-3 w-full sm:w-auto sm:order-none">
-                                <button type="button" onClick={handleShare} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold bg-orange-500 text-white hover:bg-orange-600 transition">
-                                    <Share2 size={18} />
-                                    {t('accounting.journal_entries.share')}
-                                </button>
-                                <button type="button" onClick={handleDownloadPdf} disabled={pdfLoading} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 transition disabled:opacity-60">
-                                    <FileText size={18} />
-                                    {t('accounting.journal_entries.pdf')}
-                                </button>
-                                <button type="button" onClick={handlePrintPdf} disabled={pdfLoading} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold bg-red-50 text-red-700 hover:bg-red-100 border border-red-100 transition disabled:opacity-60">
-                                    <Printer size={18} />
-                                    {t('accounting.journal_entries.print')}
-                                </button>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <div className="px-3 py-2 rounded-lg bg-gray-100 border border-gray-200">
-                                    <span className="text-xs font-bold text-gray-500 uppercase block">{t('accounting.journal_entries.user')}</span>
-                                    <p className="text-sm text-gray-800">—</p>
+                            {/* Right side info blocks: User | Document | Source (RTL layout) */}
+                            <div className="flex items-center gap-4 order-4 sm:order-none w-full sm:w-auto justify-end sm:justify-start">
+                                {/* المصدر (Source) */}
+                                <div className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 flex-1 sm:flex-none text-center sm:text-start" style={{ minWidth: '100px' }}>
+                                    <span className="text-xs font-bold text-gray-500 block mb-1">{t('accounting.journal_entries.source') || 'المصدر'}</span>
+                                    <p className="text-sm font-bold text-gray-800 truncate" title={viewingEntry?.source || '—'}>{viewingEntry?.source || '—'}</p>
                                 </div>
-                                <div className="px-3 py-2 rounded-lg bg-gray-100 border border-gray-200">
-                                    <span className="text-xs font-bold text-gray-500 uppercase block">{t('accounting.journal_entries.document')}</span>
-                                    <p className="text-sm text-gray-800">—</p>
+
+                                {/* المستند (Document) - moved actions here */}
+                                <div className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 flex-1 sm:flex-none text-center sm:text-start">
+                                    <span className="text-xs font-bold text-gray-500 block mb-1">{t('accounting.journal_entries.document') || 'المستند'}</span>
+                                    <div className="flex items-center justify-center sm:justify-start gap-2">
+                                        <button type="button" onClick={handlePrintPdf} disabled={pdfLoading} className="inline-flex items-center gap-1 rounded bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-2 py-1 text-xs font-semibold transition disabled:opacity-60">
+                                            <Printer size={14} /> {t('accounting.journal_entries.print')}
+                                        </button>
+                                        <button type="button" onClick={handleDownloadPdf} disabled={pdfLoading} className="inline-flex items-center gap-1 rounded bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-2 py-1 text-xs font-semibold transition disabled:opacity-60">
+                                            <FileText size={14} /> {t('accounting.journal_entries.pdf')}
+                                        </button>
+                                        <button type="button" onClick={handleShare} className="inline-flex items-center gap-1 rounded bg-orange-50 text-orange-600 hover:bg-orange-100 px-2 py-1 text-xs font-semibold transition">
+                                            <Share2 size={14} /> {t('accounting.journal_entries.share')}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* المستخدم (User) */}
+                                <div className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 flex-1 sm:flex-none text-center sm:text-start" style={{ minWidth: '100px' }}>
+                                    <span className="text-xs font-bold text-gray-500 block mb-1">{t('accounting.journal_entries.user') || 'المستخدم'}</span>
+                                    <p className="text-sm font-bold text-gray-800 truncate" title={viewingEntry?.createdBy?.name || viewingEntry?.user?.name || viewingEntry?.userName || '—'}>
+                                        {viewingEntry?.createdBy?.name || viewingEntry?.user?.name || viewingEntry?.userName || '—'}
+                                    </p>
                                 </div>
 
                             </div>

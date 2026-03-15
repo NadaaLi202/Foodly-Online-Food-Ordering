@@ -7,6 +7,7 @@ import { exportDetailedSalesReportToExcel, buildDetailedSalesReportPdf } from '.
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import PrintHeader from '../../../components/common/PrintHeader';
 
 const SalesReport = () => {
     const { t, i18n } = useTranslation();
@@ -340,6 +341,9 @@ const SalesReport = () => {
                         </div>
                     </div>
 
+                                        <div className="hidden print:block mb-6">
+                        <PrintHeader title={t('reports.sales_reports')} isRTL={isRTL} />
+                    </div>
                     {/* Table Section */}
                     <div className="border border-gray-200 rounded-lg overflow-hidden bg-white" ref={printRef}>
                         <div className="overflow-x-auto">

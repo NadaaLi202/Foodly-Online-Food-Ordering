@@ -5,6 +5,7 @@ import { exportInventoryMovementsToExcel, buildInventoryMovementsPdf } from '../
 import reportsService from '../../../services/reportsService';
 import api from '../../../services/api';
 import logError from '../../../utils/logError';
+import PrintHeader from '../../../components/common/PrintHeader';
 
 const InventoryValueDetailedReport = () => {
     const { t, i18n } = useTranslation();
@@ -188,6 +189,9 @@ const InventoryValueDetailedReport = () => {
     return (
         <div className="p-6 text-start">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div className="hidden print:block mb-6">
+                        <PrintHeader title={''} isRTL={false} />
+                    </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 no-print">
                     <div className={textStart}>
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.period')}</label>

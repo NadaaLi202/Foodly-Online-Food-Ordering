@@ -2,6 +2,7 @@ import { companyModel } from "./company.model.js";
 import { AppError } from "../../utils/AppError.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
+import { seedDefaultChartOfAccounts } from "../chartOfAccounts/chartOfAccounts.service.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
@@ -27,6 +28,13 @@ const addCompany = catchAsyncError(async (req, res, next) => {
 
     const company = new companyModel(companyData);
     await company.save();
+
+    // Seed default chart of accounts
+    try {
+        await seedDefaultChartOfAccounts(company._id);
+    } catch (err) {
+        console.error('Failed to seed chart of accounts for company:', company._id, err);
+    }
 
     // Remove password from response
     company.password = undefined;
@@ -219,6 +227,13 @@ const approveCompany = catchAsyncError(async (req, res, next) => {
     company.status = 'active';
     company.approvedAt = new Date();
     await company.save();
+
+    // Seed default chart of accounts
+    try {
+        await seedDefaultChartOfAccounts(company._id);
+    } catch (err) {
+        console.error('Failed to seed chart of accounts for approved company:', company._id, err);
+    }
 
     res.status(200).json({ message: 'Company approved successfully', company });
 });

@@ -1,6 +1,7 @@
 import { chartOfAccountsModel } from "./chartOfAccounts.model.js";
 import { AppError } from "../../utils/AppError.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { seedDefaultChartOfAccounts } from "./chartOfAccounts.service.js";
 
 const addAccount = catchAsyncError(async (req, res, next) => {
     const { code } = req.body;
@@ -84,4 +85,16 @@ const deleteAccount = catchAsyncError(async (req, res, next) => {
     res.status(200).json({ message: 'Account deleted successfully', account });
 });
 
-export { addAccount, getAllAccounts, getAccountById, updateAccount, deleteAccount };
+const seedDefaultAccounts = catchAsyncError(async (req, res, next) => {
+    const { companyFilter } = req;
+    if (!companyFilter || !companyFilter.companyId) {
+        return next(new AppError('Company ID not found in request context', 400));
+    }
+    const result = await seedDefaultChartOfAccounts(companyFilter.companyId);
+    if (!result.seeded) {
+        return res.status(200).json({ message: result.message, seeded: false });
+    }
+    res.status(201).json({ message: result.message, seeded: true });
+});
+
+export { addAccount, getAllAccounts, getAccountById, updateAccount, deleteAccount, seedDefaultAccounts };

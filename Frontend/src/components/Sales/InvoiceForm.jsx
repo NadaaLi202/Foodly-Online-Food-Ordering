@@ -16,7 +16,7 @@ const getTaxMode = (taxValue) => {
     return TAX_PRESET_VALUES.includes(normalized) ? normalized : 'custom';
 };
 
-const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, contactType = 'customers', addTitleKey, editTitleKey, numberPlaceholderKey, clientLabelKey, defaultCurrency = 'EGP' }) => {
+const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n, contactType = 'customers', addTitleKey, editTitleKey, numberPlaceholderKey, clientLabelKey, defaultCurrency = 'EGP' }) => {
     const { t } = useTranslation();
     const addTitle = addTitleKey ? t(addTitleKey) : t('sales.invoices.add_invoice');
     const editTitle = editTitleKey ? t(editTitleKey) : t('sales.invoices.edit_invoice');
@@ -25,6 +25,8 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
     const [loading, setLoading] = useState(false);
     const [clients, setClients] = useState([]);
     const [products, setProducts] = useState([]);
+    const [safes, setSafes] = useState([]);
+    const [bankAccounts, setBankAccounts] = useState([]);
     const [errors, setErrors] = useState({});
     const [uploadedFiles, setUploadedFiles] = useState([]);
     const [existingAttachments, setExistingAttachments] = useState([]);
@@ -52,6 +54,7 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
         notes: '',
         paidAmount: 0,
         paymentMethod: 'cash',
+        treasury: '',
         activeTab: 'payment',
         invoiceDiscount: 0,
         invoiceDiscountType: '%',
@@ -62,34 +65,43 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
 
     useEffect(() => {
         if (invoice) {
+            const isDuplicate = mode === 'duplicate';
+            const isReturn = mode === 'return';
+
+            const yy = new Date().getFullYear().toString().slice(-2);
+            const mm = (new Date().getMonth() + 1).toString().padStart(2, '0');
+            const suffix = Date.now().toString().slice(-6);
+            const newInvoiceNumber = `INV-${yy}-${mm}-${suffix}`;
+
             setFormData({
-                invoiceNumber: invoice.transactionNumber || '',
-                issueDate: invoice.issueDate ? new Date(invoice.issueDate).toISOString().split('T')[0] : '',
-                dueDate: invoice.dueDate ? new Date(invoice.dueDate).toISOString().split('T')[0] : '',
+                invoiceNumber: (isDuplicate || isReturn) ? newInvoiceNumber : (invoice.transactionNumber || invoice.invoiceNumber || invoice.number || ''),
+                issueDate: (isDuplicate || isReturn) ? new Date().toISOString().split('T')[0] : (invoice.issueDate ? new Date(invoice.issueDate).toISOString().split('T')[0] : ''),
+                dueDate: (isDuplicate || isReturn) ? new Date().toISOString().split('T')[0] : (invoice.dueDate ? new Date(invoice.dueDate).toISOString().split('T')[0] : ''),
                 clientId: invoice.contact?._id || invoice.contact || '',
                 clientName: invoice.contact?.name || '',
                 items: (invoice.items || []).map(item => ({
-                    productId: item.product?._id || item.product,
+                    productId: item.product?._id || item.product || item.productId,
                     productName: item.productName || '',
-                    description: '',
+                    description: item.description || '',
                     quantity: item.quantity,
-                    price: item.unitPrice,
-                    discount: item.discountPercent || item.discountAmount || 0,
+                    price: item.unitPrice || item.price,
+                    discount: item.discountPercent || item.discountAmount || item.discount || 0,
                     discountType: item.discountPercent ? '%' : 'fixed',
-                    tax: item.taxPercent || 0,
-                    taxMode: getTaxMode(item.taxPercent || 0)
+                    tax: item.taxPercent || item.tax || 0,
+                    taxMode: getTaxMode(item.taxPercent || item.tax || 0)
                 })),
                 notes: invoice.notes || '',
-                paidAmount: invoice.paidAmount || 0,
+                paidAmount: (isDuplicate || isReturn) ? 0 : (invoice.paidAmount || 0),
                 paymentMethod: (invoice.paymentMethod === 'credit' ? 'card' : invoice.paymentMethod === 'bank_transfer' ? 'bank' : invoice.paymentMethod) || 'cash',
+                treasury: invoice.payment?.treasury || '',
                 activeTab: 'payment',
-                invoiceDiscount: invoice.generalDiscountPercent || invoice.generalDiscount || 0,
-                invoiceDiscountType: invoice.generalDiscountPercent ? '%' : 'fixed',
+                invoiceDiscount: invoice.generalDiscountPercent || invoice.generalDiscount || invoice.invoiceDiscount || 0,
+                invoiceDiscountType: (invoice.generalDiscountPercent || invoice.invoiceDiscountType === '%') ? '%' : 'fixed',
                 warehouse: invoice.warehouse || '',
-                status: invoice.status || 'unpaid',
+                status: isDuplicate ? 'draft' : (isReturn ? 'unpaid' : (invoice.status || 'unpaid')),
                 currency: invoice.currency || defaultCurrency
             });
-            setExistingAttachments(invoice.attachments || []);
+            setExistingAttachments((isDuplicate || isReturn) ? [] : (invoice.attachments || []));
         } else {
             const yy = new Date().getFullYear().toString().slice(-2);
             const mm = (new Date().getMonth() + 1).toString().padStart(2, '0');
@@ -98,7 +110,21 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
         }
         fetchClients();
         fetchProducts();
+        fetchAccounts();
     }, [invoice]);
+
+    const fetchAccounts = async () => {
+        try {
+            const [safesRes, banksRes] = await Promise.all([
+                api.get('/safes'),
+                api.get('/bank-accounts')
+            ]);
+            setSafes(safesRes.data?.safes || safesRes.data?.data || []);
+            setBankAccounts(banksRes.data?.data || []);
+        } catch (error) {
+            logError('Error fetching accounts:', error);
+        }
+    };
 
     const fetchClients = async () => {
         try {
@@ -283,7 +309,8 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
         const paymentPayload = {
             paidAmount: Number(formData.paidAmount) || 0,
             paymentMethod: paymentMethodMap[formData.paymentMethod] || formData.paymentMethod,
-            currency: normalizedCurrency
+            currency: normalizedCurrency,
+            treasury: formData.treasury
         };
 
         formDataToSend.append('paymentMethod', paymentMethodMap[formData.paymentMethod] || formData.paymentMethod);
@@ -634,11 +661,18 @@ const InvoiceForm = ({ invoice, onClose, onSave, onDeleteAttachment, i18n, conta
                                                         ))}
                                                     </select>
                                                 </div>
-                                                {/* Treasury placeholder */}
+                                                {/* Treasury selector */}
                                                 <div>
-                                                    <label className="block text-xs text-gray-500 mb-1">{t('sales.common.safe')}</label>
-                                                    <select className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 text-sm text-gray-500 focus:outline-none" disabled>
-                                                        <option>{t('sales.common.main_treasury')}</option>
+                                                    <label className="block text-xs text-gray-500 mb-1">{formData.paymentMethod === 'cash' ? t('finance.safe') : t('finance.bank_account')}</label>
+                                                    <select
+                                                        name="treasury"
+                                                        value={formData.treasury || ''}
+                                                        onChange={handleInputChange}
+                                                        className="w-full bg-white border border-gray-200 rounded-lg p-2 text-sm text-gray-700 focus:outline-none focus:border-indigo-500"
+                                                    >
+                                                        <option value="">{t('sales.payments.select_treasury')}</option>
+                                                        <option value="main">{t('sales.payments.main_treasury')}</option>
+                                                        <option value="bank">{t('sales.payments.main_bank_account')}</option>
                                                     </select>
                                                 </div>
                                             </div>

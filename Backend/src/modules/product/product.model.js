@@ -35,17 +35,17 @@ const productSchema = new mongoose.Schema({
         default: 'tracked'
     },
 
-    // سعر الشراء - إلزامي
+    // سعر الشراء - اختياري
     purchasePrice: {
         type: Number,
-        required: [true, 'سعر الشراء مطلوب'],
+        default: 0,
         min: [0, 'سعر الشراء لا يمكن أن يكون سالباً']
     },
 
-    // سعر البيع - إلزامي
+    // سعر البيع - اختياري
     sellingPrice: {
         type: Number,
-        required: [true, 'سعر البيع مطلوب'],
+        default: 0,
         min: [0, 'سعر البيع لا يمكن أن يكون سالباً']
     },
 

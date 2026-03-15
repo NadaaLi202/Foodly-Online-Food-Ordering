@@ -5,6 +5,7 @@ import reportsService from '../../../services/reportsService';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
+import PrintHeader from '../../../components/common/PrintHeader';
 
 const DetailedPaymentsReport = () => {
     const { t, i18n } = useTranslation();
@@ -147,6 +148,10 @@ const DetailedPaymentsReport = () => {
                             {t('reports.payments.detailed_desc')}
                         </p>
                     </div>
+                    <div className="hidden print:block mb-6">
+                        <PrintHeader title={''} isRTL={isRTL} />
+                    </div>
+
 
                     <div className="flex items-center gap-2">
                         <button onClick={handleExportExcel} className="flex items-center gap-2 px-5 py-3 bg-white border-2 border-gray-100 rounded-2xl text-gray-600 font-bold text-sm hover:border-indigo-100 hover:text-indigo-600 transition-all shadow-sm">

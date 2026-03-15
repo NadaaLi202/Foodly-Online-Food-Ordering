@@ -25,10 +25,16 @@ const deleteAccount = async (id) => {
     return response.data;
 };
 
+const seedDefaultAccounts = async () => {
+    const response = await api.post('/chart-of-accounts/seed');
+    return response.data;
+};
+
 export default {
     getAllAccounts,
     getAccountById,
     createAccount,
     updateAccount,
     deleteAccount,
+    seedDefaultAccounts,
 };

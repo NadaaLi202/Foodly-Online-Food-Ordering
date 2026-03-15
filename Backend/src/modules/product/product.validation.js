@@ -17,21 +17,19 @@ const addProductSchema = Joi.object({
         }),
 
     purchasePrice: Joi.number()
-        .required()
         .min(0)
+        .default(0)
         .messages({
             'number.base': 'سعر الشراء يجب أن يكون رقماً',
-            'number.min': 'سعر الشراء لا يمكن أن يكون سالباً',
-            'any.required': 'سعر الشراء مطلوب'
+            'number.min': 'سعر الشراء لا يمكن أن يكون سالباً'
         }),
 
     sellingPrice: Joi.number()
-        .required()
         .min(0)
+        .default(0)
         .messages({
             'number.base': 'سعر البيع يجب أن يكون رقماً',
-            'number.min': 'سعر البيع لا يمكن أن يكون سالباً',
-            'any.required': 'سعر البيع مطلوب'
+            'number.min': 'سعر البيع لا يمكن أن يكون سالباً'
         }),
 
     // الحقول الاختيارية

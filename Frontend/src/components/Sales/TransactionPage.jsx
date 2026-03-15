@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { getTransactionConfig } from '../../config/transactionTypes';
@@ -12,6 +12,8 @@ import { usePermissions } from '../../hooks/usePermissions';
 
 const TransactionPage = ({ configKey }) => {
     const { t, i18n } = useTranslation();
+    const navigate = useNavigate();
+    const location = useLocation();
     const [searchParams] = useSearchParams();
     const contactId = searchParams.get('contactId');
     const openId = searchParams.get('openId');
@@ -74,6 +76,14 @@ const TransactionPage = ({ configKey }) => {
             openInvoice();
         }
     }, [openId]);
+
+    useEffect(() => {
+        if (location.state?.prefillData) {
+            setSelected(location.state.prefillData);
+            setView(location.state.mode || 'add');
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     const handleAddClick = () => {
         if (!canAdd) {
@@ -185,6 +195,67 @@ const TransactionPage = ({ configKey }) => {
         }
     };
 
+    const handleDuplicateClick = async (invoice) => {
+        setLoading(true);
+        try {
+            const res = await api.get(config.getOneUrl(invoice._id));
+            const oldData = res.data;
+
+            const yy = new Date().getFullYear().toString().slice(-2);
+            const mm = (new Date().getMonth() + 1).toString().padStart(2, '0');
+            const suffix = Date.now().toString().slice(-6);
+            const newInvoiceNumber = `INV-${yy}-${mm}-${suffix}`;
+
+            // Build a clean payload — API expects IDs as strings, not objects
+            const newData = {
+                transactionNumber: newInvoiceNumber,
+                invoiceNumber: newInvoiceNumber,
+                number: newInvoiceNumber,
+                contact: oldData.contact?._id || oldData.contact || oldData.clientId || '',
+                issueDate: new Date().toISOString().split('T')[0],
+                dueDate: new Date().toISOString().split('T')[0],
+                status: 'draft',
+                paidAmount: 0,
+                notes: oldData.notes || '',
+                currency: oldData.currency || 'EGP',
+                paymentMethod: oldData.paymentMethod || 'cash',
+                items: (oldData.items || []).map(item => ({
+                    product: item.product?._id || item.product || item.productId || '',
+                    productName: item.productName || item.product?.name || '',
+                    description: item.description || '',
+                    quantity: item.quantity ?? 1,
+                    unitPrice: item.unitPrice ?? item.price ?? 0,
+                    discountPercent: item.discountPercent ?? 0,
+                    discountAmount: item.discountAmount ?? 0,
+                    taxPercent: item.taxPercent ?? item.tax ?? 0,
+                })),
+            };
+
+            console.log('[Duplicate] Sending payload:', newData);
+            await api.post(config.createUrl, newData);
+            toast.success('تم تكرار الفاتورة بنجاح');
+            fetchList();
+        } catch (error) {
+            console.error('Error duplicating:', error.response?.data || error);
+            const msg = error.response?.data?.message || 'حدث خطأ أثناء التكرار';
+            toast.error(msg);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCreateReturnClick = async (invoice) => {
+        setLoading(true);
+        try {
+            const res = await api.get(config.getOneUrl(invoice._id));
+            navigate('/dashboard/sales/returns', { state: { prefillData: res.data, mode: 'return' } });
+        } catch (error) {
+            toast.error(t('sales.common.error_message'));
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleDeleteAttachment = async (transactionId, updatedAttachments) => {
         try {
             await api.patch(config.getOneUrl(transactionId), { attachments: updatedAttachments });
@@ -216,6 +287,9 @@ const TransactionPage = ({ configKey }) => {
                             onAddClick={handleAddClick}
                             onRefresh={() => fetchList()}
                             onInvoiceClick={handleItemClick}
+                            onDelete={handleDelete}
+                            onDuplicate={handleDuplicateClick}
+                            onCreateReturn={handleCreateReturnClick}
                             i18n={i18n}
                             noItemsKey={config.noItemsKey}
                             startKey={config.startKey}
@@ -225,10 +299,11 @@ const TransactionPage = ({ configKey }) => {
                         />
                     )}
 
-                    {(view === 'add' || view === 'edit') && (
+                    {(view === 'add' || view === 'edit' || view === 'duplicate' || view === 'return') && (
                         <InvoiceForm
                             invoice={selected}
-                            onClose={() => setView('list')}
+                            mode={view}
+                            onClose={() => { setView('list'); setSelected(null); fetchList(); }}
                             onSave={handleSave}
                             onDeleteAttachment={handleDeleteAttachment}
                             i18n={i18n}

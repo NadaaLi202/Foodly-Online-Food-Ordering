@@ -4,6 +4,7 @@ import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucid
 import reportsService from '../../../services/reportsService';
 import { exportCustomerSummaryToExcel, buildCustomerSummaryPdf } from '../../../utils/customerSupplierInventoryExport';
 import logError from '../../../utils/logError';
+import PrintHeader from '../../../components/common/PrintHeader';
 
 const SummaryCustomerReport = () => {
     const { t } = useTranslation();
@@ -182,6 +183,9 @@ const SummaryCustomerReport = () => {
         <>
             <div className="p-6">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <div className="hidden print:block mb-6">
+                        <PrintHeader title={t('reports.clients.summary_report')} isRTL={false} />
+                    </div>
                     {/* Filters Section */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 no-print">
                         {/* Period */}

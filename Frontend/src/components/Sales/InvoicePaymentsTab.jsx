@@ -15,14 +15,18 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
     const [loading, setLoading] = useState(false);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const defaultOpType = paymentsModule === 'sales' ? 'receive' : 'spend';
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
         amount: '',
-        treasury: 'main',
-        operationType: 'receive',
+        treasury: '',
+        operationType: defaultOpType,
         referenceNumber: '',
         notes: ''
     });
+    const [safes, setSafes] = useState([]);
+    const [bankAccounts, setBankAccounts] = useState([]);
+    const [paymentMethod, setPaymentMethod] = useState('cash');
     const [errors, setErrors] = useState({});
     const { hasPermission } = usePermissions();
 
@@ -50,6 +54,22 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        const fetchAccounts = async () => {
+            try {
+                const [safesRes, banksRes] = await Promise.all([
+                    api.get('/safes'),
+                    api.get('/bank-accounts')
+                ]);
+                setSafes(safesRes.data?.safes || safesRes.data?.data || []);
+                setBankAccounts(banksRes.data?.data || []);
+            } catch (error) {
+                logError('Error fetching accounts:', error);
+            }
+        };
+        fetchAccounts();
+    }, []);
 
     useEffect(() => {
         fetchPayments();
@@ -108,7 +128,7 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
             });
             toast.success(t('sales.common.success_message', 'Success'));
             setIsAddModalOpen(false);
-            setFormData({ date: new Date().toISOString().split('T')[0], amount: '', treasury: 'main', operationType: 'receive', referenceNumber: '', notes: '' });
+            setFormData({ date: new Date().toISOString().split('T')[0], amount: '', treasury: '', operationType: defaultOpType, referenceNumber: '', notes: '' });
             fetchPayments();
             onRefreshInvoice?.();
             // Dispatch event for real-time report updates
@@ -245,7 +265,7 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
                                                 {p.operationType === 'receive' ? t('sales.payments.receive') : t('sales.payments.spend')}
                                             </span>
                                             <span className="ml-2 text-xs text-gray-500">
-                                                {p.treasury === 'main' ? t('sales.payments.main_treasury') : t('sales.payments.main_bank_account')}
+                                                {safes.find(s => s._id === p.treasury)?.name || bankAccounts.find(b => b._id === p.treasury)?.name || (p.treasury === 'main' ? t('sales.payments.main_treasury') : p.treasury === 'bank' ? t('sales.payments.main_bank_account') : p.treasury)}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-gray-600">{p.referenceNumber || '—'}</td>
@@ -295,13 +315,29 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('sales.payments.treasury')} *</label>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{t('sales.common.payment_method')}</label>
+                                <select
+                                    value={paymentMethod}
+                                    onChange={(e) => {
+                                        setPaymentMethod(e.target.value);
+                                        setFormData(f => ({ ...f, treasury: '' }));
+                                    }}
+                                    className="w-full border-2 border-gray-100 rounded-lg px-3 py-2.5 text-sm focus:border-indigo-500"
+                                >
+                                    <option value="cash">{t('sales.common.cash')}</option>
+                                    <option value="bank">{t('sales.common.bank')}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">
+                                    {paymentMethod === 'cash' ? t('finance.safe') : t('finance.bank_account')} *
+                                </label>
                                 <select
                                     value={formData.treasury}
                                     onChange={(e) => setFormData(f => ({ ...f, treasury: e.target.value }))}
                                     className={`w-full border-2 rounded-lg px-3 py-2.5 text-sm ${errors.treasury ? 'border-red-500' : 'border-gray-100 focus:border-indigo-500'}`}
                                 >
-                                    <option value="">{t('sales.payments.select_treasury')}</option>
+                                    <option value="">{t('sales.payments.select_treasury') || 'Select...'}</option>
                                     <option value="main">{t('sales.payments.main_treasury')}</option>
                                     <option value="bank">{t('sales.payments.main_bank_account')}</option>
                                 </select>

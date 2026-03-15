@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import logError from "../utils/logError";
+import api from "../services/api";
 
 const AuthContext = createContext();
 
@@ -9,7 +10,9 @@ export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(null);
     const [companySettings, setCompanySettings] = useState({
         currency: localStorage.getItem('companyCurrency') || 'EGP',
-        language: localStorage.getItem('i18nextLng') || 'ar'
+        language: localStorage.getItem('i18nextLng') || 'ar',
+        company_name: '',
+        logo_path: ''
     });
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -21,7 +24,9 @@ export const AuthProvider = ({ children }) => {
                 const settings = response.data.data.settings;
                 const newSettings = {
                     currency: settings.currency || 'EGP',
-                    language: settings.language || 'ar'
+                    language: settings.language || 'ar',
+                    company_name: settings.company_name || '',
+                    logo_path: settings.logo_path || ''
                 };
                 setCompanySettings(newSettings);
                 localStorage.setItem('companyCurrency', newSettings.currency);
@@ -89,7 +94,7 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setToken(null);
         setUser(null);
-        setCompanySettings({ currency: 'EGP', language: 'ar' });
+        setCompanySettings({ currency: 'EGP', language: 'ar', company_name: '', logo_path: '' });
         sessionStorage.removeItem("superAdminToken");
         sessionStorage.removeItem("superAdminUser");
         localStorage.removeItem("token");

@@ -9,17 +9,16 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
     const isRtl = i18n.language === 'ar';
     const [loading, setLoading] = useState(false);
     const [suppliers, setSuppliers] = useState([]);
+    const [safes, setSafes] = useState([]);
+    const [bankAccounts, setBankAccounts] = useState([]);
+    const [paymentMethod, setPaymentMethod] = useState('cash');
 
     // Form State
     const [formData, setFormData] = useState({
         contact: '',
         date: new Date().toISOString().split('T')[0],
-        operationType: 'spend', // Default for purchases is spend usually? But let's keep 'receive' if that's defaults elsewhere, but for PAYING a supplier it is usually SPEND. The list shows 'receive'/'spend'. Let's stick to what was there or default 'spend'.
-        // Actually, for Supplier Payments, it's usually 'spend' (paying money out).
-        // Check `SupplierPayments.jsx` default: it was 'receive'. Wait. 
-        // Paying a supplier = SPEND. Receiving refund = RECEIVE. 
-        // I will default to 'spend' as it makes more sense for "Payments".
-        treasury: 'main',
+        operationType: 'spend',
+        treasury: '',
         amount: '',
         notes: ''
     });
@@ -30,6 +29,7 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
     useEffect(() => {
         if (isOpen) {
             fetchSuppliers();
+            fetchAccounts();
         }
     }, [isOpen]);
 
@@ -40,20 +40,23 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
                 contact: payment.contact?._id || payment.contact || '',
                 date: payment.date ? new Date(payment.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                 operationType: payment.operationType || 'spend',
-                treasury: payment.treasury || 'main',
+                treasury: payment.treasury || '',
                 amount: payment.amount || '',
                 notes: payment.notes || ''
             });
+            // Try to guess payment method
+            // If editing and accounts are fetched, we could do it. For now, it might be out of sync initially if it was bank.
         } else {
             // Reset for Add Mode
             setFormData({
                 contact: '',
                 date: new Date().toISOString().split('T')[0],
                 operationType: 'spend',
-                treasury: 'main',
+                treasury: '',
                 amount: '',
                 notes: ''
             });
+            setPaymentMethod('cash');
         }
         setErrors({});
     }, [payment, isOpen]);
@@ -64,6 +67,19 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
             setSuppliers(response.data.contacts || []);
         } catch (error) {
             logError('Error fetching suppliers:', error);
+        }
+    };
+
+    const fetchAccounts = async () => {
+        try {
+            const [safesRes, banksRes] = await Promise.all([
+                api.get('/safes'),
+                api.get('/bank-accounts')
+            ]);
+            setSafes(safesRes.data?.safes || safesRes.data?.data || []);
+            setBankAccounts(banksRes.data?.data || []);
+        } catch (error) {
+            logError('Error fetching accounts:', error);
         }
     };
 
@@ -271,20 +287,42 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
                                         </div>
 
                                         {/* Treasury/Wallet */}
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-bold text-slate-700 flex items-center gap-2 px-1">
-                                                <DollarSign size={16} className="text-slate-400" />
-                                                {t('sales.payments.treasury')}
-                                            </label>
-                                            <select
-                                                name="treasury"
-                                                value={formData.treasury}
-                                                onChange={handleInputChange}
-                                                className="w-full h-12 bg-slate-50/50 border border-slate-200 rounded-2xl px-4 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all appearance-none cursor-pointer"
-                                            >
-                                                <option value="main">{t('sales.payments.main_treasury')}</option>
-                                                <option value="bank">{t('sales.payments.main_bank_account')}</option>
-                                            </select>
+                                        <div className="space-y-4">
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-bold text-slate-700 flex items-center gap-2 px-1">
+                                                    <DollarSign size={16} className="text-slate-400" />
+                                                    {t('sales.common.payment_method')}
+                                                </label>
+                                                <select
+                                                    value={paymentMethod}
+                                                    onChange={(e) => {
+                                                        setPaymentMethod(e.target.value);
+                                                        setFormData(prev => ({ ...prev, treasury: '' }));
+                                                    }}
+                                                    className="w-full h-12 bg-slate-50/50 border border-slate-200 rounded-2xl px-4 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all appearance-none cursor-pointer"
+                                                >
+                                                    <option value="cash">{t('sales.common.cash')}</option>
+                                                    <option value="bank">{t('sales.common.bank')}</option>
+                                                </select>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-bold text-slate-700 flex items-center gap-2 px-1">
+                                                    <DollarSign size={16} className="text-slate-400" />
+                                                    {paymentMethod === 'cash' ? t('finance.safe') : t('finance.bank_account')}
+                                                </label>
+                                                <select
+                                                    name="treasury"
+                                                    value={formData.treasury || ''}
+                                                    onChange={handleInputChange}
+                                                    className={`w-full h-12 bg-slate-50/50 border ${errors.treasury ? 'border-red-400' : 'border-slate-200'} rounded-2xl px-4 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all appearance-none cursor-pointer`}
+                                                >
+                                                    <option value="">{t('sales.payments.select_treasury') || 'Select...'}</option>
+                                                    <option value="main">{t('sales.payments.main_treasury')}</option>
+                                                    <option value="bank">{t('sales.payments.main_bank_account')}</option>
+                                                </select>
+                                                {errors.treasury && <p className="text-red-500 text-[10px] font-bold uppercase tracking-wider mt-1 px-1">{errors.treasury}</p>}
+                                            </div>
                                         </div>
 
                                         {/* Amount */}

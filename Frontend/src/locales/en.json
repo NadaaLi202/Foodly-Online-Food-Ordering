@@ -662,6 +662,7 @@
         }
     },
     "topbar": {
+        "actions": "Actions",
         "add": "Add",
         "view": "View",
         "main_branch": "Main Branch",

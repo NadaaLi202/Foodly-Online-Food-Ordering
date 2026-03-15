@@ -6,6 +6,7 @@ import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
 import QRCode from "qrcode";
 import PDFDocument from "pdfkit";
+import { createPaymentJournalEntry } from "../transaction/transaction.accounting.js";
 
 const updateTransactionPaymentStatus = (transaction) => {
     if (transaction.paidAmount >= transaction.totalAmount && transaction.totalAmount > 0) {
@@ -13,7 +14,7 @@ const updateTransactionPaymentStatus = (transaction) => {
     } else if (transaction.paidAmount > 0) {
         transaction.status = 'partially_paid';
     } else {
-        transaction.status = 'unpaid';
+        transaction.status = 'issued'; // 'unpaid' is not in enum; 'issued' = confirmed but unpaid
     }
     transaction.remainingAmount = Math.max(0, transaction.totalAmount - transaction.paidAmount);
 };
@@ -56,6 +57,10 @@ const addPayment = (module) =>
                 transaction.paidAmount = (transaction.paidAmount || 0) + amount;
                 updateTransactionPaymentStatus(transaction);
                 await transaction.save();
+
+                // Auto-create payment journal entry (non-fatal)
+                const companyId = transaction.companyId?.toString() || req.user?.companyId?.toString();
+                createPaymentJournalEntry(payment, transaction, companyId).catch(() => { });
             }
         }
 
