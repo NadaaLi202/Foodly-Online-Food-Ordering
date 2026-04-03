@@ -141,12 +141,12 @@ const ClientGeneralLedger = () => {
                         <PrintHeader title={''} isRTL={false} />
                     </div>
                 {/* Filters Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div className="flex flex-wrap items-end gap-3 mb-6 no-print bg-gray-50 p-4 rounded-xl border border-gray-100">
                     {/* Period */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.period')}</label>
+                    <div className="flex-1 min-w-[140px]">
+                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('reports.filters.period')}</label>
                         <div className="relative">
-                            <select value={filters.period} onChange={(e) => handleFilterChange('period', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <select value={filters.period} onChange={(e) => handleFilterChange('period', e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow">
                                 {periodOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -154,28 +154,28 @@ const ClientGeneralLedger = () => {
                     </div>
 
                     {/* From Date */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.from_date')}</label>
+                    <div className="flex-1 min-w-[140px]">
+                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('reports.filters.from_date')}</label>
                         <div className="relative">
-                            <input type="text" value={filters.fromDate} onChange={(e) => handleFilterChange('fromDate', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+                            <input type="text" value={filters.fromDate} onChange={(e) => handleFilterChange('fromDate', e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow" />
                             <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
                     </div>
 
                     {/* To Date */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.to_date')}</label>
+                    <div className="flex-1 min-w-[140px]">
+                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('reports.filters.to_date')}</label>
                         <div className="relative">
-                            <input type="text" value={filters.toDate} onChange={(e) => handleFilterChange('toDate', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
+                            <input type="text" value={filters.toDate} onChange={(e) => handleFilterChange('toDate', e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow" />
                             <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
                     </div>
 
                     {/* Branches */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.branches')}</label>
+                    <div className="flex-1 min-w-[140px]">
+                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('reports.filters.branches')}</label>
                         <div className="relative">
-                            <select value={filters.branch} onChange={(e) => handleFilterChange('branch', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <select value={filters.branch} onChange={(e) => handleFilterChange('branch', e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow">
                                 <option value="all">{t('reports.filters.all_branches')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -183,10 +183,10 @@ const ClientGeneralLedger = () => {
                     </div>
 
                     {/* Journal Account */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.journal_account')}</label>
+                    <div className="flex-1 min-w-[140px]">
+                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('reports.filters.journal_account')}</label>
                         <div className="relative">
-                            <select value={filters.journalAccount} onChange={(e) => handleFilterChange('journalAccount', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <select value={filters.journalAccount} onChange={(e) => handleFilterChange('journalAccount', e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow">
                                 <option value="all">{t('reports.filters.all_journal_accounts')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -194,27 +194,27 @@ const ClientGeneralLedger = () => {
                     </div>
 
                     {/* Displayed Accounts */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.displayed_accounts')}</label>
+                    <div className="flex-1 min-w-[140px]">
+                        <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('reports.filters.displayed_accounts')}</label>
                         <div className="relative">
-                            <select value={filters.displayedAccounts} onChange={(e) => handleFilterChange('displayedAccounts', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <select value={filters.displayedAccounts} onChange={(e) => handleFilterChange('displayedAccounts', e.target.value)} className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow">
                                 <option value="with_transactions">{t('reports.filters.with_transactions')}</option>
                                 <option value="all">{t('reports.filters.all_accounts')}</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                         </div>
                     </div>
-                </div>
 
-                {/* View Report Button */}
-                <div className="mb-6">
-                    <button
-                        onClick={handleViewReport}
-                        disabled={loading}
-                        className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                    >
-                        {loading ? t('reports.loading') : t('reports.view_report')}
-                    </button>
+                    {/* View Report Button */}
+                    <div className="flex-none w-full lg:w-auto">
+                        <button
+                            onClick={handleViewReport}
+                            disabled={loading}
+                            className="w-full lg:w-auto px-6 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:opacity-50 h-[42px] flex items-center justify-center min-w-[120px]"
+                        >
+                            {loading ? t('reports.loading') : t('reports.view_report')}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Error State */}
@@ -226,31 +226,22 @@ const ClientGeneralLedger = () => {
 
                 {/* Report Header & Export */}
                 {reportData.length > 0 && (
-                    <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                        <div className="text-sm text-gray-700 font-medium">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 no-print">
+                        <h2 className="text-lg font-bold text-gray-900">
                             {t('reports.clients.client_general_ledger')}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={handleExportExcel}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200"
-                            >
-                                <FileSpreadsheet className="w-3.5 h-3.5" />
-                                {t('reports.export.excel')}
+                        </h2>
+                        <div className="flex flex-wrap items-center gap-2 rtl:space-x-reverse">
+                            <button onClick={handlePrint} className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 text-gray-700 text-sm font-semibold rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-200">
+                                <Printer className="w-4 h-4" />
+                                {t('reports.export.print') || 'طباعة'}
                             </button>
-                            <button
-                                onClick={handleExportPdf}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition-colors border border-purple-200"
-                            >
-                                <FileText className="w-3.5 h-3.5" />
-                                {t('reports.export.pdf')}
+                            <button onClick={handleExportPdf} className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 text-sm font-semibold rounded-lg hover:bg-purple-100 transition-colors border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-200">
+                                <FileText className="w-4 h-4" />
+                                {t('reports.export.pdf') || 'PDF'}
                             </button>
-                            <button
-                                onClick={handlePrint}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-200"
-                            >
-                                <Printer className="w-3.5 h-3.5" />
-                                {t('reports.export.print')}
+                            <button onClick={handleExportExcel} className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 text-sm font-semibold rounded-lg hover:bg-emerald-100 transition-colors border border-emerald-200 focus:outline-none focus:ring-2 focus:ring-emerald-200">
+                                <FileSpreadsheet className="w-4 h-4" />
+                                {t('reports.export.excel') || 'إكسل'}
                             </button>
                         </div>
                     </div>
@@ -262,13 +253,13 @@ const ClientGeneralLedger = () => {
                         <table className="w-full min-w-[800px]">
                             <thead>
                                 <tr className="bg-gray-50 border-b border-gray-200">
-                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.columns.date')}</th>
-                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.columns.type')}</th>
-                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.columns.document_number')}</th>
-                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.columns.description')}</th>
-                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.columns.debit')}</th>
-                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.columns.credit')}</th>
-                                    <th className="px-4 py-3 text-start text-sm font-medium text-gray-700">{t('reports.columns.balance')}</th>
+                                    <th className="px-4 py-3.5 text-start text-sm font-bold text-gray-700">{t('reports.columns.date')}</th>
+                                    <th className="px-4 py-3.5 text-start text-sm font-bold text-gray-700">{t('reports.columns.type')}</th>
+                                    <th className="px-4 py-3.5 text-start text-sm font-bold text-gray-700">{t('reports.columns.document_number')}</th>
+                                    <th className="px-4 py-3.5 text-start text-sm font-bold text-gray-700">{t('reports.columns.description')}</th>
+                                    <th className="px-4 py-3.5 text-start text-sm font-bold text-gray-700">{t('reports.columns.debit')}</th>
+                                    <th className="px-4 py-3.5 text-start text-sm font-bold text-gray-700">{t('reports.columns.credit')}</th>
+                                    <th className="px-4 py-3.5 text-start text-sm font-bold text-gray-700">{t('reports.columns.balance')}</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">

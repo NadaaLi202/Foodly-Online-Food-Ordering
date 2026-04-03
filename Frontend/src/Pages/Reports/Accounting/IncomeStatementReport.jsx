@@ -13,7 +13,8 @@ const getMonthRange = (date = new Date()) => {
 };
 
 const IncomeStatementReport = () => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const isRTL = i18n.language === 'ar' || i18n.language === 'ar-EG';
     const { startDate: defaultFrom, endDate: defaultTo } = getMonthRange();
 
     const [filters, setFilters] = useState({
@@ -172,7 +173,7 @@ const IncomeStatementReport = () => {
         grouped.expenses.other.items.forEach(item => contentRows.push(['', `${item.name || ''} #${item.code || ''}`, fmtNum(item.amount || 0)]));
         contentRows.push([]);
         contentRows.push([t('reports.accounting.net_income') || 'Net Income', fmtNum(grouped.netIncome)]);
-        const blob = buildAccountingReportPdf(t('reports.accounting.income_statement') || 'Income Statement', contentRows, t);
+        const blob = buildAccountingReportPdf(t('reports.accounting.income_statement') || 'Income Statement', contentRows, t, { locale: i18n.language });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -212,7 +213,7 @@ const IncomeStatementReport = () => {
         <div className="p-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="hidden print:block mb-6">
-                        <PrintHeader title={t('reports.accounting.income_statement_title') || 'Income Statement'} isRTL={false} />
+                        <PrintHeader title={t('reports.accounting.income_statement_title') || 'Income Statement'} isRTL={isRTL} />
                     </div>
                 {/* Filters Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">

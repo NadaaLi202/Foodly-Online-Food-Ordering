@@ -1,4 +1,5 @@
 import Transaction from "./transaction.model.js";
+import Payment from "../payments/payments.model.js";
 import mongoose from "mongoose";
 import Contact from "../contacts/contacts.model.js";
 import { companyModel } from "../companies/company.model.js";
@@ -9,10 +10,89 @@ import { AppError } from "../../utils/AppError.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
 import QRCode from "qrcode";
 import PDFDocument from "pdfkit";
+import path from "path";
+import { fileURLToPath } from "url";
+import { processArabic } from "../../utils/arabic.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 import * as inventoryService from "../product/inventory.service.js";
 import logError from "../../utils/logError.js";
-import { createInvoiceJournalEntry } from "./transaction.accounting.js";
+import { createInvoiceJournalEntry, createPaymentJournalEntry } from "./transaction.accounting.js";
+import { createTransactionFromInvoice } from "../FinancialTransactions/services/accountingTransaction.service.js";
+
+const docTypeLabel = (module, type) => {
+    if (module === 'Purchases') return type === 'return' ? 'مرتجع مشتريات' : 'فاتورة مشتريات';
+    return type === 'return' ? 'مرتجع مبيعات' : 'فاتورة ضريبية';
+};
+
+/**
+ * Automates creation/update of payment records for sales and purchases invoices.
+ */
+const syncTransactionPayment = async (transaction, user, session = null) => {
+    try {
+        // Only for sales or purchases invoices
+        if (transaction.documentType !== 'invoice') return null;
+        if (transaction.module !== 'sales' && transaction.module !== 'purchases') return null;
+
+        const isSales = transaction.module === 'sales';
+        const paidAmount = Number(transaction.paidAmount || 0);
+
+        // Find any existing automatic payment for this invoice
+        let payment = await Payment.findOne({
+            invoice: transaction._id,
+            invoiceType: 'automatic',
+            deletedAt: { $in: [null, undefined] }
+        }).session(session);
+
+        // If it's a draft or paidAmount is 0, delete any existing automatic payment
+        if (transaction.status === 'draft' || paidAmount <= 0) {
+            if (payment) {
+                payment.deletedAt = new Date();
+                payment.deletedBy = user?._id;
+                await payment.save({ session });
+            }
+            return null;
+        }
+
+        // Create or Update
+        const paymentData = {
+            date: transaction.issueDate || new Date(),
+            module: transaction.module,
+            operationType: isSales ? 'receive' : 'spend',
+            contact: transaction.contact,
+            invoice: transaction._id,
+            amount: paidAmount,
+            treasury: transaction.payment?.treasury || 'main',
+            referenceNumber: transaction.transactionNumber,
+            invoiceType: 'automatic',
+            status: 'completed',
+            companyId: transaction.companyId,
+            lastModifiedBy: user?._id
+        };
+
+        if (payment) {
+            Object.assign(payment, paymentData);
+            await payment.save({ session });
+        } else {
+            paymentData.createdBy = user?._id;
+            const created = await Payment.create([paymentData], { session });
+            payment = created[0];
+        }
+
+        // Handle Accounting
+        const companyIdStr = transaction.companyId?.toString();
+        if (companyIdStr) {
+            createPaymentJournalEntry(payment, transaction, companyIdStr).catch(() => { });
+        }
+
+        return payment;
+    } catch (err) {
+        logError('[syncTransactionPayment] Error:', err);
+        return null;
+    }
+};
 
 const createTransaction = (module, documentType) =>
     catchAsyncError(async (req, res, next) => {
@@ -72,58 +152,62 @@ const createTransaction = (module, documentType) =>
         }
 
         const session = await mongoose.startSession();
-        session.startTransaction();
+        let txn;
         try {
-            const transaction = await Transaction.create([{
-                ...opData,
-                module,
-                documentType,
-                companyId,
-                createdBy: req.user?._id
-            }], { session });
+            await session.withTransaction(async () => {
+                const transaction = await Transaction.create([{
+                    ...opData,
+                    module,
+                    documentType,
+                    companyId,
+                    createdBy: req.user?._id
+                }], { session });
 
-            const txn = transaction[0];
+                txn = transaction[0];
 
-            // Automated Stock Updates
-            if (txn.status !== 'draft' && (txn.documentType === 'invoice' || txn.documentType === 'return')) {
-                const isSales = txn.module === 'sales';
-                const isReturn = txn.documentType === 'return';
+                // Automated Stock Updates
+                if (txn.status !== 'draft' && (txn.documentType === 'invoice' || txn.documentType === 'return')) {
+                    const isSales = txn.module === 'sales';
+                    const isReturn = txn.documentType === 'return';
 
-                // Purchases Invoice: IN, Purchases Return: OUT
-                // Sales Invoice: OUT, Sales Return: IN
-                const stockType = isSales ? (isReturn ? 'in' : 'out') : (isReturn ? 'out' : 'in');
+                    const stockType = isSales ? (isReturn ? 'in' : 'out') : (isReturn ? 'out' : 'in');
 
-                for (const item of txn.items || []) {
-                    await inventoryService.updateProductStock({
-                        productId: item.product,
-                        companyId,
-                        quantity: item.quantity,
-                        type: stockType,
-                        permissionId: txn._id,
-                        userId: req.user?._id,
-                        // For purchases invoices, use the actual unit price to update WAC
-                        purchasePrice: (txn.module === 'purchases' && txn.documentType === 'invoice') ? item.unitPrice : null,
-                        session
-                    });
+                    for (const item of txn.items || []) {
+                        await inventoryService.updateProductStock({
+                            productId: item.product,
+                            companyId,
+                            quantity: item.quantity,
+                            type: stockType,
+                            permissionId: txn._id,
+                            userId: req.user?._id,
+                            purchasePrice: (txn.module === 'purchases' && txn.documentType === 'invoice') ? item.unitPrice : null,
+                            session
+                        });
+                    }
                 }
-            }
+            });
 
-            await session.commitTransaction();
+            // Post-transaction syncs (non-fatal, outside retry loop)
+            const payment = await syncTransactionPayment(txn, req.user).catch(() => null);
 
-            // Auto-create journal entry when invoice is confirmed (non-fatal)
-            if (txn.documentType === 'invoice' && txn.module === 'sales' && txn.status !== 'draft') {
+            // Accounting: Generate/Sync journal entry for all invoices/returns (non-draft)
+            if (txn.documentType === 'invoice' || txn.documentType === 'return') {
                 createInvoiceJournalEntry(txn, companyId).catch(() => { });
+                if (txn.module === 'sales' && txn.documentType === 'invoice' && txn.status !== 'draft') {
+                    createTransactionFromInvoice(txn).catch(() => { });
+                }
             }
 
             res.status(201).json({
                 message: "تم الإنشاء بنجاح",
-                transaction: txn
+                transaction: txn,
+                paymentCreated: !!payment
             });
         } catch (error) {
-            await session.abortTransaction();
+            logError("Transaction failed:", error);
             next(error);
         } finally {
-            session.endSession();
+            await session.endSession();
         }
     });
 
@@ -161,7 +245,7 @@ const getAllTransactions = (module, documentType) =>
             const contactFilter = { name: { $regex: searchTerm, $options: 'i' }, module: contactType, ...req.companyFilter };
             const matchingContacts = await Contact.find(contactFilter).select('_id').lean();
             const contactIds = matchingContacts.map(c => c._id);
-            
+
             query.$or = [
                 { transactionNumber: { $regex: searchTerm, $options: 'i' } }
             ];
@@ -265,72 +349,73 @@ const updateOne = catchAsyncError(async (req, res, next) => {
 
     await doc.save(); // ✅ يشغّل pre('save')
 
+    // Sync automatic payment
+    const payment = await syncTransactionPayment(doc, req.user);
+    // Accounting: Sync journal entry
+    if (doc.documentType === 'invoice' || doc.documentType === 'return') {
+        createInvoiceJournalEntry(doc, doc.companyId).catch(() => { });
+        if (doc.module === 'sales' && doc.documentType === 'invoice' && doc.status !== 'draft') {
+            createTransactionFromInvoice(doc).catch(() => { });
+        }
+    }
+
     res.json({
         message: "تم التعديل بنجاح",
-        data: doc
+        data: doc,
+        paymentCreated: !!payment
     });
 });
 
 const deleteOne = catchAsyncError(async (req, res, next) => {
-    const doc = await Transaction.findOne({ _id: req.params.id, ...req.companyFilter });
-    if (!doc) return next(new AppError("غير موجود", 404));
-
     const session = await mongoose.startSession();
-    session.startTransaction();
     try {
-        // Reverse Stock Movements if not draft
-        if (doc.status !== 'draft' && (doc.documentType === 'invoice' || doc.documentType === 'return')) {
-            const isSales = doc.module === 'sales';
-            const isReturn = doc.documentType === 'return';
+        await session.withTransaction(async () => {
+            const doc = await Transaction.findById(req.params.id).session(session);
+            if (!doc) throw new AppError("المعاملة غير موجودة", 404);
 
-            // Reversing: 
-            // Original IN -> Subtract, Original OUT -> Add
-            const stockType = isSales ? (isReturn ? 'out' : 'add') : (isReturn ? 'add' : 'out');
-            const inventoryAction = (isSales ? (isReturn ? 'out' : 'in') : (isReturn ? 'in' : 'out')) === 'in' ? 'subtract' : 'add';
+            // Reverse Stock before deleting
+            if (doc.status !== 'draft' && (doc.documentType === 'invoice' || doc.documentType === 'return')) {
+                const isSales = doc.module === 'sales';
+                const isReturn = doc.documentType === 'return';
+                // Reversing: Sales Invoice OUT becomes IN
+                // Corrected logic based on existing code:
+                for (const item of doc.items || []) {
+                    const action = (doc.module === 'purchases' && doc.documentType === 'invoice') || (doc.module === 'sales' && doc.documentType === 'return') ? 'subtract' : 'add';
 
-            // More readable logic:
-            // Purchase Invoice was IN -> Subtract
-            // Purchase Return was OUT -> Add
-            // Sales Invoice was OUT -> Add
-            // Sales Return was IN -> Subtract
-
-            for (const item of doc.items || []) {
-                const action = (doc.module === 'purchases' && doc.documentType === 'invoice') || (doc.module === 'sales' && doc.documentType === 'return') ? 'subtract' : 'add';
-
-                await inventoryService.updateProductStock({
-                    productId: item.product,
-                    companyId: doc.companyId,
-                    quantity: item.quantity,
-                    type: action === 'add' ? 'in' : 'out',
-                    permissionId: doc._id,
-                    userId: req.user?._id,
-                    session
-                });
+                    await inventoryService.updateProductStock({
+                        productId: item.product,
+                        companyId: String(doc.companyId),
+                        quantity: item.quantity,
+                        type: action === 'add' ? 'in' : 'out',
+                        permissionId: doc._id,
+                        userId: req.user?._id,
+                        session
+                    });
+                }
             }
-        }
 
-        // Soft delete
-        doc.deletedAt = new Date();
-        doc.deletedBy = req.user?._id;
-        await doc.save({ session });
+            doc.deletedAt = new Date();
+            doc.deletedBy = req.user?._id;
+            await doc.save({ session });
 
-        await session.commitTransaction();
+            // Delete linked automatic payments
+            await Payment.deleteMany({
+                invoice: doc._id,
+                invoiceType: 'automatic'
+            }, { session });
+
+            // Delete linked journal entry
+            await deleteInvoiceJournalEntry(doc.transactionNumber, doc.companyId);
+        });
+
         res.json({ message: "تم الحذف" });
     } catch (error) {
-        await session.abortTransaction();
+        logError("Delete transaction error:", error);
         next(error);
     } finally {
-        session.endSession();
+        await session.endSession();
     }
 });
-
-const docTypeLabel = (module, documentType) => {
-    const labels = {
-        sales: { invoice: "Invoice", return: "Return", quotation: "Quotation" },
-        purchases: { invoice: "Purchase Invoice", return: "Purchase Return", purchaseOrder: "Purchase Order", request: "Purchase Request" }
-    };
-    return labels[module]?.[documentType] || "Document";
-};
 
 const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
@@ -365,28 +450,45 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
     };
     const qrDataURL = await QRCode.toDataURL(JSON.stringify(qrPayload), { width: 200, margin: 1 });
 
+    let logoBuffer = null;
+    if (companyLogoUrl) {
+        try {
+            const response = await fetch(companyLogoUrl);
+            const arrayBuffer = await response.arrayBuffer();
+            logoBuffer = Buffer.from(arrayBuffer);
+        } catch (e) {
+            console.error("Failed to fetch logo:", e.message);
+        }
+    }
+
     const filename = `invoice-${(transaction.transactionNumber || id).replace(/[^a-zA-Z0-9-_]/g, "_")}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
 
-    const doc = new PDFDocument({ size: "A4", margin: 40 });
+    const doc = new PDFDocument({ size: "A4", margin: 40, rtl: true });
+    const regularFontPath = path.join(__dirname, "../../assets/fonts/Arial-Regular.ttf");
+    const boldFontPath = path.join(__dirname, "../../assets/fonts/Arial-Bold.ttf");
+    doc.registerFont("ArabicFont", regularFontPath);
+    doc.registerFont("ArabicFontBold", boldFontPath);
+    doc.font("ArabicFont"); // Set default font
+
     doc.pipe(res);
 
     let y = 40;
     const pageWidth = doc.page.width - 80;
     const rightCol = 350;
 
-    if (companyLogoUrl) {
+    if (logoBuffer) {
         try {
-            doc.image(companyLogoUrl, 40, y, { width: 50, height: 50 });
+            doc.image(logoBuffer, 40, y, { width: 50, height: 50 });
         } catch (e) {
             // if image load fails, skip
         }
         y += 55;
     }
-    doc.fontSize(18).font("Helvetica-Bold").text(companyName, 40, y);
+    doc.fontSize(18).font("ArabicFontBold").text(processArabic(companyName), 40, y, { width: pageWidth, align: "right" });
     y += 28;
-    doc.fontSize(10).font("Helvetica").text(docTypeLabel(transaction.module, transaction.documentType), 40, y);
+    doc.fontSize(10).font("ArabicFont").text(processArabic(docTypeLabel(transaction.module, transaction.documentType)), 40, y, { width: pageWidth, align: "right" });
     doc.fontSize(12).text(`# ${transaction.transactionNumber}`, rightCol, y);
     y += 20;
     doc.fontSize(9).text(`Issue: ${new Date(transaction.issueDate).toLocaleDateString()}`, rightCol, y);
@@ -396,55 +498,55 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
     const contact = transaction.contactSnapshot || transaction.contact;
     const contactName = (contact?.name || transaction.contact?.name) || "—";
     const contactAddr = contact?.address ? (contact.address.address1 || contact.address.city || "") : "";
-    doc.fontSize(10).font("Helvetica-Bold").text("Bill To", 40, y);
+    doc.fontSize(10).font("ArabicFontBold").text(processArabic("فاتورة إلى"), 40, y, { width: pageWidth, align: "right" });
     y += 16;
-    doc.font("Helvetica").text(contactName, 40, y);
-    if (contactAddr) doc.text(contactAddr, 40, y + 14);
+    doc.font("ArabicFont").text(processArabic(contactName), 40, y, { width: pageWidth, align: "right" });
+    if (contactAddr) doc.text(processArabic(contactAddr), 40, y + 14, { width: pageWidth, align: "right" });
     y += 36;
 
-    doc.fontSize(9).font("Helvetica-Bold");
-    doc.text("Product", 40, y);
-    doc.text("Qty", 220, y);
-    doc.text("Price", 260, y);
-    doc.text("Total", 320, y);
+    doc.fontSize(9).font("ArabicFontBold");
+    doc.text(processArabic("المنتج"), 40, y, { width: 170, align: "right" });
+    doc.text(processArabic("الكمية"), 220, y, { width: 40, align: "right" });
+    doc.text(processArabic("السعر"), 260, y, { width: 50, align: "right" });
+    doc.text(processArabic("الإجمالي"), 320, y, { width: pageWidth - 280, align: "right" });
     y += 18;
     doc.moveTo(40, y).lineTo(pageWidth + 40, y).stroke();
     y += 10;
 
-    doc.font("Helvetica");
+    doc.font("ArabicFont");
     const fmt = (n) => Number(n ?? 0).toFixed(2);
     (transaction.items || []).forEach((item) => {
         const name = item.productName || item.product?.name || "—";
         const total = item.total ?? (item.quantity * item.unitPrice - (item.discountAmount || 0) + (item.taxAmount || 0));
-        doc.fontSize(9).text(name.substring(0, 35), 40, y);
-        doc.text(fmt(item.quantity), 220, y);
-        doc.text(fmt(item.unitPrice), 260, y);
-        doc.text(`${fmt(total)} ${currencySymbol}`, 320, y);
+        doc.fontSize(9).text(processArabic(name.substring(0, 35)), 40, y, { width: 170, align: "right" });
+        doc.text(fmt(item.quantity), 210, y, { width: 40, align: "right" });
+        doc.text(fmt(item.unitPrice), 250, y, { width: 60, align: "right" });
+        doc.text(`${fmt(total)} ${processArabic(currencySymbol)}`, 310, y, { width: pageWidth - 270, align: "right" });
         y += 18;
     });
     y += 12;
 
     doc.moveTo(40, y).lineTo(pageWidth + 40, y).stroke();
     y += 16;
-    doc.font("Helvetica-Bold").text("Subtotal:", 260, y);
-    doc.text(`${fmt(transaction.subtotal)} ${currencySymbol}`, 380, y);
+    doc.font("ArabicFontBold").text(processArabic("الإجمالي الفرعي:"), 260, y, { width: 80, align: "right" });
+    doc.text(`${fmt(transaction.subtotal)} ${processArabic(currencySymbol)}`, 350, y, { width: pageWidth - 310, align: "right" });
     y += 14;
     if (transaction.totalDiscount > 0) {
-        doc.text("Discount:", 260, y);
-        doc.text(`-${fmt(transaction.totalDiscount)} ${currencySymbol}`, 380, y);
+        doc.text(processArabic("الخصم:"), 260, y, { width: 80, align: "right" });
+        doc.text(`-${fmt(transaction.totalDiscount)} ${processArabic(currencySymbol)}`, 350, y, { width: pageWidth - 310, align: "right" });
         y += 14;
     }
-    doc.text("Tax:", 260, y);
-    doc.text(`${fmt(transaction.totalTax)} ${currencySymbol}`, 380, y);
+    doc.font("ArabicFontBold").text(processArabic("الضريبة:"), 260, y, { width: 80, align: "right" });
+    doc.font("ArabicFont").text(`${fmt(transaction.totalTax)} ${processArabic(currencySymbol)}`, 350, y, { width: pageWidth - 310, align: "right" });
     y += 14;
-    doc.fontSize(11).text("Total:", 260, y);
-    doc.text(`${fmt(transaction.totalAmount)} ${currencySymbol}`, 380, y);
+    doc.font("ArabicFontBold").fontSize(11).text(processArabic("الإجمالي النهائي:"), 260, y, { width: 80, align: "right" });
+    doc.font("ArabicFont").text(`${fmt(transaction.totalAmount)} ${processArabic(currencySymbol)}`, 350, y, { width: pageWidth - 310, align: "right" });
     y += 28;
 
     const qrBase64 = qrDataURL.replace(/^data:image\/\w+;base64,/, "");
     const qrBuffer = Buffer.from(qrBase64, "base64");
     doc.image(qrBuffer, pageWidth + 40 - 80, y, { width: 80, height: 80 });
-    doc.fontSize(8).font("Helvetica").text("QR: document verification", pageWidth + 40 - 80, y + 84);
+    doc.fontSize(8).font("ArabicFont").text(processArabic("التحقق من المستند عبر رمز QR"), pageWidth + 40 - 80, y + 84, { width: 80, align: "right" });
 
     doc.fontSize(8).text(`${companyName} — ${transaction.transactionNumber}`, 40, doc.page.height - 40);
     doc.end();

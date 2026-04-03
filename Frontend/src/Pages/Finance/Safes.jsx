@@ -32,16 +32,20 @@ const Safes = () => {
         fetchSafes();
     }, []);
 
-    const handleDelete = async (id) => {
+    const handleDelete = async (safe) => {
+        if (safe.isDefault) {
+            toast.error(i18n.language === 'ar' ? 'لا يمكن حذف الخزنة الرئيسية' : 'Cannot delete the main safe');
+            return;
+        }
         const confirmed = await confirmDelete({ title: t('sales.common.confirm_delete', 'Confirm Delete'), message: t('sales.common.confirm_delete'), confirmText: t('sales.common.confirm', 'Confirm'), cancelText: t('sales.common.cancel') });
         if (!confirmed) return;
         try {
-            await api.delete(`/safes/${id}`);
+            await api.delete(`/safes/${safe._id}`);
             toast.success(t('sales.common.success_message'));
             fetchSafes();
         } catch (error) {
             logError('Error deleting safe:', error);
-            toast.error(t('sales.common.error_message'));
+            toast.error(error.response?.data?.message || t('sales.common.error_message'));
         }
     };
 
@@ -141,13 +145,15 @@ const Safes = () => {
                                                         >
                                                             <Edit size={18} />
                                                         </button>
-                                                        <button
-                                                            onClick={() => handleDelete(safe._id)}
-                                                            className="text-red-600 hover:text-red-900 p-1 rounded-full hover:bg-red-50"
-                                                            title={t('sales.common.delete')}
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
+                                                        {!safe.isDefault && (
+                                                            <button
+                                                                onClick={() => handleDelete(safe)}
+                                                                className="text-red-600 hover:text-red-900 p-1 rounded-full hover:bg-red-50"
+                                                                title={t('sales.common.delete')}
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>

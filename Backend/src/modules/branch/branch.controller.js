@@ -124,11 +124,16 @@ const updateBranch = catchAsyncError(async (req, res, next) => {
 });
 
 const deleteBranch = catchAsyncError(async (req, res, next) => {
-    const { id } = req.params;
-    const branch = await branchModel.findOneAndDelete({ _id: id, ...req.companyFilter });
+    const branch = await branchModel.findOne({ _id: id, ...req.companyFilter });
     if (!branch) {
         return next(new AppError('Branch not found', 404));
     }
+
+    if (branch.is_main) {
+        return next(new AppError('لا يمكن حذف الفرع الرئيسي', 400));
+    }
+
+    await branchModel.findByIdAndDelete(id);
     res.status(200).json({ message: 'Branch deleted successfully', branch });
 });
 

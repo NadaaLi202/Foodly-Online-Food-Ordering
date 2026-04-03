@@ -246,8 +246,11 @@ function App() {
             <Route path="sales">
               <Route index element={<SalesMainPage />} />
               <Route path="invoices" element={<Invoices />} />
+              <Route path="invoices/new" element={<Invoices />} />
               <Route path="returns" element={<Returns />} />
+              <Route path="returns/new" element={<Returns />} />
               <Route path="quotations" element={<Quotations />} />
+              <Route path="quotations/new" element={<Quotations />} />
               <Route path="customers" element={<Customers />} />
               <Route path="customers/:id" element={<Customers />} />
               <Route path="payments" element={<Payments />} />
@@ -314,10 +317,14 @@ function App() {
               <Route path="dashboard" element={<PurchasesPage />} />
               <Route path="suppliers/:id" element={<Suppliers />} />
               <Route path="invoices" element={<PurchaseInvoices />} />
+              <Route path="invoices/new" element={<PurchaseInvoices />} />
               <Route path="invoices/add" element={<PurchaseInvoices />} />
               <Route path="purchase-orders" element={<PurchaseOrders />} />
+              <Route path="purchase-orders/new" element={<PurchaseOrders />} />
               <Route path="returns" element={<PurchaseReturns />} />
+              <Route path="returns/new" element={<PurchaseReturns />} />
               <Route path="requests" element={<PurchaseRequests />} />
+              <Route path="requests/new" element={<PurchaseRequests />} />
               <Route path="suppliers" element={<Suppliers />} />
               <Route path="payments" element={<SupplierPayments />} />
             </Route>
@@ -325,6 +332,7 @@ function App() {
             <Route path="finance">
               <Route index element={<FinanceMainPage />} />
               <Route path="expenses" element={<Expenses />} />
+              <Route path="expenses/new" element={<Expenses />} />
               <Route path="transactions" element={<Transactions />} />
               <Route path="permissions" element={<PermissionsFinance />} />
               <Route path="safes" element={<Safes />} />

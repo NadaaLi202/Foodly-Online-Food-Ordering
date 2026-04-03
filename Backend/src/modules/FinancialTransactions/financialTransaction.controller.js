@@ -1,6 +1,7 @@
 import FinancialReceipt from "./models/financialReceipt.model.js";
 import FinancialDisbursement from "./models/financialDisbursement.model.js";
 import FinancialTransfer from "./models/financialTransfer.model.js";
+import AccountingTransaction from "./models/accountingTransaction.model.js";
 import { safeModel } from "../Safes/safe.model.js";
 import { bankAccountModel } from "../BankAccounts/bankAccount.model.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
@@ -22,10 +23,12 @@ const normalizeTaxesPercent = (value) => {
 
 // Helper to get correct model
 const getModel = (type) => {
-    switch (type) {
+    switch (type.toLowerCase()) {
         case 'receipt': return FinancialReceipt;
         case 'disbursement': return FinancialDisbursement;
         case 'transfer': return FinancialTransfer;
+        case 'income':
+        case 'receivable': return AccountingTransaction;
         default: throw new Error("Invalid transaction type");
     }
 };
@@ -131,16 +134,30 @@ const getAllFinancialTransactions = catchAsyncError(async (req, res) => {
         transactions = transactions.map(t => ({ ...t, type }));
     } else {
         // Aggregate all types
-        const [receipts, disbursements, transfers] = await Promise.all([
+        const [receipts, disbursements, transfers, accounting] = await Promise.all([
             FinancialReceipt.find(filter).populate('account').lean(),
             FinancialDisbursement.find(filter).populate('account').lean(),
-            FinancialTransfer.find(filter).populate('fromAccount').populate('toAccount').lean()
+            FinancialTransfer.find(filter).populate('fromAccount').populate('toAccount').lean(),
+            AccountingTransaction.find(filter).lean()
         ]);
+
+        const accMapped = accounting.map(t => ({
+            _id: t._id,
+            type: t.type.toLowerCase(),
+            code: t.referenceCode,
+            date: t.date,
+            amount: t.amount,
+            account: { name: t.account },
+            description: `Auto-generated Invoice sync`,
+            companyId: t.companyId,
+            createdAt: t.createdAt
+        }));
 
         transactions = [
             ...receipts.map(t => ({ ...t, type: 'receipt' })),
             ...disbursements.map(t => ({ ...t, type: 'disbursement' })),
-            ...transfers.map(t => ({ ...t, type: 'transfer' }))
+            ...transfers.map(t => ({ ...t, type: 'transfer' })),
+            ...accMapped
         ];
     }
 

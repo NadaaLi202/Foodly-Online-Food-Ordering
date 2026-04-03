@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import logError from '../../utils/logError';
 import { confirmDelete } from '../../utils/confirmDelete';
+import toast from 'react-hot-toast';
+import { handleUniversalShare } from '../../utils/shareUtils';
 
 const Expenses = () => {
     const { t, i18n } = useTranslation();
@@ -420,26 +422,12 @@ const Expenses = () => {
     };
 
     const handleShare = async () => {
-        const shareData = {
+        await handleUniversalShare({
             title: i18n.language === 'ar' ? 'تفاصيل المصروف' : 'Expense Details',
             text: `${i18n.language === 'ar' ? 'كود المصروف' : 'Expense Code'}: ${formData.code}\n${i18n.language === 'ar' ? 'المبلغ' : 'Amount'}: ${calculateTotal()} EGP`,
-            url: window.location.href
-        };
-
-        if (navigator.share) {
-            try {
-                await navigator.share(shareData);
-            } catch (err) {
-                logError('Error sharing:', err);
-            }
-        } else {
-            try {
-                await navigator.clipboard.writeText(`${shareData.text}\n${shareData.url}`);
-                alert(i18n.language === 'ar' ? 'تم نسخ الرابط والمحتوى!' : 'Link and content copied!');
-            } catch (err) {
-                logError('Failed to copy text:', err);
-            }
-        }
+            url: window.location.href,
+            t
+        });
     };
 
     const removeExistingAttachment = (index) => {

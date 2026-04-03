@@ -4,6 +4,8 @@ import Invoice from "./invoices.model.js";
 import { SUPPORTED_CURRENCIES } from "../../constants/currencies.js";
 import { dailyRestrictionModel } from "../dailyRestrictions/dailyRestrictions.model.js";
 import { chartOfAccountsModel } from "../chartOfAccounts/chartOfAccounts.model.js";
+import FinancialReceipt from "../FinancialTransactions/models/financialReceipt.model.js";
+import { safeModel } from "../Safes/safe.model.js";
 import mongoose from "mongoose";
 
 // Helper function to create or update journal entry for an invoice
@@ -11,9 +13,9 @@ const createOrUpdateJournalEntryForInvoice = async (invoice) => {
     if (invoice.status === 'draft') return;
 
     const source = `Invoice: ${invoice.invoiceNumber}`;
-    
+
     // Find existing entry if any
-    let existingEntry = await dailyRestrictionModel.findOne({ 
+    let existingEntry = await dailyRestrictionModel.findOne({
         companyId: invoice.companyId,
         source: source
     });
@@ -24,7 +26,7 @@ const createOrUpdateJournalEntryForInvoice = async (invoice) => {
 
     // Note: In a real system, these would come from settings. 
     // Since I cannot run seed or query DB easily now, I will assume generic names/codes or find them by name.
-    
+
     const entries = [
         {
             account: 'حساب العملاء', // Accounts Receivable
@@ -123,6 +125,49 @@ const createInvoice = catchAsyncError(async (req, res, next) => {
     // إنشاء قيد يومية إذا لم تكن مسودة
     await createOrUpdateJournalEntryForInvoice(invoice);
 
+    // إنشاء وصل للمبيعات إلكترونياً
+    if (invoice.status === 'paid') {
+        const existingReceipt = await FinancialReceipt.findOne({
+            companyId: invoice.companyId,
+            description: { $regex: new RegExp(invoice.invoiceNumber, 'i') }
+        });
+
+        if (!existingReceipt) {
+            let mainSafe = await safeModel.findOne({ companyId: invoice.companyId, isDefault: true });
+            if (!mainSafe) {
+                // الفالباك في حال عدم تعيين الخزنة الرئيسية بعد
+                mainSafe = await safeModel.findOne({ companyId: invoice.companyId }).sort({ createdAt: 1 });
+            }
+
+            if (mainSafe) {
+                const count = await FinancialReceipt.countDocuments({ companyId: invoice.companyId });
+                const now = new Date();
+                const code = `${String(now.getFullYear()).slice(-2)}-${String(now.getMonth() + 1)}-${String(count + 1).padStart(6, '0')}`;
+
+                let clientName = invoice.clientName || '';
+                if (!clientName && invoice.clientId) {
+                    const populatedInvoice = await Invoice.findById(invoice._id).populate('clientId');
+                    clientName = populatedInvoice.clientId?.name || invoice.clientName;
+                }
+
+                await FinancialReceipt.create({
+                    code: code,
+                    date: new Date(),
+                    account: mainSafe._id,
+                    accountModel: 'Safe',
+                    externalAccount: `عملية دفع عميل #${clientName}`,
+                    amount: invoice.total,
+                    description: `سداد فاتورة ${invoice.invoiceNumber}`,
+                    companyId: invoice.companyId,
+                    createdBy: req.user._id
+                });
+
+                mainSafe.balance += invoice.total;
+                await mainSafe.save();
+            }
+        }
+    }
+
     res.status(201).json({
         message: 'تم إنشاء الفاتورة بنجاح',
         invoice
@@ -202,7 +247,7 @@ const updateInvoice = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
 
     // التحقق من وجود الفاتورة
-    const invoice = await Invoice.findOne({ _id: id, ...req.companyFilter });
+    const invoice = await Invoice.findOne({ _id: id, ...req.companyFilter }).populate('clientId');
     if (!invoice) {
         return next(new AppError('الفاتورة غير موجودة', 404));
     }
@@ -256,6 +301,47 @@ const updateInvoice = catchAsyncError(async (req, res, next) => {
     // تحديث أو إنشاء قيد يومية
     await createOrUpdateJournalEntryForInvoice(invoice);
 
+    // إنشاء وصل للمبيعات إلكترونياً
+    if (invoice.status === 'paid') {
+        const existingReceipt = await FinancialReceipt.findOne({
+            companyId: invoice.companyId,
+            description: { $regex: new RegExp(invoice.invoiceNumber, 'i') }
+        });
+
+        if (!existingReceipt) {
+            let mainSafe = await safeModel.findOne({ companyId: invoice.companyId, isDefault: true });
+            if (!mainSafe) {
+                mainSafe = await safeModel.findOne({ companyId: invoice.companyId }).sort({ createdAt: 1 });
+            }
+
+            if (mainSafe) {
+                const count = await FinancialReceipt.countDocuments({ companyId: invoice.companyId });
+                const now = new Date();
+                const code = `${String(now.getFullYear()).slice(-2)}-${String(now.getMonth() + 1)}-${String(count + 1).padStart(6, '0')}`;
+
+                let clientName = invoice.clientName || '';
+                if (!clientName && invoice.clientId) {
+                    clientName = invoice.clientId.name || clientName;
+                }
+
+                await FinancialReceipt.create({
+                    code: code,
+                    date: new Date(),
+                    account: mainSafe._id,
+                    accountModel: 'Safe',
+                    externalAccount: `عملية دفع عميل #${clientName}`,
+                    amount: invoice.total,
+                    description: `سداد فاتورة ${invoice.invoiceNumber}`,
+                    companyId: invoice.companyId,
+                    createdBy: req.user._id
+                });
+
+                mainSafe.balance += invoice.total;
+                await mainSafe.save();
+            }
+        }
+    }
+
     res.status(200).json({
         message: 'تم تحديث الفاتورة بنجاح',
         invoice
@@ -308,7 +394,7 @@ const updateInvoiceStatus = catchAsyncError(async (req, res, next) => {
         return next(new AppError('حالة غير صحيحة', 400));
     }
 
-    const invoice = await Invoice.findOne({ _id: id, ...req.companyFilter });
+    const invoice = await Invoice.findOne({ _id: id, ...req.companyFilter }).populate('clientId');
 
     if (!invoice) {
         return next(new AppError('الفاتورة غير موجودة', 404));
@@ -318,6 +404,47 @@ const updateInvoiceStatus = catchAsyncError(async (req, res, next) => {
 
     // تحديث أو إنشاء قيد يومية
     await createOrUpdateJournalEntryForInvoice(invoice);
+
+    // إنشاء وصل مبيعات
+    if (invoice.status === 'paid') {
+        const existingReceipt = await FinancialReceipt.findOne({
+            companyId: invoice.companyId,
+            description: { $regex: new RegExp(invoice.invoiceNumber, 'i') }
+        });
+
+        if (!existingReceipt) {
+            let mainSafe = await safeModel.findOne({ companyId: invoice.companyId, isDefault: true });
+            if (!mainSafe) {
+                mainSafe = await safeModel.findOne({ companyId: invoice.companyId }).sort({ createdAt: 1 });
+            }
+
+            if (mainSafe) {
+                const count = await FinancialReceipt.countDocuments({ companyId: invoice.companyId });
+                const now = new Date();
+                const code = `${String(now.getFullYear()).slice(-2)}-${String(now.getMonth() + 1)}-${String(count + 1).padStart(6, '0')}`;
+
+                let clientName = invoice.clientName || '';
+                if (!clientName && invoice.clientId) {
+                    clientName = invoice.clientId.name || clientName;
+                }
+
+                await FinancialReceipt.create({
+                    code: code,
+                    date: new Date(),
+                    account: mainSafe._id,
+                    accountModel: 'Safe',
+                    externalAccount: `عملية دفع عميل #${clientName}`,
+                    amount: invoice.total,
+                    description: `سداد فاتورة ${invoice.invoiceNumber}`,
+                    companyId: invoice.companyId,
+                    createdBy: req.user._id
+                });
+
+                mainSafe.balance += invoice.total;
+                await mainSafe.save();
+            }
+        }
+    }
 
     res.status(200).json({
         message: 'تم تحديث حالة الفاتورة بنجاح',

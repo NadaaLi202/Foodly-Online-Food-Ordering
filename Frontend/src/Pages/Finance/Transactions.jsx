@@ -88,15 +88,19 @@ const Transactions = () => {
             case 'receipt': return t('finance.receipt');
             case 'disbursement': return t('finance.disbursement');
             case 'transfer': return t('finance.transfer');
+            case 'income': return t('finance.income');
+            case 'receivable': return t('finance.receivable');
             default: return type;
         }
     };
 
     const getTypeStyle = (type) => {
         switch (type) {
-            case 'receipt': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+            case 'receipt':
+            case 'income': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
             case 'disbursement': return 'bg-red-50 text-red-700 border-red-100';
             case 'transfer': return 'bg-indigo-50 text-indigo-700 border-indigo-100';
+            case 'receivable': return 'bg-blue-50 text-blue-700 border-blue-100';
             default: return 'bg-gray-50 text-gray-700 border-gray-100';
         }
     };
@@ -236,12 +240,14 @@ const Transactions = () => {
                                             <tr key={tx._id} className="hover:bg-gray-50 transition-colors group">
                                                 <td className={`align-middle text-sm whitespace-nowrap text-start py-4 ${isRtl ? 'pr-4 sm:pr-6 pl-3' : 'pl-4 sm:pl-6 pr-3'}`}>
                                                     <div className="relative">
-                                                        <button
-                                                            onClick={() => setOpenActionMenu(openActionMenu === tx._id ? null : tx._id)}
-                                                            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-                                                        >
-                                                            <MoreVertical size={18} />
-                                                        </button>
+                                                        {(tx.type !== 'income' && tx.type !== 'receivable') && (
+                                                            <button
+                                                                onClick={() => setOpenActionMenu(openActionMenu === tx._id ? null : tx._id)}
+                                                                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                                                            >
+                                                                <MoreVertical size={18} />
+                                                            </button>
+                                                        )}
 
                                                         {openActionMenu === tx._id && (
                                                             <div className={`absolute ${isRtl ? 'right-0' : 'left-0'} mt-1 w-40 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden`}>
@@ -298,10 +304,12 @@ const Transactions = () => {
                                                         <span className="font-bold text-gray-900">
                                                             {tx.type === 'transfer'
                                                                 ? `${tx.fromAccount?.name || '-'} → ${tx.toAccount?.name || '-'}`
-                                                                : (tx.account?.name || '-')}
+                                                                : (tx.account?.name === 'Unknown' ? t('sales.common.unknown') : (tx.account?.name || '-'))}
                                                         </span>
                                                         <span className="text-[10px] text-gray-400 truncate max-w-[150px]">
-                                                            {tx.description || '-'}
+                                                            {tx.description === 'Auto-generated Invoice sync'
+                                                                ? t('finance.auto_generated_sync')
+                                                                : (tx.description || '-')}
                                                         </span>
                                                     </div>
                                                 </td>

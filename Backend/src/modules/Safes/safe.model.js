@@ -44,6 +44,10 @@ const safeSchema = new mongoose.Schema(
         balance: {
             type: Number,
             default: 0
+        },
+        isDefault: {
+            type: Boolean,
+            default: false
         }
     },
     {

@@ -1,9 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Landmark, Calendar, DollarSign, FileText, ChevronDown, Check, Upload, Trash2, ArrowLeftRight, Plus, Wallet } from 'lucide-react';
+import { X, Save, Landmark, Calendar, DollarSign, FileText, ChevronDown, Check, Upload, Trash2, ArrowLeftRight, Plus, Wallet, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import logError from '../../utils/logError';
+import costCentersService from '../../services/costCentersService';
+
+const PREDEFINED_ACCOUNTS = [
+    { code: '1211', name: 'الخزنة الرئيسية #1211' },
+    { code: '1221', name: 'الحساب البنكي الرئيسي #1221' },
+    { code: '1251', name: 'المستودع الرئيسي #1251' },
+    { code: '12610001', name: 'عملاء أخرون #12610001' },
+    { code: '12610002', name: 'شركة بلاكريدج للتطوير التجاري #12610002' },
+    { code: '1262', name: 'اطراف مدينه أخرى #1262' },
+    { code: '127', name: 'عجز وزيادة الصندوق #127' },
+    { code: '129', name: 'المشتريات تحت الإسلام #129' },
+    { code: '128', name: 'تغيير عملة #128' },
+    { code: '21110001', name: 'موردون أخرون #21110001' },
+    { code: '2112', name: 'اطراف دائنة أخرى #2112' },
+    { code: '213', name: 'أرصدة افتتاحية #213' },
+    { code: '2141', name: 'القيمة المضافة المدفوعة #2141' },
+    { code: '2142', name: 'القيمة المضافة المحصلة #2142' },
+    { code: '31', name: 'رأس المال #31' },
+    { code: '32', name: 'أرباح وخسائر مرحلة #32' },
+    { code: '411', name: 'المبيعات #411' },
+    { code: '412', name: 'مردودات المبيعات #412' },
+    { code: '421', name: 'إيرادات أخرى #421' },
+    { code: '422', name: 'أرباح وخسائر رأسمالية #422' },
+    { code: '423', name: 'تسوية المشتريات #423' },
+    { code: '523', name: 'تسوية المبيعات #523' },
+    { code: '511', name: 'المشتريات #511' },
+    { code: '512', name: 'مردودات المشتريات #512' },
+    { code: '521', name: 'تكلفة البضاعة المباعة #521' },
+    { code: '522', name: 'خصم مسموح به #522' },
+    { code: '5301', name: 'إيجار #5301' },
+    { code: '5303', name: 'هاتف وانترنت #5303' },
+    { code: '5304', name: 'صيانة #5304' },
+    { code: '5305', name: 'ماء #5305' },
+    { code: '5306', name: 'مصاريف حكومية #5306' },
+    { code: '541', name: 'الديون المعدومة #541' },
+    { code: '542', name: 'عجر وزيادة المخزون #542' },
+    { code: '543', name: 'مصروفات أخرى #543' }
+];
 
 const TAX_PRESETS = ['0', '10', '15'];
 const normalizeTaxesValue = (raw) => {
@@ -24,6 +62,11 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
     const [fetching, setFetching] = useState(isEdit || isView);
     const [accounts, setAccounts] = useState([]); // Safes + Bank Accounts
     const [type, setType] = useState(initialType);
+
+    // Extraneous Dropdown states
+    const [availableCostCenters, setAvailableCostCenters] = useState([]);
+    const [costCentersList, setCostCentersList] = useState([]);
+    const [accountSearchTerm, setAccountSearchTerm] = useState('');
 
     const [activeDropdown, setActiveDropdown] = useState(null);
 
@@ -78,15 +121,19 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
 
     const fetchAccounts = async () => {
         try {
-            const [safesRes, banksRes] = await Promise.all([
+            const [safesRes, banksRes, costCentersRes] = await Promise.all([
                 api.get('/safes'),
-                api.get('/bank-accounts')
+                api.get('/bank-accounts'),
+                costCentersService.getAllCostCenters().catch(() => ({ data: { costCenters: [] } }))
             ]);
 
             const safes = (safesRes.data.safes || []).map(s => ({ ...s, model: 'Safe' }));
             const banks = (banksRes.data.data || []).map(b => ({ ...b, model: 'BankAccount' }));
 
             setAccounts([...safes, ...banks]);
+
+            const fetchedCC = costCentersRes.costCenters || costCentersRes.data?.costCenters || costCentersRes.data || [];
+            setAvailableCostCenters(Array.isArray(fetchedCC) ? fetchedCC : (fetchedCC.data || []));
         } catch (error) {
             logError('Error fetching accounts:', error);
         }
@@ -101,6 +148,7 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
             setType(tx.type || initialType);
             if (mode === 'add') {
                 // Duplication logic
+                setCostCentersList(tx.costCentersList || []);
                 setFormData({
                     ...tx,
                     _id: undefined,
@@ -114,6 +162,7 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                     attachments: [] // Don't duplicate attachments for now to avoid complexity
                 });
             } else {
+                setCostCentersList(tx.costCentersList || []);
                 setFormData({
                     ...tx,
                     date: new Date(tx.date).toISOString().split('T')[0],
@@ -187,6 +236,9 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
             }
         });
 
+        // Append Cost Centers list
+        submitForm.append('costCentersList', JSON.stringify(costCentersList));
+
         // Append new files
         selectedFiles.forEach(file => {
             submitForm.append('attachments', file);
@@ -230,20 +282,17 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                 dir={isRtl ? 'rtl' : 'ltr'}
             >
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        {type === 'receipt' && <Landmark size={22} className="text-emerald-600" />}
-                        {type === 'disbursement' && <Landmark size={22} className="text-red-600" />}
-                        {type === 'transfer' && <ArrowLeftRight size={22} className="text-indigo-600" />}
-                        {isView ? (isRtl ? '??? ????? ?????' : 'View Transaction') : (isEdit ? t('finance.edit_transaction') : (
-                            type === 'receipt' ? t('finance.add_receipt') :
-                                type === 'disbursement' ? t('finance.add_disbursement') :
-                                    t('finance.add_transfer')
-                        ))}
-                    </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400">
+                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-center bg-white relative">
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-400 absolute left-4">
                         <X size={20} />
                     </button>
+                    <h2 className="text-lg font-bold text-gray-800">
+                        {isView ? (isRtl ? 'عرض تفاصيل العملية' : 'View Transaction') : (isEdit ? t('finance.edit_transaction') : (
+                            type === 'receipt' ? (isRtl ? 'إضافة عملية قبض مالية' : t('finance.add_receipt')) :
+                                type === 'disbursement' ? (isRtl ? 'إضافة عملية صرف مالية' : t('finance.add_disbursement')) :
+                                    (isRtl ? 'إضافة عملية تحويل مالي' : t('finance.add_transfer'))
+                        ))}
+                    </h2>
                 </div>
 
                 {fetching ? (
@@ -255,7 +304,7 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Code */}
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                <label className="block text-sm font-medium text-gray-700 text-right mb-1">
                                     {t('finance.code')}
                                 </label>
                                 <div className="relative">
@@ -266,15 +315,15 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                                         onChange={handleInputChange}
                                         required
                                         disabled={isView}
-                                        className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
+                                        className={`w-full px-10 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none text-right ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
                                     />
-                                    <FileText size={18} className={`absolute ${isRtl ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-gray-400`} />
+                                    <Pencil size={16} className={`absolute ${isRtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-indigo-500`} />
                                 </div>
                             </div>
 
                             {/* Date */}
                             <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                <label className="block text-sm font-medium text-gray-700 text-right mb-1">
                                     {t('finance.date')}
                                 </label>
                                 <div className="relative">
@@ -285,7 +334,7 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                                         onChange={handleInputChange}
                                         required
                                         disabled={isView}
-                                        className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
+                                        className={`w-full px-10 py-2 bg-white border border-indigo-600 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none text-right ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
                                     />
                                     <Calendar size={18} className={`absolute ${isRtl ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none`} />
                                 </div>
@@ -293,31 +342,31 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                         </div>
 
                         {type === 'transfer' ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-4">
                                 {/* From Account */}
                                 <div className="relative">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                    <label className="block text-sm font-medium text-gray-700 text-right mb-1">
                                         {t('finance.from_safe')} <span className="text-red-500">*</span>
                                     </label>
                                     <div
                                         onClick={() => !isView && setActiveDropdown(activeDropdown === 'from' ? null : 'from')}
-                                        className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between transition-all ${isView ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:border-indigo-300'}`}
+                                        className={`w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between transition-all ${isView ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:border-indigo-300'}`}
                                     >
-                                        <span className="text-sm font-medium text-gray-800 truncate">
+                                        <ChevronDown size={18} className="text-gray-400" />
+                                        <span className="text-sm text-gray-800 truncate w-full text-right">
                                             {getAccountLabel(formData.fromAccount)}
                                         </span>
-                                        <ChevronDown size={18} className="text-gray-400" />
                                     </div>
                                     {activeDropdown === 'from' && (
-                                        <div className="absolute z-20 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-48 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-100 rounded-lg shadow-xl max-h-48 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
                                             {accounts.map(acc => (
                                                 <div
                                                     key={acc._id}
                                                     onClick={() => handleAccountSelect('fromAccount', acc)}
-                                                    className="px-4 py-3 hover:bg-indigo-50 cursor-pointer flex items-center justify-between group"
+                                                    className="px-4 py-2.5 hover:bg-indigo-50 cursor-pointer flex items-center justify-between group"
                                                 >
-                                                    <span className="text-sm text-gray-700">{acc.name}</span>
-                                                    {acc.model === 'Safe' ? <Wallet size={14} className="text-gray-400" /> : <Landmark size={14} className="text-gray-400" />}
+                                                    <span className="text-sm text-gray-700 w-full text-right">{acc.name}</span>
+                                                    {acc.model === 'Safe' ? <Wallet size={14} className="ml-2 text-gray-400" /> : <Landmark size={14} className="ml-2 text-gray-400" />}
                                                 </div>
                                             ))}
                                         </div>
@@ -326,28 +375,28 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
 
                                 {/* To Account */}
                                 <div className="relative">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                    <label className="block text-sm font-medium text-gray-700 text-right mb-1">
                                         {t('finance.to_safe')} <span className="text-red-500">*</span>
                                     </label>
                                     <div
                                         onClick={() => !isView && setActiveDropdown(activeDropdown === 'to' ? null : 'to')}
-                                        className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between transition-all ${isView ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:border-indigo-300'}`}
+                                        className={`w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between transition-all ${isView ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:border-indigo-300'}`}
                                     >
-                                        <span className="text-sm font-medium text-gray-800 truncate">
+                                        <ChevronDown size={18} className="text-gray-400" />
+                                        <span className="text-sm text-gray-800 truncate w-full text-right">
                                             {getAccountLabel(formData.toAccount)}
                                         </span>
-                                        <ChevronDown size={18} className="text-gray-400" />
                                     </div>
                                     {activeDropdown === 'to' && (
-                                        <div className="absolute z-20 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-48 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-100 rounded-lg shadow-xl max-h-48 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
                                             {accounts.map(acc => (
                                                 <div
                                                     key={acc._id}
                                                     onClick={() => handleAccountSelect('toAccount', acc)}
-                                                    className="px-4 py-3 hover:bg-indigo-50 cursor-pointer flex items-center justify-between group"
+                                                    className="px-4 py-2.5 hover:bg-indigo-50 cursor-pointer flex items-center justify-between group"
                                                 >
-                                                    <span className="text-sm text-gray-700">{acc.name}</span>
-                                                    {acc.model === 'Safe' ? <Wallet size={14} className="text-gray-400" /> : <Landmark size={14} className="text-gray-400" />}
+                                                    <span className="text-sm text-gray-700 w-full text-right">{acc.name}</span>
+                                                    {acc.model === 'Safe' ? <Wallet size={14} className="ml-2 text-gray-400" /> : <Landmark size={14} className="ml-2 text-gray-400" />}
                                                 </div>
                                             ))}
                                         </div>
@@ -355,95 +404,206 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                                 </div>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-4">
                                 {/* Safe/Bank Account */}
                                 <div className="relative">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                    <label className="block text-sm font-medium text-gray-700 text-right mb-1">
                                         {t('finance.safe')} <span className="text-red-500">*</span>
                                     </label>
                                     <div
                                         onClick={() => !isView && setActiveDropdown(activeDropdown === 'account' ? null : 'account')}
-                                        className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between transition-all ${isView ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:border-indigo-300'}`}
+                                        className={`w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between transition-all ${isView ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:border-indigo-300'}`}
                                     >
-                                        <span className="text-sm font-medium text-gray-800 truncate">
-                                            {getAccountLabel(formData.account)}
-                                        </span>
                                         <ChevronDown size={18} className="text-gray-400" />
+                                        <span className="text-sm text-gray-800 truncate w-full text-right">
+                                            {formData.account ? getAccountLabel(formData.account) : (isRtl ? 'اختر الخزنة' : 'Choose Account')}
+                                        </span>
                                     </div>
                                     {activeDropdown === 'account' && (
-                                        <div className="absolute z-20 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-48 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-100 rounded-lg shadow-xl max-h-48 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
                                             {accounts.map(acc => (
                                                 <div
                                                     key={acc._id}
                                                     onClick={() => handleAccountSelect('account', acc)}
-                                                    className="px-4 py-3 hover:bg-indigo-50 cursor-pointer flex items-center justify-between group"
+                                                    className="px-4 py-2.5 hover:bg-indigo-50 cursor-pointer flex items-center justify-between group"
                                                 >
-                                                    <span className="text-sm text-gray-700">{acc.name}</span>
-                                                    {acc.model === 'Safe' ? <Wallet size={14} className="text-gray-400" /> : <Landmark size={14} className="text-gray-400" />}
+                                                    <span className="text-sm text-gray-700 w-full text-right">{acc.name}</span>
+                                                    {acc.model === 'Safe' ? <Wallet size={14} className="ml-2 text-gray-400" /> : <Landmark size={14} className="ml-2 text-gray-400" />}
                                                 </div>
                                             ))}
                                         </div>
                                     )}
                                 </div>
 
-                                {/* External Account (GL or Contact) */}
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                {/* External Account (Searchable Dropdown) */}
+                                <div className="relative">
+                                    <label className="block text-sm font-medium text-gray-700 text-right mb-1">
                                         {t('finance.account')}
                                     </label>
-                                    <input
-                                        type="text"
-                                        name="externalAccount"
-                                        value={formData.externalAccount}
-                                        onChange={handleInputChange}
-                                        placeholder={isRtl ? '???? ????' : 'Choose Account'}
-                                        disabled={isView}
-                                        className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
-                                    />
+                                    <div
+                                        onClick={() => {
+                                            if (!isView) {
+                                                setActiveDropdown(activeDropdown === 'externalAccount' ? null : 'externalAccount');
+                                                if (activeDropdown !== 'externalAccount') setAccountSearchTerm('');
+                                            }
+                                        }}
+                                        className={`w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between transition-all ${isView ? 'cursor-not-allowed opacity-75' : 'cursor-pointer hover:border-indigo-300'}`}
+                                    >
+                                        <ChevronDown size={18} className="text-gray-400" />
+                                        <span className="text-sm text-gray-800 truncate w-full text-right">
+                                            {PREDEFINED_ACCOUNTS.find(a => a.name === formData.externalAccount)?.name || formData.externalAccount || (isRtl ? 'اختر حساب' : 'Select Account')}
+                                        </span>
+                                    </div>
+                                    {activeDropdown === 'externalAccount' && (
+                                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-100 rounded-lg shadow-xl max-h-60 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+                                            <div className="p-2 border-b border-gray-100">
+                                                <input
+                                                    type="text"
+                                                    value={accountSearchTerm}
+                                                    autoFocus
+                                                    onChange={(e) => setAccountSearchTerm(e.target.value)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    placeholder={isRtl ? 'ابحث عن حساب...' : 'Search accounts...'}
+                                                    className="w-full px-3 py-1.5 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none text-right"
+                                                    dir="rtl"
+                                                />
+                                            </div>
+                                            <div className="overflow-y-auto max-h-48 py-1">
+                                                {PREDEFINED_ACCOUNTS.filter(a => a.name.toLowerCase().includes(accountSearchTerm.toLowerCase())).map(acc => (
+                                                    <div
+                                                        key={acc.code}
+                                                        onClick={() => {
+                                                            setFormData(prev => ({ ...prev, externalAccount: acc.name }));
+                                                            setActiveDropdown(null);
+                                                        }}
+                                                        className={`px-4 py-2 hover:bg-indigo-50 cursor-pointer flex flex-col items-end ${formData.externalAccount === acc.name ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'text-gray-700'}`}
+                                                    >
+                                                        <span className="text-sm font-medium w-full text-right">{acc.name}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Cost Centers */}
+                        {type !== 'transfer' && (
+                            <div className="relative">
+                                <label className="block text-sm font-medium text-gray-700 text-right mb-1">
+                                    {isRtl ? 'مراكز التكلفة' : 'Cost Centers'}
+                                </label>
+                                {!isView && (
+                                    <div className="relative mb-2">
+                                        <input
+                                            type="text"
+                                            readOnly
+                                            className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-400 cursor-pointer text-right"
+                                            placeholder={isRtl ? 'إضافة مركز تكلفة' : 'Add Cost Center'}
+                                            onClick={() => setCostCentersList(prev => [...prev, { costCenter: '', value: '' }])}
+                                            dir="rtl"
+                                        />
+                                        <ChevronDown size={14} className={`absolute ${isRtl ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none`} />
+                                    </div>
+                                )}
+                                <div className="space-y-2">
+                                    {costCentersList.map((cc, idx) => (
+                                        <div key={idx} className="flex gap-2 items-center">
+                                            <div className="flex-1 relative">
+                                                <select
+                                                    value={cc.costCenter}
+                                                    onChange={(e) => {
+                                                        const newList = [...costCentersList];
+                                                        newList[idx].costCenter = e.target.value;
+                                                        setCostCentersList(newList);
+                                                    }}
+                                                    disabled={isView}
+                                                    className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none appearance-none text-right ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
+                                                    dir="rtl"
+                                                >
+                                                    <option value="">{isRtl ? 'اختر مركز التكلفة' : 'Select Cost Center'}</option>
+                                                    {availableCostCenters.map(acc => (
+                                                        <option key={acc._id} value={acc._id}>{acc.name}</option>
+                                                    ))}
+                                                </select>
+                                                <ChevronDown size={14} className={`absolute ${isRtl ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none`} />
+                                            </div>
+                                            <div className="w-1/3">
+                                                <input
+                                                    type="number"
+                                                    value={cc.value}
+                                                    placeholder={isRtl ? 'النسبة أو المبلغ' : 'Percentage or Amount'}
+                                                    onChange={(e) => {
+                                                        const newList = [...costCentersList];
+                                                        newList[idx].value = e.target.value;
+                                                        setCostCentersList(newList);
+                                                    }}
+                                                    disabled={isView}
+                                                    className={`w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none text-right ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
+                                                    dir="rtl"
+                                                />
+                                            </div>
+                                            {!isView && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const newList = [...costCentersList];
+                                                        newList.splice(idx, 1);
+                                                        setCostCentersList(newList);
+                                                    }}
+                                                    className="p-2 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                                                >
+                                                    <X size={18} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* Amount */}
-                            <div>
-                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                            <div className="relative">
+                                <label className="block text-sm font-medium text-gray-700 text-right mb-1">
                                     {t('finance.amount')} <span className="text-red-500">*</span>
                                 </label>
-                                <div className="relative">
-                                    <input
-                                        type="number"
-                                        name="amount"
-                                        value={formData.amount}
-                                        onChange={handleInputChange}
-                                        required
-                                        min="0"
-                                        step="0.01"
-                                        disabled={isView}
-                                        className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
-                                    />
-                                    <DollarSign size={18} className={`absolute ${isRtl ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-gray-400`} />
-                                </div>
+                                <input
+                                    type="number"
+                                    name="amount"
+                                    value={formData.amount}
+                                    onChange={handleInputChange}
+                                    required
+                                    min="0"
+                                    step="0.01"
+                                    disabled={isView}
+                                    className={`w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none text-right ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
+                                    dir="rtl"
+                                />
                             </div>
 
-                            {/* Taxes (Disabled or Select as in screenshot) */}
+                            {/* Taxes */}
                             {type !== 'transfer' && (
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                                <div className="relative">
+                                    <label className="block text-sm font-medium text-gray-700 text-right mb-1">
                                         {t('finance.taxes')}
                                     </label>
-                                    <select
-                                        name="taxes"
-                                        value={formData.taxMode || getTaxMode(normalizeTaxesValue(formData.taxes))}
-                                        onChange={(e) => handleTaxModeChange(e.target.value)}
-                                        disabled={isView}
-                                        className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none appearance-none ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
-                                    >
-                                        <option value="0">0%</option>
-                                        <option value="10">10%</option>
-                                        <option value="15">15%</option>
-                                        <option value="custom">{isRtl ? 'مخصص' : 'Custom'}</option>
-                                    </select>
+                                    <div className="relative">
+                                        <select
+                                            name="taxes"
+                                            value={formData.taxMode || getTaxMode(normalizeTaxesValue(formData.taxes))}
+                                            onChange={(e) => handleTaxModeChange(e.target.value)}
+                                            disabled={isView}
+                                            className={`w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none appearance-none ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
+                                        >
+                                            <option value="0">{isRtl ? 'بدون ضرائب' : 'No Taxes'}</option>
+                                            <option value="10">10%</option>
+                                            <option value="15">15%</option>
+                                            <option value="custom">{isRtl ? 'مخصص' : 'Custom'}</option>
+                                        </select>
+                                        <ChevronDown size={18} className={`absolute ${isRtl ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none`} />
+                                    </div>
                                     {(formData.taxMode || getTaxMode(normalizeTaxesValue(formData.taxes))) === 'custom' && (
                                         <input
                                             type="number"
@@ -453,7 +613,8 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                                             min="0"
                                             step="0.01"
                                             disabled={isView}
-                                            className={`mt-2 w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
+                                            className={`mt-2 w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none text-right ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
+                                            dir="rtl"
                                             placeholder="%"
                                         />
                                     )}
@@ -463,7 +624,7 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
 
                         {/* Description */}
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                            <label className="block text-sm font-medium text-gray-700 text-right mb-1">
                                 {t('finance.description')}
                             </label>
                             <textarea
@@ -472,17 +633,18 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                                 onChange={handleInputChange}
                                 rows="3"
                                 disabled={isView}
-                                className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none resize-none ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
+                                className={`w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none resize-none text-right ${isView ? 'cursor-not-allowed opacity-75' : ''}`}
+                                dir="rtl"
                             />
                         </div>
 
                         {/* Attachments */}
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
+                            <label className="block text-sm font-medium text-gray-700 text-right mb-1">
                                 {t('finance.attachments')}
                             </label>
                             {!isView && (
-                                <div className="mt-1 border-2 border-dashed border-gray-200 rounded-2xl p-6 transition-colors hover:border-indigo-400 group relative">
+                                <div className="mt-1 border border-dashed border-gray-300 bg-gray-50 rounded-lg p-6 transition-colors hover:border-indigo-400 group relative">
                                     <input
                                         type="file"
                                         multiple
@@ -491,8 +653,8 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                                     />
                                     <div className="flex flex-col items-center justify-center space-y-2">
                                         <Upload className="h-8 w-8 text-gray-400 group-hover:text-indigo-500 transition-colors" />
-                                        <p className="text-sm font-medium text-indigo-600">
-                                            {isRtl ? '???? ???? ??????? ?? ?????? ???' : 'Click to upload or drag and drop'}
+                                        <p className="text-xs font-medium text-indigo-600">
+                                            {isRtl ? 'اضغط لرفع الملفات أو اسحبها هنا' : 'Click to upload or drag it here'}
                                         </p>
                                     </div>
                                 </div>
@@ -521,24 +683,21 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-100">
+                        <div className="flex items-center justify-center gap-3 pt-6">
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="px-8 py-2 text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg transition-all flex items-center gap-2 disabled:opacity-50 min-w-[100px] justify-center"
+                            >
+                                {loading ? t('sales.common.saving') : t('sales.common.save')}
+                            </button>
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="px-6 py-2.5 text-sm font-bold text-gray-600 border border-gray-200 hover:bg-gray-50 rounded-xl transition-all"
+                                className="px-8 py-2 text-sm font-bold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 rounded-lg transition-all min-w-[100px] justify-center"
                             >
                                 {isView ? t('sales.common.close') : t('sales.common.cancel')}
                             </button>
-                            {!isView && (
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="px-8 py-2.5 text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl shadow-lg shadow-emerald-100 transition-all flex items-center gap-2 disabled:opacity-50"
-                                >
-                                    {loading ? t('sales.common.saving') : t('sales.common.save')}
-                                    {!loading && <Save size={18} />}
-                                </button>
-                            )}
                         </div>
                     </form>
                 )}

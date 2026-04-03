@@ -9,6 +9,7 @@ import DocumentActions from '../common/DocumentActions';
 import InvoiceLayout from '../invoice/InvoiceLayout';
 import InvoicePaymentsTab from './InvoicePaymentsTab';
 import { fetchPdfBlob, downloadBlob, openBlobInNewTab, getErrorMessage } from '../../utils/invoicePdf';
+import { handleUniversalShare } from '../../utils/shareUtils';
 
 const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, onRefreshInvoice, loading, i18n, viewTitleKey, filenamePrefix, paymentsModule = 'sales', canEdit = true, canDelete = true }) => {
     const { t } = useTranslation();
@@ -74,23 +75,12 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, onRefreshI
 
     const handleShare = async () => {
         const url = window.location.href;
-        const title = `${fPrefix} ${invoice?.transactionNumber || ''}`;
-        const text = `${fPrefix} — ${invoice?.contact?.name || invoice?.contactSnapshot?.name || 'Client'}`;
-        if (navigator.share) {
-            try {
-                await navigator.share({ title, text, url });
-                toast.success(t('sales.invoices.share') + ' — OK');
-            } catch (e) {
-                if (e.name !== 'AbortError') toast.error(e.message || 'Share failed');
-            }
-        } else {
-            try {
-                await navigator.clipboard.writeText(url);
-                toast.success(t('sales.invoices.link_copied'));
-            } catch (_) {
-                toast.error('Could not copy link');
-            }
-        }
+        await handleUniversalShare({
+            title: `${fPrefix} ${invoice?.transactionNumber || ''}`,
+            text: `${fPrefix} — ${invoice?.contact?.name || invoice?.contactSnapshot?.name || 'Client'}`,
+            url,
+            t
+        });
     };
 
     const handleAddNote = async (e) => {
