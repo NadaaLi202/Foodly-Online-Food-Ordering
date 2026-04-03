@@ -293,8 +293,12 @@ const Branches = () => {
         setViewModalOpen(true);
     };
 
-    const handleDeleteClick = (id) => {
-        setDeleteModal({ open: true, branchId: id });
+    const handleDeleteClick = (branch) => {
+        if (branch.is_main) {
+            toast.error(i18n.language === 'ar' ? 'لا يمكن حذف الفرع الرئيسي' : 'Cannot delete the main branch');
+            return;
+        }
+        setDeleteModal({ open: true, branchId: branch._id });
     };
 
     const confirmDelete = async () => {
@@ -399,14 +403,7 @@ const Branches = () => {
                                     <td className="px-6 py-4 text-gray-600">{getActivityName(branch.activity?._id ?? branch.activity)}</td>
                                     <td className="px-6 py-4 text-gray-600">{getPartnerListName(branch.partnerList?._id ?? branch.partnerList ?? (branch.partners?.[0]?._id ?? branch.partners?.[0]))}</td>
                                     <td className="px-6 py-4 flex items-center gap-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleView(branch)}
-                                            className="text-indigo-600 hover:text-indigo-800 font-bold flex items-center gap-1"
-                                        >
-                                            <Eye size={16} />
-                                            {t('topbar.view')}
-                                        </button>
+
                                         <button
                                             type="button"
                                             onClick={() => handleEdit(branch)}
@@ -415,14 +412,16 @@ const Branches = () => {
                                             <Pencil size={16} />
                                             {t('accounting.chart_of_accounts.edit')}
                                         </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDeleteClick(branch._id)}
-                                            className="text-red-500 hover:text-red-700 font-bold flex items-center gap-1"
-                                        >
-                                            <Trash2 size={16} />
-                                            {t('accounting.chart_of_accounts.delete')}
-                                        </button>
+                                        {!branch.is_main && (
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteClick(branch)}
+                                                className="text-red-500 hover:text-red-700 font-bold flex items-center gap-1"
+                                            >
+                                                <Trash2 size={16} />
+                                                {t('accounting.chart_of_accounts.delete')}
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))

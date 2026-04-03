@@ -6,15 +6,23 @@ import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
 import QRCode from "qrcode";
 import PDFDocument from "pdfkit";
+import path from "path";
+import { fileURLToPath } from "url";
+import { processArabic } from "../../utils/arabic.js";
 import { createPaymentJournalEntry } from "../transaction/transaction.accounting.js";
+import FinancialReceipt from "../FinancialTransactions/models/financialReceipt.model.js";
+import { safeModel } from "../Safes/safe.model.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const updateTransactionPaymentStatus = (transaction) => {
     if (transaction.paidAmount >= transaction.totalAmount && transaction.totalAmount > 0) {
         transaction.status = 'paid';
     } else if (transaction.paidAmount > 0) {
-        transaction.status = 'partially_paid';
+        transaction.status = 'partial';
     } else {
-        transaction.status = 'issued'; // 'unpaid' is not in enum; 'issued' = confirmed but unpaid
+        transaction.status = 'unpaid'; // 'unpaid' is not in enum; 'issued' = confirmed but unpaid
     }
     transaction.remainingAmount = Math.max(0, transaction.totalAmount - transaction.paidAmount);
 };
@@ -61,6 +69,49 @@ const addPayment = (module) =>
                 // Auto-create payment journal entry (non-fatal)
                 const companyId = transaction.companyId?.toString() || req.user?.companyId?.toString();
                 createPaymentJournalEntry(payment, transaction, companyId).catch(() => { });
+
+                // ============= NEW TRANSACTION CREATION LOGIC =============
+                if (transaction.status === 'paid') {
+                    const existingReceipt = await FinancialReceipt.findOne({
+                        companyId: transaction.companyId,
+                        description: { $regex: new RegExp(transaction.transactionNumber, 'i') }
+                    });
+
+                    if (!existingReceipt) {
+                        let mainSafe = await safeModel.findOne({ companyId: transaction.companyId, isDefault: true });
+                        if (!mainSafe) {
+                            mainSafe = await safeModel.findOne({ companyId: transaction.companyId }).sort({ createdAt: 1 });
+                        }
+
+                        if (mainSafe) {
+                            const count = await FinancialReceipt.countDocuments({ companyId: transaction.companyId });
+                            const now = new Date();
+                            const code = `${String(now.getFullYear()).slice(-2)}-${String(now.getMonth() + 1)}-${String(count + 1).padStart(6, '0')}`;
+
+                            let clientName = '';
+                            if (payment.contact) {
+                                const contactDoc = await Contact.findById(payment.contact).select('name').lean();
+                                clientName = contactDoc?.name || '';
+                            }
+
+                            await FinancialReceipt.create({
+                                code: code,
+                                date: new Date(),
+                                account: mainSafe._id,
+                                accountModel: 'Safe',
+                                externalAccount: `عملية دفع عميل #${clientName}`,
+                                amount: transaction.totalAmount,
+                                description: `سداد فاتورة ${transaction.transactionNumber}`,
+                                companyId: transaction.companyId,
+                                createdBy: req.user?._id
+                            });
+
+                            mainSafe.balance += transaction.totalAmount;
+                            await mainSafe.save();
+                        }
+                    }
+                }
+                // ========================================================
             }
         }
 
@@ -243,67 +294,85 @@ const downloadPaymentPDF = catchAsyncError(async (req, res, next) => {
     };
     const qrDataURL = await QRCode.toDataURL(JSON.stringify(qrPayload), { width: 200, margin: 1 });
 
+    let logoBuffer = null;
+    if (companyLogoUrl) {
+        try {
+            const response = await fetch(companyLogoUrl);
+            const arrayBuffer = await response.arrayBuffer();
+            logoBuffer = Buffer.from(arrayBuffer);
+        } catch (e) {
+            console.error("Failed to fetch payment logo:", e.message);
+        }
+    }
+
     const refNum = payment.referenceNumber || payment._id.toString().slice(-8);
     const filename = `payment-${refNum.replace(/[^a-zA-Z0-9-_]/g, "_")}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
 
-    const doc = new PDFDocument({ size: "A4", margin: 40 });
+    const doc = new PDFDocument({ size: "A4", margin: 40, rtl: true });
+    const regularFontPath = path.join(__dirname, "../../assets/fonts/Arial-Regular.ttf");
+    const boldFontPath = path.join(__dirname, "../../assets/fonts/Arial-Bold.ttf");
+    doc.registerFont("ArabicFont", regularFontPath);
+    doc.registerFont("ArabicFontBold", boldFontPath);
+    doc.font("ArabicFont"); // Set default font
+
     doc.pipe(res);
 
     let y = 40;
     const pageWidth = doc.page.width - 80;
     const rightCol = 350;
 
-    if (companyLogoUrl) {
+    if (logoBuffer) {
         try {
-            doc.image(companyLogoUrl, 40, y, { width: 50, height: 50 });
+            doc.image(logoBuffer, 40, y, { width: 50, height: 50 });
         } catch (_e) { /* skip */ }
         y += 55;
     }
-    doc.fontSize(18).font("Helvetica-Bold").text(companyName, 40, y);
+    doc.fontSize(18).font("ArabicFontBold").text(processArabic(companyName), 40, y, { width: pageWidth, align: "right" });
     y += 28;
-    doc.fontSize(10).font("Helvetica").text(payment.module === 'sales' ? "Client Payment Receipt" : "Supplier Payment Receipt", 40, y);
+    doc.fontSize(10).font("ArabicFont").text(processArabic(payment.module === 'sales' ? "إيصال استلام نقدية" : "إيصال صرف نقدية"), 40, y, { width: pageWidth, align: "right" });
     doc.fontSize(12).text(`# ${refNum}`, rightCol, y);
     y += 20;
-    doc.fontSize(9).text(`Date: ${new Date(payment.date).toLocaleDateString()}`, rightCol, y);
-    doc.text(`Status: ${payment.status || 'completed'}`, rightCol, y + 14);
+    doc.fontSize(9).text(processArabic(`التاريخ: ${new Date(payment.date).toLocaleDateString()}`), rightCol, y);
+    doc.text(processArabic(`الحالة: ${payment.status || 'مكتمل'}`), rightCol, y + 14);
     y += 40;
 
     const contactName = payment.contact?.name || "—";
-    doc.fontSize(10).font("Helvetica-Bold").text(payment.module === 'sales' ? "Client" : "Supplier", 40, y);
+    const contactLabel = processArabic(payment.module === 'sales' ? "العميل" : "المورد");
+    doc.fontSize(10).font("ArabicFontBold").text(contactLabel, 40, y, { width: pageWidth, align: "right" });
     y += 16;
-    doc.font("Helvetica").text(contactName, 40, y);
+    doc.font("ArabicFont").text(processArabic(contactName), 40, y, { width: pageWidth, align: "right" });
     y += 24;
 
-    doc.fontSize(9).font("Helvetica-Bold");
-    doc.text("Amount", 40, y);
-    doc.text(`${(payment.amount ?? 0).toFixed(2)} ${currencySymbol}`, rightCol, y);
+    doc.fontSize(9).font("ArabicFontBold");
+    doc.text(processArabic("المبلغ"), 40, y, { width: pageWidth - 100, align: "right" });
+    doc.text(`${(payment.amount ?? 0).toFixed(2)} ${processArabic(currencySymbol)}`, rightCol, y);
     y += 18;
-    doc.text("Operation Type", 40, y);
-    doc.text(payment.operationType === 'receive' ? "Receive" : "Spend", rightCol, y);
+    doc.text(processArabic("نوع العملية"), 40, y, { width: pageWidth - 100, align: "right" });
+    doc.text(processArabic(payment.operationType === 'receive' ? "استلام" : "صرف"), rightCol, y);
     y += 18;
-    doc.text("Treasury", 40, y);
-    doc.text(payment.treasury === 'main' ? "Main Safe" : "Bank Account", rightCol, y);
+    doc.text(processArabic("الخزينة"), 40, y, { width: pageWidth - 100, align: "right" });
+    doc.text(processArabic(payment.treasury === 'main' ? "الخزنة الرئيسية" : "الحساب البنكي"), rightCol, y);
     y += 18;
     if (payment.invoice?.transactionNumber) {
-        doc.text("Linked Invoice", 40, y);
+        doc.text(processArabic("الفاتورة المرتبطة"), 40, y, { width: pageWidth - 100, align: "right" });
         doc.text(payment.invoice.transactionNumber, rightCol, y);
         y += 18;
     }
     y += 12;
     if (payment.notes) {
-        doc.font("Helvetica").text("Notes:", 40, y);
+        doc.font("ArabicFont").text(processArabic("ملاحظات:"), 40, y);
         y += 14;
-        doc.text(payment.notes.substring(0, 200), 40, y);
+        doc.text(processArabic(payment.notes.substring(0, 200)), 40, y);
         y += 20;
     }
 
     const qrBase64 = qrDataURL.replace(/^data:image\/\w+;base64,/, "");
     const qrBuffer = Buffer.from(qrBase64, "base64");
     doc.image(qrBuffer, pageWidth + 40 - 80, y, { width: 80, height: 80 });
-    doc.fontSize(8).font("Helvetica").text("QR: verification", pageWidth + 40 - 80, y + 84);
-    doc.fontSize(8).text(`${companyName} — Payment #${refNum}`, 40, doc.page.height - 40);
+    doc.fontSize(8).font("ArabicFont").text(processArabic("التحقق من المستند عبر رمز QR"), pageWidth + 40 - 80, y + 84, { width: 80, align: "right" });
+    doc.font("ArabicFont").text(`${processArabic(companyName)} — Payment #${refNum}`, 40, doc.page.height - 40);
     doc.end();
 });
 

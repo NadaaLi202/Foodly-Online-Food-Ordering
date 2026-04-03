@@ -45,6 +45,7 @@ export const getTransactionConfig = (key) => {
             viewTitleKey: 'sales.quotations.view_quotation',
             filenamePrefix: 'Quotation',
             numberPlaceholderKey: 'sales.quotations.quotation_number_placeholder',
+            hidePaymentDetails: true,
         },
         purchases_invoices: {
             listUrl: '/transactions/purchases/invoices',
@@ -75,6 +76,7 @@ export const getTransactionConfig = (key) => {
             viewTitleKey: 'purchases.purchase_orders.view_order',
             filenamePrefix: 'PurchaseOrder',
             numberPlaceholderKey: 'purchases.purchase_orders.order_number_placeholder',
+            hidePaymentDetails: true,
         },
         purchases_returns: {
             listUrl: '/transactions/purchases/returns',
@@ -105,6 +107,7 @@ export const getTransactionConfig = (key) => {
             viewTitleKey: 'purchases.requests.view_request', // You might need to add this key to locales if missing
             filenamePrefix: 'PurchaseRequest',
             numberPlaceholderKey: 'purchases.requests.request_number_placeholder', // You might need to add this key to locales if missing
+            hidePaymentDetails: true,
         },
     };
     return configs[key] || configs.sales_invoices;

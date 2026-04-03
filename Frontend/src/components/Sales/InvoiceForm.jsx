@@ -16,13 +16,15 @@ const getTaxMode = (taxValue) => {
     return TAX_PRESET_VALUES.includes(normalized) ? normalized : 'custom';
 };
 
-const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n, contactType = 'customers', addTitleKey, editTitleKey, numberPlaceholderKey, clientLabelKey, defaultCurrency = 'EGP' }) => {
+const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n, contactType = 'customers', addTitleKey, editTitleKey, numberPlaceholderKey, clientLabelKey, defaultCurrency = 'EGP', hidePaymentDetails = false, loading: isSavingProp }) => {
     const { t } = useTranslation();
     const addTitle = addTitleKey ? t(addTitleKey) : t('sales.invoices.add_invoice');
     const editTitle = editTitleKey ? t(editTitleKey) : t('sales.invoices.edit_invoice');
     const numberPlaceholder = numberPlaceholderKey ? t(numberPlaceholderKey) : t('sales.invoices.invoice_number_placeholder');
     const clientLabel = clientLabelKey ? t(clientLabelKey) : t('sales.invoices.client_name');
     const [loading, setLoading] = useState(false);
+    const isBusy = loading || isSavingProp;
+
     const [clients, setClients] = useState([]);
     const [products, setProducts] = useState([]);
     const [safes, setSafes] = useState([]);
@@ -55,7 +57,7 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
         paidAmount: 0,
         paymentMethod: 'cash',
         treasury: '',
-        activeTab: 'payment',
+        activeTab: hidePaymentDetails ? 'discount' : 'payment',
         invoiceDiscount: 0,
         invoiceDiscountType: '%',
         warehouse: '',
@@ -94,7 +96,7 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
                 paidAmount: (isDuplicate || isReturn) ? 0 : (invoice.paidAmount || 0),
                 paymentMethod: (invoice.paymentMethod === 'credit' ? 'card' : invoice.paymentMethod === 'bank_transfer' ? 'bank' : invoice.paymentMethod) || 'cash',
                 treasury: invoice.payment?.treasury || '',
-                activeTab: 'payment',
+                activeTab: hidePaymentDetails ? 'discount' : 'payment',
                 invoiceDiscount: invoice.generalDiscountPercent || invoice.generalDiscount || invoice.invoiceDiscount || 0,
                 invoiceDiscountType: (invoice.generalDiscountPercent || invoice.invoiceDiscountType === '%') ? '%' : 'fixed',
                 warehouse: invoice.warehouse || '',
@@ -604,7 +606,7 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
                                         { id: 'payment', label: t('sales.common.payment_details') },
                                         { id: 'discount', label: t('sales.common.discount') },
                                         { id: 'warehouse', label: t('sales.common.warehouse') },
-                                    ].map(tab => (
+                                    ].filter(tab => !hidePaymentDetails || tab.id !== 'payment').map(tab => (
                                         <button
                                             key={tab.id}
                                             type="button"
@@ -806,7 +808,7 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
                     <button
                         id="save-draft-btn"
                         type="submit"
-                        disabled={loading}
+                        disabled={isBusy}
                         className="px-6 py-2.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-200 transition-all text-sm font-bold shadow-sm"
                     >
                         {t('sales.common.save_draft')}
@@ -815,10 +817,10 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
                         id="issue-invoice-btn"
                         form="invoice-form"
                         type="submit"
-                        disabled={loading}
+                        disabled={isBusy}
                         className="px-8 py-2.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-all shadow-md text-sm font-bold flex items-center gap-2"
                     >
-                        {loading ? t('sales.common.saving') : t('sales.invoices.issue_invoice')}
+                        {isBusy ? t('sales.common.saving') : t('sales.invoices.issue_invoice')}
                     </button>
                 </div>
             </div>

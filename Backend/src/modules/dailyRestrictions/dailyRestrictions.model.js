@@ -37,7 +37,8 @@ const dailyRestrictionSchema = new mongoose.Schema({
     },
     entries: [{
         account: {
-            type: String, // Storing as string specifically requested or generic until Account model is confirmed
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'ChartOfAccounts',
             required: true
         },
         costCenterId: {

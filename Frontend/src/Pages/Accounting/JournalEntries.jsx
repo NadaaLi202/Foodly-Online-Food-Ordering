@@ -8,6 +8,8 @@ import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 import { buildJournalEntryPdf, downloadJournalEntryPdf, openJournalEntryPdfInNewTab } from '../../utils/journalEntryPdf';
 import costCentersService from '../../services/costCentersService';
 import settingsService from '../../services/settingsService';
+import { handleUniversalShare } from '../../utils/shareUtils';
+import chartOfAccountsService from '../../services/chartOfAccountsService';
 
 const JournalEntries = () => {
     const { t, i18n } = useTranslation();
@@ -36,6 +38,7 @@ const JournalEntries = () => {
     const [pdfLoading, setPdfLoading] = useState(false);
     const [costCentersEnabled, setCostCentersEnabled] = useState(false);
     const [activeCostCenters, setActiveCostCenters] = useState([]);
+    const [accounts, setAccounts] = useState([]);
 
     // Description Modal State
     const [isDescModalOpen, setIsDescModalOpen] = useState(false);
@@ -57,7 +60,17 @@ const JournalEntries = () => {
     useEffect(() => {
         fetchEntries();
         fetchCostCenterDependencies();
+        fetchAccounts();
     }, []);
+
+    const fetchAccounts = async () => {
+        try {
+            const response = await chartOfAccountsService.getAllAccounts();
+            setAccounts(response?.accounts || response || []);
+        } catch (error) {
+            logError('Error fetching accounts:', error);
+        }
+    };
 
     const fetchCostCenterDependencies = async () => {
         try {
@@ -381,7 +394,7 @@ const JournalEntries = () => {
             setViewingEntry(entryObj);
             const formRows = (data.entries || []).map((row, i) => ({
                 id: row._id || Date.now() + i,
-                account: row.account || '',
+                account: row.account || '', // Now populated object { _id, name, code }
                 costCenterId: row.costCenterId || '',
                 description: row.description || '',
                 debit: row.debit != null ? String(row.debit) : '',
@@ -429,13 +442,24 @@ const JournalEntries = () => {
 
     const handleSaveFromView = async () => {
         if (!viewingEntry?._id) return;
-        const validRows = viewForm.rows.filter(r => (r.account || '').trim() !== '');
+        const validRows = viewForm.rows.filter(r => {
+            const acc = typeof r.account === 'object' ? r.account?._id : r.account;
+            return (acc || '').trim() !== '';
+        });
         if (validRows.length < 1) {
             toast.error(t('accounting.journal_entries.at_least_one_account', 'At least one account is required'));
             return;
         }
         setViewSaveLoading(true);
         try {
+            const entriesPayload = validRows.map(r => ({
+                accountId: typeof r.account === 'object' ? r.account?._id : r.account,
+                costCenterId: r.costCenterId || '',
+                debit: Number(r.debit || 0),
+                credit: Number(r.credit || 0),
+                description: r.description || ''
+            }));
+            
             const formData = new FormData();
             formData.append('number', viewForm.number);
             formData.append('date', viewForm.date);
@@ -443,13 +467,7 @@ const JournalEntries = () => {
             formData.append('description', viewForm.description || '');
             formData.append('totalDebit', String(viewTotalDebit));
             formData.append('totalCredit', String(viewTotalCredit));
-            formData.append('entries', JSON.stringify(validRows.map(r => ({
-                accountId: r.account.trim(),
-                costCenterId: r.costCenterId || '',
-                debit: Number(r.debit || 0),
-                credit: Number(r.credit || 0),
-                description: r.description || ''
-            }))));
+            formData.append('entries', JSON.stringify(entriesPayload));
             if (viewForm.attachments.length > 0 && viewForm.attachments[0]) formData.append('attachment', viewForm.attachments[0]);
             await journalEntryService.updateJournalEntry(viewingEntry._id, formData);
             toast.success(t('sales.common.success_message', 'Entry updated successfully'));
@@ -536,19 +554,14 @@ const JournalEntries = () => {
                 locale: i18n.language
             });
             const file = new File([blob], `journal-entry-${entry.number || 'entry'}.pdf`, { type: 'application/pdf' });
-            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    title: t('accounting.journal_entries.view_entry') + ' ' + (entry.number || ''),
-                    files: [file]
-                });
-                toast.success(t('accounting.journal_entries.share') + ' — OK');
-            } else {
-                downloadJournalEntryPdf(entry, `journal-entry-${entry.number || entry._id}.pdf`, {
-                    title: t('accounting.journal_entries.view_entry'),
-                    locale: i18n.language
-                });
-                toast.success(t('accounting.journal_entries.download') + ' (share not available)');
-            }
+
+            await handleUniversalShare({
+                title: t('accounting.journal_entries.view_entry') + ' ' + (entry.number || ''),
+                text: t('accounting.journal_entries.view_entry') + ' ' + (entry.number || ''),
+                url: window.location.href,
+                files: [file],
+                t
+            });
         } catch (err) {
             if (err.name !== 'AbortError') toast.error(err.message || 'Share failed');
         }
@@ -774,47 +787,18 @@ const JournalEntries = () => {
                                                             <ArrowRightLeft size={14} />
                                                         </div>
                                                         <div className="relative flex-1">
-                                                            <select
-                                                                value={row.account}
-                                                                onChange={(e) => handleRowChange(row.id, 'account', e.target.value)}
-                                                                className="w-full h-11 bg-transparent outline-none text-gray-500 appearance-none text-start pr-8"
-                                                            >
-                                                                <option value="">{t('accounting.journal_entries.choose_account')}</option>
-                                                                {/* Account options */}
-                                                                <option value="1211">{t('accounting.journal_entries.accounts.main_treasury')} #1211</option>
-                                                                <option value="1221">{t('accounting.journal_entries.accounts.main_bank_account')} #1221</option>
-                                                                <option value="1251">{t('accounting.journal_entries.accounts.main_warehouse')} #1251</option>
-                                                                <option value="12610001">{t('accounting.journal_entries.accounts.other_customers')} #12610001</option>
-                                                                <option value="1262">{t('accounting.journal_entries.accounts.other_debit_parties')} #1262</option>
-                                                                <option value="127">{t('accounting.journal_entries.accounts.cash_shortage_excess')} #127</option>
-                                                                <option value="128">{t('accounting.journal_entries.accounts.currency_exchange')} #128</option>
-                                                                <option value="129">{t('accounting.journal_entries.accounts.purchases_under_receipt')} #129</option>
-                                                                <option value="21110001">{t('accounting.journal_entries.accounts.other_suppliers')} #21110001</option>
-                                                                <option value="2112">{t('accounting.journal_entries.accounts.other_credit_parties')} #2112</option>
-                                                                <option value="213">{t('accounting.journal_entries.accounts.opening_balances')} #213</option>
-                                                                <option value="2141">{t('accounting.journal_entries.accounts.vat_paid')} #2141</option>
-                                                                <option value="2142">{t('accounting.journal_entries.accounts.vat_collected')} #2142</option>
-                                                                <option value="31">{t('accounting.journal_entries.accounts.capital')} #31</option>
-                                                                <option value="32">{t('accounting.journal_entries.accounts.retained_earnings')} #32</option>
-                                                                <option value="411">{t('accounting.journal_entries.accounts.sales')} #411</option>
-                                                                <option value="412">{t('accounting.journal_entries.accounts.sales_returns')} #412</option>
-                                                                <option value="421">{t('accounting.journal_entries.accounts.other_income')} #421</option>
-                                                                <option value="422">{t('accounting.journal_entries.accounts.capital_gains_losses')} #422</option>
-                                                                <option value="423">{t('accounting.journal_entries.accounts.purchases_settlement')} #423</option>
-                                                                <option value="511">{t('accounting.journal_entries.accounts.purchases')} #511</option>
-                                                                <option value="512">{t('accounting.journal_entries.accounts.purchases_returns')} #512</option>
-                                                                <option value="521">{t('accounting.journal_entries.accounts.cost_of_goods_sold')} #521</option>
-                                                                <option value="523">{t('accounting.journal_entries.accounts.sales_settlement')} #523</option>
-                                                                <option value="5301">{t('accounting.journal_entries.accounts.rent')} #5301</option>
-                                                                <option value="5302">{t('accounting.journal_entries.accounts.electricity')} #5302</option>
-                                                                <option value="5303">{t('accounting.journal_entries.accounts.phone_internet')} #5303</option>
-                                                                <option value="5304">{t('accounting.journal_entries.accounts.maintenance')} #5304</option>
-                                                                <option value="5305">{t('accounting.journal_entries.accounts.water')} #5305</option>
-                                                                <option value="5306">{t('accounting.journal_entries.accounts.government_fees')} #5306</option>
-                                                                <option value="541">{t('accounting.journal_entries.accounts.bad_debts')} #541</option>
-                                                                <option value="542">{t('accounting.journal_entries.accounts.inventory_shortage_excess')} #542</option>
-                                                                <option value="543">{t('accounting.journal_entries.accounts.other_expenses')} #543</option>
-                                                            </select>
+                                                        <select
+                                                            value={typeof row.account === 'object' ? row.account?._id : row.account}
+                                                            onChange={(e) => handleRowChange(row.id, 'account', e.target.value)}
+                                                            className="w-full h-11 bg-transparent outline-none text-gray-500 appearance-none text-start pr-8"
+                                                        >
+                                                            <option value="">{t('accounting.journal_entries.choose_account')}</option>
+                                                            {accounts.map((acc) => (
+                                                                <option key={acc._id} value={acc._id}>
+                                                                    {acc.code ? `${acc.code} - ${acc.name}` : acc.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -1110,44 +1094,16 @@ const JournalEntries = () => {
                                                 <td className="p-0 border-x border-gray-100 relative bg-white">
                                                     <div className="relative flex-1 flex items-center w-full h-11 px-3">
                                                         <select
-                                                            value={row.account}
+                                                            value={typeof row.account === 'object' ? row.account?._id : row.account}
                                                             onChange={(e) => handleViewRowChange(row.id, 'account', e.target.value)}
-                                                            className="w-full h-11 bg-transparent outline-none text-gray-600 appearance-none text-start pr-8 border-0"
+                                                            className="w-full h-11 bg-transparent outline-none text-gray-600 appearance-none text-start border-0"
                                                         >
                                                             <option value="">{t('accounting.journal_entries.choose_account')}</option>
-                                                            <option value="1211">{t('accounting.journal_entries.accounts.main_treasury')} #1211</option>
-                                                            <option value="1221">{t('accounting.journal_entries.accounts.main_bank_account')} #1221</option>
-                                                            <option value="1251">{t('accounting.journal_entries.accounts.main_warehouse')} #1251</option>
-                                                            <option value="12610001">{t('accounting.journal_entries.accounts.other_customers')} #12610001</option>
-                                                            <option value="1262">{t('accounting.journal_entries.accounts.other_debit_parties')} #1262</option>
-                                                            <option value="127">{t('accounting.journal_entries.accounts.cash_shortage_excess')} #127</option>
-                                                            <option value="128">{t('accounting.journal_entries.accounts.currency_exchange')} #128</option>
-                                                            <option value="129">{t('accounting.journal_entries.accounts.purchases_under_receipt')} #129</option>
-                                                            <option value="21110001">{t('accounting.journal_entries.accounts.other_suppliers')} #21110001</option>
-                                                            <option value="2112">{t('accounting.journal_entries.accounts.other_credit_parties')} #2112</option>
-                                                            <option value="213">{t('accounting.journal_entries.accounts.opening_balances')} #213</option>
-                                                            <option value="2141">{t('accounting.journal_entries.accounts.vat_paid')} #2141</option>
-                                                            <option value="2142">{t('accounting.journal_entries.accounts.vat_collected')} #2142</option>
-                                                            <option value="31">{t('accounting.journal_entries.accounts.capital')} #31</option>
-                                                            <option value="32">{t('accounting.journal_entries.accounts.retained_earnings')} #32</option>
-                                                            <option value="411">{t('accounting.journal_entries.accounts.sales')} #411</option>
-                                                            <option value="412">{t('accounting.journal_entries.accounts.sales_returns')} #412</option>
-                                                            <option value="421">{t('accounting.journal_entries.accounts.other_income')} #421</option>
-                                                            <option value="422">{t('accounting.journal_entries.accounts.capital_gains_losses')} #422</option>
-                                                            <option value="423">{t('accounting.journal_entries.accounts.purchases_settlement')} #423</option>
-                                                            <option value="511">{t('accounting.journal_entries.accounts.purchases')} #511</option>
-                                                            <option value="512">{t('accounting.journal_entries.accounts.purchases_returns')} #512</option>
-                                                            <option value="521">{t('accounting.journal_entries.accounts.cost_of_goods_sold')} #521</option>
-                                                            <option value="523">{t('accounting.journal_entries.accounts.sales_settlement')} #523</option>
-                                                            <option value="5301">{t('accounting.journal_entries.accounts.rent')} #5301</option>
-                                                            <option value="5302">{t('accounting.journal_entries.accounts.electricity')} #5302</option>
-                                                            <option value="5303">{t('accounting.journal_entries.accounts.phone_internet')} #5303</option>
-                                                            <option value="5304">{t('accounting.journal_entries.accounts.maintenance')} #5304</option>
-                                                            <option value="5305">{t('accounting.journal_entries.accounts.water')} #5305</option>
-                                                            <option value="5306">{t('accounting.journal_entries.accounts.government_fees')} #5306</option>
-                                                            <option value="541">{t('accounting.journal_entries.accounts.bad_debts')} #541</option>
-                                                            <option value="542">{t('accounting.journal_entries.accounts.inventory_shortage_excess')} #542</option>
-                                                            <option value="543">{t('accounting.journal_entries.accounts.other_expenses')} #543</option>
+                                                            {accounts.map((acc) => (
+                                                                <option key={acc._id} value={acc._id}>
+                                                                    {acc.code ? `${acc.code} - ${acc.name}` : acc.name}
+                                                                </option>
+                                                            ))}
                                                         </select>
                                                     </div>
                                                 </td>

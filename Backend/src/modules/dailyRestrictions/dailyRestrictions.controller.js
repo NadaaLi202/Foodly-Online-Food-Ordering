@@ -54,13 +54,13 @@ const addRestriction = catchAsyncError(async (req, res, next) => {
 const getAllRestrictions = catchAsyncError(async (req, res, next) => {
     // Pagination and Search could be added here similar to other modules
 
-    let restrictions = await dailyRestrictionModel.find(req.companyFilter).sort({ createdAt: -1 });
+    let restrictions = await dailyRestrictionModel.find(req.companyFilter).populate('entries.account').sort({ createdAt: -1 });
     res.status(200).json({ message: 'Restrictions retrieved successfully', restrictions });
 });
 
 const getRestrictionById = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
-    let restriction = await dailyRestrictionModel.findOne({ _id: id, ...req.companyFilter });
+    let restriction = await dailyRestrictionModel.findOne({ _id: id, ...req.companyFilter }).populate('entries.account');
     if (!restriction) {
         return next(new AppError('Restriction not found', 404));
     }

@@ -78,6 +78,10 @@ const branchSchema = new mongoose.Schema({
         type: String,
         enum: ['active', 'inactive'],
         default: 'active'
+    },
+    is_main: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true

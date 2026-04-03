@@ -46,7 +46,7 @@ export const getAllSafes = catchAsyncError(async (req, res) => {
     const safes = await safeModel
         .find(filter)
         .populate("users", "name email role")
-        .sort({ createdAt: -1 });
+        .sort({ isDefault: -1, createdAt: 1 });
 
     res.status(200).json({
         message: "تم جلب الخزنات بنجاح",
@@ -80,6 +80,9 @@ export const updateSafe = catchAsyncError(async (req, res, next) => {
 
     // Check name duplication if name is changing
     if (req.body.name && req.body.name !== safe.name) {
+        if (safe.isDefault) {
+            return next(new AppError("لا يمكن تعديل اسم الخزنة الرئيسية", 400));
+        }
         const duplicate = await safeModel.findOne({
             name: req.body.name,
             companyId: safe.companyId
@@ -104,11 +107,17 @@ export const updateSafe = catchAsyncError(async (req, res, next) => {
 
 // ================= Delete =================
 export const deleteSafe = catchAsyncError(async (req, res, next) => {
-    const safe = await safeModel.findOneAndDelete({ _id: req.params.id, ...req.companyFilter });
+    const safe = await safeModel.findOne({ _id: req.params.id, ...req.companyFilter });
 
     if (!safe) {
         return next(new AppError("الخزنة غير موجودة", 404));
     }
+
+    if (safe.isDefault) {
+        return next(new AppError("لا يمكن حذف الخزنة الرئيسية", 400));
+    }
+
+    await safeModel.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
         message: "تم حذف الخزنة بنجاح",

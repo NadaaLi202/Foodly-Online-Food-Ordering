@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Plus, Search, RefreshCw, X, ChevronDown, Upload, Package } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api, { BASE_URL } from '../../services/api';
@@ -9,6 +10,7 @@ import logError from '../../utils/logError';
 const Products = () => {
     const { t, i18n } = useTranslation();
     const [products, setProducts] = useState([]);
+    const location = useLocation();
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
@@ -16,6 +18,10 @@ const Products = () => {
     const [errors, setErrors] = useState({});
     const [uploadedImage, setUploadedImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(10);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalResults, setTotalResults] = useState(0);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -45,14 +51,16 @@ const Products = () => {
 
 
     // Fetch products from API
-    const fetchProducts = async (search = '') => {
+    const fetchProducts = async (page = 1, search = searchTerm) => {
         setLoading(true);
         try {
-            const url = search
-                ? `/products?search=${search}`
-                : '/products';
-            const response = await api.get(url);
-            setProducts(response.data.products || []);
+            const response = await api.get(`/products?page=${page}&limit=${itemsPerPage}${search ? `&search=${search}` : ''}`);
+            const data = response.data;
+            setProducts(data.products || []);
+            const total = data.pagination?.total || (data.products?.length || 0);
+            setTotalResults(total);
+            setTotalPages(data.pagination?.totalPages || Math.ceil(total / itemsPerPage) || 1);
+            setCurrentPage(page);
         } catch (error) {
             logError('Error fetching products:', error);
         } finally {
@@ -63,6 +71,15 @@ const Products = () => {
     useEffect(() => {
         fetchProducts();
     }, []);
+
+    useEffect(() => {
+        if (location.state?.openAddModal) {
+            setIsModalOpen(true);
+            resetForm();
+            // Clear state after handling
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     // Validate form
     const validateForm = () => {
@@ -349,7 +366,7 @@ const Products = () => {
                             value={searchTerm}
                             onChange={(e) => {
                                 setSearchTerm(e.target.value);
-                                fetchProducts(e.target.value);
+                                fetchProducts(1, e.target.value);
                             }}
                             className={`w-full focus:outline-none text-sm text-${i18n.language === 'ar' ? 'right' : 'left'}`}
                         />
@@ -362,7 +379,7 @@ const Products = () => {
                     <RefreshCw
                         size={16}
                         className={`text-gray-400 cursor-pointer hover:text-indigo-600 transition-colors ${loading ? 'animate-spin text-indigo-600' : ''}`}
-                        onClick={() => fetchProducts(searchTerm)}
+                        onClick={() => fetchProducts(1, searchTerm)}
                     />
                 </div>
             </div>
@@ -463,389 +480,417 @@ const Products = () => {
                                 ))}
                             </tbody>
                         </table>
+
+                        {/* Pagination */}
+                        <div className="border-t border-gray-100 bg-gray-50 px-6 py-3 flex items-center justify-between">
+                            <div className="text-xs text-gray-500 font-medium">
+                                {t('sales.common.showing')} <span className="font-bold text-gray-800">{totalResults}</span> {t('sales.common.results')}
+                            </div>
+                            <div className="flex bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                                <button
+                                    onClick={() => fetchProducts(currentPage - 1)}
+                                    disabled={currentPage === 1 || loading}
+                                    className="px-4 py-2 text-gray-600 text-xs font-bold border-e border-gray-100 hover:bg-gray-50 disabled:opacity-50 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    {t('sales.common.prev')}
+                                </button>
+                                <div className="px-4 py-2 text-gray-400 text-xs font-bold border-e border-gray-100 bg-gray-50/50">
+                                    {currentPage} / {totalPages}
+                                </div>
+                                <button
+                                    onClick={() => fetchProducts(currentPage + 1)}
+                                    disabled={currentPage === totalPages || loading}
+                                    className="px-4 py-2 text-gray-600 text-xs font-bold hover:bg-gray-50 disabled:opacity-50 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    {t('sales.common.next')}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
 
             {/* Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
-                        {/* Modal Header */}
-                        <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-                            <h2 className="text-lg sm:text-xl font-bold text-gray-800">
-                                {editingProduct ? (i18n.language === 'ar' ? 'تعديل المنتج' : 'Edit Product') : t('stocked.products.add_product')}
-                            </h2>
-                            <button
-                                onClick={() => {
-                                    setIsModalOpen(false);
-                                    setEditingProduct(null);
-                                }}
-                                className="text-gray-400 hover:text-gray-600 transition-colors"
-                            >
-                                <X size={24} />
-                            </button>
-                        </div>
+            {
+                isModalOpen && (
+                    <div className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+                            {/* Modal Header */}
+                            <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+                                <h2 className="text-lg sm:text-xl font-bold text-gray-800">
+                                    {editingProduct ? (i18n.language === 'ar' ? 'تعديل المنتج' : 'Edit Product') : t('stocked.products.add_product')}
+                                </h2>
+                                <button
+                                    onClick={() => {
+                                        setIsModalOpen(false);
+                                        setEditingProduct(null);
+                                    }}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
 
-                        {/* Modal Body - Scrollable */}
-                        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-                            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-                                {/* Basic Info - Responsive columns */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {/* Name */}
-                                    <div>
-                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                            {t('stocked.products.product_name')} <span className="text-red-500">*</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="name"
-                                            value={formData.name}
-                                            onChange={handleInputChange}
-                                            placeholder={t('stocked.products.product_name')}
-                                            className={`w-full border-2 ${errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors`}
-                                        />
-                                        {errors.name && (
-                                            <p className={`text-red-500 text-xs mt-1 text-${i18n.language === 'ar' ? 'right' : 'left'} flex items-center gap-1`}>
-                                                <span>⚠</span> {errors.name}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    {/* Code */}
-                                    <div>
-                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                            {t('stocked.products.code')} <span className="text-red-500">*</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            name="code"
-                                            value={formData.code}
-                                            onChange={handleInputChange}
-                                            placeholder="1-000001"
-                                            className={`w-full border-2 ${errors.code ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors`}
-                                        />
-                                        {errors.code && (
-                                            <p className={`text-red-500 text-xs mt-1 text-${i18n.language === 'ar' ? 'right' : 'left'} flex items-center gap-1`}>
-                                                <span>⚠</span> {errors.code}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    {/* Category */}
-                                    <div>
-                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                            {t('stocked.products.category')}
-                                        </label>
-                                        <div className="flex items-center gap-2">
-                                            <select
-                                                name="category"
-                                                value={formData.category}
-                                                onChange={handleInputChange}
-                                                className={`flex-1 border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500 bg-white`}
-                                            >
-                                                <option value="">{t('stocked.products.no_category')}</option>
-                                            </select>
-                                            <button
-                                                type="button"
-                                                className="bg-indigo-600 text-white p-2.5 rounded-lg hover:bg-indigo-700 transition-colors"
-                                            >
-                                                <Plus size={18} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Product Type */}
-                                <div>
-                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                        {t('stocked.products.type')}
-                                    </label>
-                                    <div className={`flex flex-col gap-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="type"
-                                                value="tracked"
-                                                checked={formData.type === 'tracked'}
-                                                onChange={handleInputChange}
-                                                className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                                            />
-                                            <span className="text-sm text-gray-700">{t('stocked.products.product_with_inventory')}</span>
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="type"
-                                                value="service"
-                                                checked={formData.type === 'service'}
-                                                onChange={handleInputChange}
-                                                className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
-                                            />
-                                            <span className="text-sm text-gray-700">{t('stocked.products.service_no_inventory')}</span>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                {/* Units and Pricing */}
-                                <div>
-                                    <div className="flex items-center justify-between mb-3">
-                                        <label className={`text-sm font-semibold text-gray-700 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                            {t('stocked.products.units_pricing')}
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <span className="text-sm text-gray-600">{t('stocked.products.multiple_units')}</span>
-                                            <div className="relative">
-                                                <input
-                                                    type="checkbox"
-                                                    name="multipleUnits"
-                                                    checked={formData.multipleUnits}
-                                                    onChange={handleInputChange}
-                                                    className="sr-only"
-                                                />
-                                                <div className={`w-10 h-5 rounded-full transition-colors ${formData.multipleUnits ? 'bg-indigo-600' : 'bg-gray-300'}`}>
-                                                    <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${formData.multipleUnits ? (i18n.language === 'ar' ? '-translate-x-5' : 'translate-x-5') : 'translate-x-0.5'} mt-0.5`}></div>
-                                                </div>
-                                            </div>
-                                        </label>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                                        <div>
-                                            <label className={`block text-sm text-gray-600 mb-1 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                {t('stocked.products.unit_name')}
-                                            </label>
-                                            <input
-                                                type="text"
-                                                name="unitName"
-                                                value={formData.unitName}
-                                                onChange={handleInputChange}
-                                                className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500`}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className={`block text-sm text-gray-600 mb-1 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                {t('stocked.products.purchase_price')}
-                                            </label>
-                                            <input
-                                                type="number"
-                                                name="purchasePrice"
-                                                value={formData.purchasePrice}
-                                                onChange={handleInputChange}
-                                                placeholder="0.00"
-                                                min="0"
-                                                step="0.01"
-                                                className={`w-full border-2 ${errors.purchasePrice ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors`}
-                                            />
-                                            {errors.purchasePrice && (
-                                                <p className={`text-red-500 text-xs mt-1 text-${i18n.language === 'ar' ? 'right' : 'left'} flex items-center gap-1`}>
-                                                    <span>⚠</span> {errors.purchasePrice}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <label className={`block text-sm text-gray-600 mb-1 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                {t('stocked.products.sale_price')}
-                                            </label>
-                                            <input
-                                                type="number"
-                                                name="sellingPrice"
-                                                value={formData.sellingPrice}
-                                                onChange={handleInputChange}
-                                                placeholder="0.00"
-                                                min="0"
-                                                step="0.01"
-                                                className={`w-full border-2 ${errors.sellingPrice ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors`}
-                                            />
-                                            {errors.sellingPrice && (
-                                                <p className={`text-red-500 text-xs mt-1 text-${i18n.language === 'ar' ? 'right' : 'left'} flex items-center gap-1`}>
-                                                    <span>⚠</span> {errors.sellingPrice}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div>
-                                            <label className={`block text-sm text-gray-600 mb-1 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                {t('stocked.products.profit_margin')} %
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={calculateProfitMargin()}
-                                                readOnly
-                                                className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} bg-gray-50`}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Description and Image */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                            {t('stocked.products.description')}
-                                        </label>
-                                        <textarea
-                                            name="description"
-                                            value={formData.description}
-                                            onChange={handleInputChange}
-                                            rows="5"
-                                            className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500 resize-none`}
-                                            placeholder={t('stocked.products.description')}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                            {t('stocked.products.product_image')}
-                                        </label>
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleImageUpload}
-                                            className="hidden"
-                                            id="image-upload"
-                                        />
-                                        <label
-                                            htmlFor="image-upload"
-                                            onDragOver={handleDragOver}
-                                            onDrop={handleDrop}
-                                            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-indigo-500 cursor-pointer transition-colors block h-32 flex items-center justify-center"
-                                        >
-                                            {imagePreview ? (
-                                                <div className="relative">
-                                                    <img src={imagePreview} alt="Preview" className="h-20 w-20 object-cover rounded" />
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => { e.preventDefault(); removeImage(); }}
-                                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
-                                                    >
-                                                        <X size={12} />
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <div>
-                                                    <div className="text-gray-400 mb-2">📷</div>
-                                                    <p className="text-sm text-gray-500">{t('sales.common.drop_files')}</p>
-                                                </div>
-                                            )}
-                                        </label>
-                                    </div>
-                                </div>
-
-                                {/* Stock Info (only for tracked type) */}
-                                {formData.type === 'tracked' && (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Modal Body - Scrollable */}
+                            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+                                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                                    {/* Basic Info - Responsive columns */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {/* Name */}
                                         <div>
                                             <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                {t('stocked.products.stock_quantity')}
+                                                {t('stocked.products.product_name')} <span className="text-red-500">*</span>
                                             </label>
-                                            <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                name="name"
+                                                value={formData.name}
+                                                onChange={handleInputChange}
+                                                placeholder={t('stocked.products.product_name')}
+                                                className={`w-full border-2 ${errors.name ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors`}
+                                            />
+                                            {errors.name && (
+                                                <p className={`text-red-500 text-xs mt-1 text-${i18n.language === 'ar' ? 'right' : 'left'} flex items-center gap-1`}>
+                                                    <span>⚠</span> {errors.name}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {/* Code */}
+                                        <div>
+                                            <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                                {t('stocked.products.code')} <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="code"
+                                                value={formData.code}
+                                                onChange={handleInputChange}
+                                                placeholder="1-000001"
+                                                className={`w-full border-2 ${errors.code ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors`}
+                                            />
+                                            {errors.code && (
+                                                <p className={`text-red-500 text-xs mt-1 text-${i18n.language === 'ar' ? 'right' : 'left'} flex items-center gap-1`}>
+                                                    <span>⚠</span> {errors.code}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        {/* Category */}
+                                        <div>
+                                            <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                                {t('stocked.products.category')}
+                                            </label>
+                                            <div className="flex items-center gap-2">
                                                 <select
-                                                    name="warehouse"
-                                                    value={formData.warehouse}
+                                                    name="category"
+                                                    value={formData.category}
                                                     onChange={handleInputChange}
                                                     className={`flex-1 border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500 bg-white`}
                                                 >
-                                                    <option value="main">{t('sales.common.main_warehouse')}</option>
-                                                    <option value="secondary">{t('sales.common.secondary_warehouse')}</option>
+                                                    <option value="">{t('stocked.products.no_category')}</option>
                                                 </select>
+                                                <button
+                                                    type="button"
+                                                    className="bg-indigo-600 text-white p-2.5 rounded-lg hover:bg-indigo-700 transition-colors"
+                                                >
+                                                    <Plus size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Product Type */}
+                                    <div>
+                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                            {t('stocked.products.type')}
+                                        </label>
+                                        <div className={`flex flex-col gap-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                            <label className="flex items-center gap-2 cursor-pointer">
                                                 <input
-                                                    type="number"
-                                                    name="stockQuantity"
-                                                    value={formData.stockQuantity}
+                                                    type="radio"
+                                                    name="type"
+                                                    value="tracked"
+                                                    checked={formData.type === 'tracked'}
                                                     onChange={handleInputChange}
-                                                    placeholder="0"
-                                                    min="0"
-                                                    className={`w-24 border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500`}
+                                                    className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                                                />
+                                                <span className="text-sm text-gray-700">{t('stocked.products.product_with_inventory')}</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input
+                                                    type="radio"
+                                                    name="type"
+                                                    value="service"
+                                                    checked={formData.type === 'service'}
+                                                    onChange={handleInputChange}
+                                                    className="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500"
+                                                />
+                                                <span className="text-sm text-gray-700">{t('stocked.products.service_no_inventory')}</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {/* Units and Pricing */}
+                                    <div>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <label className={`text-sm font-semibold text-gray-700 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                                {t('stocked.products.units_pricing')}
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <span className="text-sm text-gray-600">{t('stocked.products.multiple_units')}</span>
+                                                <div className="relative">
+                                                    <input
+                                                        type="checkbox"
+                                                        name="multipleUnits"
+                                                        checked={formData.multipleUnits}
+                                                        onChange={handleInputChange}
+                                                        className="sr-only"
+                                                    />
+                                                    <div className={`w-10 h-5 rounded-full transition-colors ${formData.multipleUnits ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                                                        <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${formData.multipleUnits ? (i18n.language === 'ar' ? '-translate-x-5' : 'translate-x-5') : 'translate-x-0.5'} mt-0.5`}></div>
+                                                    </div>
+                                                </div>
+                                            </label>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                            <div>
+                                                <label className={`block text-sm text-gray-600 mb-1 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                                    {t('stocked.products.unit_name')}
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    name="unitName"
+                                                    value={formData.unitName}
+                                                    onChange={handleInputChange}
+                                                    className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500`}
                                                 />
                                             </div>
+                                            <div>
+                                                <label className={`block text-sm text-gray-600 mb-1 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                                    {t('stocked.products.purchase_price')}
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    name="purchasePrice"
+                                                    value={formData.purchasePrice}
+                                                    onChange={handleInputChange}
+                                                    placeholder="0.00"
+                                                    min="0"
+                                                    step="0.01"
+                                                    className={`w-full border-2 ${errors.purchasePrice ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors`}
+                                                />
+                                                {errors.purchasePrice && (
+                                                    <p className={`text-red-500 text-xs mt-1 text-${i18n.language === 'ar' ? 'right' : 'left'} flex items-center gap-1`}>
+                                                        <span>⚠</span> {errors.purchasePrice}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label className={`block text-sm text-gray-600 mb-1 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                                    {t('stocked.products.sale_price')}
+                                                </label>
+                                                <input
+                                                    type="number"
+                                                    name="sellingPrice"
+                                                    value={formData.sellingPrice}
+                                                    onChange={handleInputChange}
+                                                    placeholder="0.00"
+                                                    min="0"
+                                                    step="0.01"
+                                                    className={`w-full border-2 ${errors.sellingPrice ? 'border-red-500 focus:border-red-500' : 'border-gray-200 focus:border-indigo-500'} rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none transition-colors`}
+                                                />
+                                                {errors.sellingPrice && (
+                                                    <p className={`text-red-500 text-xs mt-1 text-${i18n.language === 'ar' ? 'right' : 'left'} flex items-center gap-1`}>
+                                                        <span>⚠</span> {errors.sellingPrice}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div>
+                                                <label className={`block text-sm text-gray-600 mb-1 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                                    {t('stocked.products.profit_margin')} %
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={calculateProfitMargin()}
+                                                    readOnly
+                                                    className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} bg-gray-50`}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Description and Image */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                                {t('stocked.products.description')}
+                                            </label>
+                                            <textarea
+                                                name="description"
+                                                value={formData.description}
+                                                onChange={handleInputChange}
+                                                rows="5"
+                                                className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500 resize-none`}
+                                                placeholder={t('stocked.products.description')}
+                                            />
                                         </div>
                                         <div>
                                             <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                                {t('stocked.products.low_stock_threshold')}
+                                                {t('stocked.products.product_image')}
                                             </label>
                                             <input
-                                                type="number"
-                                                name="lowStockThreshold"
-                                                value={formData.lowStockThreshold}
-                                                onChange={handleInputChange}
-                                                placeholder="0"
-                                                min="0"
-                                                className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500`}
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleImageUpload}
+                                                className="hidden"
+                                                id="image-upload"
                                             />
+                                            <label
+                                                htmlFor="image-upload"
+                                                onDragOver={handleDragOver}
+                                                onDrop={handleDrop}
+                                                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-indigo-500 cursor-pointer transition-colors block h-32 flex items-center justify-center"
+                                            >
+                                                {imagePreview ? (
+                                                    <div className="relative">
+                                                        <img src={imagePreview} alt="Preview" className="h-20 w-20 object-cover rounded" />
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => { e.preventDefault(); removeImage(); }}
+                                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                                                        >
+                                                            <X size={12} />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div>
+                                                        <div className="text-gray-400 mb-2">📷</div>
+                                                        <p className="text-sm text-gray-500">{t('sales.common.drop_files')}</p>
+                                                    </div>
+                                                )}
+                                            </label>
                                         </div>
                                     </div>
-                                )}
 
-                                <div>
-                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                        {t('stocked.products.barcode')}
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="barcode"
-                                        value={formData.barcode}
-                                        onChange={handleInputChange}
-                                        placeholder={t('stocked.products.barcode')}
-                                        className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500`}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
-                                        {t('stocked.products.taxes')}
-                                    </label>
-                                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
-                                        <label className="flex items-center gap-3 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                name="taxable"
-                                                checked={formData.taxable}
-                                                onChange={handleInputChange}
-                                                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                                            />
-                                            <span className="text-sm font-medium text-gray-700">{i18n.language === 'ar' ? 'خاضع للضريبة' : 'Taxable'}</span>
-                                        </label>
-
-                                        {formData.taxable && (
-                                            <div className="flex items-center gap-3">
-                                                <label className="text-sm text-gray-600 min-w-[100px]">{t('stocked.products.vat')} %</label>
+                                    {/* Stock Info (only for tracked type) */}
+                                    {formData.type === 'tracked' && (
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                                    {t('stocked.products.stock_quantity')}
+                                                </label>
+                                                <div className="flex gap-2">
+                                                    <select
+                                                        name="warehouse"
+                                                        value={formData.warehouse}
+                                                        onChange={handleInputChange}
+                                                        className={`flex-1 border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500 bg-white`}
+                                                    >
+                                                        <option value="main">{t('sales.common.main_warehouse')}</option>
+                                                        <option value="secondary">{t('sales.common.secondary_warehouse')}</option>
+                                                    </select>
+                                                    <input
+                                                        type="number"
+                                                        name="stockQuantity"
+                                                        value={formData.stockQuantity}
+                                                        onChange={handleInputChange}
+                                                        placeholder="0"
+                                                        min="0"
+                                                        className={`w-24 border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500`}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                                    {t('stocked.products.low_stock_threshold')}
+                                                </label>
                                                 <input
                                                     type="number"
-                                                    name="taxRate"
-                                                    value={formData.taxRate}
+                                                    name="lowStockThreshold"
+                                                    value={formData.lowStockThreshold}
                                                     onChange={handleInputChange}
-                                                    className="w-24 border-2 border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500"
+                                                    placeholder="0"
+                                                    min="0"
+                                                    className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2.5 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500`}
                                                 />
                                             </div>
-                                        )}
-                                    </div>
-                                </div>
+                                        </div>
+                                    )}
 
-                                {/* Footer (Save Buttons) */}
-                                <div className="flex gap-4 pt-4 sticky bottom-0 bg-white border-t pb-4">
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setIsModalOpen(false);
-                                            setEditingProduct(null);
-                                        }}
-                                        className="flex-1 p-4 border-2 border-gray-100 rounded-2xl font-bold text-gray-600 hover:bg-gray-50 transition-colors"
-                                    >
-                                        {t('sales.common.cancel')}
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={loading}
-                                        className="flex-1 p-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all disabled:opacity-50"
-                                    >
-                                        {loading ? '...' : (editingProduct ? (i18n.language === 'ar' ? 'تحديث' : 'Update') : t('sales.common.save'))}
-                                    </button>
-                                </div>
-                            </form>
+                                    <div>
+                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                            {t('stocked.products.barcode')}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="barcode"
+                                            value={formData.barcode}
+                                            onChange={handleInputChange}
+                                            placeholder={t('stocked.products.barcode')}
+                                            className={`w-full border-2 border-gray-200 rounded-lg px-3 py-2 text-${i18n.language === 'ar' ? 'right' : 'left'} focus:outline-none focus:border-indigo-500`}
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className={`block text-sm font-semibold text-gray-700 mb-2 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>
+                                            {t('stocked.products.taxes')}
+                                        </label>
+                                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4">
+                                            <label className="flex items-center gap-3 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    name="taxable"
+                                                    checked={formData.taxable}
+                                                    onChange={handleInputChange}
+                                                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                                                />
+                                                <span className="text-sm font-medium text-gray-700">{i18n.language === 'ar' ? 'خاضع للضريبة' : 'Taxable'}</span>
+                                            </label>
+
+                                            {formData.taxable && (
+                                                <div className="flex items-center gap-3">
+                                                    <label className="text-sm text-gray-600 min-w-[100px]">{t('stocked.products.vat')} %</label>
+                                                    <input
+                                                        type="number"
+                                                        name="taxRate"
+                                                        value={formData.taxRate}
+                                                        onChange={handleInputChange}
+                                                        className="w-24 border-2 border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-indigo-500"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Footer (Save Buttons) */}
+                                    <div className="flex gap-4 pt-4 sticky bottom-0 bg-white border-t pb-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsModalOpen(false);
+                                                setEditingProduct(null);
+                                            }}
+                                            className="flex-1 p-4 border-2 border-gray-100 rounded-2xl font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                                        >
+                                            {t('sales.common.cancel')}
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={loading}
+                                            className="flex-1 p-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all disabled:opacity-50"
+                                        >
+                                            {loading ? '...' : (editingProduct ? (i18n.language === 'ar' ? 'تحديث' : 'Update') : t('sales.common.save'))}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 

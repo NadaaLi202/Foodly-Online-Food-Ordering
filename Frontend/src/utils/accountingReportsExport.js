@@ -1,5 +1,7 @@
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
+import { TajawalRegular, TajawalBold } from './tajawalFonts';
+import { processArabic } from './arabic';
 
 const fmtNum = (n) => (n == null || n === '' || n === undefined) ? '' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString() : '—';
@@ -323,40 +325,81 @@ export function buildTrialBalancePdf(data, totals, t, reportTitle, dateRange) {
 }
 
 /**
- * Generic PDF builder for accounting reports (simplified version)
+ * Generic PDF builder for accounting reports (supports Arabic/RTL)
  */
-export function buildAccountingReportPdf(title, contentRows, t) {
+export function buildAccountingReportPdf(title, contentRows, t, options = {}) {
+    const { locale = (t && t.language) || 'ar' } = options;
+    const isRtl = locale === 'ar' || locale === 'ar-EG';
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
     const pageH = doc.internal.pageSize.getHeight();
     const margin = 14;
     let y = 18;
     
-    doc.setR2L(true);
+    doc.addFileToVFS('Tajawal-Regular.ttf', TajawalRegular);
+    doc.addFont('Tajawal-Regular.ttf', 'Tajawal', 'normal');
+    doc.addFileToVFS('Tajawal-Bold.ttf', TajawalBold);
+    doc.addFont('Tajawal-Bold.ttf', 'Tajawal', 'bold');
     
+    const p = (text) => isRtl ? processArabic(String(text || '')) : String(text || '');
+
     doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text(title, pageW - margin, y);
+    doc.setFont('Tajawal', 'bold');
+    if (isRtl) {
+        doc.text(p(title), pageW - margin, y, { align: 'right' });
+    } else {
+        doc.text(title, margin, y);
+    }
     y += 10;
     
     doc.setFontSize(9);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('Tajawal', 'normal');
     
     if (contentRows && contentRows.length > 0) {
         contentRows.forEach(row => {
             if (y > pageH - 20) {
                 doc.addPage('a4', 'p');
                 y = 18;
-                doc.setR2L(true);
             }
             if (Array.isArray(row)) {
-                let x = pageW - margin;
+                let x = isRtl ? pageW - margin : margin;
                 row.forEach((cell, i) => {
-                    doc.text(String(cell || '').substring(0, 40), x, y);
-                    x -= 50;
+                    const strCell = String(cell || '');
+                    // Only bold if it's the very first column in RTL (far right) or LTR (far left) ? Usually header elements are different. 
+                    // Let's just keep 'normal' unless we specifically mark headers.
+                    if (strCell.includes(t('reports.accounting.revenue') || 'Revenue') || strCell.includes(t('reports.accounting.expenses') || 'Expenses') || strCell.includes(t('reports.accounting.net_income') || 'Net Income')) {
+                        doc.setFont('Tajawal', 'bold');
+                    } else {
+                        doc.setFont('Tajawal', 'normal');
+                    }
+
+                    const isNum = !isNaN(parseFloat(strCell.replace(/,/g, ''))) && strCell.trim() !== '';
+                    let tempX = x;
+                    if (isNum && isRtl) {
+                         // Right align Numbers in their column
+                         doc.text(strCell, tempX, y, { align: 'right' });
+                    } else {
+                         if (isRtl) {
+                            doc.text(p(strCell.substring(0, 50)), tempX, y, { align: 'right' });
+                         } else {
+                            doc.text(strCell.substring(0, 50), tempX, y);
+                         }
+                    }
+
+                    // For Income Statement, the columns are usually: [Indent?, Code+Name, Amount] 
+                    if (isRtl) {
+                         x -= (i === 0 ? 10 : 80); // Step left. 1st column is narrow (indent placeholder), 2nd is wide (Name), 3rd is amount
+                    } else {
+                         x += (i === 0 ? 10 : 80);
+                    }
                 });
             } else {
-                doc.text(String(row || '').substring(0, 80), pageW - margin, y);
+                const text = p(String(row || '').substring(0, 80));
+                if (isRtl) {
+                    doc.text(text, pageW - margin, y, { align: 'right' });
+                } else {
+                    doc.text(text, margin, y);
+                }
             }
             y += 6;
         });

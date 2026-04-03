@@ -7,16 +7,17 @@ import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import { Document, Page, Text, View, StyleSheet, Font, Image, PDFViewer } from '@react-pdf/renderer';
 
-// We downloaded a fresh, standard Arabic TTF font (Tajawal) directly from Google Fonts into the public folder.
-// This rules out the possibility that the original 'Cairo' files were corrupted, WOFF renamed to TTF, or Variable fonts.
-const TajawalRegularUrl = `${window.location.origin}/fonts/Tajawal-Regular.ttf`;
-const TajawalBoldUrl = `${window.location.origin}/fonts/Tajawal-Bold.ttf`;
-
 Font.register({
-    family: 'Cairo', // Keeping the internal name 'Cairo' so all your templates don't break
+    family: 'Tajawal',
     fonts: [
-        { src: TajawalRegularUrl, fontWeight: 'normal' },
-        { src: TajawalBoldUrl, fontWeight: 'bold' }
+        {
+            src: '/fonts/Tajawal-Regular.ttf',
+            fontWeight: 'normal',
+        },
+        {
+            src: '/fonts/Tajawal-Bold.ttf',
+            fontWeight: 'bold',
+        }
     ]
 });
 
@@ -114,22 +115,23 @@ const filterTitleRows = (rows = []) => {
    Global Styles for PDF Elements
    ═════════════════════════════════════════════════════════════ */
 const s = StyleSheet.create({
-    page: { fontFamily: 'Cairo', display: 'flex', flexDirection: 'column' },
-    row: { display: 'flex', flexDirection: 'row' },
-    col: { display: 'flex', flexDirection: 'column' },
-    textRight: { textAlign: 'right' },
-    textCenter: { textAlign: 'center' },
-    textLeft: { textAlign: 'left' },
-    bold: { fontWeight: 'bold' },
-    borderBottom: { borderBottomWidth: 1, borderBottomColor: '#333' },
-    dashedBottom: { borderBottomWidth: 1, borderBottomColor: '#ccc', borderBottomStyle: 'dashed' },
-    dashedTop: { borderTopWidth: 1, borderTopColor: '#ccc', borderTopStyle: 'dashed' },
-    table: { width: '100%', marginBottom: 16 },
-    tableHeaderRow: { flexDirection: 'row', backgroundColor: '#f3f4f6', borderBottomWidth: 1, borderColor: '#ddd' },
-    tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderColor: '#ddd' },
-    tableCell: { padding: 4, textAlign: 'center', justifyContent: 'center' },
-    tableThermalHeaderRow: { flexDirection: 'row', borderBottomWidth: 1, borderColor: '#ccc', borderBottomStyle: 'dashed' },
-    tableThermalRow: { flexDirection: 'row' },
+    page: { fontFamily: 'Tajawal', display: 'flex', flexDirection: 'column', textAlign: 'right' },
+    row: { fontFamily: 'Tajawal', display: 'flex', flexDirection: 'row' },
+    rowRtl: { fontFamily: 'Tajawal', display: 'flex', flexDirection: 'row-reverse' },
+    col: { fontFamily: 'Tajawal', display: 'flex', flexDirection: 'column' },
+    textRight: { fontFamily: 'Tajawal', textAlign: 'right' },
+    textCenter: { fontFamily: 'Tajawal', textAlign: 'center' },
+    textLeft: { fontFamily: 'Tajawal', textAlign: 'left' },
+    bold: { fontFamily: 'Tajawal', fontWeight: 'bold' },
+    borderBottom: { fontFamily: 'Tajawal', borderBottomWidth: 1, borderBottomColor: '#333' },
+    dashedBottom: { fontFamily: 'Tajawal', borderBottomWidth: 1, borderBottomColor: '#ccc', borderBottomStyle: 'dashed' },
+    dashedTop: { fontFamily: 'Tajawal', borderTopWidth: 1, borderTopColor: '#ccc', borderTopStyle: 'dashed' },
+    table: { fontFamily: 'Tajawal', width: '100%', marginBottom: 16 },
+    tableHeaderRow: { fontFamily: 'Tajawal', flexDirection: 'row', backgroundColor: '#f3f4f6', borderBottomWidth: 1, borderColor: '#ddd' },
+    tableRow: { fontFamily: 'Tajawal', flexDirection: 'row', borderBottomWidth: 1, borderColor: '#ddd' },
+    tableCell: { fontFamily: 'Tajawal', padding: 4, textAlign: 'center', justifyContent: 'center' },
+    tableThermalHeaderRow: { fontFamily: 'Tajawal', flexDirection: 'row', borderBottomWidth: 1, borderColor: '#ccc', borderBottomStyle: 'dashed' },
+    tableThermalRow: { fontFamily: 'Tajawal', flexDirection: 'row' },
 });
 
 const PdfTextRow = ({ row, defaultSize, isRtl, context }) => {
@@ -141,6 +143,7 @@ const PdfTextRow = ({ row, defaultSize, isRtl, context }) => {
 
     return (
         <Text style={{
+            fontFamily: 'Tajawal',
             fontSize: fontSize,
             color: fmt.color || '#000',
             textAlign: align,
@@ -175,7 +178,7 @@ const Design1Layout = ({ template, context, sampleProducts, sampleTotals, isRtl,
     return (
         <View style={s.col}>
             {/* Header */}
-            <View style={[s.row, { justifyContent: 'space-between', marginBottom: 16, paddingBottom: 8, ...(header.showBottomBorder ? s.borderBottom : {}) }]}>
+            <View style={[isRtl ? s.rowRtl : s.row, { justifyContent: 'space-between', marginBottom: 16, paddingBottom: 8, ...(header.showBottomBorder ? s.borderBottom : {}) }]}>
                 <View style={{ width: 70 }}>
                     {qrUrl && typeof qrUrl === 'string' && qrUrl.startsWith('data:') && <Image src={qrUrl} style={{ width: 70, height: 70 }} />}
                 </View>
@@ -193,14 +196,14 @@ const Design1Layout = ({ template, context, sampleProducts, sampleTotals, isRtl,
             {/* From/To */}
             <View style={[s.row, { justifyContent: 'space-between', marginBottom: 16 }]}>
                 <View style={[s.col, { flex: 1 }]}>
-                    <Text style={{ fontSize: 11, color: '#666', marginBottom: 4, textAlign: 'right' }}>إلى :</Text>
+                    <Text style={{ fontFamily: 'Tajawal', fontSize: 11, color: '#666', marginBottom: 4, textAlign: 'right' }}>إلى :</Text>
                     {(partner.clientRows || []).map((r, i) => (
                         <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'right' } }} defaultSize={11} isRtl={true} context={context} />
                     ))}
                 </View>
                 <View style={{ width: 24 }} />
                 <View style={[s.col, { flex: 1 }]}>
-                    <Text style={{ fontSize: 11, color: '#666', marginBottom: 4, textAlign: 'right' }}>من :</Text>
+                    <Text style={{ fontFamily: 'Tajawal', fontSize: 11, color: '#666', marginBottom: 4, textAlign: 'right' }}>من :</Text>
                     {(header.rows || []).map((r, i) => (
                         <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'right' } }} defaultSize={page.fontSize || 12} isRtl={true} context={context} />
                     ))}
@@ -213,7 +216,7 @@ const Design1Layout = ({ template, context, sampleProducts, sampleTotals, isRtl,
                     <View style={s.tableHeaderRow}>
                         {enabledCols.map(col => (
                             <View key={col.key} style={[s.tableCell, { flex: 1 }]}>
-                                <Text style={{ fontSize: col.labelFormat?.fontSize || 11, fontWeight: 'bold' }}>{col.label}</Text>
+                                <Text style={{ fontFamily: 'Tajawal', fontSize: col.labelFormat?.fontSize || 11, fontWeight: 'bold' }}>{col.label}</Text>
                             </View>
                         ))}
                     </View>
@@ -221,7 +224,7 @@ const Design1Layout = ({ template, context, sampleProducts, sampleTotals, isRtl,
                         <View key={i} style={s.tableRow}>
                             {enabledCols.map(col => (
                                 <View key={col.key} style={[s.tableCell, { flex: 1 }]}>
-                                    <Text style={{ fontSize: col.valueFormat?.fontSize || 11 }}>{row[col.key] || '-'}</Text>
+                                    <Text style={{ fontFamily: 'Tajawal', fontSize: col.valueFormat?.fontSize || 11 }}>{row[col.key] || '-'}</Text>
                                 </View>
                             ))}
                         </View>
@@ -236,8 +239,8 @@ const Design1Layout = ({ template, context, sampleProducts, sampleTotals, isRtl,
                         const isTotal = r.key === 'total' || r.key === 'paid';
                         return (
                             <View key={r.key} style={[s.row, { justifyContent: 'space-between', paddingVertical: 4, borderTopWidth: isTotal ? 1 : 0, borderBottomWidth: r.key === 'total' ? 1 : 0, borderColor: '#000' }]}>
-                                <Text style={{ fontSize: 12, fontWeight: isTotal ? 'bold' : 'normal' }}>{r.label}</Text>
-                                <Text style={{ fontSize: 12, fontWeight: isTotal ? 'bold' : 'normal' }}>{sampleTotals[r.key] || '0.00'}</Text>
+                                <Text style={{ fontFamily: 'Tajawal', fontSize: 12, fontWeight: isTotal ? 'bold' : 'normal' }}>{r.label}</Text>
+                                <Text style={{ fontFamily: 'Tajawal', fontSize: 12, fontWeight: isTotal ? 'bold' : 'normal' }}>{sampleTotals[r.key] || '0.00'}</Text>
                             </View>
                         );
                     })}
@@ -286,7 +289,7 @@ const Design2Layout = ({ template, context, sampleProducts, sampleTotals, isRtl,
     return (
         <View style={s.col}>
             {/* Header */}
-            <View style={[s.row, { justifyContent: 'space-between', marginBottom: 8 }]}>
+            <View style={[isRtl ? s.rowRtl : s.row, { justifyContent: 'space-between', marginBottom: 8 }]}>
                 <View style={[s.col, { flex: 1 }]}>
                     {(header.rows || []).map((r, i) => <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'left' } }} defaultSize={page.fontSize || 12} isRtl={false} context={context} />)}
                 </View>
@@ -319,7 +322,7 @@ const Design2Layout = ({ template, context, sampleProducts, sampleTotals, isRtl,
                     <View style={s.tableHeaderRow}>
                         {enabledCols.map(col => (
                             <View key={col.key} style={[s.tableCell, { flex: 1 }]}>
-                                <Text style={{ fontSize: col.labelFormat?.fontSize || 11, fontWeight: 'bold' }}>{col.label}</Text>
+                                <Text style={{ fontFamily: 'Tajawal', fontSize: col.labelFormat?.fontSize || 11, fontWeight: 'bold' }}>{col.label}</Text>
                             </View>
                         ))}
                     </View>
@@ -327,7 +330,7 @@ const Design2Layout = ({ template, context, sampleProducts, sampleTotals, isRtl,
                         <View key={i} style={s.tableRow}>
                             {enabledCols.map(col => (
                                 <View key={col.key} style={[s.tableCell, { flex: 1 }]}>
-                                    <Text style={{ fontSize: col.valueFormat?.fontSize || 11 }}>{row[col.key] || '-'}</Text>
+                                    <Text style={{ fontFamily: 'Tajawal', fontSize: col.valueFormat?.fontSize || 11 }}>{row[col.key] || '-'}</Text>
                                 </View>
                             ))}
                         </View>
@@ -342,8 +345,8 @@ const Design2Layout = ({ template, context, sampleProducts, sampleTotals, isRtl,
                         const isTotal = r.key === 'total' || r.key === 'paid';
                         return (
                             <View key={r.key} style={[s.row, { justifyContent: 'space-between', paddingVertical: 4, borderTopWidth: isTotal ? 1 : 0, borderBottomWidth: r.key === 'total' ? 1 : 0, borderColor: '#000' }]}>
-                                <Text style={{ fontSize: 12 }}>{r.label}</Text>
-                                <Text style={{ fontSize: 12, fontWeight: isTotal ? 'bold' : 'normal' }}>{sampleTotals[r.key] || '0.00'}</Text>
+                                <Text style={{ fontFamily: 'Tajawal', fontSize: 12 }}>{r.label}</Text>
+                                <Text style={{ fontFamily: 'Tajawal', fontSize: 12, fontWeight: isTotal ? 'bold' : 'normal' }}>{sampleTotals[r.key] || '0.00'}</Text>
                             </View>
                         );
                     })}
@@ -363,13 +366,13 @@ const Design2Layout = ({ template, context, sampleProducts, sampleTotals, isRtl,
                     ) : (
                         <View style={s.col}>
                             <View style={{ width: 120, borderBottomWidth: 1, borderColor: '#999', marginBottom: 4 }} />
-                            <Text style={{ fontSize: 12, color: '#999' }}>Signature - التوقيع</Text>
+                            <Text style={{ fontFamily: 'Tajawal', fontSize: 12, color: '#999' }}>Signature - التوقيع</Text>
                         </View>
                     )}
                 </View>
                 <View style={[s.col, { alignItems: 'flex-end', gap: 4 }]}>
                     {(footer.notesRows || []).map((r, i) => <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'right' } }} defaultSize={12} isRtl={isRtl} context={context} />)}
-                    {(!footer.notesRows || footer.notesRows.length === 0) && <Text style={{ fontSize: 12, color: '#999' }}>Notes - ملاحظات</Text>}
+                    {(!footer.notesRows || footer.notesRows.length === 0) && <Text style={{ fontFamily: 'Tajawal', fontSize: 12, color: '#999' }}>Notes - ملاحظات</Text>}
                     {qrUrl && typeof qrUrl === 'string' && qrUrl.startsWith('data:') && <Image src={qrUrl} style={{ width: 56, height: 56, marginTop: 4 }} />}
                 </View>
             </View>
@@ -377,7 +380,7 @@ const Design2Layout = ({ template, context, sampleProducts, sampleTotals, isRtl,
             {/* Bank Bar */}
             <View style={{ marginTop: 'auto', paddingTop: 24 }}>
                 <View style={{ backgroundColor: '#f3f4f6', padding: 8, borderTopWidth: 1, borderColor: '#ddd' }}>
-                    <Text style={{ fontSize: 10, color: '#666', textAlign: 'center' }}>
+                    <Text style={{ fontFamily: 'Tajawal', fontSize: 10, color: '#666', textAlign: 'center' }}>
                         مصرف الراجحي     رقم الحساب : 00000000000000     رقم الايبان : SA0000000000000000000
                     </Text>
                 </View>
@@ -420,7 +423,7 @@ const ThermalLayout = ({ template, context, sampleProducts, sampleTotals, isRtl,
                     <View style={s.tableThermalHeaderRow}>
                         {enabledCols.map(col => (
                             <View key={col.key} style={[s.tableCell, { flex: 1, padding: 2 }]}>
-                                <Text style={{ fontSize: 9, fontWeight: 'bold' }}>{col.label}</Text>
+                                <Text style={{ fontFamily: 'Tajawal', fontSize: 9, fontWeight: 'bold' }}>{col.label}</Text>
                             </View>
                         ))}
                     </View>
@@ -428,7 +431,7 @@ const ThermalLayout = ({ template, context, sampleProducts, sampleTotals, isRtl,
                         <View key={i} style={s.tableThermalRow}>
                             {enabledCols.map(col => (
                                 <View key={col.key} style={[s.tableCell, { flex: 1, padding: 2 }]}>
-                                    <Text style={{ fontSize: 9 }}>{row[col.key] || '-'}</Text>
+                                    <Text style={{ fontFamily: 'Tajawal', fontSize: 9 }}>{row[col.key] || '-'}</Text>
                                 </View>
                             ))}
                         </View>
@@ -443,9 +446,9 @@ const ThermalLayout = ({ template, context, sampleProducts, sampleTotals, isRtl,
                     {enabledFooter.map(r => {
                         const isTotal = r.key === 'total' || r.key === 'paid';
                         return (
-                            <View key={r.key} style={[s.row, { justifyContent: 'space-between', paddingVertical: 2, borderTopWidth: isTotal ? 1 : 0, borderColor: '#ccc', borderTopStyle: 'dashed' }]}>
-                                <Text style={{ fontSize: 9 }}>{r.label}</Text>
-                                <Text style={{ fontSize: 9, fontWeight: isTotal ? 'bold' : 'normal' }}>{sampleTotals[r.key] || '0.00'}</Text>
+                            <View key={r.key} style={[isRtl ? s.rowRtl : s.row, { justifyContent: 'space-between', paddingVertical: 2, borderTopWidth: isTotal ? 1 : 0, borderColor: '#ccc', borderTopStyle: 'dashed' }]}>
+                                <Text style={{ fontFamily: 'Tajawal', fontSize: 9 }}>{r.label}</Text>
+                                <Text style={{ fontFamily: 'Tajawal', fontSize: 9, fontWeight: isTotal ? 'bold' : 'normal' }}>{sampleTotals[r.key] || '0.00'}</Text>
                             </View>
                         );
                     })}
@@ -490,7 +493,7 @@ const InvoicePreview = ({ template = {}, direction = 'rtl', context = {} }) => {
         { lineNumber: '1', description: 'شاشة كمبيوتر حديثة', quantity: `${qty}`, price: basePrice.toFixed(2), taxRate: '15%', subtotal: computedSubtotal.toFixed(2), taxAmount: computedVat.toFixed(2), total: computedTotal.toFixed(2), discount: '0.00', code: 'SCR-01' },
         { lineNumber: '2', description: 'لوحة مفاتيح لاسلكية', quantity: '2', price: '150.00', taxRate: '15%', subtotal: '300.00', taxAmount: '45.00', total: '345.00', discount: '0.00', code: 'KB-02' }
     ];
-    
+
     const sampleTotals = context?.totals || { subtotal: computedSubtotal.toFixed(2), discount: '0.00', vat: computedVat.toFixed(2), total: computedTotal.toFixed(2), paid: computedTotal.toFixed(2), remaining: '0.00' };
 
     const qrUrl = useQRCodeDataUrl(context.company, sampleTotals);

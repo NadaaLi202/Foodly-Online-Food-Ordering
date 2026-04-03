@@ -41,7 +41,8 @@ const SafeModal = ({ isOpen, onClose, onSave, safeId = null }) => {
                     users: [],
                     enableReceiptPermissions: false,
                     enablePaymentPermissions: false,
-                    balance: 0
+                    balance: 0,
+                    isDefault: false
                 });
             }
         }
@@ -72,7 +73,8 @@ const SafeModal = ({ isOpen, onClose, onSave, safeId = null }) => {
                 users: safe.users?.map(u => typeof u === 'object' ? u._id : u) || [],
                 enableReceiptPermissions: safe.enableReceiptPermissions || false,
                 enablePaymentPermissions: safe.enablePaymentPermissions || false,
-                balance: safe.balance || 0
+                balance: safe.balance || 0,
+                isDefault: safe.isDefault || false
             });
         } catch (error) {
             logError('Error fetching safe:', error);
@@ -171,8 +173,9 @@ const SafeModal = ({ isOpen, onClose, onSave, safeId = null }) => {
                                 value={formData.name}
                                 onChange={handleInputChange}
                                 required
+                                disabled={formData.isDefault}
                                 placeholder={t('safes_page.name')}
-                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
+                                className={`w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none transition-all ${formData.isDefault ? 'opacity-70 cursor-not-allowed' : 'focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500'}`}
                             />
                         </div>
 

@@ -82,8 +82,11 @@ const TransactionPage = ({ configKey }) => {
             setSelected(location.state.prefillData);
             setView(location.state.mode || 'add');
             window.history.replaceState({}, document.title);
+        } else if (location.pathname.endsWith('/new')) {
+            setSelected(null);
+            setView('add');
         }
-    }, [location.state]);
+    }, [location.state, location.pathname]);
 
     const handleAddClick = () => {
         if (!canAdd) {
@@ -156,6 +159,12 @@ const TransactionPage = ({ configKey }) => {
             });
 
             toast.success(t('sales.common.success_message'));
+
+            // Show payment creation toast if applicable
+            if (response.data?.paymentCreated) {
+                toast.success(t('sales.payments.payment_registered_success') || "تم تسجيل الدفعة بنجاح");
+            }
+
             if (options.stayOnDetails && selected?._id) {
                 const res = await api.get(config.getOneUrl(selected._id));
                 setSelected(res.data);
@@ -313,6 +322,8 @@ const TransactionPage = ({ configKey }) => {
                             numberPlaceholderKey={config.numberPlaceholderKey}
                             clientLabelKey={config.clientLabelKey}
                             defaultCurrency="EGP"
+                            hidePaymentDetails={config.hidePaymentDetails}
+                            loading={loading}
                         />
                     )}
 

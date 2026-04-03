@@ -5,15 +5,23 @@ import { exportInventoryValueToExcel, buildInventoryValuePdf } from '../../../ut
 import reportsService from '../../../services/reportsService';
 import api from '../../../services/api';
 import logError from '../../../utils/logError';
-import PrintHeader from '../../../components/common/PrintHeader';
+import { useAuth } from '../../../context/AuthContext';
 
 const InventoryValueReport = () => {
     const { t, i18n } = useTranslation();
+    const { companySettings } = useAuth();
     const [loading, setLoading] = useState(false);
     const [reportData, setReportData] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
     const [categories, setCategories] = useState([]);
     const [products, setProducts] = useState([]);
+    const [fullCompanyInfo, setFullCompanyInfo] = useState({
+        company_name: '',
+        tax_number: '',
+        commercial_register: '',
+        region: '',
+        country: '',
+    });
 
     const [filters, setFilters] = useState({
         storehouse: 'all',
@@ -27,14 +35,25 @@ const InventoryValueReport = () => {
     useEffect(() => {
         const fetchFilterData = async () => {
             try {
-                const [whRes, catRes, prodRes] = await Promise.all([
+                const [whRes, catRes, prodRes, settingsRes] = await Promise.all([
                     api.get('/warehouses'),
                     api.get('/category'),
-                    api.get('/products')
+                    api.get('/products'),
+                    api.get('/settings?category=general')
                 ]);
                 setWarehouses(whRes.data.warehouses || whRes.data.data || whRes.data || []);
                 setCategories(catRes.data.categories || catRes.data.data || catRes.data || []);
                 setProducts(prodRes.data.products || prodRes.data.data || prodRes.data || []);
+                if (settingsRes.data?.data?.settings) {
+                    const s = settingsRes.data.data.settings;
+                    setFullCompanyInfo({
+                        company_name: s.company_name || companySettings?.company_name || '',
+                        tax_number: s.tax_number || '',
+                        commercial_register: s.commercial_register || '',
+                        region: s.region || '',
+                        country: s.country || '',
+                    });
+                }
             } catch (error) {
                 logError('Error fetching filter data:', error);
             }
@@ -108,13 +127,65 @@ const InventoryValueReport = () => {
     const isAr = i18n.language === 'ar';
     const textStart = isAr ? 'text-right' : 'text-left';
 
+    // Arabic date for print title
+    const arabicDate = new Date().toLocaleDateString('ar-SA', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
     return (
         <div className="p-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <div className="hidden print:block mb-6">
-                        <PrintHeader title={''} isRTL={false} />
+            {/* Print-specific CSS */}
+            <style>{`
+                @media print {
+                    @page {
+                        margin: 10mm 15mm 0mm 15mm;
+                        size: landscape;
+                    }
+                    .no-print { display: none !important; }
+                    .print-only { display: flex !important; }
+                    .print-only-block { display: block !important; }
+                    
+                    /* Force table to fit page without scrolling */
+                    table { 
+                        width: 100% !important; 
+                        table-layout: fixed !important; 
+                        min-width: 0 !important;
+                    }
+                    .overflow-x-auto { overflow: visible !important; }
+                    
+                    /* Scale down table text for printing */
+                    th, td {
+                        font-size: 10px !important;
+                        padding: 4px !important;
+                        word-break: break-word !important;
+                    }
+                }
+                @media screen {
+                    .print-only, .print-only-block { display: none !important; }
+                }
+            `}</style>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 print:border-none print:shadow-none print:p-0">
+
+                {/* === PRINT HEADER (company info, right-aligned) === */}
+                <div className="print-only-block" dir="rtl" style={{ textAlign: 'right', marginBottom: '16px' }}>
+                    <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '4px' }}>
+                        {fullCompanyInfo.company_name}
                     </div>
-                {/* Filters Section */}
+                    {fullCompanyInfo.commercial_register && (
+                        <div style={{ fontSize: '12px', marginBottom: '2px' }}>
+                            السجل التجاري : {fullCompanyInfo.commercial_register}
+                        </div>
+                    )}
+                </div>
+
+                {/* === PRINT REPORT TITLE (centered) === */}
+                <div className="print-only-block" style={{ textAlign: 'center', marginBottom: '24px' }}>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                        تقرير قيمة المخزون بتاريخ: {arabicDate}
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 no-print">
                     <div className={textStart}>
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.storehouse')}</label>
@@ -230,22 +301,26 @@ const InventoryValueReport = () => {
                     </div>
                 </div>
 
-                <div className="border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
-                    <table className="w-full min-w-[1000px]">
+                <div className="border border-gray-200 rounded-lg overflow-hidden overflow-x-auto print:border-none print:overflow-visible">
+                    <table
+                        className="w-full min-w-[1000px]"
+                        style={{ borderCollapse: 'collapse' }}
+                        dir="rtl"
+                    >
                         <thead>
-                            <tr className="bg-gray-50 border-b border-gray-200">
-                                <th className={`px-4 py-3 ${textStart} text-sm font-medium text-gray-700`}>{t('reports.inventory.inventory_value_report.name')}</th>
-                                <th className={`px-4 py-3 ${textStart} text-sm font-medium text-gray-700`}>{t('reports.inventory.inventory_value_report.code')}</th>
-                                <th className={`px-4 py-3 ${textStart} text-sm font-medium text-gray-700`}>{t('reports.inventory.inventory_value_report.quantity')}</th>
-                                <th className={`px-4 py-3 ${textStart} text-sm font-medium text-gray-700`}>
+                            <tr className="bg-gray-50 border-b border-gray-200" style={{ border: '1px solid #000' }}>
+                                <th className="px-2 py-3 text-right text-xs font-bold text-gray-700" style={{ border: '1px solid #000' }}>{t('reports.inventory.inventory_value_report.name')}</th>
+                                <th className="px-2 py-3 text-right text-xs font-bold text-gray-700" style={{ border: '1px solid #000' }}>{t('reports.inventory.inventory_value_report.code')}</th>
+                                <th className="px-2 py-3 text-right text-xs font-bold text-gray-700" style={{ border: '1px solid #000' }}>{t('reports.inventory.inventory_value_report.quantity')}</th>
+                                <th className="px-2 py-3 text-right text-xs font-bold text-gray-700" style={{ border: '1px solid #000' }}>
                                     {filters.method === 'average_cost'
                                         ? t('reports.inventory.inventory_value_report.average_cost')
                                         : t('reports.inventory.inventory_value_report.purchase_price')}
                                 </th>
-                                <th className={`px-4 py-3 ${textStart} text-sm font-medium text-gray-700`}>{t('reports.inventory.inventory_value_report.value')}</th>
-                                <th className={`px-4 py-3 ${textStart} text-sm font-medium text-gray-700`}>{t('reports.inventory.inventory_value_report.sale_price_without_taxes')}</th>
-                                <th className={`px-4 py-3 ${textStart} text-sm font-medium text-gray-700`}>{t('reports.inventory.inventory_value_report.sale_value')}</th>
-                                <th className={`px-4 py-3 ${textStart} text-sm font-medium text-gray-700`}>{t('reports.inventory.inventory_value_report.sale_profit')}</th>
+                                <th className="px-2 py-3 text-right text-xs font-bold text-gray-700" style={{ border: '1px solid #000' }}>{t('reports.inventory.inventory_value_report.value')}</th>
+                                <th className="px-2 py-3 text-right text-xs font-bold text-gray-700" style={{ border: '1px solid #000' }}>{t('reports.inventory.inventory_value_report.sale_price_without_taxes')}</th>
+                                <th className="px-2 py-3 text-right text-xs font-bold text-gray-700" style={{ border: '1px solid #000' }}>{t('reports.inventory.inventory_value_report.sale_value')}</th>
+                                <th className="px-2 py-3 text-right text-xs font-bold text-gray-700" style={{ border: '1px solid #000' }}>{t('reports.inventory.inventory_value_report.sale_profit')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -267,14 +342,14 @@ const InventoryValueReport = () => {
                             ) : (
                                 reportData.map((item, idx) => (
                                     <tr key={item.productId || idx} className="bg-white hover:bg-gray-50">
-                                        <td className={`px-4 py-3 text-sm text-gray-900 ${textStart}`}>{item.productName}</td>
-                                        <td className={`px-4 py-3 text-sm text-gray-500 ${textStart}`}>{item.code}</td>
-                                        <td className={`px-4 py-3 text-sm text-gray-900 ${textStart}`}>{item.quantity || 0}</td>
-                                        <td className={`px-4 py-3 text-sm text-gray-900 ${textStart}`}>{item.unitCost?.toFixed(2) || '0.00'}</td>
-                                        <td className={`px-4 py-3 text-sm text-gray-900 ${textStart} font-medium`}>{item.inventoryValue?.toFixed(2) || '0.00'}</td>
-                                        <td className={`px-4 py-3 text-sm text-gray-900 ${textStart}`}>{item.sellingPrice?.toFixed(2) || '0.00'}</td>
-                                        <td className={`px-4 py-3 text-sm text-gray-900 ${textStart} font-medium`}>{item.potentialSalesValue?.toFixed(2) || '0.00'}</td>
-                                        <td className={`px-4 py-3 text-sm ${item.potentialProfit >= 0 ? 'text-green-600' : 'text-red-600'} ${textStart} font-medium`}>{item.potentialProfit?.toFixed(2) || '0.00'}</td>
+                                        <td className="px-2 py-2 text-xs text-gray-900 text-right truncate bg-white" style={{ border: '1px solid #000' }}>{item.productName}</td>
+                                        <td className="px-2 py-2 text-xs text-gray-500 text-right bg-white" style={{ border: '1px solid #000', wordBreak: 'break-all' }}>{item.code}</td>
+                                        <td className="px-2 py-2 text-xs text-gray-900 text-right bg-white" style={{ border: '1px solid #000' }}>{item.quantity || 0}</td>
+                                        <td className="px-2 py-2 text-xs text-gray-900 text-right bg-white" style={{ border: '1px solid #000' }}>{item.unitCost?.toFixed(2) || '0.00'}</td>
+                                        <td className="px-2 py-2 text-xs text-gray-900 text-right font-bold bg-white" style={{ border: '1px solid #000' }}>{item.inventoryValue?.toFixed(2) || '0.00'}</td>
+                                        <td className="px-2 py-2 text-xs text-gray-900 text-right bg-white" style={{ border: '1px solid #000' }}>{item.sellingPrice?.toFixed(2) || '0.00'}</td>
+                                        <td className="px-2 py-2 text-xs text-gray-900 text-right font-bold bg-white" style={{ border: '1px solid #000' }}>{item.potentialSalesValue?.toFixed(2) || '0.00'}</td>
+                                        <td className={`px-2 py-2 text-xs ${item.potentialProfit >= 0 ? 'text-green-600' : 'text-red-600'} text-right font-bold bg-white`} style={{ border: '1px solid #000' }}>{item.potentialProfit?.toFixed(2) || '0.00'}</td>
                                     </tr>
                                 ))
                             )}
@@ -282,16 +357,23 @@ const InventoryValueReport = () => {
                         {reportData.length > 0 && (
                             <tfoot className="bg-gray-50 font-bold border-t border-gray-200">
                                 <tr>
-                                    <td colSpan="4" className={`px-4 py-3 text-sm text-gray-900 ${isAr ? 'text-left' : 'text-right'}`}>{t('reports.total')}</td>
-                                    <td className={`px-4 py-3 text-sm text-indigo-600 ${textStart}`}>{totalValue.toFixed(2)}</td>
-                                    <td className="px-4 py-3 text-sm"></td>
-                                    <td className={`px-4 py-3 text-sm text-indigo-600 ${textStart}`}>{totalSaleValue.toFixed(2)}</td>
-                                    <td className={`px-4 py-3 text-sm ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'} ${textStart}`}>{totalProfit.toFixed(2)}</td>
+                                    <td colSpan="4" className="px-2 py-3 text-xs text-gray-900 text-right font-bold" style={{ border: '1px solid #000' }}>{t('reports.total')}</td>
+                                    <td className="px-2 py-3 text-xs text-indigo-600 text-right font-bold" style={{ border: '1px solid #000' }}>{totalValue.toFixed(2)}</td>
+                                    <td className="px-2 py-3 text-xs" style={{ border: '1px solid #000' }}></td>
+                                    <td className="px-2 py-3 text-xs text-indigo-600 text-right font-bold" style={{ border: '1px solid #000' }}>{totalSaleValue.toFixed(2)}</td>
+                                    <td className={`px-2 py-3 text-xs ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'} text-right font-bold`} style={{ border: '1px solid #000' }}>{totalProfit.toFixed(2)}</td>
                                 </tr>
                             </tfoot>
                         )}
                     </table>
                 </div>
+
+                {/* === PRINT FOOTER === */}
+                <div className="print-only" dir="rtl" style={{ justifyContent: 'space-between', marginTop: '40px', paddingTop: '8px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>المدير</span>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>المحاسب</span>
+                </div>
+
             </div>
         </div>
     );

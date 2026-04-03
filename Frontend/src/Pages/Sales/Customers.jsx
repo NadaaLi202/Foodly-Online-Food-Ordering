@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Plus, RefreshCw, X, Search, MoreVertical, Pencil, Minus, Eye, Check, Trash2, Home } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
@@ -11,12 +11,17 @@ export default function Customers() {
     const { t, i18n } = useTranslation();
     const { id: customerIdFromUrl } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [currentCustomerId, setCurrentCustomerId] = useState(null);
     const [loadingCustomer, setLoadingCustomer] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(10);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalResults, setTotalResults] = useState(0);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -53,18 +58,23 @@ export default function Customers() {
         email: true,
         address: true
     });
+    const [searchTerm, setSearchTerm] = useState('');
 
     const [errors, setErrors] = useState({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [responseMessage, setResponseMessage] = useState({ type: '', text: '' });
 
     // Fetch customers from API
-    const fetchCustomers = async () => {
+    const fetchCustomers = async (page = 1, search = searchTerm) => {
         setLoading(true);
         try {
-            const response = await api.get('/contacts/customers');
+            const response = await api.get(`/contacts/customers?page=${page}&limit=${itemsPerPage}${search ? `&search=${search}` : ''}`);
             const data = response.data;
             setCustomers(data.contacts || []);
+            const total = data.pagination?.total || (data.contacts?.length || 0);
+            setTotalResults(total);
+            setTotalPages(data.pagination?.totalPages || Math.ceil(total / itemsPerPage) || 1);
+            setCurrentPage(page);
         } catch (error) {
             logError('Error fetching customers:', error);
         } finally {
@@ -81,6 +91,14 @@ export default function Customers() {
             openViewModal({ _id: customerIdFromUrl });
         }
     }, [customerIdFromUrl]);
+
+    useEffect(() => {
+        if (location.state?.openAddModal) {
+            openAddModal();
+            // Clear state after handling
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     const getCustomerById = async (id) => {
         setLoadingCustomer(true);
@@ -266,7 +284,7 @@ export default function Customers() {
             });
 
             // Refresh customer list
-            fetchCustomers();
+            fetchCustomers(currentPage);
 
             // Close modal and reset form after short delay
             setTimeout(() => {
@@ -550,9 +568,18 @@ export default function Customers() {
                     </button>
 
                     <div className="relative group">
-                        <div className="flex items-center gap-2 border border-gray-200 bg-gray-50 text-gray-500 px-4 py-2.5 rounded-lg hover:bg-white hover:border-indigo-300 transition-all cursor-pointer min-w-[180px]">
+                        <div className="flex items-center gap-2 border border-gray-200 bg-gray-50 text-gray-500 px-4 py-2 rounded-lg hover:bg-white hover:border-indigo-300 transition-all min-w-[200px]">
                             <Search size={16} />
-                            <span className="text-sm font-medium">{t('sales.common.search_filter')}</span>
+                            <input
+                                type="text"
+                                placeholder={t('sales.common.search_filter')}
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    fetchCustomers(1, e.target.value);
+                                }}
+                                className={`w-full bg-transparent focus:outline-none text-sm text-${i18n.language === 'ar' ? 'right' : 'left'}`}
+                            />
                         </div>
                     </div>
                 </div>
@@ -561,7 +588,7 @@ export default function Customers() {
                 <div className="flex items-center gap-4">
                     <button
                         type="button"
-                        onClick={fetchCustomers}
+                        onClick={() => fetchCustomers(1, searchTerm)}
                         disabled={loading}
                         className={`p-2 text-gray-400 hover:text-indigo-600 transition-all rounded-full hover:bg-gray-50 ${loading ? 'animate-spin' : ''}`}
                         title={t('sales.common.refresh')}
@@ -664,11 +691,26 @@ export default function Customers() {
                         {/* Pagination (Static for now as per code structure, but styling to match) */}
                         <div className="border-t border-gray-100 bg-gray-50 px-6 py-3 flex items-center justify-between">
                             <div className="text-xs text-gray-500 font-medium">
-                                {t('sales.common.showing')} <span className="font-bold text-gray-800">{customers.length}</span> {t('sales.common.results')}
+                                {t('sales.common.showing')} <span className="font-bold text-gray-800">{totalResults}</span> {t('sales.common.results')}
                             </div>
-                            <div className="flex bg-white rounded-lg shadow-sm border border-gray-200">
-                                <button disabled className="px-3 py-1 text-gray-400 text-xs font-bold border-e border-gray-100 cursor-not-allowed">{t('sales.common.prev')}</button>
-                                <button disabled className="px-3 py-1 text-gray-400 text-xs font-bold cursor-not-allowed">{t('sales.common.next')}</button>
+                            <div className="flex bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                                <button
+                                    onClick={() => fetchCustomers(currentPage - 1)}
+                                    disabled={currentPage === 1 || loading}
+                                    className="px-4 py-2 text-gray-600 text-xs font-bold border-e border-gray-100 hover:bg-gray-50 disabled:opacity-50 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    {t('sales.common.prev')}
+                                </button>
+                                <div className="px-4 py-2 text-gray-400 text-xs font-bold border-e border-gray-100 bg-gray-50/50">
+                                    {currentPage} / {totalPages}
+                                </div>
+                                <button
+                                    onClick={() => fetchCustomers(currentPage + 1)}
+                                    disabled={currentPage === totalPages || loading}
+                                    className="px-4 py-2 text-gray-600 text-xs font-bold hover:bg-gray-50 disabled:opacity-50 disabled:text-gray-300 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    {t('sales.common.next')}
+                                </button>
                             </div>
                         </div>
                     </div>

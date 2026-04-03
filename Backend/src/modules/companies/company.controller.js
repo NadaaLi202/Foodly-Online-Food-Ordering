@@ -3,6 +3,10 @@ import { AppError } from "../../utils/AppError.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
 import { seedDefaultChartOfAccounts } from "../chartOfAccounts/chartOfAccounts.service.js";
+import { seedDefaultBranch } from "../branch/branch.service.js";
+import { seedDefaultSafe } from "../Safes/safe.service.js";
+import { seedDefaultBankAccount } from "../BankAccounts/bankAccount.service.js";
+import { safeModel } from "../Safes/safe.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
@@ -32,8 +36,11 @@ const addCompany = catchAsyncError(async (req, res, next) => {
     // Seed default chart of accounts
     try {
         await seedDefaultChartOfAccounts(company._id);
+        await seedDefaultBranch(company._id);
+        await seedDefaultSafe(company._id);
+        await seedDefaultBankAccount(company._id);
     } catch (err) {
-        console.error('Failed to seed chart of accounts for company:', company._id, err);
+        console.error('Failed to seed defaults for company:', company._id, err);
     }
 
     // Remove password from response
@@ -228,11 +235,14 @@ const approveCompany = catchAsyncError(async (req, res, next) => {
     company.approvedAt = new Date();
     await company.save();
 
-    // Seed default chart of accounts
+    // Seed default chart of accounts and branch
     try {
         await seedDefaultChartOfAccounts(company._id);
+        await seedDefaultBranch(company._id);
+        await seedDefaultSafe(company._id);
+        await seedDefaultBankAccount(company._id);
     } catch (err) {
-        console.error('Failed to seed chart of accounts for approved company:', company._id, err);
+        console.error('Failed to seed defaults for approved company:', company._id, err);
     }
 
     res.status(200).json({ message: 'Company approved successfully', company });
@@ -254,4 +264,37 @@ const rejectCompany = catchAsyncError(async (req, res, next) => {
     res.status(200).json({ message: 'Company rejected successfully', company });
 });
 
-export { addCompany, getAllCompanies, getCompany, getCompanyBySlug, updateCompany, deleteCompany, loginAsCompany, impersonateCompany, sendCredentials, checkSlug, signupCompany, approveCompany, rejectCompany };
+const seedMainSafesAdmin = catchAsyncError(async (req, res, next) => {
+    const companies = await companyModel.find();
+    let seededCount = 0;
+    let markedCount = 0;
+
+    for (const company of companies) {
+        const safes = await safeModel.find({ companyId: company._id });
+
+        if (safes.length === 0) {
+            const success = await seedDefaultSafe(company._id);
+            if (success) seededCount++;
+        } else {
+            const hasMain = safes.some(s => s.isDefault);
+            if (!hasMain) {
+                const mainSafe = safes.find(s =>
+                    s.name && /خزنة رئيسية|الخزنة الرئيسية|main safe|main/i.test(s.name)
+                ) || safes.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))[0];
+
+                if (mainSafe) {
+                    await safeModel.findByIdAndUpdate(mainSafe._id, { isDefault: true });
+                    markedCount++;
+                }
+            }
+        }
+    }
+
+    res.status(200).json({
+        message: "تم تحديث الخزينة الرئيسية لجميع الشركات",
+        seededCount,
+        markedCount
+    });
+});
+
+export { addCompany, getAllCompanies, getCompany, getCompanyBySlug, updateCompany, deleteCompany, loginAsCompany, impersonateCompany, sendCredentials, checkSlug, signupCompany, approveCompany, rejectCompany, seedMainSafesAdmin };

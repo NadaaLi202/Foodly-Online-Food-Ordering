@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, Search, Building, Menu, LogOut } from 'lucide-react';
+import { Search, Building, Menu, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import AddMenu from './navigation/AddMenu';
 
 const TopBar = ({ onToggleSidebar, isMobile }) => {
     const { t, i18n } = useTranslation();
@@ -43,10 +44,7 @@ const TopBar = ({ onToggleSidebar, isMobile }) => {
                 )}
 
                 <div className={`flex items-center gap-2 ${isRtl ? 'flex-row-reverse' : ''}`}>
-                    <button className={`flex items-center gap-1 text-green-600 font-bold hover:bg-green-50 px-2 py-1 rounded-md transition-colors ${isRtl ? 'flex-row-reverse' : ''}`}>
-                        <Plus size={18} />
-                        <span>{t('topbar.add')}</span>
-                    </button>
+                    <AddMenu isRtl={isRtl} />
                     <button className={`flex items-center gap-1 text-indigo-700 font-medium hover:bg-indigo-50 px-2 py-1 rounded-md transition-colors ${isRtl ? 'flex-row-reverse' : ''}`}>
                         <Search size={18} />
                         <span>{t('topbar.view')}</span>

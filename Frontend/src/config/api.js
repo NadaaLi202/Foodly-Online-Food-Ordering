@@ -10,7 +10,7 @@ const isProd = import.meta.env.PROD;
 
 export const API_BASE_URL = isProd
     ? (import.meta.env.VITE_API_URL || '/api/v1')
-    : 'http://localhost:3001/api/v1';
+    : 'http://localhost:3000/api/v1';
 
 export default {
     API_BASE_URL,
