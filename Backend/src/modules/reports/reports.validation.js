@@ -103,3 +103,27 @@ export const generalLedgerQuerySchema = Joi.object({
     accountId: Joi.string().hex().length(24).optional().allow(""),
     accountCode: Joi.string().trim().optional().allow(""),
 }).unknown(true);
+
+export const safeAccountStatementQuerySchema = Joi.object({
+    startDate: Joi.string().pattern(dateRegex).required().messages({
+        "string.pattern.base": "startDate must be YYYY-MM-DD",
+    }),
+    endDate: Joi.string().pattern(dateRegex).required().messages({
+        "string.pattern.base": "endDate must be YYYY-MM-DD",
+    }),
+    safeId: Joi.string().hex().length(24).required().messages({
+        "string.length": "safeId must be a valid ObjectId",
+        "string.pattern.base": "safeId must be a valid ObjectId",
+    }),
+}).unknown(true);
+
+export const costCentersQuerySchema = Joi.object({
+    startDate: Joi.string().pattern(dateRegex).required().messages({
+        "string.pattern.base": "startDate must be YYYY-MM-DD",
+    }),
+    endDate: Joi.string().pattern(dateRegex).required().messages({
+        "string.pattern.base": "endDate must be YYYY-MM-DD",
+    }),
+    branch: Joi.string().trim().optional().allow(""),
+    costCenterId: Joi.string().hex().length(24).optional().allow(""),
+}).unknown(true);

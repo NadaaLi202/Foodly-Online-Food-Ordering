@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, ChevronDown, ChevronRight, FileSpreadsheet, FileText, Printer } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileSpreadsheet, FileText, Printer, Filter, Calendar } from 'lucide-react';
 import { exportIncomeStatementToExcel, buildAccountingReportPdf } from '../../../utils/accountingReportsExport';
 import api from '../../../services/api';
 import PrintHeader from '../../../components/common/PrintHeader';
@@ -14,7 +14,7 @@ const getMonthRange = (date = new Date()) => {
 
 const IncomeStatementReport = () => {
     const { t, i18n } = useTranslation();
-    const isRTL = i18n.language === 'ar' || i18n.language === 'ar-EG';
+    const isRTL = i18n.language === 'ar';
     const { startDate: defaultFrom, endDate: defaultTo } = getMonthRange();
 
     const [filters, setFilters] = useState({
@@ -25,7 +25,8 @@ const IncomeStatementReport = () => {
         displayedAccounts: 'all',
     });
 
-    const [expandedSections, setExpandedSections] = useState({
+    const [branches, setBranches] = useState([]);
+    const [expanded, setExpanded] = useState({
         'revenue': true,
         'revenue-sales': true,
         'revenue-other': true,
@@ -46,15 +47,22 @@ const IncomeStatementReport = () => {
     });
     const hasFetched = useRef(false);
 
-    const toggleSection = (sectionId) => {
-        setExpandedSections(prev => ({
-            ...prev,
-            [sectionId]: !prev[sectionId]
-        }));
-    };
+    const fetchBranches = useCallback(async () => {
+        try {
+            const response = await api.get('/branches');
+            setBranches(Array.isArray(response.data) ? response.data : []);
+        } catch (error) {
+            console.error('Error fetching branches:', error);
+            setBranches([]);
+        }
+    }, []);
 
-    const handleFilterChange = (field, value) => {
-        setFilters(prev => ({ ...prev, [field]: value }));
+    const handlePeriodChange = (period) => {
+        setFilters(prev => ({
+            ...prev,
+            period,
+            ...applyPeriod(period)
+        }));
     };
 
     const periodOptions = [
@@ -118,10 +126,14 @@ const IncomeStatementReport = () => {
     }, [filters.branch, filters.fromDate, filters.toDate]);
 
     useEffect(() => {
+        fetchBranches();
+    }, [fetchBranches]);
+
+    useEffect(() => {
         if (hasFetched.current) return;
         hasFetched.current = true;
         fetchReport();
-    }, []); // Run only once on initial mount to prevent duplicate calls
+    }, []);
 
     const grouped = useMemo(() => {
         const revenue = reportData.revenue || [];
@@ -151,6 +163,14 @@ const IncomeStatementReport = () => {
     }, [reportData, t]);
 
     const sumItems = (items) => (items || []).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+
+    const toggleSection = (section) => {
+        setExpanded(prev => ({ ...prev, [section]: !prev[section] }));
+    };
+
+    const handleFilterChange = (field, value) => {
+        setFilters(prev => ({ ...prev, [field]: value }));
+    };
 
     const handleExportExcel = () => {
         exportIncomeStatementToExcel(reportData, t);
@@ -210,109 +230,145 @@ const IncomeStatementReport = () => {
     );
 
     return (
-        <div className="p-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <div className="hidden print:block mb-6">
-                        <PrintHeader title={t('reports.accounting.income_statement_title') || 'Income Statement'} isRTL={isRTL} showLogo={false} />
-                    </div>
-                {/* Filters Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="p-6" dir={isRTL ? 'rtl' : 'ltr'}>
+            <div className="hidden print:block mb-6">
+                <PrintHeader title={t('reports.accounting.income_statement_title') || 'Income Statement'} isRTL={isRTL} showLogo={false} />
+            </div>
+
+            {/* Filter Bar */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                    <Filter className="w-5 h-5 text-gray-500" />
+                    <h3 className="text-lg font-semibold text-gray-900">{t('reports.accounting.income_statement_title') || 'Income Statement'}</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     {/* Period */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.period')}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('reports.filters.period')}</label>
                         <div className="relative">
-                            <select value={filters.period} onChange={(e) => {
-                                const value = e.target.value;
-                                const range = applyPeriod(value);
-                                setFilters(prev => ({ ...prev, period: value, fromDate: range.startDate, toDate: range.endDate }));
-                            }} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <select 
+                                value={filters.period} 
+                                onChange={(e) => handlePeriodChange(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            >
                                 {periodOptions.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
                             </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <ChevronDown className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none`} />
                         </div>
                     </div>
 
                     {/* From Date */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.from_date')}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('reports.filters.from_date')}</label>
                         <div className="relative">
-                            <input type="text" value={filters.fromDate} onChange={(e) => handleFilterChange('fromDate', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
-                            <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <input 
+                                type="text" 
+                                value={filters.fromDate} 
+                                onChange={(e) => handleFilterChange('fromDate', e.target.value)} 
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
+                            />
+                            <Calendar className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none`} />
                         </div>
                     </div>
 
                     {/* To Date */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.to_date')}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('reports.filters.to_date')}</label>
                         <div className="relative">
-                            <input type="text" value={filters.toDate} onChange={(e) => handleFilterChange('toDate', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
-                            <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <input 
+                                type="text" 
+                                value={filters.toDate} 
+                                onChange={(e) => handleFilterChange('toDate', e.target.value)} 
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
+                            />
+                            <Calendar className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none`} />
                         </div>
                     </div>
 
-                    {/* Branches */}
+                    {/* Branch Selector */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.branches')}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('reports.filters.branch')}</label>
                         <div className="relative">
-                            <select value={filters.branch} onChange={(e) => handleFilterChange('branch', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <select 
+                                value={filters.branch} 
+                                onChange={(e) => handleFilterChange('branch', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            >
                                 <option value="all">{t('reports.filters.all_branches') || 'All Branches'}</option>
+                                {branches.map(branch => (
+                                    <option key={branch._id} value={branch._id}>{branch.name}</option>
+                                ))}
                             </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <ChevronDown className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none`} />
                         </div>
                     </div>
 
                     {/* Displayed Accounts */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.displayed_accounts')}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('reports.filters.displayed_accounts')}</label>
                         <div className="relative">
-                            <select value={filters.displayedAccounts} onChange={(e) => handleFilterChange('displayedAccounts', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <select 
+                                value={filters.displayedAccounts} 
+                                onChange={(e) => handleFilterChange('displayedAccounts', e.target.value)} 
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            >
                                 <option value="all">{t('reports.filters.all_accounts') || 'All Accounts'}</option>
                             </select>
-                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <ChevronDown className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none`} />
                         </div>
                     </div>
                 </div>
 
-                {/* View Report Button */}
-                <div className="mb-6">
-                    <button onClick={fetchReport} className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
-                        {loading ? t('reports.loading') || 'Loading...' : t('reports.view_report')}
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-3">
+                    <button 
+                        onClick={fetchReport}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+                    >
+                        {t('reports.show_reports') || 'Show Reports'}
+                    </button>
+                    <button 
+                        onClick={handleExportExcel}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors border border-green-200"
+                    >
+                        <FileSpreadsheet className="w-4 h-4" />
+                        {t('reports.export.excel')}
+                    </button>
+                    <button 
+                        onClick={handleExportPdf}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors border border-purple-200"
+                    >
+                        <FileText className="w-4 h-4" />
+                        {t('reports.export.pdf')}
+                    </button>
+                    <button 
+                        onClick={handlePrint}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors border border-blue-200"
+                    >
+                        <Printer className="w-4 h-4" />
+                        {t('reports.export.print')}
                     </button>
                 </div>
+            </div>
 
-                {/* Report Header & Export */}
-                <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                    <div className="text-sm text-gray-700 font-medium">
-                        {t('reports.accounting.income_statement_title') || 'Income Statement'} {t('reports.filters.from_date') || 'From Date'} {filters.fromDate} {t('reports.filters.to_date') || 'To Date'} {filters.toDate}
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <button onClick={handleExportExcel} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
-                            <FileSpreadsheet className="w-3.5 h-3.5" />
-                            {t('reports.export.excel')}
-                        </button>
-                        <button onClick={handleExportPdf} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition-colors border border-purple-200">
-                            <FileText className="w-3.5 h-3.5" />
-                            {t('reports.export.pdf')}
-                        </button>
-                        <button onClick={handlePrint} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-200">
-                            <Printer className="w-3.5 h-3.5" />
-                            {t('reports.export.print')}
-                        </button>
-                    </div>
+            {/* Report Display */}
+            {loading ? (
+                <div className="flex justify-center items-center py-12">
+                    <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-600 border-t-transparent"></div>
                 </div>
-
-                {/* Report Content */}
-                <div className="border border-gray-200 rounded-lg overflow-hidden text-sm">
+            ) : (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                     {/* Revenue */}
-                    {renderRow(t('reports.accounting.revenue') || 'Revenue #4', grouped.revenue.total, true, false, 0, () => toggleSection('revenue'), expandedSections['revenue'])}
-                    {expandedSections['revenue'] && (
+                    {renderRow(t('reports.accounting.revenue') || 'Revenue #4', grouped.revenue.total, true, false, 0, () => toggleSection('revenue'), expanded['revenue'])}
+                    {expanded['revenue'] && (
                         <>
                             {/* Revenue Categories */}
-                            {renderRow(grouped.revenue.sales.title, sumItems(grouped.revenue.sales.items), false, true, 1, () => toggleSection('revenue-sales'), expandedSections['revenue-sales'])}
-                            {expandedSections['revenue-sales'] && grouped.revenue.sales.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
+                            {renderRow(grouped.revenue.sales.title, sumItems(grouped.revenue.sales.items), false, true, 1, () => toggleSection('revenue-sales'), expanded['revenue-sales'])}
+                            {expanded['revenue-sales'] && grouped.revenue.sales.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
 
-                            {renderRow(grouped.revenue.other.title, sumItems(grouped.revenue.other.items), false, true, 1, () => toggleSection('revenue-other'), expandedSections['revenue-other'])}
-                            {expandedSections['revenue-other'] && grouped.revenue.other.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
+                            {renderRow(grouped.revenue.other.title, sumItems(grouped.revenue.other.items), false, true, 1, () => toggleSection('revenue-other'), expanded['revenue-other'])}
+                            {expanded['revenue-other'] && grouped.revenue.other.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
                         </>
                     )}
                     <div className="bg-gray-200 px-4 py-2 flex justify-between font-bold text-gray-900 border-t border-gray-300">
@@ -323,21 +379,21 @@ const IncomeStatementReport = () => {
                     <div className="h-4 bg-gray-50 border-t border-b border-gray-200"></div>
 
                     {/* Expenses */}
-                    {renderRow(t('reports.accounting.expenses') || 'Expenses #5', grouped.expenses.total, true, false, 0, () => toggleSection('expenses'), expandedSections['expenses'])}
-                    {expandedSections['expenses'] && (
+                    {renderRow(t('reports.accounting.expenses') || 'Expenses #5', grouped.expenses.total, true, false, 0, () => toggleSection('expenses'), expanded['expenses'])}
+                    {expanded['expenses'] && (
                         <>
                             {/* Expenses Categories */}
-                            {renderRow(grouped.expenses.purchases.title, sumItems(grouped.expenses.purchases.items), false, true, 1, () => toggleSection('expenses-purchases'), expandedSections['expenses-purchases'])}
-                            {expandedSections['expenses-purchases'] && grouped.expenses.purchases.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
+                            {renderRow(grouped.expenses.purchases.title, sumItems(grouped.expenses.purchases.items), false, true, 1, () => toggleSection('expenses-purchases'), expanded['expenses-purchases'])}
+                            {expanded['expenses-purchases'] && grouped.expenses.purchases.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
 
-                            {renderRow(grouped.expenses.cogs.title, sumItems(grouped.expenses.cogs.items), false, true, 1, () => toggleSection('expenses-cogs'), expandedSections['expenses-cogs'])}
-                            {expandedSections['expenses-cogs'] && grouped.expenses.cogs.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
+                            {renderRow(grouped.expenses.cogs.title, sumItems(grouped.expenses.cogs.items), false, true, 1, () => toggleSection('expenses-cogs'), expanded['expenses-cogs'])}
+                            {expanded['expenses-cogs'] && grouped.expenses.cogs.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
 
-                            {renderRow(grouped.expenses.admin.title, sumItems(grouped.expenses.admin.items), false, true, 1, () => toggleSection('expenses-admin'), expandedSections['expenses-admin'])}
-                            {expandedSections['expenses-admin'] && grouped.expenses.admin.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
+                            {renderRow(grouped.expenses.admin.title, sumItems(grouped.expenses.admin.items), false, true, 1, () => toggleSection('expenses-admin'), expanded['expenses-admin'])}
+                            {expanded['expenses-admin'] && grouped.expenses.admin.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
 
-                            {renderRow(grouped.expenses.other.title, sumItems(grouped.expenses.other.items), false, true, 1, () => toggleSection('expenses-other'), expandedSections['expenses-other'])}
-                            {expandedSections['expenses-other'] && grouped.expenses.other.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
+                            {renderRow(grouped.expenses.other.title, sumItems(grouped.expenses.other.items), false, true, 1, () => toggleSection('expenses-other'), expanded['expenses-other'])}
+                            {expanded['expenses-other'] && grouped.expenses.other.items.map(item => renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2))}
                         </>
                     )}
                     <div className="bg-gray-200 px-4 py-2 flex justify-between font-bold text-gray-900 border-t border-gray-300">
@@ -345,8 +401,13 @@ const IncomeStatementReport = () => {
                         <span>{fmtNum(grouped.expenses.total)}</span>
                     </div>
 
+                    {/* Net Income */}
+                    <div className="bg-indigo-100 px-4 py-3 flex justify-between font-bold text-indigo-900 border-t border-indigo-300 text-lg">
+                        <span>{t('reports.accounting.net_income') || 'Net Income'}</span>
+                        <span>{fmtNum(grouped.netIncome)}</span>
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

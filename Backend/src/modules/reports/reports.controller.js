@@ -371,3 +371,19 @@ export const getTaxDetailed = catchAsyncError(async (req, res) => {
     const data = await reportsService.getTaxDetailed(startDate, endDate, companyFilter, filters);
     res.status(200).json({ message: "OK", data });
 });
+
+export const getSafeAccountStatement = catchAsyncError(async (req, res) => {
+    const { startDate, endDate, safeId } = req.query;
+    const companyFilter = req.companyFilter || {};
+    const filters = { startDate, endDate, safeId };
+    const result = await reportsService.getSafeAccountStatement(filters, companyFilter);
+    res.status(200).json(result);
+});
+
+export const getCostCenters = catchAsyncError(async (req, res) => {
+    const { startDate, endDate, branch, costCenterId } = req.query;
+    const companyFilter = req.companyFilter || {};
+    const filters = { startDate, endDate, branch, costCenterId };
+    const result = await reportsService.getCostCenters(filters, companyFilter);
+    res.status(200).json(result);
+});
