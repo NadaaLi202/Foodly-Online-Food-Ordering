@@ -164,7 +164,7 @@ const LandingPage = () => {
                                 </div>
                             </div>
                             <span className="text-2xl font-black text-gray-800 tracking-tight">
-                                دفتر المحاسب
+                                دفاتر المحاسب
                             </span>
                         </Link>
 
@@ -320,7 +320,7 @@ const LandingPage = () => {
                             </div>
 
                             <p className="text-lg text-gray-600 mb-8 leading-relaxed max-w-2xl">
-                                ابدأ الآن لإدارة مبيعاتك ومنتجاتك وعملائك وتتبع إيراداتك ومصروفاتك وكافة أعمالك المحاسبية مع برنامج دفتر المحاسب السحابي المحمي بالكامل.
+                                ابدأ الآن لإدارة مبيعاتك ومنتجاتك وعملائك وتتبع إيراداتك ومصروفاتك وكافة أعمالك المحاسبية مع برنامج دفاتر المحاسب السحابي المحمي بالكامل.
                             </p>
 
                             {/* CTAs */}
@@ -415,7 +415,7 @@ const LandingPage = () => {
                                         <div className="w-[140px] bg-[#0f172a] text-white flex flex-col shrink-0">
                                             <div className="p-3 border-b border-white/5 flex items-center gap-2">
                                                 <div className="w-5 h-5 rounded-md bg-indigo-500 flex items-center justify-center text-[10px] font-bold">د</div>
-                                                <span className="text-[10px] font-black tracking-tight">دفتر المحاسب</span>
+                                                <span className="text-[10px] font-black tracking-tight">دفاتر المحاسب</span>
                                             </div>
                                             <div className="p-2 space-y-1">
                                                 <div className="text-[11px] text-gray-400 p-1.5 flex items-center gap-2">🏠 الرئيسية</div>
@@ -689,10 +689,10 @@ const LandingPage = () => {
                             <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white">
                                 <span className="font-bold text-sm">A</span>
                             </div>
-                            <span className="text-lg font-black text-gray-800">دفتر المحاسب</span>
+                            <span className="text-lg font-black text-gray-800">دفاتر المحاسب</span>
                         </div>
                         <p className="text-gray-500 text-sm font-medium">
-                            © {new Date().getFullYear()} دفتر المحاسب. جميع الحقوق محفوظة.
+                            © {new Date().getFullYear()} دفاتر المحاسب. جميع الحقوق محفوظة.
                         </p>
                     </div>
                 </div>

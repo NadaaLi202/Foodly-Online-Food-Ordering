@@ -16,6 +16,7 @@ import rolesService from '../../services/rolesService';
 import { confirmDelete } from '../../utils/confirmDelete';
 import companyService from '../../services/companyService';
 import logError from '../../utils/logError';
+import { useAuth } from '../../context/AuthContext';
 
 const getStoredUser = () => {
     try {
@@ -28,6 +29,7 @@ const getStoredUser = () => {
 
 const Roles = () => {
     const { t, i18n } = useTranslation();
+    const { user, companyId: authCompanyId } = useAuth();
     const [roles, setRoles] = useState([]);
     const [companies, setCompanies] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -40,6 +42,9 @@ const Roles = () => {
         companyId: ''
     });
     const isSuperAdmin = getStoredUser()?.role === 'superAdmin';
+    const currentCompanyId = user?.role === 'superAdmin'
+        ? (user?.companyId ? String(user.companyId) : '')
+        : (authCompanyId ? String(authCompanyId) : '');
 
     const modules = [
         { key: 'sales_invoices', actions: ['add', 'view', 'edit', 'delete'] },
@@ -75,7 +80,7 @@ const Roles = () => {
     const fetchRoles = async () => {
         setLoading(true);
         try {
-            const data = await rolesService.getAllRoles();
+            const data = await rolesService.getAllRoles(currentCompanyId || null);
             setRoles(data.roles || data || []);
         } catch (err) {
             logError('Error fetching roles:', err);
@@ -181,6 +186,9 @@ const Roles = () => {
             permissions: selectedPermissions,
             status: modalMode === 'add' ? 'active' : (selectedRole?.status || 'active')
         };
+        if (currentCompanyId && !isSuperAdmin) {
+            payload.companyId = currentCompanyId;
+        }
         if (companyId) payload.companyId = companyId;
         try {
             if (modalMode === 'add') {

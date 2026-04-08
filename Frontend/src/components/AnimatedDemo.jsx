@@ -237,7 +237,7 @@ const AnimatedDemo = () => {
                             <div className="w-[80px] lg:w-[220px] bg-[#0f172a] text-white flex flex-col relative z-20">
                                 <div className="p-4 lg:p-6 font-black text-xl flex items-center justify-center lg:justify-start gap-3 border-b border-white/5">
                                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shrink-0">A</div>
-                                    <span className="hidden lg:block text-white/90">دفتر المحاسب</span>
+                                    <span className="hidden lg:block text-white/90">دفاتر المحاسب</span>
                                 </div>
                                 <div className="p-3 lg:p-4 space-y-2 text-sm flex-1">
                                     <div className={`p-3 rounded-xl flex items-center justify-center lg:justify-start gap-3 ${currentStep === 0 ? 'bg-gradient-to-r from-indigo-600 to-purple-600 shadow-md font-bold' : 'text-gray-400'}`}>
