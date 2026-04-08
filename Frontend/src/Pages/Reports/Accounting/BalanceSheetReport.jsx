@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, ChevronDown, ChevronRight, FileSpreadsheet, FileText, Printer } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronRight, FileSpreadsheet, FileText, Printer, Filter } from 'lucide-react';
 import { exportBalanceSheetToExcel, buildAccountingReportPdf } from '../../../utils/accountingReportsExport';
 import api from '../../../services/api';
 import PrintHeader from '../../../components/common/PrintHeader';
 
 const BalanceSheetReport = () => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const isRTL = i18n.language === 'ar';
 
     const [filters, setFilters] = useState({
         toDate: new Date().toISOString().slice(0, 10),
@@ -14,6 +15,7 @@ const BalanceSheetReport = () => {
         branch: 'all',
     });
 
+    const [branches, setBranches] = useState([]);
     const [expandedSections, setExpandedSections] = useState({
         'assets': true,
         'assets-current': true,
@@ -42,6 +44,15 @@ const BalanceSheetReport = () => {
         setFilters(prev => ({ ...prev, [field]: value }));
     };
 
+    const fetchBranches = useCallback(async () => {
+        try {
+            const response = await api.get('/branches');
+            setBranches(response.data.branches || []);
+        } catch (error) {
+            console.error('Error fetching branches:', error);
+        }
+    }, []);
+
     const fetchReport = useCallback(async () => {
         setLoading(true);
         try {
@@ -58,6 +69,7 @@ const BalanceSheetReport = () => {
                 totalLiabilitiesAndEquity: response.data?.totalLiabilitiesAndEquity || 0
             });
         } catch (error) {
+            console.error('Error fetching balance sheet:', error);
             setReportData({
                 assets: { fixed: [], current: [], total: 0 },
                 liabilities: { current: [], longTerm: [], total: 0 },
@@ -70,10 +82,14 @@ const BalanceSheetReport = () => {
     }, [filters.branch, filters.toDate]);
 
     useEffect(() => {
+        fetchBranches();
+    }, [fetchBranches]);
+
+    useEffect(() => {
         if (hasFetched.current) return;
         hasFetched.current = true;
         fetchReport();
-    }, []); // Run only once on initial mount to prevent duplicate calls
+    }, []);
 
     const fixedTotal = useMemo(
         () => (reportData.assets?.fixed || []).reduce((sum, item) => sum + (item.amount || 0), 0),
@@ -154,76 +170,108 @@ const BalanceSheetReport = () => {
 
     return (
         <>
-            <div className="p-6">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <div className="hidden print:block mb-6">
-                        <PrintHeader title={t('reports.accounting.balance_sheet_title') || 'Balance Sheet'} isRTL={true} showLogo={false} />
+            <div className="p-6 max-w-7xl mx-auto" dir={isRTL ? 'rtl' : 'ltr'}>
+                <PrintHeader />
+
+                {/* Filters Section */}
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Filter className="w-5 h-5 text-gray-500" />
+                        <h3 className="text-lg font-semibold text-gray-900">{t('reports.accounting.balance_sheet_title') || 'Balance Sheet'}</h3>
                     </div>
-                    {/* Filters Section */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 no-print">
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         {/* To Date */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.to_date') || 'To Date'}</label>
-                            <div className="relative">
-                                <input type="text" value={filters.toDate} onChange={(e) => handleFilterChange('toDate', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" />
-                                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
-                        </div>
-
-                        {/* Displayed Accounts */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.displayed_accounts') || 'Displayed Accounts'}</label>
-                            <div className="relative">
-                                <select value={filters.displayedAccounts} onChange={(e) => handleFilterChange('displayedAccounts', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="all">{t('reports.filters.all_accounts') || 'All Accounts'}</option>
-                                    <option value="with_transactions">{t('reports.filters.with_transactions') || 'Accounts With Transactions'}</option>
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                {t('reports.filters.to_date') || 'To Date'}
+                            </label>
+                            <input
+                                type="date"
+                                value={filters.toDate}
+                                onChange={(e) => handleFilterChange('toDate', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
                         </div>
 
                         {/* Branches */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.branches')}</label>
-                            <div className="relative">
-                                <select value={filters.branch} onChange={(e) => handleFilterChange('branch', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                                    <option value="all">{t('reports.filters.all_branches') || 'All Branches'}</option>
-                                </select>
-                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                {t('reports.filters.branches') || 'Branches'}
+                            </label>
+                            <select
+                                value={filters.branch}
+                                onChange={(e) => handleFilterChange('branch', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                                <option value="all">{t('reports.filters.all_branches') || 'All Branches'}</option>
+                                {branches.map((branch) => (
+                                    <option key={branch._id} value={branch._id}>{branch.name}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Displayed Accounts */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                {t('reports.filters.displayed_accounts') || 'Displayed Accounts'}
+                            </label>
+                            <select
+                                value={filters.displayedAccounts}
+                                onChange={(e) => handleFilterChange('displayedAccounts', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                                <option value="all">{t('reports.filters.all_accounts') || 'All Accounts'}</option>
+                                <option value="with_transactions">{t('reports.filters.with_transactions') || 'Accounts with Transactions'}</option>
+                            </select>
                         </div>
                     </div>
 
-                    {/* View Report Button */}
-                    <div className="mb-6 no-print">
-                        <button onClick={fetchReport} className="px-6 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
-                            {loading ? t('reports.loading') || 'Loading...' : t('reports.view_report')}
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            onClick={fetchReport}
+                            disabled={loading}
+                            className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:bg-indigo-400 transition-colors"
+                        >
+                            {loading ? t('reports.loading') : t('reports.view_report')}
+                        </button>
+
+                        <button
+                            onClick={handleExportExcel}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 border border-green-200 rounded-md text-sm font-medium hover:bg-green-100 transition-colors"
+                        >
+                            <FileSpreadsheet className="w-4 h-4" />
+                            {t('reports.export.excel')}
+                        </button>
+
+                        <button
+                            onClick={handleExportPdf}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-md text-sm font-medium hover:bg-purple-100 transition-colors"
+                        >
+                            <FileText className="w-4 h-4" />
+                            {t('reports.export.pdf')}
+                        </button>
+
+                        <button
+                            onClick={handlePrint}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-md text-sm font-medium hover:bg-blue-100 transition-colors"
+                        >
+                            <Printer className="w-4 h-4" />
+                            {t('reports.export.print')}
                         </button>
                     </div>
+                </div>
 
-                    {/* Report Header & Export */}
-                    <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100 no-print">
-                        <div className="text-sm text-gray-700 font-medium">
-                            {t('reports.accounting.balance_sheet_title') || 'Balance Sheet'}
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button onClick={handleExportExcel} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
-                                <FileSpreadsheet className="w-3.5 h-3.5" />
-                                {t('reports.export.excel')}
-                            </button>
-                            <button onClick={handleExportPdf} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition-colors border border-purple-200">
-                                <FileText className="w-3.5 h-3.5" />
-                                {t('reports.export.pdf')}
-                            </button>
-                            <button onClick={handlePrint} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-200">
-                                <Printer className="w-3.5 h-3.5" />
-                                {t('reports.export.print')}
-                            </button>
-                        </div>
+                {/* Report Tables */}
+                {loading ? (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-600 border-t-transparent" />
                     </div>
-
-                    {/* Report Content */}
-                    <div className="border border-gray-200 rounded-lg overflow-hidden text-sm">
+                ) : (
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                        {/* Report Content */}
+                        <div className="border border-gray-200 overflow-hidden text-sm">
                         {/* Assets */}
                         {renderRow(t('reports.accounting.assets') || 'Assets #1', reportData.assets.total || 0, true, false, 0, () => toggleSection('assets'), expandedSections['assets'])}
 
@@ -289,8 +337,9 @@ const BalanceSheetReport = () => {
                             <span>{Number(reportData.totalLiabilitiesAndEquity || 0).toFixed(2)}</span>
                         </div>
 
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
         </>
     );

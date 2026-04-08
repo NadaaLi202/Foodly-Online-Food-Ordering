@@ -39,6 +39,14 @@ const AccountingReportsPage = () => {
             iconColor: 'text-blue-500',
             link: '/dashboard/reports/accounting/general-ledger',
         },
+        {
+            id: 'cost-centers',
+            title: t('reports.accounting.cost_centers') || 'Cost Centers',
+            icon: PieChart,
+            iconBg: 'bg-orange-50',
+            iconColor: 'text-orange-500',
+            link: '/dashboard/reports/accounting/journal-analytic-account',
+        },
     ];
 
     return (

@@ -92,13 +92,22 @@ const Safes = () => {
                                             {t('safes_page.name')}
                                         </th>
                                         <th scope="col" className="whitespace-nowrap text-start text-sm font-semibold text-gray-900 px-3 py-3.5">
-                                            {t('safes_page.account_number')}
+                                            {t('safes_page.branches')}
+                                        </th>
+                                        <th scope="col" className="whitespace-nowrap text-start text-sm font-semibold text-gray-900 px-3 py-3.5">
+                                            {t('safes_page.users')}
+                                        </th>
+                                        <th scope="col" className="whitespace-nowrap text-start text-sm font-semibold text-gray-900 px-3 py-3.5">
+                                            {t('safes_page.permissions')}
+                                        </th>
+                                        <th scope="col" className="whitespace-nowrap text-start text-sm font-semibold text-gray-900 px-3 py-3.5">
+                                            {t('safes_page.trustees')}
                                         </th>
                                         <th scope="col" className="whitespace-nowrap text-start text-sm font-semibold text-gray-900 px-3 py-3.5">
                                             {t('safes_page.balance')}
                                         </th>
                                         <th scope="col" className="whitespace-nowrap text-start text-sm font-semibold text-gray-900 px-3 py-3.5">
-                                            {t('safes_page.general_ledger')}
+                                            {t('safes_page.account_statement')}
                                         </th>
                                         <th scope="col" className="relative py-3.5 ps-3 pe-4 sm:pe-6">
                                             <span className="sr-only">Actions</span>
@@ -108,7 +117,7 @@ const Safes = () => {
                                 <tbody className="divide-y divide-gray-200 bg-white">
                                     {safes.length === 0 ? (
                                         <tr>
-                                            <td colSpan="5" className="py-10 text-center text-gray-500">
+                                            <td colSpan="8" className="py-10 text-center text-gray-500">
                                                 {t('safes_page.no_items')}
                                             </td>
                                         </tr>
@@ -122,18 +131,31 @@ const Safes = () => {
                                                     </div>
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700">
-                                                    {safe.accountNumber || '-'}
+                                                    {safe.branches && safe.branches.length > 0 ? safe.branches.join(', ') : 'Main'}
+                                                </td>
+                                                <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700">
+                                                    {safe.users && safe.users.length > 0 ? safe.users.map(user => user.name).join(', ') : '-'}
+                                                </td>
+                                                <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700">
+                                                    <div className="flex flex-col gap-1">
+                                                        {safe.enableReceiptPermissions && <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Receipt</span>}
+                                                        {safe.enablePaymentPermissions && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Payment</span>}
+                                                        {!safe.enableReceiptPermissions && !safe.enablePaymentPermissions && <span className="text-gray-400">-</span>}
+                                                    </div>
+                                                </td>
+                                                <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700">
+                                                    {safe.custodians && safe.custodians.length > 0 ? safe.custodians.join(', ') : '-'}
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700 font-semibold">
                                                     {safe.balance?.toLocaleString()} {t('currency_label')}
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700">
                                                     <Link
-                                                        to={`/dashboard/reports/accounting/general-ledger?journal_account_id=${safe._id}`}
+                                                        to={`/dashboard/reports/accounting/general-ledger?accountCode=${safe.accountNumber || ''}`}
                                                         className="text-indigo-600 hover:text-indigo-900 flex items-center gap-1"
                                                     >
                                                         <FileText size={18} />
-                                                        <span className="hidden sm:inline">{t('safes_page.general_ledger')}</span>
+                                                        <span className="hidden sm:inline">{t('safes_page.account_statement')}</span>
                                                     </Link>
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap text-end py-4 ps-3 pe-4 sm:pe-6 text-gray-700 relative font-medium">

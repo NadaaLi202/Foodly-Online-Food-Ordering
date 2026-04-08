@@ -295,6 +295,14 @@ export async function getGeneralLedger(startDate, endDate, filterState) {
     return response.data;
 }
 
+export async function getCostCenters(startDate, endDate, filterState) {
+    const p = params(startDate, endDate);
+    if (!p) throw new Error("startDate and endDate are required");
+    const query = { ...p, branch: filterState?.branch || undefined, costCenterId: filterState?.costCenterId || undefined };
+    const response = await api.get("/reports/accounting/journal-analytic-account", { params: query });
+    return response.data;
+}
+
 export async function getTaxSummary(startDate, endDate) {
     const p = params(startDate, endDate);
     if (!p) throw new Error("startDate and endDate are required");
@@ -306,6 +314,14 @@ export async function getTaxDetailed(startDate, endDate) {
     const p = params(startDate, endDate);
     if (!p) throw new Error("startDate and endDate are required");
     const response = await api.get("/reports/accounting/tax-detailed", { params: p });
+    return response.data;
+}
+
+export async function getSafeAccountStatement(startDate, endDate, safeId) {
+    const p = params(startDate, endDate);
+    if (!p) throw new Error("startDate and endDate are required");
+    if (!safeId) throw new Error("safeId is required");
+    const response = await api.get("/reports/accounting/safe-account-statement", { params: { ...p, safeId } });
     return response.data;
 }
 
@@ -336,6 +352,8 @@ export default {
     getBalanceSheet,
     getIncomeStatement,
     getGeneralLedger,
+    getCostCenters,
     getTaxSummary,
     getTaxDetailed,
+    getSafeAccountStatement,
 };

@@ -1,6 +1,6 @@
 import express from "express";
 import { validation } from "../../middleware/validation.js";
-import { reportQuerySchema, salesInvoicesDetailedQuerySchema, purchasesInvoicesDetailedQuerySchema, inventorySummaryQuerySchema, inventoryMovementsQuerySchema, accountingReportQuerySchema, balanceSheetQuerySchema, generalLedgerQuerySchema } from "./reports.validation.js";
+import { reportQuerySchema, salesInvoicesDetailedQuerySchema, purchasesInvoicesDetailedQuerySchema, inventorySummaryQuerySchema, inventoryMovementsQuerySchema, accountingReportQuerySchema, balanceSheetQuerySchema, generalLedgerQuerySchema, safeAccountStatementQuerySchema, costCentersQuerySchema } from "./reports.validation.js";
 import { protectedRoutes, requirePermission } from "../auth/auth.controller.js";
 import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 import {
@@ -30,6 +30,8 @@ import {
     getGeneralLedger,
     getTaxSummary,
     getTaxDetailed,
+    getSafeAccountStatement,
+    getCostCenters,
     generateHtmlPdf,
 } from "./reports.controller.js";
 
@@ -65,6 +67,8 @@ router.get("/accounting/trial-balance", validation(accountingReportQuerySchema),
 router.get("/accounting/balance-sheet", validation(balanceSheetQuerySchema), requirePermission("balance_sheet:view"), getBalanceSheet);
 router.get("/accounting/income-statement", validation(accountingReportQuerySchema), requirePermission("income_statement:view"), getIncomeStatement);
 router.get("/accounting/general-ledger", validation(generalLedgerQuerySchema), requirePermission("ledger_accounts:view"), getGeneralLedger);
+router.get("/accounting/safe-account-statement", validation(safeAccountStatementQuerySchema), requirePermission("finance_operations:view"), getSafeAccountStatement);
+router.get("/accounting/journal-analytic-account", validation(costCentersQuerySchema), requirePermission("ledger_accounts:view"), getCostCenters);
 router.get("/accounting/tax-summary", validation(reportQuerySchema), requirePermission("finance_operations:view"), getTaxSummary);
 router.get("/accounting/tax-detailed", validation(reportQuerySchema), requirePermission("finance_operations:view"), getTaxDetailed);
 router.post("/pdf/generate", generateHtmlPdf);

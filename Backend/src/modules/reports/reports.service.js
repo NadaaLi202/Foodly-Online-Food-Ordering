@@ -7,6 +7,10 @@ import { taxesModel } from "../taxes/taxes.model.js";
 import { productModel } from "../product/product.model.js";
 import { chartOfAccountsModel } from "../chartOfAccounts/chartOfAccounts.model.js";
 import { dailyRestrictionModel } from "../dailyRestrictions/dailyRestrictions.model.js";
+import { costCenterModel } from "../costCenters/costCenter.model.js";
+import FinancialReceipt from "../FinancialTransactions/models/financialReceipt.model.js";
+import FinancialDisbursement from "../FinancialTransactions/models/financialDisbursement.model.js";
+import FinancialTransfer from "../FinancialTransactions/models/financialTransfer.model.js";
 import { stockLogModel } from "../stockLogs/stockLog.model.js";
 import mongoose from "mongoose";
 
@@ -2110,5 +2114,157 @@ export async function getTaxDetailed(startDate, endDate, companyFilter, filters 
             taxId: taxId || null,
             taxPercent: resolvedPercent,
         },
+    };
+}
+
+/**
+ * Safe Account Statement: All journal entries for a specific safe
+ * Shows debit/credit transactions affecting the safe balance
+ */
+export async function getSafeAccountStatement(filters, companyFilter) {
+    const { startDate, endDate, safeId } = filters || {};
+
+    const matchCompany = { ...companyFilter };
+    if (matchCompany.companyId && typeof matchCompany.companyId === 'string') {
+        matchCompany.companyId = new mongoose.Types.ObjectId(matchCompany.companyId);
+    }
+
+    const { start, end } = getDateRange(startDate, endDate);
+
+    const [receipts, disbursements, transfersFrom, transfersTo] = await Promise.all([
+        FinancialReceipt.find({ ...matchCompany, account: safeId, accountModel: 'Safe', deletedAt: { $in: [null, undefined] }, date: { $gte: start, $lte: end } }).lean(),
+        FinancialDisbursement.find({ ...matchCompany, account: safeId, accountModel: 'Safe', deletedAt: { $in: [null, undefined] }, date: { $gte: start, $lte: end } }).lean(),
+        FinancialTransfer.find({ ...matchCompany, fromAccount: safeId, fromAccountModel: 'Safe', deletedAt: { $in: [null, undefined] }, date: { $gte: start, $lte: end } }).lean(),
+        FinancialTransfer.find({ ...matchCompany, toAccount: safeId, toAccountModel: 'Safe', deletedAt: { $in: [null, undefined] }, date: { $gte: start, $lte: end } }).lean(),
+    ]);
+
+    const entries = [];
+    let runningBalance = 0;
+
+    for (const receipt of receipts) {
+        const amount = Number(receipt.amount || 0);
+        runningBalance += amount;
+        entries.push({
+            date: receipt.date,
+            number: receipt.code,
+            description: receipt.description || receipt.externalAccount || 'Receipt',
+            reference: receipt.externalAccount || receipt.code,
+            debit: amount,
+            credit: 0,
+            balance: runningBalance,
+            type: 'receipt'
+        });
+    }
+
+    for (const transfer of transfersTo) {
+        const amount = Number(transfer.amount || 0);
+        runningBalance += amount;
+        entries.push({
+            date: transfer.date,
+            number: transfer.code,
+            description: transfer.description || `Transfer from ${transfer.fromAccountModel}`,
+            reference: transfer.code,
+            debit: amount,
+            credit: 0,
+            balance: runningBalance,
+            type: 'transfer_in'
+        });
+    }
+
+    for (const disbursement of disbursements) {
+        const amount = Number(disbursement.amount || 0);
+        runningBalance -= amount;
+        entries.push({
+            date: disbursement.date,
+            number: disbursement.code,
+            description: disbursement.description || disbursement.externalAccount || 'Disbursement',
+            reference: disbursement.externalAccount || disbursement.code,
+            debit: 0,
+            credit: amount,
+            balance: runningBalance,
+            type: 'disbursement'
+        });
+    }
+
+    for (const transfer of transfersFrom) {
+        const amount = Number(transfer.amount || 0);
+        runningBalance -= amount;
+        entries.push({
+            date: transfer.date,
+            number: transfer.code,
+            description: transfer.description || `Transfer to ${transfer.toAccountModel}`,
+            reference: transfer.code,
+            debit: 0,
+            credit: amount,
+            balance: runningBalance,
+            type: 'transfer_out'
+        });
+    }
+
+    entries.sort((a, b) => new Date(a.date) - new Date(b.date) || a.number.localeCompare(b.number || ''));
+
+    return {
+        safeId,
+        entries,
+        summary: {
+            totalDebit: entries.reduce((sum, entry) => sum + entry.debit, 0),
+            totalCredit: entries.reduce((sum, entry) => sum + entry.credit, 0),
+            finalBalance: runningBalance
+        }
+    };
+}
+
+export async function getCostCenters(filters, companyFilter) {
+    const { startDate, endDate, branch, costCenterId } = filters || {};
+    const { start, end } = getDateRange(startDate, endDate);
+    const query = { ...companyFilter, date: { $gte: start, $lte: end } };
+
+    const restrictions = await dailyRestrictionModel.find(query).sort({ date: 1, createdAt: 1 }).select("number date description source entries").lean();
+
+    const entries = [];
+    let runningBalance = 0;
+
+    for (const restriction of restrictions) {
+        for (const entry of restriction.entries || []) {
+            // Skip entries without cost center or if filtering by specific cost center
+            if (!entry.costCenterId) continue;
+            if (costCenterId && entry.costCenterId.toString() !== costCenterId) continue;
+
+            const code = String(entry.account || "").trim();
+            if (!code) continue;
+
+            const debit = Number(entry.debit || 0);
+            const credit = Number(entry.credit || 0);
+            const percentage = entry.percentage ? Number(entry.percentage) : 100;
+
+            runningBalance += debit - credit;
+
+            entries.push({
+                date: restriction.date,
+                restrictionNumber: restriction.number,
+                accountCode: code,
+                description: entry.description || restriction.description || "",
+                source: restriction.source || "",
+                percentage: percentage,
+                debit: debit,
+                credit: credit,
+                balance: runningBalance,
+            });
+        }
+    }
+
+    // Get cost center info if filtering by specific cost center
+    let costCenter = null;
+    if (costCenterId) {
+        costCenter = await costCenterModel.findOne({ _id: costCenterId, ...companyFilter }).select("name").lean();
+    }
+
+    return {
+        costCenter: costCenter ? { name: costCenter.name } : null,
+        entries,
+        totalEntries: entries.length,
+        totalDebit: entries.reduce((sum, entry) => sum + entry.debit, 0),
+        totalCredit: entries.reduce((sum, entry) => sum + entry.credit, 0),
+        finalBalance: runningBalance
     };
 }

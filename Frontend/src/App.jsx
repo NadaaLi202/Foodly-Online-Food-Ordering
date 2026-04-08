@@ -106,6 +106,8 @@ import BalanceSheetReport from './Pages/Reports/Accounting/BalanceSheetReport';
 import GeneralLedgerReport from './Pages/Reports/Accounting/GeneralLedgerReport';
 import IncomeStatementReport from './Pages/Reports/Accounting/IncomeStatementReport';
 import TrialBalanceReport from './Pages/Reports/Accounting/TrialBalanceReport';
+import SafeAccountStatementReport from './Pages/Reports/Accounting/SafeAccountStatementReport';
+import JournalAnalyticAccountReport from './Pages/Reports/Accounting/JournalAnalyticAccountReport';
 import SummaryTaxReport from './Pages/Reports/Accounting/SummaryTaxReport';
 import DetailedTaxReport from './Pages/Reports/Accounting/DetailedTaxReport';
 import TaxReturnReport from './Pages/Reports/Accounting/TaxReturnReport';
@@ -306,6 +308,8 @@ function App() {
                 <Route path="income-statement" element={<IncomeStatementReport />} />
                 <Route path="trial-balance" element={<TrialBalanceReport />} />
                 <Route path="general-ledger" element={<GeneralLedgerReport />} />
+                <Route path="journal-analytic-account" element={<JournalAnalyticAccountReport />} />
+                <Route path="safe-account-statement" element={<SafeAccountStatementReport />} />
                 <Route path="tax-summary" element={<SummaryTaxReport />} />
                 <Route path="tax-detailed" element={<DetailedTaxReport />} />
                 <Route path="tax-return" element={<TaxReturnReport />} />

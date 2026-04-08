@@ -3,6 +3,7 @@ import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { AppError } from "../../utils/AppError.js";
 import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
 import logError from "../../utils/logError.js";
+import { calculateSafeBalance } from "./safe.service.js";
 
 // ================= Add =================
 export const addSafe = catchAsyncError(async (req, res, next) => {
@@ -48,9 +49,19 @@ export const getAllSafes = catchAsyncError(async (req, res) => {
         .populate("users", "name email role")
         .sort({ isDefault: -1, createdAt: 1 });
 
+    // Calculate dynamic balance for each safe from transactions
+    const safesWithBalance = await Promise.all(safes.map(async (safe) => {
+        // Calculate balance from journal entries where this safe is involved
+        const balance = await calculateSafeBalance(safe._id, req.companyFilter);
+        return {
+            ...safe.toObject(),
+            balance: balance
+        };
+    }));
+
     res.status(200).json({
         message: "تم جلب الخزنات بنجاح",
-        safes
+        safes: safesWithBalance
     });
 });
 
@@ -64,9 +75,11 @@ export const getSafeById = catchAsyncError(async (req, res, next) => {
         return next(new AppError("الخزنة غير موجودة", 404));
     }
 
+    const balance = await calculateSafeBalance(safe._id, req.companyFilter);
+
     res.status(200).json({
         message: "تم جلب الخزنة بنجاح",
-        safe
+        safe: { ...safe.toObject(), balance }
     });
 });
 
