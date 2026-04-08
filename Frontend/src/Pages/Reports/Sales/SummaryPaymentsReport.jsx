@@ -2,9 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, DollarSign, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import reportsService from '../../../services/reportsService';
+import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 import PrintHeader from '../../../components/common/PrintHeader';
 
 const SummaryPaymentsReport = () => {
@@ -67,29 +66,23 @@ const SummaryPaymentsReport = () => {
         XLSX.writeFile(workbook, `Summary_Payments_Report_${filters.startDate}_to_${filters.endDate}.xlsx`);
     };
 
-    const handleExportPdf = () => {
-        const doc = new jsPDF();
-        const title = t('reports.payments.summary_title') || "Summary Payments Report";
-
-        doc.setFontSize(18);
-        doc.text(title, doc.internal.pageSize.width / 2, 20, { align: 'center' });
-        doc.setFontSize(12);
-        doc.text(`${t('reports.filters.from_date')}: ${filters.startDate}  ${t('reports.filters.to_date')}: ${filters.endDate}`, doc.internal.pageSize.width / 2, 30, { align: 'center' });
-
-        doc.autoTable({
-            startY: 40,
-            head: [[t('reports.payments.total_received'), t('reports.payments.total_spent'), t('reports.payments.total_sales_due'), t('reports.payments.total_purchases_due')]],
-            body: [[
-                formatCurrency(summaryData?.totalReceived || 0),
-                formatCurrency(summaryData?.totalSpent || 0),
-                formatCurrency(summaryData?.totalSalesDue || 0),
-                formatCurrency(summaryData?.totalPurchasesDue || 0)
-            ]],
-            styles: { font: 'Amiri', halign: isRTL ? 'right' : 'left' },
-            headStyles: { fillColor: [147, 51, 234] } // Purple color
+    const handleExportPdf = async () => {
+        await downloadTablePdf({
+            title: t('reports.payments.summary_title') || 'Summary Payments Report',
+            subtitle: `${t('reports.filters.from_date')}: ${filters.startDate}  ${t('reports.filters.to_date')}: ${filters.endDate}`,
+            headers: [
+                t('reports.label') || 'Label',
+                t('reports.value') || 'Value',
+            ],
+            rows: [
+                [t('reports.payments.total_received'), formatCurrency(summaryData?.totalReceived || 0)],
+                [t('reports.payments.total_spent'), formatCurrency(summaryData?.totalSpent || 0)],
+                [t('reports.payments.total_sales_due'), formatCurrency(summaryData?.totalSalesDue || 0)],
+                [t('reports.payments.total_purchases_due'), formatCurrency(summaryData?.totalPurchasesDue || 0)],
+            ],
+            filename: `Summary_Payments_Report_${filters.startDate}_to_${filters.endDate}.pdf`,
+            landscape: false,
         });
-
-        doc.save(`Summary_Payments_Report_${filters.startDate}_to_${filters.endDate}.pdf`);
     };
 
     const handlePrint = () => {
@@ -142,7 +135,7 @@ const SummaryPaymentsReport = () => {
                         </p>
                     </div>
                     <div className="hidden print:block mb-6">
-                        <PrintHeader title={''} isRTL={isRTL} />
+                        <PrintHeader title={''} isRTL={isRTL} showLogo={false} />
                     </div>
 
 
@@ -232,3 +225,5 @@ const SummaryPaymentsReport = () => {
 };
 
 export default SummaryPaymentsReport;
+
+

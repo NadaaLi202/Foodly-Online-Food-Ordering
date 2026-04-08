@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer, Filter } from 'lucide-react';
 import reportsService from '../../../services/reportsService';
-import { exportClientStatementToExcel, buildClientStatementPdf } from '../../../utils/customerSupplierInventoryExport';
+import { exportClientStatementToExcel } from '../../../utils/customerSupplierInventoryExport';
+import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import PrintHeader from '../../../components/common/PrintHeader';
 
 const ClientGeneralLedger = () => {
@@ -107,14 +108,31 @@ const ClientGeneralLedger = () => {
         exportClientStatementToExcel(reportData, totals, { fromDate: filters.fromDate, toDate: filters.toDate }, t);
     };
 
-    const handleExportPdf = () => {
-        const blob = buildClientStatementPdf(reportData, totals, { fromDate: filters.fromDate, toDate: filters.toDate }, t);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Customer_Statement_${filters.fromDate || 'report'}.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
+    const handleExportPdf = async () => {
+        await downloadTablePdf({
+            title: t('reports.clients.client_general_ledger') || 'Customer Statement',
+            subtitle: `${t('reports.filters.from_date')}: ${filters.fromDate}  ${t('reports.filters.to_date')}: ${filters.toDate}`,
+            headers: [
+                t('reports.columns.date') || 'Date',
+                t('reports.columns.type') || 'Type',
+                t('reports.columns.document_number') || 'Document Number',
+                t('reports.columns.description') || 'Description',
+                t('reports.columns.debit') || 'Debit',
+                t('reports.columns.credit') || 'Credit',
+                t('reports.columns.balance') || 'Balance',
+            ],
+            rows: reportData.map((entry) => ([
+                entry.date || '—',
+                entry.type || '—',
+                entry.documentNumber || '—',
+                entry.description || '—',
+                Number(entry.debit ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
+                Number(entry.credit ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
+                Number(entry.balance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
+            ])),
+            filename: `Customer_Statement_${filters.fromDate || 'report'}.pdf`,
+            landscape: true,
+        });
     };
 
     const handlePrint = () => {
@@ -138,7 +156,7 @@ const ClientGeneralLedger = () => {
         <div className="p-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="hidden print:block mb-6">
-                        <PrintHeader title={''} isRTL={false} />
+                        <PrintHeader title={''} isRTL={true} showLogo={false} />
                     </div>
                 {/* Filters Section */}
                 <div className="flex flex-wrap items-end gap-3 mb-6 no-print bg-gray-50 p-4 rounded-xl border border-gray-100">
@@ -318,3 +336,6 @@ const ClientGeneralLedger = () => {
 };
 
 export default ClientGeneralLedger;
+
+
+

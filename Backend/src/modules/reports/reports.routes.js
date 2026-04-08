@@ -30,6 +30,7 @@ import {
     getGeneralLedger,
     getTaxSummary,
     getTaxDetailed,
+    generateHtmlPdf,
 } from "./reports.controller.js";
 
 const router = express.Router();
@@ -66,5 +67,6 @@ router.get("/accounting/income-statement", validation(accountingReportQuerySchem
 router.get("/accounting/general-ledger", validation(generalLedgerQuerySchema), requirePermission("ledger_accounts:view"), getGeneralLedger);
 router.get("/accounting/tax-summary", validation(reportQuerySchema), requirePermission("finance_operations:view"), getTaxSummary);
 router.get("/accounting/tax-detailed", validation(reportQuerySchema), requirePermission("finance_operations:view"), getTaxDetailed);
+router.post("/pdf/generate", generateHtmlPdf);
 
 export default router;

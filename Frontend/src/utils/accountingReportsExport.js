@@ -1,7 +1,5 @@
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import { TajawalRegular, TajawalBold } from './tajawalFonts';
-import { processArabic } from './arabic';
+import { buildReportHtml, fetchCompanyProfile, generatePDF } from './generatePDF';
 
 const fmtNum = (n) => (n == null || n === '' || n === undefined) ? '' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString() : '—';
@@ -234,176 +232,60 @@ export function exportTaxReportToExcel(data, t, isDetailed = false) {
 /**
  * Build PDF for Trial Balance
  */
-export function buildTrialBalancePdf(data, totals, t, reportTitle, dateRange) {
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const margin = 14;
-    let y = 18;
-    
-    doc.setR2L(true);
-    
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text(reportTitle || t('reports.accounting.trial_balance') || 'Trial Balance', pageW - margin, y);
-    y += 8;
-    
-    if (dateRange) {
-        doc.setFontSize(9);
-        doc.setFont(undefined, 'normal');
-        doc.text(dateRange, pageW - margin, y);
-        y += 10;
-    }
-    
-    const colWidths = [60, 25, 25, 25, 25, 25, 25];
+export async function buildTrialBalancePdf(data, totals, t, reportTitle, dateRange) {
+    const company = await fetchCompanyProfile();
     const headers = [
         t('reports.columns.account') || 'Account',
-        t('reports.columns.initial_balance') || 'Initial', '', '',
-        t('reports.columns.transaction_totals') || 'Transactions', '', '',
-        t('reports.columns.end_balance') || 'End Balance', ''
+        t('reports.columns.initial_balance') || 'Initial Balance',
+        '',
+        t('reports.columns.transaction_totals') || 'Transaction Totals',
+        '',
+        t('reports.columns.end_balance') || 'End Balance',
+        '',
     ];
-    
-    doc.setFontSize(8);
-    doc.setFont(undefined, 'bold');
-    let x = pageW - margin;
-    headers.forEach((h, i) => {
-        if (h) doc.text(h, x - colWidths[i] / 2, y);
-        x -= colWidths[i];
-    });
-    y += 6;
-    
-    const flatData = flattenAccountTree(data || []);
-    doc.setFont(undefined, 'normal');
-    flatData.forEach(item => {
-        if (y > pageH - 20) {
-            doc.addPage('a4', 'l');
-            y = 18;
-            doc.setR2L(true);
-        }
-        const indent = (item.level || 0) * 3;
-        x = pageW - margin;
-        doc.text((item.name || item.label || '').substring(0, 30), x - indent, y);
-        x -= colWidths[0];
-        doc.text(item.initialDebit > 0 ? fmtNum(item.initialDebit) : '', x, y, { align: 'right' });
-        x -= colWidths[1];
-        doc.text(item.initialCredit > 0 ? fmtNum(item.initialCredit) : '', x, y, { align: 'right' });
-        x -= colWidths[2];
-        doc.text(item.transactionDebit > 0 ? fmtNum(item.transactionDebit) : '', x, y, { align: 'right' });
-        x -= colWidths[3];
-        doc.text(item.transactionCredit > 0 ? fmtNum(item.transactionCredit) : '', x, y, { align: 'right' });
-        x -= colWidths[4];
-        doc.text(item.endDebit > 0 ? fmtNum(item.endDebit) : '', x, y, { align: 'right' });
-        x -= colWidths[5];
-        doc.text(item.endCredit > 0 ? fmtNum(item.endCredit) : '', x, y, { align: 'right' });
-        y += 5;
-    });
-    
+    const rows = flattenAccountTree(data || []).map((item) => ([
+        `${' '.repeat((item.level || 0) * 2)}${item.name || item.label || ''}`,
+        item.initialDebit > 0 ? fmtNum(item.initialDebit) : '',
+        item.initialCredit > 0 ? fmtNum(item.initialCredit) : '',
+        item.transactionDebit > 0 ? fmtNum(item.transactionDebit) : '',
+        item.transactionCredit > 0 ? fmtNum(item.transactionCredit) : '',
+        item.endDebit > 0 ? fmtNum(item.endDebit) : '',
+        item.endCredit > 0 ? fmtNum(item.endCredit) : '',
+    ]));
     if (totals) {
-        if (y > pageH - 20) {
-            doc.addPage('a4', 'l');
-            y = 18;
-            doc.setR2L(true);
-        }
-        doc.setFont(undefined, 'bold');
-        x = pageW - margin;
-        doc.text(t('reports.total') || 'Total', x, y);
-        x -= colWidths[0];
-        doc.text(fmtNum(totals.initialDebit || 0), x, y, { align: 'right' });
-        x -= colWidths[1];
-        doc.text(fmtNum(totals.initialCredit || 0), x, y, { align: 'right' });
-        x -= colWidths[2];
-        doc.text(fmtNum(totals.transactionDebit || 0), x, y, { align: 'right' });
-        x -= colWidths[3];
-        doc.text(fmtNum(totals.transactionCredit || 0), x, y, { align: 'right' });
-        x -= colWidths[4];
-        doc.text(fmtNum(totals.endDebit || 0), x, y, { align: 'right' });
-        x -= colWidths[5];
-        doc.text(fmtNum(totals.endCredit || 0), x, y, { align: 'right' });
+        rows.push([
+            t('reports.total') || 'Total',
+            fmtNum(totals.initialDebit || 0),
+            fmtNum(totals.initialCredit || 0),
+            fmtNum(totals.transactionDebit || 0),
+            fmtNum(totals.transactionCredit || 0),
+            fmtNum(totals.endDebit || 0),
+            fmtNum(totals.endCredit || 0),
+        ]);
     }
-    
-    return doc.output('blob');
+    const html = buildReportHtml({
+        title: reportTitle || t('reports.accounting.trial_balance') || 'Trial Balance',
+        company,
+        headers,
+        rows,
+        landscape: true,
+        subtitle: dateRange || '',
+    });
+    return generatePDF(html, `Trial_Balance_${new Date().toISOString().slice(0, 10)}.pdf`, { landscape: true });
 }
 
 /**
  * Generic PDF builder for accounting reports (supports Arabic/RTL)
  */
-export function buildAccountingReportPdf(title, contentRows, t, options = {}) {
-    const { locale = (t && t.language) || 'ar' } = options;
-    const isRtl = locale === 'ar' || locale === 'ar-EG';
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const margin = 14;
-    let y = 18;
-    
-    doc.addFileToVFS('Tajawal-Regular.ttf', TajawalRegular);
-    doc.addFont('Tajawal-Regular.ttf', 'Tajawal', 'normal');
-    doc.addFileToVFS('Tajawal-Bold.ttf', TajawalBold);
-    doc.addFont('Tajawal-Bold.ttf', 'Tajawal', 'bold');
-    
-    const p = (text) => isRtl ? processArabic(String(text || '')) : String(text || '');
-
-    doc.setFontSize(14);
-    doc.setFont('Tajawal', 'bold');
-    if (isRtl) {
-        doc.text(p(title), pageW - margin, y, { align: 'right' });
-    } else {
-        doc.text(title, margin, y);
-    }
-    y += 10;
-    
-    doc.setFontSize(9);
-    doc.setFont('Tajawal', 'normal');
-    
-    if (contentRows && contentRows.length > 0) {
-        contentRows.forEach(row => {
-            if (y > pageH - 20) {
-                doc.addPage('a4', 'p');
-                y = 18;
-            }
-            if (Array.isArray(row)) {
-                let x = isRtl ? pageW - margin : margin;
-                row.forEach((cell, i) => {
-                    const strCell = String(cell || '');
-                    // Only bold if it's the very first column in RTL (far right) or LTR (far left) ? Usually header elements are different. 
-                    // Let's just keep 'normal' unless we specifically mark headers.
-                    if (strCell.includes(t('reports.accounting.revenue') || 'Revenue') || strCell.includes(t('reports.accounting.expenses') || 'Expenses') || strCell.includes(t('reports.accounting.net_income') || 'Net Income')) {
-                        doc.setFont('Tajawal', 'bold');
-                    } else {
-                        doc.setFont('Tajawal', 'normal');
-                    }
-
-                    const isNum = !isNaN(parseFloat(strCell.replace(/,/g, ''))) && strCell.trim() !== '';
-                    let tempX = x;
-                    if (isNum && isRtl) {
-                         // Right align Numbers in their column
-                         doc.text(strCell, tempX, y, { align: 'right' });
-                    } else {
-                         if (isRtl) {
-                            doc.text(p(strCell.substring(0, 50)), tempX, y, { align: 'right' });
-                         } else {
-                            doc.text(strCell.substring(0, 50), tempX, y);
-                         }
-                    }
-
-                    // For Income Statement, the columns are usually: [Indent?, Code+Name, Amount] 
-                    if (isRtl) {
-                         x -= (i === 0 ? 10 : 80); // Step left. 1st column is narrow (indent placeholder), 2nd is wide (Name), 3rd is amount
-                    } else {
-                         x += (i === 0 ? 10 : 80);
-                    }
-                });
-            } else {
-                const text = p(String(row || '').substring(0, 80));
-                if (isRtl) {
-                    doc.text(text, pageW - margin, y, { align: 'right' });
-                } else {
-                    doc.text(text, margin, y);
-                }
-            }
-            y += 6;
-        });
-    }
-    
-    return doc.output('blob');
+export async function buildAccountingReportPdf(title, contentRows, t, options = {}) {
+    const company = await fetchCompanyProfile();
+    const rows = (contentRows || []).map((row) => Array.isArray(row) ? row : [row]);
+    const html = buildReportHtml({
+        title,
+        company,
+        headers: rows[0] || [],
+        rows: rows.slice(1),
+        landscape: false,
+    });
+    return generatePDF(html, `${String(title || 'report').replace(/\s+/g, '_')}.pdf`, {});
 }

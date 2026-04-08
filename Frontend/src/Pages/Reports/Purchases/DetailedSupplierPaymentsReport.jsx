@@ -1,10 +1,9 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+﻿import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import reportsService from '../../../services/reportsService';
+import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 import PrintHeader from '../../../components/common/PrintHeader';
 
 const DetailedSupplierPaymentsReport = () => {
@@ -140,35 +139,23 @@ const DetailedSupplierPaymentsReport = () => {
         XLSX.writeFile(workbook, `Detailed_Purchases_Report_${filters.fromDate}_to_${filters.toDate}.xlsx`);
     };
 
-    const handleExportPdf = () => {
-        const doc = new jsPDF({ orientation: 'landscape' });
-        const title = t('reports.supplier_payments.detailed_title') || "Detailed Supplier Payments Report";
-
-        doc.setFontSize(18);
-        doc.text(title, doc.internal.pageSize.width / 2, 20, { align: 'center' });
-        doc.setFontSize(12);
-        doc.text(`${t('reports.filters.from_date')}: ${filters.fromDate}  ${t('reports.filters.to_date')}: ${filters.toDate}`, doc.internal.pageSize.width / 2, 30, { align: 'center' });
-
-        const tableColumn = tableColumns.map(col => col.label);
-        const tableRows = detailedData.map(row => tableColumns.map(col => {
-            if (col.key === 'supplier_payment' || col.key === 'invoices') return row.invoiceNumber ?? '—';
-            if (col.key === 'type') return row.type === 'receive' ? t('reports.payments.receive') : t('reports.payments.spend');
-            if (col.key === 'treasury') return row.paymentMethod ?? '—';
-            if (col.key === 'date') return formatCellDate(row.date);
-            if (col.key === 'supplier') return row.supplier ?? row.client ?? '—';
-            if (col.key === 'processed_amount') return formatAmount(row.amount);
-            return '—';
-        }));
-
-        doc.autoTable({
-            head: [tableColumn],
-            body: tableRows,
-            startY: 40,
-            styles: { font: 'Amiri', halign: isRTL ? 'right' : 'left' },
-            headStyles: { fillColor: [79, 70, 229] }
+    const handleExportPdf = async () => {
+        await downloadTablePdf({
+            title: t('reports.supplier_payments.detailed_title') || 'Detailed Supplier Payments Report',
+            subtitle: `${t('reports.filters.from_date')}: ${filters.fromDate}  ${t('reports.filters.to_date')}: ${filters.toDate}`,
+            headers: tableColumns.map((col) => col.label),
+            rows: detailedData.map((row) => tableColumns.map((col) => {
+                if (col.key === 'supplier_payment' || col.key === 'invoices') return row.invoiceNumber ?? '—';
+                if (col.key === 'type') return row.type === 'receive' ? t('reports.payments.receive') : t('reports.payments.spend');
+                if (col.key === 'treasury') return row.paymentMethod ?? '—';
+                if (col.key === 'date') return formatCellDate(row.date);
+                if (col.key === 'supplier') return row.supplier ?? row.client ?? '—';
+                if (col.key === 'processed_amount') return formatAmount(row.amount);
+                return '—';
+            })),
+            filename: `Detailed_Purchases_Report_${filters.fromDate}_to_${filters.toDate}.pdf`,
+            landscape: true,
         });
-
-        doc.save(`Detailed_Purchases_Report_${filters.fromDate}_to_${filters.toDate}.pdf`);
     };
 
     const handlePrint = () => {

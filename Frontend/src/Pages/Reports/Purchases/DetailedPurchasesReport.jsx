@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer, BarChart3, List } from 'lucide-react';
 import reportsService from '../../../services/reportsService';
+import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 import PrintHeader from '../../../components/common/PrintHeader';
 
 const PurchasesReport = () => {
@@ -126,11 +125,11 @@ const PurchasesReport = () => {
             const exportData = detailedData.map(row => {
                 const r = {};
                 detailedTableCols.forEach(col => {
-                    let val = '—';
-                    if (col.key === 'code') val = row.invoiceNumber ?? '—';
+                    let val = 'â€”';
+                    if (col.key === 'code') val = row.invoiceNumber ?? 'â€”';
                     else if (col.key === 'type') val = row.documentType || row.type;
-                    else if (col.key === 'issue_date') val = row.date ? new Date(row.date).toLocaleDateString() : '—';
-                    else if (col.key === 'supplier') val = row.supplier ?? row.client ?? '—';
+                    else if (col.key === 'issue_date') val = row.date ? new Date(row.date).toLocaleDateString() : 'â€”';
+                    else if (col.key === 'supplier') val = row.supplier ?? row.client ?? 'â€”';
                     else if (['discounts', 'total_without_taxes', 'total'].includes(col.key)) {
                         const keys = { 'discounts': 'discounts', 'total_without_taxes': 'totalWithoutTax', 'total': 'amount' };
                         val = row[keys[col.key]] ?? 0;
@@ -147,7 +146,7 @@ const PurchasesReport = () => {
             if (!summaryData.length) return;
             const summaryTableCols = availableSummaryColumns.filter(col => selectedSummaryColumns.includes(col.key));
             const exportData = summaryData.map(row => {
-                const r = { [t('reports.table.month')]: row.month ?? '—' };
+                const r = { [t('reports.table.month')]: row.month ?? 'â€”' };
                 summaryTableCols.forEach(col => {
                     r[col.label] = row[col.key];
                 });
@@ -160,24 +159,24 @@ const PurchasesReport = () => {
         }
     };
 
-    const handleExportPdf = () => {
-        const doc = new jsPDF({ orientation: 'landscape' });
-        const title = activeTab === 'detailed' ? t('reports.detailed_purchases_report') : t('reports.summary_purchases_report');
-        doc.setFontSize(18);
-        doc.text(title || "Purchases Report", doc.internal.pageSize.width / 2, 20, { align: 'center' });
-        doc.setFontSize(12);
-        doc.text(`${t('reports.filters.from_date')}: ${filters.fromDate}  ${t('reports.filters.to_date')}: ${filters.toDate}`, doc.internal.pageSize.width / 2, 30, { align: 'center' });
-
-        const cols = activeTab === 'detailed' ? availableDetailedColumns.filter(c => selectedDetailedColumns.includes(c.key)) : [{ key: 'month', label: t('reports.table.month') }, ...availableSummaryColumns.filter(c => selectedSummaryColumns.includes(c.key))];
-        const head = [cols.map(col => col.label)];
-        const body = (activeTab === 'detailed' ? detailedData : summaryData).map(row => cols.map(col => {
+    const handleExportPdf = async () => {
+        const cols = activeTab === 'detailed'
+            ? availableDetailedColumns.filter(c => selectedDetailedColumns.includes(c.key))
+            : [{ key: 'month', label: t('reports.table.month') }, ...availableSummaryColumns.filter(c => selectedSummaryColumns.includes(c.key))];
+        const headers = cols.map((col) => col.label);
+        const data = activeTab === 'detailed' ? detailedData : summaryData;
+        const rows = data.map(row => cols.map(col => {
             if (activeTab === 'detailed') {
                 if (col.key === 'code') return row.invoiceNumber ?? '—';
-                if (col.key === 'type') return row.documentType || row.type;
+                if (col.key === 'type') {
+                    if (row.documentType === 'return') return t('reports.purchases.type_return');
+                    if (row.documentType === 'purchaseOrder') return t('reports.purchases.type_order');
+                    return t('reports.detailed_columns.type_invoice');
+                }
                 if (col.key === 'issue_date') return row.date ? new Date(row.date).toLocaleDateString() : '—';
                 if (col.key === 'supplier') return row.supplier ?? row.client ?? '—';
                 if (['discounts', 'total_without_taxes', 'total'].includes(col.key)) {
-                    const keys = { 'discounts': 'discounts', 'total_without_taxes': 'totalWithoutTax', 'total': 'amount' };
+                    const keys = { discounts: 'discounts', total_without_taxes: 'totalWithoutTax', total: 'amount' };
                     return formatAmount(row[keys[col.key]]);
                 }
             } else {
@@ -188,14 +187,13 @@ const PurchasesReport = () => {
             return '—';
         }));
 
-        doc.autoTable({
-            startY: 40,
-            head,
-            body,
-            styles: { font: 'Amiri', halign: isRTL ? 'right' : 'left' },
-            headStyles: { fillColor: [79, 70, 229] }
+        await downloadTablePdf({
+            title: activeTab === 'detailed' ? t('reports.detailed_purchases_report') : t('reports.summary_purchases_report'),
+            headers,
+            rows,
+            filename: `Purchases_Report_${new Date().toISOString().slice(0, 10)}.pdf`,
+            landscape: true,
         });
-        doc.save(`Purchases_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
     };
 
     const handlePrint = () => { window.print(); };
@@ -340,7 +338,7 @@ const PurchasesReport = () => {
                     </div>
 
                                         <div className="hidden print:block mb-6">
-                        <PrintHeader title={t('reports.purchase_reports') || 'Purchase Reports'} isRTL={isRTL} />
+                        <PrintHeader title={t('reports.purchase_reports') || 'Purchase Reports'} isRTL={isRTL} showLogo={false} />
                     </div>
                     {/* Table Section */}
                     <div className="border border-gray-200 rounded-lg overflow-hidden bg-white" ref={printRef}>
@@ -360,15 +358,15 @@ const PurchasesReport = () => {
                                             detailedData.map((row, idx) => (
                                                 <tr key={idx} className="hover:bg-gray-50 transition-colors">
                                                     {availableDetailedColumns.filter(c => selectedDetailedColumns.includes(c.key)).map(col => {
-                                                        let val = '—';
-                                                        if (col.key === 'code') val = row.invoiceNumber ?? '—';
+                                                        let val = 'â€”';
+                                                        if (col.key === 'code') val = row.invoiceNumber ?? 'â€”';
                                                         else if (col.key === 'type') {
                                                             if (row.documentType === 'return') val = t('reports.purchases.type_return');
                                                             else if (row.documentType === 'purchaseOrder') val = t('reports.purchases.type_order');
                                                             else val = t('reports.detailed_columns.type_invoice');
                                                         }
-                                                        else if (col.key === 'issue_date') val = row.date ? new Date(row.date).toLocaleDateString() : '—';
-                                                        else if (col.key === 'supplier') val = row.supplier ?? row.client ?? '—';
+                                                        else if (col.key === 'issue_date') val = row.date ? new Date(row.date).toLocaleDateString() : 'â€”';
+                                                        else if (col.key === 'supplier') val = row.supplier ?? row.client ?? 'â€”';
                                                         else if (['discounts', 'total_without_taxes', 'total'].includes(col.key)) {
                                                             const keys = { 'discounts': 'discounts', 'total_without_taxes': 'totalWithoutTax', 'total': 'amount' };
                                                             val = formatAmount(row[keys[col.key]]);
@@ -392,7 +390,7 @@ const PurchasesReport = () => {
                                                 <tr key={idx} className="hover:bg-gray-50 transition-colors">
                                                     <td className="px-4 py-3 text-sm font-bold text-gray-900">{row.month}</td>
                                                     {availableSummaryColumns.filter(c => selectedSummaryColumns.includes(c.key)).map(col => {
-                                                        let val = '—';
+                                                        let val = 'â€”';
                                                         if (['invoices', 'returns', 'orders', 'suppliers', 'products'].includes(col.key)) val = row[col.key] ?? 0;
                                                         else {
                                                             const keys = { 'total_invoices': 'totalInvoices', 'total_returns': 'totalReturns', 'total_orders': 'totalOrders', 'total_purchases_discounts': 'totalPurchasesDiscounts', 'net_purchases_discounts': 'netPurchasesDiscounts', 'net_purchases': 'netPurchases' };
@@ -417,3 +415,4 @@ const PurchasesReport = () => {
 };
 
 export default PurchasesReport;
+

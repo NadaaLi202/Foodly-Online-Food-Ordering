@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
+import { buildReportHtml, fetchCompanyProfile, generatePDF } from './generatePDF';
 
 const fmtNum = (n) => (n == null || n === '') ? '' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString() : '—';
@@ -97,61 +97,16 @@ export function exportDetailedSalesReportToExcel(detailedData, tableColumns, t) 
 /**
  * Build PDF blob from current table data. Landscape, title, date, table, totals. RTL-friendly layout.
  */
-export function buildDetailedSalesReportPdf(detailedData, tableColumns, t, reportTitle) {
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const margin = 14;
-    let y = 18;
-
-    doc.setR2L(true);
-
-    const title = reportTitle || t('reports.detailed_sales_report');
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text(title, pageW - margin, y);
-    y += 8;
-
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'normal');
-    doc.text(`${t('reports.filters.from_date')} / ${t('reports.filters.to_date')}: ${new Date().toLocaleDateString()}`, pageW - margin, y);
-    y += 10;
-
+export async function buildDetailedSalesReportPdf(detailedData, tableColumns, t, reportTitle) {
+    const company = await fetchCompanyProfile();
     const rows = buildExportRows(detailedData, tableColumns, t);
-    if (rows.length <= 1) {
-        doc.text(t('reports.no_data'), pageW - margin, y);
-        return doc.output('blob');
-    }
-
-    const colCount = tableColumns.length;
-    const colW = (pageW - 2 * margin) / colCount;
-    const headY = y;
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(8);
-    tableColumns.forEach((col, i) => {
-        const x = pageW - margin - (i + 1) * colW + 2;
-        doc.text(String(col.label).slice(0, 18), x, headY);
+    const html = buildReportHtml({
+        title: reportTitle || t('reports.detailed_sales_report'),
+        company,
+        headers: tableColumns.map((col) => col.label),
+        rows: rows.slice(1),
+        landscape: true,
+        subtitle: `${t('reports.filters.from_date')} / ${t('reports.filters.to_date')}: ${new Date().toLocaleDateString()}`,
     });
-    y = headY + 6;
-
-    doc.setFont(undefined, 'normal');
-    for (let r = 1; r < rows.length; r++) {
-        if (y > pageH - 20) {
-            doc.addPage('a4', 'l');
-            y = 18;
-            doc.setR2L(true);
-        }
-        const row = rows[r];
-        const isSubtotal = r < rows.length - 1 && row[0] && (String(row[0]).startsWith(t('reports.filters.month')) || String(row[0]).includes(':'));
-        const isTotal = r === rows.length - 1;
-        if (isSubtotal || isTotal) doc.setFont(undefined, 'bold');
-        row.forEach((cell, i) => {
-            const x = pageW - margin - (i + 1) * colW + 2;
-            doc.text(String(cell ?? '').slice(0, 22), x, y);
-        });
-        if (isSubtotal || isTotal) doc.setFont(undefined, 'normal');
-        y += 5;
-    }
-
-    return doc.output('blob');
+    return generatePDF(html, `Sales_Report_${new Date().toISOString().slice(0, 10)}.pdf`, { landscape: true });
 }

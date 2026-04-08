@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import reportsService from '../../../services/reportsService';
+import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 import PrintHeader from '../../../components/common/PrintHeader';
 
 const DetailedPaymentsReport = () => {
@@ -85,42 +84,29 @@ const DetailedPaymentsReport = () => {
         XLSX.writeFile(workbook, `Detailed_Payments_Report_${filters.startDate}_to_${filters.endDate}.xlsx`);
     };
 
-    const handleExportPdf = () => {
-        const doc = new jsPDF({ orientation: 'landscape' });
-        const title = t('reports.payments.detailed_title') || "Detailed Payments Report";
-
-        doc.setFontSize(18);
-        doc.text(title, doc.internal.pageSize.width / 2, 20, { align: 'center' });
-        doc.setFontSize(12);
-        doc.text(`${t('reports.filters.from_date')}: ${filters.startDate}  ${t('reports.filters.to_date')}: ${filters.endDate}`, doc.internal.pageSize.width / 2, 30, { align: 'center' });
-
-        const tableColumn = [
-            t('reports.detailed_columns.code'),
-            t('reports.payments.client_supplier') || t('reports.detailed_columns.client'),
-            t('reports.payments.type'),
-            t('reports.payments.payment_method'),
-            t('reports.payments.amount'),
-            t('reports.detailed_columns.issue_date')
-        ];
-
-        const tableRows = reportData.map(row => [
-            row.invoiceNumber ?? '—',
-            row.client ?? '—',
-            row.type === 'receive' ? t('reports.payments.receive') : t('reports.payments.spend'),
-            row.paymentMethod ?? '—',
-            Number(row.amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
-            row.date ? new Date(row.date).toLocaleDateString() : '—'
-        ]);
-
-        doc.autoTable({
-            head: [tableColumn],
-            body: tableRows,
-            startY: 40,
-            styles: { font: 'Amiri', halign: isRTL ? 'right' : 'left' },
-            headStyles: { fillColor: [79, 70, 229] }
+    const handleExportPdf = async () => {
+        await downloadTablePdf({
+            title: t('reports.payments.detailed_title') || 'Detailed Payments Report',
+            subtitle: `${t('reports.filters.from_date')}: ${filters.startDate}  ${t('reports.filters.to_date')}: ${filters.endDate}`,
+            headers: [
+                t('reports.detailed_columns.code'),
+                t('reports.payments.client_supplier') || t('reports.detailed_columns.client'),
+                t('reports.payments.type'),
+                t('reports.payments.payment_method'),
+                t('reports.payments.amount'),
+                t('reports.detailed_columns.issue_date'),
+            ],
+            rows: reportData.map((row) => ([
+                row.invoiceNumber ?? '—',
+                row.client ?? '—',
+                row.type === 'receive' ? t('reports.payments.receive') : t('reports.payments.spend'),
+                row.paymentMethod ?? '—',
+                Number(row.amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
+                row.date ? new Date(row.date).toLocaleDateString() : '—',
+            ])),
+            filename: `Detailed_Payments_Report_${filters.startDate}_to_${filters.endDate}.pdf`,
+            landscape: true,
         });
-
-        doc.save(`Detailed_Payments_Report_${filters.startDate}_to_${filters.endDate}.pdf`);
     };
 
     const handlePrint = () => {

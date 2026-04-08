@@ -1,5 +1,136 @@
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import * as reportsService from "./reports.service.js";
+import { generatePDF } from "../../utils/generatePDF.js";
+
+const buildPrintHtml = ({ title, tableHeaders = [], tableRows = [], companyInfo = {}, footer = true }) => {
+    const companyName = companyInfo.name || "";
+    const commercialReg = companyInfo.commercialReg || companyInfo.commercial_registration || "";
+    const taxNumber = companyInfo.taxNumber || companyInfo.tax_number || "";
+    const address = companyInfo.address || companyInfo.location || "";
+
+    const esc = (value) => String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+    return `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+      direction: rtl;
+      text-align: right;
+      font-family: 'Cairo', Arial, sans-serif !important;
+    }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #fff;
+      color: #000;
+      unicode-bidi: embed;
+      font-size: 11px;
+    }
+    .header {
+      width: 100%;
+      border-bottom: 2px solid #000;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+    }
+    .company-info p {
+      margin: 3px 0;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .report-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin: 12px 0 16px;
+      text-align: center;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      direction: rtl;
+      font-size: 11px;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 8px;
+      vertical-align: top;
+      text-align: right;
+      word-break: break-word;
+    }
+    th {
+      background: transparent;
+      font-weight: 700;
+    }
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 40px;
+      font-size: 12px;
+    }
+    .number {
+      direction: ltr;
+      unicode-bidi: embed;
+      text-align: left;
+    }
+    @media print {
+      img, .logo, [class*="logo"], [class*="brand"] {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="company-info">
+      <p><strong>اسم الشركة:</strong> ${esc(companyName || "---")}</p>
+      <p><strong>السجل التجاري:</strong> ${esc(commercialReg || "---")}</p>
+      <p><strong>الرقم الضريبي:</strong> ${esc(taxNumber || "---")}</p>
+      <p><strong>العنوان:</strong> ${esc(address || "---")}</p>
+    </div>
+  </div>
+  <div class="report-title">${esc(title || "")}</div>
+  <table>
+    <thead><tr>${tableHeaders.map((header) => `<th>${esc(header)}</th>`).join("")}</tr></thead>
+    <tbody>
+      ${tableRows.map((row) => `<tr>${row.map((cell) => `<td>${esc(cell)}</td>`).join("")}</tr>`).join("")}
+    </tbody>
+  </table>
+  ${footer ? `<div class="footer"><span>المحاسب</span><span>المدير</span></div>` : ""}
+</body>
+</html>`;
+};
+
+export const generateHtmlPdf = catchAsyncError(async (req, res) => {
+    const { htmlContent, pdfOptions, filename } = req.body || {};
+    if (!htmlContent) {
+        return res.status(400).json({ message: "htmlContent is required" });
+    }
+
+    const pdf = await generatePDF(htmlContent, pdfOptions || {});
+    const pdfBuffer = Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf || []);
+    if (pdfBuffer.length < 5 || pdfBuffer.subarray(0, 5).toString("ascii") !== "%PDF-") {
+        return res.status(500).json({ message: "Generated file is not a valid PDF" });
+    }
+    const safeFilename = String(filename || "report.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
+    res.status(200);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${safeFilename}"`);
+    res.setHeader("Content-Length", String(pdfBuffer.length));
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    return res.end(pdfBuffer);
+});
 
 export const getSalesSummary = catchAsyncError(async (req, res) => {
     const { startDate, endDate } = req.query;
