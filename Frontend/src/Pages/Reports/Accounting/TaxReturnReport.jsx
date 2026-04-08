@@ -123,7 +123,7 @@ const TaxReturnReport = () => {
         exportTaxReportToExcel(summary, t, false);
     };
 
-    const handleExportPdf = () => {
+    const handleExportPdf = async () => {
         const contentRows = [];
         contentRows.push([t('reports.accounting.tax.return_report_title') || 'Tax Return Report']);
         contentRows.push([t('reports.filters.from_date') || 'From Date', filters.fromDate]);
@@ -138,7 +138,7 @@ const TaxReturnReport = () => {
         contentRows.push([t('reports.accounting.tax.tax_amount') || 'Tax Amount', reportData.purchases.tax]);
         contentRows.push([]);
         contentRows.push([t('reports.accounting.tax.net_vat') || 'Net VAT', reportData.netTax]);
-        const blob = buildAccountingReportPdf(t('reports.accounting.tax.return_report_title') || 'Tax Return Report', contentRows, t);
+        const blob = await buildAccountingReportPdf(t('reports.accounting.tax.return_report_title') || 'Tax Return Report', contentRows, t);
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -155,7 +155,7 @@ const TaxReturnReport = () => {
         <div className="p-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="hidden print:block mb-6">
-                        <PrintHeader title={t('reports.accounting.tax.return_report_title') || 'Tax Return Report'} isRTL={false} />
+                        <PrintHeader title={t('reports.accounting.tax.return_report_title') || 'Tax Return Report'} isRTL={true} showLogo={false} />
                     </div>
                 {/* Filters Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -296,3 +296,6 @@ const TaxReturnReport = () => {
 };
 
 export default TaxReturnReport;
+
+
+

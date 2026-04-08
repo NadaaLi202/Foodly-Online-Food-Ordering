@@ -511,12 +511,12 @@ const JournalEntries = () => {
         };
     };
 
-    const handleDownloadPdf = () => {
+    const handleDownloadPdf = async () => {
         const entry = getEntryForPdf();
         if (!entry) return;
         setPdfLoading(true);
         try {
-            downloadJournalEntryPdf(entry, `journal-entry-${entry.number || entry._id}.pdf`, {
+            await downloadJournalEntryPdf(entry, `journal-entry-${entry.number || entry._id}.pdf`, {
                 title: t('accounting.journal_entries.view_entry'),
                 locale: i18n.language
             });
@@ -528,12 +528,12 @@ const JournalEntries = () => {
         }
     };
 
-    const handlePrintPdf = () => {
+    const handlePrintPdf = async () => {
         const entry = getEntryForPdf();
         if (!entry) return;
         setPdfLoading(true);
         try {
-            openJournalEntryPdfInNewTab(entry, {
+            await openJournalEntryPdfInNewTab(entry, {
                 title: t('accounting.journal_entries.view_entry'),
                 locale: i18n.language
             });
@@ -549,7 +549,7 @@ const JournalEntries = () => {
         const entry = getEntryForPdf();
         if (!entry) return;
         try {
-            const blob = buildJournalEntryPdf(entry, {
+            const blob = await buildJournalEntryPdf(entry, {
                 title: t('accounting.journal_entries.view_entry'),
                 locale: i18n.language
             });

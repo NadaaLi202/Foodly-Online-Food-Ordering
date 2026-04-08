@@ -132,9 +132,9 @@ const TrialBalanceReport = () => {
         exportTrialBalanceToExcel(reportData, exportTotals, t);
     };
 
-    const handleExportPdf = () => {
+    const handleExportPdf = async () => {
         const dateRange = `${t('reports.filters.from_date')} ${filters.fromDate} ${t('reports.filters.to_date')} ${filters.toDate}`;
-        const blob = buildTrialBalancePdf(reportData, exportTotals, t, t('reports.accounting.trial_balance') || 'Trial Balance', dateRange);
+        const blob = await buildTrialBalancePdf(reportData, exportTotals, t, t('reports.accounting.trial_balance') || 'Trial Balance', dateRange);
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -196,7 +196,7 @@ const TrialBalanceReport = () => {
             <div className="p-6">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="hidden print:block mb-6">
-                        <PrintHeader title={t('reports.accounting.trial_balance_title') || 'Trial Balance From Date 2026 February 1, Sunday To Date 2026 February 28, Saturday'} isRTL={false} />
+                        <PrintHeader title={t('reports.accounting.trial_balance_title') || 'Trial Balance From Date 2026 February 1, Sunday To Date 2026 February 28, Saturday'} isRTL={true} showLogo={false} />
                     </div>
                     {/* Filters Section */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 no-print">
@@ -326,3 +326,6 @@ const TrialBalanceReport = () => {
 };
 
 export default TrialBalanceReport;
+
+
+

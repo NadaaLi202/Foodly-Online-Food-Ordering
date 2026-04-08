@@ -92,7 +92,7 @@ const BalanceSheetReport = () => {
         exportBalanceSheetToExcel(reportData, t);
     };
 
-    const handleExportPdf = () => {
+    const handleExportPdf = async () => {
         const contentRows = [];
         contentRows.push([t('reports.accounting.balance_sheet') || 'Balance Sheet']);
         contentRows.push([t('reports.filters.to_date') || 'To Date', filters.toDate]);
@@ -117,7 +117,7 @@ const BalanceSheetReport = () => {
         }
         contentRows.push([]);
         contentRows.push([t('reports.accounting.equity') || 'Equity', fmtNum(reportData.equity?.total || 0)]);
-        const blob = buildAccountingReportPdf(t('reports.accounting.balance_sheet') || 'Balance Sheet', contentRows, t);
+        const blob = await buildAccountingReportPdf(t('reports.accounting.balance_sheet') || 'Balance Sheet', contentRows, t);
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -157,7 +157,7 @@ const BalanceSheetReport = () => {
             <div className="p-6">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="hidden print:block mb-6">
-                        <PrintHeader title={t('reports.accounting.balance_sheet_title') || 'Balance Sheet'} isRTL={false} />
+                        <PrintHeader title={t('reports.accounting.balance_sheet_title') || 'Balance Sheet'} isRTL={true} showLogo={false} />
                     </div>
                     {/* Filters Section */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 no-print">
@@ -297,3 +297,6 @@ const BalanceSheetReport = () => {
 };
 
 export default BalanceSheetReport;
+
+
+

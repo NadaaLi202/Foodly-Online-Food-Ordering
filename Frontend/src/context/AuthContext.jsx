@@ -12,7 +12,14 @@ export const AuthProvider = ({ children }) => {
         currency: localStorage.getItem('companyCurrency') || 'EGP',
         language: localStorage.getItem('i18nextLng') || 'ar',
         company_name: '',
-        logo_path: ''
+        logo_path: '',
+        tax_number: '',
+        commercial_register: '',
+        country: '',
+        region: '',
+        address: '',
+        city: '',
+        location: ''
     });
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
@@ -26,7 +33,14 @@ export const AuthProvider = ({ children }) => {
                     currency: settings.currency || 'EGP',
                     language: settings.language || 'ar',
                     company_name: settings.company_name || '',
-                    logo_path: settings.logo_path || ''
+                    logo_path: settings.logo_path || '',
+                    tax_number: settings.tax_number || settings.taxNumber || '',
+                    commercial_register: settings.commercial_register || settings.commercialRegister || '',
+                    country: settings.country || '',
+                    region: settings.region || '',
+                    address: settings.address || settings.address_line_1 || '',
+                    city: settings.city || '',
+                    location: settings.location || ''
                 };
                 setCompanySettings(newSettings);
                 localStorage.setItem('companyCurrency', newSettings.currency);
@@ -94,7 +108,19 @@ export const AuthProvider = ({ children }) => {
     const logout = () => {
         setToken(null);
         setUser(null);
-        setCompanySettings({ currency: 'EGP', language: 'ar', company_name: '', logo_path: '' });
+        setCompanySettings({
+            currency: 'EGP',
+            language: 'ar',
+            company_name: '',
+            logo_path: '',
+            tax_number: '',
+            commercial_register: '',
+            country: '',
+            region: '',
+            address: '',
+            city: '',
+            location: ''
+        });
         sessionStorage.removeItem("superAdminToken");
         sessionStorage.removeItem("superAdminUser");
         localStorage.removeItem("token");

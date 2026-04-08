@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Plus, Search, RefreshCw, X, Upload, FileText, Trash2, Printer, Download, Share2, Edit2, Link, MoreVertical, Copy, Eye } from 'lucide-react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import { useTranslation } from 'react-i18next';
+import { generatePDF } from '../../utils/generatePDF';
 import api from '../../services/api';
 import logError from '../../utils/logError';
 import { confirmDelete } from '../../utils/confirmDelete';
@@ -311,43 +310,57 @@ const Expenses = () => {
 
     const getExpensePdfHtml = () => {
         const dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
-        const dateStr = formData.date ? new Date(formData.date).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US') : '—';
+        const isArabic = i18n.language === 'ar';
+        const label = (ar, en) => (isArabic ? ar : en);
+        const dateStr = formData.date ? new Date(formData.date).toLocaleDateString(isArabic ? 'ar-EG' : 'en-US') : '—';
+        const amount = Number(formData.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const taxes = Number(formData.taxes || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const total = Number(calculateTotal() || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         return `
 <!DOCTYPE html>
-<html dir="${dir}" lang="${i18n.language || 'en'}">
+<html lang="${i18n.language || 'en'}" dir="${dir}">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet" />
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 24px; color: #1f2937; background: #fff; }
-        .header { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
-        .field label { display: block; font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase; margin-bottom: 4px; }
+        * { box-sizing: border-box; direction: ${dir}; text-align: ${isArabic ? 'right' : 'left'}; font-family: 'Cairo', Arial, sans-serif; }
+        body { margin: 0; padding: 24px; color: #1f2937; background: #fff; }
+        .header { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #e5e7eb; }
+        .title { margin: 0 0 8px; font-size: 24px; font-weight: 900; color: #4f46e5; }
+        .code { margin: 0; color: #6b7280; font-weight: 700; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+        .field { border: 1px solid #e5e7eb; border-radius: 12px; padding: 12px 14px; background: #fafafa; }
+        .field label { display: block; font-size: 10px; font-weight: 800; color: #9ca3af; margin-bottom: 4px; text-transform: uppercase; }
         .field p { margin: 0; font-size: 14px; font-weight: 700; color: #1f2937; }
-        .totals { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; margin-top: 24px; }
-        .totals div { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: 700; color: #4b5563; }
-        .totals .grand { font-size: 20px; font-weight: 800; color: #4f46e5; padding-top: 8px; border-top: 1px solid #e5e7eb; }
-        .description-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-top: 16px; font-size: 14px; }
+        .description-box { margin-top: 16px; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; background: #fafafa; }
+        .description-box label { display:block; font-size: 10px; font-weight: 800; color: #9ca3af; margin-bottom: 8px; text-transform: uppercase; }
+        .description-box p { margin: 0; font-size: 14px; font-weight: 700; line-height: 1.6; }
+        .totals { margin-top: 24px; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; }
+        .totals div { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
+        .totals .grand { font-size: 20px; font-weight: 900; color: #4f46e5; padding-top: 8px; border-top: 1px solid #e5e7eb; }
     </style>
 </head>
 <body>
     <div id="expense-pdf-root">
-        <div style="margin-bottom: 32px; border-bottom: 2px solid #efeffe; padding-bottom: 16px;">
-            <h1 style="margin:0; font-size: 24px; font-weight: 900; color: #4f46e5;">${i18n.language === 'ar' ? 'تفاصيل المصروف' : 'Expense Details'}</h1>
-            <p style="margin:4px 0 0; color: #6b7280; font-weight: 700;">${formData.code || '—'}</p>
-        </div>
         <div class="header">
-            <div class="field"><label>${i18n.language === 'ar' ? 'التاريخ' : 'Date'}</label><p>${dateStr}</p></div>
-            <div class="field"><label>${i18n.language === 'ar' ? 'الخزينة' : 'Wallet'}</label><p>${formData.wallet === 'main' ? (i18n.language === 'ar' ? 'الخزنة الرئيسية' : 'Main Safe') : (i18n.language === 'ar' ? 'البنك' : 'Bank')}</p></div>
-            <div class="field"><label>${i18n.language === 'ar' ? 'الحساب' : 'Account'}</label><p>${formData.account || '—'}</p></div>
+            <h1 class="title">${label('تفاصيل المصروف', 'Expense Details')}</h1>
+            <p class="code">${formData.code || '—'}</p>
+        </div>
+        <div class="grid">
+            <div class="field"><label>${label('التاريخ', 'Date')}</label><p>${dateStr}</p></div>
+            <div class="field"><label>${label('الخزينة', 'Wallet')}</label><p>${formData.wallet === 'main' ? label('الخزنة الرئيسية', 'Main Safe') : label('البنك', 'Bank')}</p></div>
+            <div class="field"><label>${label('الحساب', 'Account')}</label><p>${formData.account || '—'}</p></div>
         </div>
         ${formData.description ? `
         <div class="description-box">
-            <label style="display:block; font-size: 10px; font-weight: 800; color: #9ca3af; text-transform: uppercase; margin-bottom: 8px;">${i18n.language === 'ar' ? 'الوصف' : 'Description'}</label>
-            <p style="margin:0; font-weight: 700; line-height: 1.5;">${formData.description}</p>
+            <label>${label('الوصف', 'Description')}</label>
+            <p>${formData.description}</p>
         </div>` : ''}
         <div class="totals">
-            <div><span>${i18n.language === 'ar' ? 'المبلغ' : 'Amount'}</span><span>${parseFloat(formData.amount).toLocaleString()} EGP</span></div>
-            <div><span>${i18n.language === 'ar' ? 'الضرائب' : 'Taxes'}</span><span>${parseFloat(formData.taxes || 0).toLocaleString()} EGP</span></div>
-            <div class="grand"><span>${i18n.language === 'ar' ? 'إجمالي المصروف' : 'Total Expense'}</span><span>${calculateTotal()} EGP</span></div>
+            <div><span>${label('المبلغ', 'Amount')}</span><span>${amount} EGP</span></div>
+            <div><span>${label('الضرائب', 'Taxes')}</span><span>${taxes} EGP</span></div>
+            <div class="grand"><span>${label('إجمالي المصروف', 'Total Expense')}</span><span>${total} EGP</span></div>
         </div>
     </div>
 </body>
@@ -358,43 +371,15 @@ const Expenses = () => {
         const filename = `Expense_${formData.code || 'Details'}.pdf`;
         try {
             const html = getExpensePdfHtml();
-            const iframe = document.createElement('iframe');
-            iframe.style.cssText = 'position:absolute;left:-9999px;top:0;width:800px;height:1200px;border:0;visibility:hidden;';
-            document.body.appendChild(iframe);
-            const doc = iframe.contentWindow?.document;
-            if (!doc) {
-                document.body.removeChild(iframe);
-                alert('PDF generation failed. Use print instead.');
-                return;
-            }
-            doc.open();
-            doc.write(html);
-            doc.close();
-
-            await new Promise((resolve) => {
-                const check = () => {
-                    if (iframe.contentWindow?.document.readyState === 'complete') resolve();
-                    else setTimeout(check, 100);
-                };
-                check();
-            });
-
-            const target = doc.getElementById('expense-pdf-root') || doc.body;
-            const canvas = await html2canvas(target, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: '#ffffff'
-            });
-            document.body.removeChild(iframe);
-
-            const imgData = canvas.toDataURL('image/png', 1.0);
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const pageW = pdf.internal.pageSize.getWidth();
-            const imgProps = pdf.getImageProperties(imgData);
-            const imgHeightMm = (imgProps.height * pageW) / imgProps.width;
-
-            pdf.addImage(imgData, 'PNG', 0, 0, pageW, imgHeightMm);
-            triggerPdfDownload(pdf, filename);
+            const blob = await generatePDF(html, filename, { landscape: false });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
         } catch (error) {
             logError('PDF export error:', error);
             alert(i18n.language === 'ar' ? 'حدث خطأ أثناء تصدير PDF' : 'Error exporting PDF');
@@ -987,5 +972,6 @@ const Expenses = () => {
 };
 
 export default Expenses;
+
 
 

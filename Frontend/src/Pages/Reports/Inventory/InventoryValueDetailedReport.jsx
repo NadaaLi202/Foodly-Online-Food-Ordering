@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer, Filter } from 'lucide-react';
-import { exportInventoryMovementsToExcel, buildInventoryMovementsPdf } from '../../../utils/customerSupplierInventoryExport';
+import { exportInventoryMovementsToExcel } from '../../../utils/customerSupplierInventoryExport';
+import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import reportsService from '../../../services/reportsService';
 import api from '../../../services/api';
 import logError from '../../../utils/logError';
+import { useAuth } from '../../../context/AuthContext';
 import PrintHeader from '../../../components/common/PrintHeader';
 
 const InventoryValueDetailedReport = () => {
     const { t, i18n } = useTranslation();
+    const { companySettings } = useAuth();
     const [loading, setLoading] = useState(false);
     const [reportData, setReportData] = useState([]);
     const [warehouses, setWarehouses] = useState([]);
@@ -150,33 +153,39 @@ const InventoryValueDetailedReport = () => {
         }
     };
 
-    const handleExportPdf = () => {
+    const handleExportPdf = async () => {
         if (reportData.length === 0) return;
-        const movements = [];
-        reportData.forEach(pData => {
-            pData.movements?.forEach(m => {
-                movements.push({
-                    productName: pData.productName,
-                    productCode: pData.productCode,
-                    type: m.type,
-                    documentNumber: m.documentNumber,
-                    date: new Date(m.date).toLocaleDateString(),
-                    quantity: m.quantity,
-                    quantityAfter: m.quantityAfter,
-                    value: m.value,
-                    valueCorrection: m.valueCorrection
-                });
+        const headers = [
+            t('reports.inventory.inventory_value_detailed_report.stock_transaction'),
+            t('reports.inventory.inventory_value_detailed_report.source'),
+            t('reports.inventory.inventory_value_detailed_report.date'),
+            t('reports.inventory.inventory_value_detailed_report.quantity'),
+            t('reports.inventory.inventory_value_detailed_report.quantity_after'),
+            t('reports.inventory.inventory_value_detailed_report.value'),
+            t('reports.inventory.inventory_value_detailed_report.value_correction'),
+        ];
+        const rows = [];
+        reportData.forEach((pData) => {
+            rows.push([`${pData.productName} (${pData.productCode})`, '', '', '', '', '', '']);
+            pData.movements?.forEach((m) => {
+                rows.push([
+                    m.type,
+                    m.documentNumber,
+                    new Date(m.date).toLocaleDateString(),
+                    m.quantity,
+                    m.quantityAfter,
+                    m.value ? Number(m.value).toFixed(2) : '0.00',
+                    m.valueCorrection ? Number(m.valueCorrection).toFixed(2) : '0.00',
+                ]);
             });
         });
-        if (movements.length > 0) {
-            const blob = buildInventoryMovementsPdf(movements, { fromDate: filters.fromDate, toDate: filters.toDate }, t);
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `Inventory_Movements_${filters.fromDate}_${filters.toDate}.pdf`;
-            link.click();
-            URL.revokeObjectURL(url);
-        }
+        await downloadTablePdf({
+            title: t('reports.inventory.inventory_value_detailed_report.report_title') || '',
+            headers,
+            rows,
+            filename: `Inventory_Movements_${filters.fromDate}_${filters.toDate}.pdf`,
+            landscape: true,
+        });
     };
 
     const handlePrint = () => {
@@ -189,9 +198,14 @@ const InventoryValueDetailedReport = () => {
     return (
         <div className="p-6 text-start">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <div className="hidden print:block mb-6">
-                        <PrintHeader title={''} isRTL={false} />
-                    </div>
+                <div className="hidden print:block mb-6">
+                        <PrintHeader
+                            title={t('reports.inventory.inventory_value_detailed_report.report_title') || ''}
+                            isRTL={true}
+                            showLogo={false}
+                            companyInfo={companySettings}
+                        />
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 no-print">
                     <div className={textStart}>
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t('reports.filters.period')}</label>
@@ -349,3 +363,4 @@ const InventoryValueDetailedReport = () => {
 };
 
 export default InventoryValueDetailedReport;
+

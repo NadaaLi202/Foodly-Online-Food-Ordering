@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
+import { buildReportHtml, fetchCompanyProfile, generatePDF } from './generatePDF';
 
 const fmtNum = (n) => (n == null || n === '' || n === undefined) ? '' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString() : '—';
@@ -298,6 +298,20 @@ export function exportInventoryMovementsToExcel(movementsData, dateRange, t) {
 
 const formatCellDate = (d) => d ? new Date(d).toLocaleDateString() : '—';
 
+const buildPdfBlob = async ({ title, headers, rows, dateRange, footer = true, landscape = false, subtitle = '' }) => {
+    const company = await fetchCompanyProfile();
+    const html = buildReportHtml({
+        title,
+        company,
+        headers,
+        rows,
+        footer,
+        landscape,
+        subtitle,
+    });
+    return generatePDF(html, `${String(title || 'report').replace(/\s+/g, '_')}.pdf`, { landscape });
+};
+
 /**
  * Export Client Statement (Account Statement) to Excel
  * Same columns as UI: Date, Type, Document Number, Description, Debit, Credit, Balance + totals row
@@ -358,7 +372,7 @@ export function exportClientStatementToExcel(entries, totals, dateRange, t) {
  * Build Client Statement (Account Statement) PDF - same layout as UI
  */
 export function buildClientStatementPdf(entries, totals, dateRange, t) {
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const doc = createArabicPdfDoc({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 14;
     let y = 18;
@@ -489,7 +503,7 @@ export function exportSupplierStatementToExcel(entries, totals, dateRange, t) {
  * Build Supplier Statement (Account Statement) PDF
  */
 export function buildSupplierStatementPdf(entries, totals, dateRange, t) {
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const doc = createArabicPdfDoc({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 14;
     let y = 18;
@@ -565,7 +579,7 @@ export function buildSupplierStatementPdf(entries, totals, dateRange, t) {
  * Build Customer Summary PDF
  */
 export function buildCustomerSummaryPdf(summaryData, dateRange, t) {
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const doc = createArabicPdfDoc({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 14;
     let y = 18;
@@ -616,7 +630,7 @@ export function buildCustomerSummaryPdf(summaryData, dateRange, t) {
  * Build Customer Detailed PDF
  */
 export function buildCustomerDetailedPdf(detailedData, dateRange, t) {
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const doc = createArabicPdfDoc({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 14;
     let y = 18;
@@ -709,7 +723,7 @@ export function buildCustomerDetailedPdf(detailedData, dateRange, t) {
  * Build Supplier Summary PDF
  */
 export function buildSupplierSummaryPdf(summaryData, dateRange, t) {
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const doc = createArabicPdfDoc({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 14;
     let y = 18;
@@ -760,7 +774,7 @@ export function buildSupplierSummaryPdf(summaryData, dateRange, t) {
  * Build Supplier Detailed PDF
  */
 export function buildSupplierDetailedPdf(detailedData, dateRange, t) {
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const doc = createArabicPdfDoc({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 14;
     let y = 18;
@@ -853,7 +867,7 @@ export function buildSupplierDetailedPdf(detailedData, dateRange, t) {
  * Build Inventory Value PDF
  */
 export function buildInventoryValuePdf(summaryData, filters, t) {
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const doc = createArabicPdfDoc({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 14;
     let y = 18;
@@ -941,7 +955,7 @@ export function buildInventoryValuePdf(summaryData, filters, t) {
  * Build Inventory Movements Detailed PDF
  */
 export function buildInventoryMovementsPdf(movementsData, dateRange, t) {
-    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const doc = createArabicPdfDoc({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 14;
     let y = 18;

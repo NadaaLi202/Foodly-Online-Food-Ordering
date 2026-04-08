@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, FileSpreadsheet, FileText, Printer, Filter } from 'lucide-react';
-import { exportInventoryValueToExcel, buildInventoryValuePdf } from '../../../utils/customerSupplierInventoryExport';
+import { exportInventoryValueToExcel } from '../../../utils/customerSupplierInventoryExport';
+import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import reportsService from '../../../services/reportsService';
 import api from '../../../services/api';
 import logError from '../../../utils/logError';
 import { useAuth } from '../../../context/AuthContext';
+import PrintHeader from '../../../components/common/PrintHeader';
 
 const InventoryValueReport = () => {
     const { t, i18n } = useTranslation();
@@ -19,6 +21,9 @@ const InventoryValueReport = () => {
         company_name: '',
         tax_number: '',
         commercial_register: '',
+        address: '',
+        city: '',
+        location: '',
         region: '',
         country: '',
     });
@@ -50,6 +55,9 @@ const InventoryValueReport = () => {
                         company_name: s.company_name || companySettings?.company_name || '',
                         tax_number: s.tax_number || '',
                         commercial_register: s.commercial_register || '',
+                        address: s.address || s.address_line_1 || '',
+                        city: s.city || '',
+                        location: s.location || '',
                         region: s.region || '',
                         country: s.country || '',
                     });
@@ -167,23 +175,13 @@ const InventoryValueReport = () => {
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 print:border-none print:shadow-none print:p-0">
 
-                {/* === PRINT HEADER (company info, right-aligned) === */}
-                <div className="print-only-block" dir="rtl" style={{ textAlign: 'right', marginBottom: '16px' }}>
-                    <div style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '4px' }}>
-                        {fullCompanyInfo.company_name}
-                    </div>
-                    {fullCompanyInfo.commercial_register && (
-                        <div style={{ fontSize: '12px', marginBottom: '2px' }}>
-                            السجل التجاري : {fullCompanyInfo.commercial_register}
-                        </div>
-                    )}
-                </div>
-
-                {/* === PRINT REPORT TITLE (centered) === */}
-                <div className="print-only-block" style={{ textAlign: 'center', marginBottom: '24px' }}>
-                    <div style={{ fontSize: '16px', fontWeight: 'bold' }}>
-                        تقرير قيمة المخزون بتاريخ: {arabicDate}
-                    </div>
+                <div className="hidden print:block mb-6">
+                    <PrintHeader
+                        title={t('reports.inventory.inventory_value_report.report_title_dynamic', { date: new Date().toLocaleDateString() })}
+                        isRTL={true}
+                        showLogo={false}
+                        companyInfo={fullCompanyInfo}
+                    />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 no-print">
@@ -280,15 +278,47 @@ const InventoryValueReport = () => {
                             <FileSpreadsheet className="w-3.5 h-3.5" />
                             {t('reports.export.excel')}
                         </button>
-                        <button onClick={() => {
+                        <button onClick={async () => {
                             if (reportData.length > 0) {
-                                const blob = buildInventoryValuePdf(reportData, filters, t);
-                                const url = URL.createObjectURL(blob);
-                                const link = document.createElement('a');
-                                link.href = url;
-                                link.download = `Inventory_Value_${new Date().toISOString().split('T')[0]}.pdf`;
-                                link.click();
-                                URL.revokeObjectURL(url);
+                                const headers = [
+                                    t('reports.inventory.inventory_value_report.name'),
+                                    t('reports.inventory.inventory_value_report.code'),
+                                    t('reports.inventory.inventory_value_report.quantity'),
+                                    filters.method === 'average_cost'
+                                        ? t('reports.inventory.inventory_value_report.average_cost')
+                                        : t('reports.inventory.inventory_value_report.purchase_price'),
+                                    t('reports.inventory.inventory_value_report.value'),
+                                    t('reports.inventory.inventory_value_report.sale_price_without_taxes'),
+                                    t('reports.inventory.inventory_value_report.sale_value'),
+                                    t('reports.inventory.inventory_value_report.sale_profit'),
+                                ];
+                                const rows = reportData.map((item) => [
+                                    item.productName || '—',
+                                    item.code || '—',
+                                    item.quantity || 0,
+                                    item.unitCost?.toFixed(2) || '0.00',
+                                    item.inventoryValue?.toFixed(2) || '0.00',
+                                    item.sellingPrice?.toFixed(2) || '0.00',
+                                    item.potentialSalesValue?.toFixed(2) || '0.00',
+                                    item.potentialProfit?.toFixed(2) || '0.00',
+                                ]);
+                                rows.push([
+                                    t('reports.total'),
+                                    '',
+                                    '',
+                                    '',
+                                    totalValue.toFixed(2),
+                                    '',
+                                    totalSaleValue.toFixed(2),
+                                    totalProfit.toFixed(2),
+                                ]);
+                                await downloadTablePdf({
+                                    title: t('reports.inventory.inventory_value_report.report_title_dynamic', { date: new Date().toLocaleDateString() }),
+                                    headers,
+                                    rows,
+                                    filename: `Inventory_Value_${new Date().toISOString().split('T')[0]}.pdf`,
+                                    landscape: true,
+                                });
                             }
                         }} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 rounded text-xs font-medium hover:bg-purple-100 transition-colors border border-purple-200">
                             <FileText className="w-3.5 h-3.5" />
@@ -370,8 +400,8 @@ const InventoryValueReport = () => {
 
                 {/* === PRINT FOOTER === */}
                 <div className="print-only" dir="rtl" style={{ justifyContent: 'space-between', marginTop: '40px', paddingTop: '8px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>المدير</span>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>المحاسب</span>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{'\u0627\u0644\u0645\u062f\u064a\u0631'}</span>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{'\u0627\u0644\u0645\u062d\u0627\u0633\u0628'}</span>
                 </div>
 
             </div>
@@ -380,3 +410,4 @@ const InventoryValueReport = () => {
 };
 
 export default InventoryValueReport;
+

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown } from 'lucide-react';
 import reportsService from '../../../services/reportsService';
@@ -131,7 +131,7 @@ const SummaryPurchasesReport = () => {
         <div className="p-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="hidden print:block mb-6">
-                        <PrintHeader title={''} isRTL={false} />
+                        <PrintHeader title={''} isRTL={true} showLogo={false} />
                     </div>
                 {/* Filters Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -311,8 +311,8 @@ const SummaryPurchasesReport = () => {
                                     summaryData.map((row, idx) => (
                                         <tr key={row.month ?? idx} className="border-b border-gray-100">
                                             {tableColumns.map((col) => {
-                                                let val = '—';
-                                                if (col.key === 'month') val = row.month ?? '—';
+                                                let val = 'â€”';
+                                                if (col.key === 'month') val = row.month ?? 'â€”';
                                                 else if (col.key === 'invoices') val = row.invoices ?? 0;
                                                 else if (col.key === 'returns') val = row.returns ?? 0;
                                                 else if (col.key === 'orders') val = row.orders ?? 0;
@@ -338,3 +338,5 @@ const SummaryPurchasesReport = () => {
 };
 
 export default SummaryPurchasesReport;
+
+

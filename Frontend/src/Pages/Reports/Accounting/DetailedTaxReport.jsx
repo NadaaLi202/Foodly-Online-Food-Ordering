@@ -203,7 +203,7 @@ const DetailedTaxReport = () => {
         exportTaxReportToExcel(rawItems, t, true);
     };
 
-    const handleExportPdf = () => {
+    const handleExportPdf = async () => {
         const contentRows = [];
         contentRows.push([t('reports.tax_detailed') || 'Tax Detailed Report']);
         contentRows.push([t('reports.filters.from_date') || 'From Date', filters.fromDate]);
@@ -219,7 +219,7 @@ const DetailedTaxReport = () => {
                 fmtNum(item.tax || 0),
             ]);
         });
-        const blob = buildAccountingReportPdf(t('reports.tax_detailed') || 'Tax Detailed Report', contentRows, t);
+        const blob = await buildAccountingReportPdf(t('reports.tax_detailed') || 'Tax Detailed Report', contentRows, t);
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -236,7 +236,7 @@ const DetailedTaxReport = () => {
         <div className="p-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="hidden print:block mb-6">
-                        <PrintHeader title={t('reports.accounting.tax.detailed_report_title') || 'Detailed Tax Report'} isRTL={false} />
+                        <PrintHeader title={t('reports.accounting.tax.detailed_report_title') || 'Detailed Tax Report'} isRTL={true} showLogo={false} />
                     </div>
                 {/* Filters Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -411,3 +411,6 @@ const DetailedTaxReport = () => {
 };
 
 export default DetailedTaxReport;
+
+
+

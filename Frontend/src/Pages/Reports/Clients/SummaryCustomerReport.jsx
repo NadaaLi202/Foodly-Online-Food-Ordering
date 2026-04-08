@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import reportsService from '../../../services/reportsService';
-import { exportCustomerSummaryToExcel, buildCustomerSummaryPdf } from '../../../utils/customerSupplierInventoryExport';
+import { exportCustomerSummaryToExcel } from '../../../utils/customerSupplierInventoryExport';
+import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import logError from '../../../utils/logError';
 import PrintHeader from '../../../components/common/PrintHeader';
 
@@ -164,15 +165,24 @@ const SummaryCustomerReport = () => {
         exportCustomerSummaryToExcel(summaryData, { fromDate: filters.fromDate, toDate: filters.toDate }, t);
     };
 
-    const handleExportPdf = () => {
+    const handleExportPdf = async () => {
         if (!summaryData) return;
-        const blob = buildCustomerSummaryPdf(summaryData, { fromDate: filters.fromDate, toDate: filters.toDate }, t);
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `Client_General_Ledger_${filters.fromDate}_${filters.toDate}.pdf`;
-        link.click();
-        URL.revokeObjectURL(url);
+        await downloadTablePdf({
+            title: t('reports.clients.summary_report') || 'Customer Summary Report',
+            subtitle: `${t('reports.filters.from_date')}: ${filters.fromDate}  ${t('reports.filters.to_date')}: ${filters.toDate}`,
+            headers: [
+                t('reports.label') || 'Label',
+                t('reports.value') || 'Value',
+            ],
+            rows: [
+                [t('reports.customers.total_invoices') || 'Total Invoices', summaryData.totalInvoices || 0],
+                [t('reports.customers.total_returns') || 'Total Returns', summaryData.totalReturns || 0],
+                [t('reports.clients.total_payments_received') || 'Total Payments Received', summaryData.totalPaymentsReceived || 0],
+                [t('reports.clients.total_outstanding') || 'Outstanding', summaryData.totalOutstanding || 0],
+            ],
+            filename: `Customer_General_Ledger_${filters.fromDate}_${filters.toDate}.pdf`,
+            landscape: false,
+        });
     };
 
     const handlePrint = () => {
@@ -184,7 +194,7 @@ const SummaryCustomerReport = () => {
             <div className="p-6">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="hidden print:block mb-6">
-                        <PrintHeader title={t('reports.clients.summary_report')} isRTL={false} />
+                        <PrintHeader title={t('reports.clients.summary_report')} isRTL={true} showLogo={false} />
                     </div>
                     {/* Filters Section */}
                     <div className="flex flex-wrap items-end gap-3 mb-6 no-print bg-gray-50 p-4 rounded-xl border border-gray-100">
@@ -338,3 +348,6 @@ const SummaryCustomerReport = () => {
 };
 
 export default SummaryCustomerReport;
+
+
+

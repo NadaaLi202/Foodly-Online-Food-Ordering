@@ -134,7 +134,7 @@ const GeneralLedgerReport = () => {
         exportGeneralLedgerToExcel(reportData.entries, reportData.account, t);
     };
 
-    const handleExportPdf = () => {
+    const handleExportPdf = async () => {
         const contentRows = [];
         contentRows.push([t('reports.accounting.general_ledger') || 'General Ledger']);
         contentRows.push([t('reports.filters.from_date') || 'From Date', filters.fromDate]);
@@ -159,7 +159,7 @@ const GeneralLedgerReport = () => {
                 fmtNum(entry.balance || 0),
             ]);
         });
-        const blob = buildAccountingReportPdf(t('reports.accounting.general_ledger') || 'General Ledger', contentRows, t);
+        const blob = await buildAccountingReportPdf(t('reports.accounting.general_ledger') || 'General Ledger', contentRows, t);
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -176,7 +176,7 @@ const GeneralLedgerReport = () => {
         <div className="p-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="hidden print:block mb-6">
-                        <PrintHeader title={t('reports.accounting.general_ledger_title') || 'General Ledger'} isRTL={false} />
+                        <PrintHeader title={t('reports.accounting.general_ledger_title') || 'General Ledger'} isRTL={true} showLogo={false} />
                     </div>
                 {/* Filters Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -315,3 +315,6 @@ const GeneralLedgerReport = () => {
 };
 
 export default GeneralLedgerReport;
+
+
+

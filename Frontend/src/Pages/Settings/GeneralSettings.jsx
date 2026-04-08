@@ -184,7 +184,16 @@ const GeneralSettings = () => {
             // Propagate settings to global AuthContext
             updateCompanySettings({
                 currency: settings.currency,
-                language: settings.language
+                language: settings.language,
+                company_name: settings.company_name,
+                logo_path: settings.logo_path,
+                tax_number: settings.tax_number,
+                commercial_register: settings.commercial_register,
+                country: settings.country,
+                region: settings.region,
+                address: settings.address || settings.address_line_1 || '',
+                city: settings.city || '',
+                location: settings.location || ''
             });
 
             toast.custom((t_toast) => (

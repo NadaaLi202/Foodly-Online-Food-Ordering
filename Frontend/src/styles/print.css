@@ -42,6 +42,11 @@
     margin: 0 !important;
   }
 
+  .overflow-x-auto,
+  .overflow-auto {
+    overflow: visible !important;
+  }
+
   /* 4. Report Root Containers */
   [id$="-report-root"],
   .report-content {
@@ -64,6 +69,13 @@
     margin-bottom: 2em !important;
   }
 
+  table,
+  th,
+  td {
+    border: 1px solid #000 !important;
+    border-collapse: collapse !important;
+  }
+
   table thead {
     display: table-header-group !important; /* Repeat header on each page */
   }
@@ -71,12 +83,61 @@
   table tr {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    border-bottom: 1px solid #eee !important;
   }
 
   table td, table th {
     word-break: break-word !important;
     padding: 8px !important;
+    background: transparent !important;
+    color: #000 !important;
+  }
+
+  thead tr,
+  tbody tr,
+  tfoot tr {
+    background: transparent !important;
+  }
+
+  .print-company-header,
+  .print-company-header *,
+  .print-header,
+  .print-header * {
+    background: transparent !important;
+    color: #000 !important;
+    box-shadow: none !important;
+  }
+
+  .print-company-header {
+    width: 100% !important;
+    padding: 12px 0 !important;
+    border-bottom: 2px solid #000 !important;
+    margin-bottom: 16px !important;
+    direction: rtl !important;
+    text-align: right !important;
+  }
+
+  .print-company-header .company-info p {
+    margin: 4px 0 !important;
+    font-size: 12px !important;
+    font-family: 'Cairo', 'Tajawal', Arial, sans-serif !important;
+    color: #000 !important;
+    line-height: 1.6 !important;
+  }
+
+  .print-company-header .company-info strong {
+    font-weight: bold !important;
+  }
+
+  .print-company-header .logo,
+  .print-company-header .print-logo-wrapper,
+  .logo,
+  img.logo,
+  img.header-logo,
+  .brand-logo,
+  img,
+  [class*="logo"],
+  [class*="brand"] {
+    display: none !important;
   }
 
   /* 6. Prevent Cuts in Cards or Sections */

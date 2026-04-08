@@ -2,9 +2,8 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import reportsService from '../../../services/reportsService';
+import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 import PrintHeader from '../../../components/common/PrintHeader';
 
 const SummarySupplierPaymentsReport = () => {
@@ -134,27 +133,21 @@ const SummarySupplierPaymentsReport = () => {
         XLSX.writeFile(workbook, `Summary_Purchases_Report_${filters.fromDate}_to_${filters.toDate}.xlsx`);
     };
 
-    const handleExportPdf = () => {
-        const doc = new jsPDF();
-        const title = t('reports.supplier_payments.summary_title') || "Summary Supplier Payments Report";
-
-        doc.setFontSize(18);
-        doc.text(title, doc.internal.pageSize.width / 2, 20, { align: 'center' });
-        doc.setFontSize(12);
-        doc.text(`${t('reports.filters.from_date')}: ${filters.fromDate}  ${t('reports.filters.to_date')}: ${filters.toDate}`, doc.internal.pageSize.width / 2, 30, { align: 'center' });
-
-        doc.autoTable({
-            startY: 40,
-            head: [[t('reports.supplier_payments.total_spent'), t('reports.supplier_payments.total_due')]],
-            body: [[
-                Number(summaryData.totalSpent).toLocaleString(undefined, { minimumFractionDigits: 2 }),
-                Number(summaryData.totalDue).toLocaleString(undefined, { minimumFractionDigits: 2 })
-            ]],
-            styles: { font: 'Amiri', halign: isRTL ? 'right' : 'left' },
-            headStyles: { fillColor: [79, 70, 229] }
+    const handleExportPdf = async () => {
+        await downloadTablePdf({
+            title: t('reports.supplier_payments.summary_title') || 'Summary Supplier Payments Report',
+            subtitle: `${t('reports.filters.from_date')}: ${filters.fromDate}  ${t('reports.filters.to_date')}: ${filters.toDate}`,
+            headers: [
+                t('reports.label') || 'Label',
+                t('reports.value') || 'Value',
+            ],
+            rows: [
+                [t('reports.supplier_payments.total_spent'), Number(summaryData.totalSpent).toLocaleString(undefined, { minimumFractionDigits: 2 })],
+                [t('reports.supplier_payments.total_due'), Number(summaryData.totalDue).toLocaleString(undefined, { minimumFractionDigits: 2 })],
+            ],
+            filename: `Summary_Purchases_Report_${filters.fromDate}_to_${filters.toDate}.pdf`,
+            landscape: false,
         });
-
-        doc.save(`Summary_Purchases_Report_${filters.fromDate}_to_${filters.toDate}.pdf`);
     };
 
     const handlePrint = () => {
@@ -165,7 +158,7 @@ const SummarySupplierPaymentsReport = () => {
         <div className={`p-6 ${isRTL ? 'text-right' : 'text-left'}`}>
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="hidden print:block mb-6">
-                        <PrintHeader title={t('reports.view_report')} isRTL={isRTL} />
+                        <PrintHeader title={t('reports.view_report')} isRTL={isRTL} showLogo={false} />
                     </div>
                 {/* Filters Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -380,3 +373,5 @@ const SummarySupplierPaymentsReport = () => {
 };
 
 export default SummarySupplierPaymentsReport;
+
+

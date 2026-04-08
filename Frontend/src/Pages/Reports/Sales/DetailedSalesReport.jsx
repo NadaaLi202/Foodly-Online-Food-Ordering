@@ -3,10 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer, BarChart3, List } from 'lucide-react';
 import reportsService from '../../../services/reportsService';
-import { exportDetailedSalesReportToExcel, buildDetailedSalesReportPdf } from '../../../utils/detailedSalesReportExport';
+import { exportDetailedSalesReportToExcel } from '../../../utils/detailedSalesReportExport';
+import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 import PrintHeader from '../../../components/common/PrintHeader';
 
 const SalesReport = () => {
@@ -147,42 +146,47 @@ const SalesReport = () => {
         }
     };
 
-    const handleExportPdf = () => {
+    const handleExportPdf = async () => {
         if (activeTab === 'detailed') {
             const detailedTableCols = availableDetailedColumns.filter(col => selectedDetailedColumns.includes(col.key));
-            const blob = buildDetailedSalesReportPdf(detailedData, detailedTableCols, t, t('reports.detailed_sales_report'));
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Sales_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
-            a.click();
-            URL.revokeObjectURL(url);
+            const headers = detailedTableCols.map((col) => col.label);
+            const rows = detailedData.map((row) => detailedTableCols.map((col) => {
+                let val = '—';
+                if (col.key === 'code') val = row.invoiceNumber ?? '—';
+                else if (col.key === 'month') val = row.month ?? '—';
+                else if (col.key === 'type') val = t('reports.detailed_columns.type_invoice');
+                else if (col.key === 'issue_date') val = row.date ? new Date(row.date).toLocaleDateString() : '—';
+                else if (col.key === 'client') val = row.client ?? '—';
+                else if (['paid_amount', 'remaining_amount', 'discounts', 'total_without_taxes', 'total'].includes(col.key)) {
+                    const keys = { paid_amount: 'paidAmount', remaining_amount: 'remainingAmount', discounts: 'discounts', total_without_taxes: 'totalWithoutTax', total: 'amount' };
+                    val = formatAmount(row[keys[col.key]]);
+                }
+                return val;
+            }));
+            await downloadTablePdf({
+                title: t('reports.detailed_sales_report'),
+                headers,
+                rows,
+                filename: `Sales_Report_${new Date().toISOString().slice(0, 10)}.pdf`,
+                landscape: true,
+            });
         } else {
-            const doc = new jsPDF({ orientation: 'landscape' });
-            const title = t('reports.summary_sales_report') || "Summary Sales Report";
-            doc.setFontSize(18);
-            doc.text(title, doc.internal.pageSize.width / 2, 20, { align: 'center' });
-            doc.setFontSize(12);
-            doc.text(`${t('reports.filters.from_date')}: ${filters.fromDate}  ${t('reports.filters.to_date')}: ${filters.toDate}`, doc.internal.pageSize.width / 2, 30, { align: 'center' });
-
             const summaryTableCols = availableSummaryColumns.filter(col => selectedSummaryColumns.includes(col.key));
-            const head = [[t('reports.table.month'), ...summaryTableCols.map(col => col.label)]];
-            const body = summaryData.map(row => [
+            const headers = [t('reports.table.month'), ...summaryTableCols.map(col => col.label)];
+            const rows = summaryData.map(row => [
                 row.month ?? '—',
                 ...summaryTableCols.map(col => {
                     if (['invoices', 'clients', 'products'].includes(col.key)) return row[col.key] ?? 0;
                     return formatAmount(row[col.key]);
                 })
             ]);
-
-            doc.autoTable({
-                startY: 40,
-                head,
-                body,
-                styles: { font: 'Amiri', halign: isRTL ? 'right' : 'left' },
-                headStyles: { fillColor: [79, 70, 229] }
+            await downloadTablePdf({
+                title: t('reports.summary_sales_report') || 'Summary Sales Report',
+                headers,
+                rows,
+                filename: `Summary_Sales_Report_${filters.fromDate}_to_${filters.toDate}.pdf`,
+                landscape: true,
             });
-            doc.save(`Summary_Sales_Report_${filters.fromDate}_to_${filters.toDate}.pdf`);
         }
     };
 
@@ -341,8 +345,8 @@ const SalesReport = () => {
                         </div>
                     </div>
 
-                                        <div className="hidden print:block mb-6">
-                        <PrintHeader title={t('reports.sales_reports')} isRTL={isRTL} />
+                    <div className="hidden print:block mb-6">
+                        <PrintHeader title={t('reports.sales_reports')} isRTL={isRTL} showLogo={false} />
                     </div>
                     {/* Table Section */}
                     <div className="border border-gray-200 rounded-lg overflow-hidden bg-white" ref={printRef}>

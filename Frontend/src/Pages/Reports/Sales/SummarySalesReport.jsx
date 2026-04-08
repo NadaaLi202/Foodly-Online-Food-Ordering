@@ -2,9 +2,8 @@ import React, { useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import reportsService from '../../../services/reportsService';
+import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
 import PrintHeader from '../../../components/common/PrintHeader';
 
 const SummarySalesReport = () => {
@@ -167,29 +166,20 @@ const SummarySalesReport = () => {
         XLSX.writeFile(workbook, `Summary_Sales_Report_${filters.fromDate}_to_${filters.toDate}.xlsx`);
     };
 
-    const handleExportPdf = () => {
-        const doc = new jsPDF({ orientation: 'landscape' });
-        const title = t('reports.summary_sales_report') || "Summary Sales Report";
-        doc.setFontSize(18);
-        doc.text(title, doc.internal.pageSize.width / 2, 20, { align: 'center' });
-        doc.setFontSize(12);
-        doc.text(`${t('reports.filters.from_date')}: ${filters.fromDate}  ${t('reports.filters.to_date')}: ${filters.toDate}`, doc.internal.pageSize.width / 2, 30, { align: 'center' });
-
-        const head = [tableColumns.map(col => col.label)];
-        const body = summaryData.map(row => tableColumns.map(col => {
+    const handleExportPdf = async () => {
+        const headers = tableColumns.map(col => col.label);
+        const rows = summaryData.map(row => tableColumns.map(col => {
             if (col.key === 'month') return row.month ?? '—';
             if (['invoices', 'clients', 'products'].includes(col.key)) return row[col.key] ?? 0;
             return formatAmount(row[col.key]);
         }));
-
-        doc.autoTable({
-            startY: 40,
-            head,
-            body,
-            styles: { font: 'Amiri', halign: isRTL ? 'right' : 'left' },
-            headStyles: { fillColor: [79, 70, 229] }
+        await downloadTablePdf({
+            title: t('reports.summary_sales_report') || 'Summary Sales Report',
+            headers,
+            rows,
+            filename: `Summary_Sales_Report_${filters.fromDate}_to_${filters.toDate}.pdf`,
+            landscape: true,
         });
-        doc.save(`Summary_Sales_Report_${filters.fromDate}_to_${filters.toDate}.pdf`);
     };
 
     const handlePrint = () => {
@@ -200,7 +190,7 @@ const SummarySalesReport = () => {
         <div className={`p-6 ${isRTL ? 'text-right' : 'text-left'}`}>
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="hidden print:block mb-6">
-                        <PrintHeader title={t('reports.summary_sales_report')} isRTL={isRTL} />
+                        <PrintHeader title={t('reports.summary_sales_report')} isRTL={isRTL} showLogo={false} />
                     </div>
                 {/* Filters Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
