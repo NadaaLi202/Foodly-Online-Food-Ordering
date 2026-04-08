@@ -198,13 +198,13 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
     ];
 
     const sidebarClasses = isMobile
-        ? `fixed top-0 bottom-0 z-50 w-64 bg-indigo-700 text-white transition-transform duration-300 ease-in-out ltr:left-0 rtl:right-0 print:hidden ${isOpen ? 'translate-x-0 shadow-2xl' : 'ltr:-translate-x-full rtl:translate-x-full'
+        ? `fixed top-0 bottom-0 z-50 w-64 bg-[#0097A7] text-white transition-transform duration-300 ease-in-out ltr:left-0 rtl:right-0 print:hidden ${isOpen ? 'translate-x-0 shadow-2xl' : 'ltr:-translate-x-full rtl:translate-x-full'
         }`
-        : 'w-64 bg-indigo-700 text-white min-h-screen flex flex-col transition-all duration-300 print:hidden';
+        : 'w-64 bg-[#0097A7] text-white min-h-screen flex flex-col transition-all duration-300 print:hidden';
 
     return (
         <aside className={sidebarClasses}>
-            <div className="p-4 flex items-center justify-center border-b border-indigo-600/30">
+            <div className="p-4 flex items-center justify-center border-b border-white/15">
                 <img src={logo} alt={t('app_name')} className="h-24 w-auto object-contain rounded-lg" />
             </div>
 
@@ -215,10 +215,10 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                             {/* لو ليه children → زرار بس */}
                             {item.hasSub ? (
                                 <div className="flex flex-col">
-                                    <div className={`flex items-center rounded-md transition-colors ${location.pathname === item.path ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-600 hover:bg-opacity-75'}`}>
+                                    <div className={`flex items-center rounded-md transition-colors ${location.pathname === item.path ? 'bg-[#1d9fe0] text-white' : 'text-cyan-50 hover:bg-[#7dd3fc] hover:text-slate-900 hover:bg-opacity-90'}`}>
                                         <NavLink
                                             to={item.path}
-                                            className="flex-1 flex items-center ps-2 py-1.5 text-start text-sm font-semibold"
+                                        className="flex-1 flex items-center ps-2 py-1.5 text-start text-sm font-semibold"
                                         >
                                             <item.icon className="me-3 flex-shrink-0 h-5 w-5" strokeWidth={1.5} />
                                             <span className="flex-1">{item.label || t(`sidebar.${item.key}`)}</span>
@@ -244,8 +244,8 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                                     to={item.path}
                                     className={({ isActive }) =>
                                         `group w-full flex items-center ps-2 pe-1 py-1.5 text-start text-sm font-semibold rounded-md transition-colors ${isActive
-                                            ? 'bg-indigo-800 text-white'
-                                            : 'text-indigo-100 hover:bg-indigo-600 hover:bg-opacity-75'
+                                            ? 'bg-[#1d9fe0] text-white'
+                                            : 'text-cyan-50 hover:bg-[#7dd3fc] hover:text-slate-900 hover:bg-opacity-90'
                                         }`
                                     }
                                 >
@@ -262,8 +262,10 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                                             key={child.key}
                                             to={child.path}
                                             className={({ isActive }) =>
-                                                `text-xs font-medium rounded px-2 py-1 ${isActive ? 'text-white bg-indigo-800' : 'text-indigo-200'
-                                                } hover:text-white hover:bg-indigo-600 transition-colors`
+                                                `text-xs font-medium rounded px-2 py-1 transition-colors ${isActive
+                                                    ? 'text-white bg-[#1d9fe0]'
+                                                    : 'text-cyan-50 hover:bg-[#7dd3fc] hover:text-slate-900'
+                                                }`
                                             }
                                         >
                                             {child.label || t(`sidebar.${child.key}`)}
@@ -288,7 +290,7 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
             </nav>
 
             {/* Decorative gradient at bottom */}
-            <div className="h-20 bg-gradient-to-t from-indigo-800 to-transparent opacity-50 pointer-events-none" />
+            <div className="h-20 bg-gradient-to-t from-[#007c8a] to-transparent opacity-40 pointer-events-none" />
         </aside>
     );
 };

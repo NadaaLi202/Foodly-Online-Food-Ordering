@@ -41,7 +41,7 @@ const SignupLayout = () => {
                 {/* Logo Section */}
                 <div className="mb-8 flex flex-col items-center">
                     <div className="flex items-center gap-3">
-                        <h1 className="text-5xl font-extrabold text-[#4f46e5]">دفتر المحاسب</h1>
+                        <h1 className="text-5xl font-extrabold text-[#4f46e5]">دفاتر المحاسب</h1>
                         <div className="w-16 h-16 bg-[#4f46e5] rounded-full flex items-center justify-center relative">
                             <div className="w-10 h-10 bg-white rounded-full"></div>
                             <div className="w-4 h-4 bg-[#4f46e5] rounded-full absolute"></div>

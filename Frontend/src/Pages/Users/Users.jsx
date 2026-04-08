@@ -24,9 +24,11 @@ import rolesService from '../../services/rolesService';
 import branchService from '../../services/branchService';
 import Forbidden from '../../components/Forbidden';
 import logError from '../../utils/logError';
+import { useAuth } from '../../context/AuthContext';
 
 const Users = () => {
     const { t, i18n } = useTranslation();
+    const { user, companyId: authCompanyId } = useAuth();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -41,6 +43,10 @@ const Users = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [branches, setBranches] = useState([]);
     const [roles, setRoles] = useState([]);
+    const currentCompanyId = user?.role === 'superAdmin'
+        ? (user?.companyId ? String(user.companyId) : '')
+        : (authCompanyId ? String(authCompanyId) : '');
+
     const [formData, setFormData] = useState({
         name: '',
         type: 'user',
@@ -56,7 +62,7 @@ const Users = () => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const data = await userService.getAllUsers();
+            const data = await userService.getAllUsers(currentCompanyId || null);
             setUsers(data.users || data || []);
         } catch (error) {
             if (error.response?.status === 403) {
@@ -77,7 +83,7 @@ const Users = () => {
         const loadInitialData = async () => {
             try {
                 const [rolesData, branchesData] = await Promise.all([
-                    rolesService.getAllRoles(),
+                    rolesService.getAllRoles(currentCompanyId || null),
                     branchService.getAllBranches()
                 ]);
                 setRoles(rolesData.roles || rolesData || []);
@@ -178,6 +184,9 @@ const Users = () => {
                 };
 
                 if (formData.roleId) dataToSend.roleId = formData.roleId;
+                if (currentCompanyId && user?.role === 'superAdmin') {
+                    dataToSend.companyId = currentCompanyId;
+                }
 
                 if (modalMode === 'add') {
                     dataToSend.password = formData.password;
@@ -335,9 +344,9 @@ const Users = () => {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <Shield size={14} className="text-gray-400" />
-                                                    {roles.find(r => r._id === u.roleId)?.name || u.role || '-'}
+                                                    <div className="flex items-center gap-2">
+                                                        <Shield size={14} className="text-gray-400" />
+                                                    {roles.find(r => String(r._id) === String(u.roleId))?.name || u.role || '-'}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4">
