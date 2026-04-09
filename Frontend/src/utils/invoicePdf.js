@@ -1,3 +1,5 @@
+import { requestPrintTemplateSelection } from '../services/printTemplateService';
+
 /**
  * Invoice PDF fetch and save utilities.
  * Handles blob response and JSON error body when responseType is 'blob'.
@@ -11,11 +13,18 @@
  * @returns {Promise<{ blob: Blob, filename: string }>}
  */
 export async function fetchPdfBlob(api, transactionId) {
-    // GET /api/v1/transactions/:id/download — backend returns application/pdf (or JSON on error)
+    const templateStyle = await requestPrintTemplateSelection({
+        actionType: 'pdf',
+        source: 'fetchPdfBlob',
+        transactionId,
+    });
+
     const response = await api.get(`/transactions/${transactionId}/download`, {
         responseType: 'blob',
-        validateStatus: () => true // accept all so we can inspect status and body
+        params: { templateStyle },
+        validateStatus: () => true
     });
+
     const blob = response.data;
     if (!(blob instanceof Blob)) {
         throw new Error('Invalid response: expected PDF blob');
@@ -30,6 +39,7 @@ export async function fetchPdfBlob(api, transactionId) {
             : `Request failed (${response.status})`);
         throw new Error(message);
     }
+
     const isPdf = contentType.includes('application/pdf');
     if (!isPdf) {
         throw new Error('Invalid response: server did not return a PDF');
@@ -37,7 +47,7 @@ export async function fetchPdfBlob(api, transactionId) {
     if (blob.size === 0) {
         throw new Error('PDF is empty. Please try again.');
     }
-    // Ensure blob has correct type for download/new-tab (browser compatibility)
+
     const pdfBlob = blob.type === 'application/pdf' ? blob : new Blob([blob], { type: 'application/pdf' });
     let filename = `invoice-${String(transactionId).replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
     const disposition = response.headers['content-disposition'];
@@ -105,7 +115,6 @@ export function downloadBlob(blob, filename) {
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
-    // Revoke after delay so download starts reliably on all browsers (fixes empty/broken PDFs)
     setTimeout(() => {
         try {
             window.URL.revokeObjectURL(url);
@@ -126,3 +135,4 @@ export function openBlobInNewTab(blob) {
         throw new Error('Popup blocked. Please allow popups to open PDF.');
     }
 }
+

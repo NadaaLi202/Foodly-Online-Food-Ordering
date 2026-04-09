@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams, useNavigate 
 import api from './services/api';
 import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
+import PrintTemplateProvider from './components/common/PrintTemplateProvider';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardPage from './Pages/DashboardPage';
@@ -199,8 +200,9 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
-        <Routes>
+        <PrintTemplateProvider>
+          <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
+          <Routes>
           {/* Public Routes */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
@@ -393,7 +395,8 @@ function App() {
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          </Routes>
+        </PrintTemplateProvider>
       </AuthProvider>
     </BrowserRouter >
   );
