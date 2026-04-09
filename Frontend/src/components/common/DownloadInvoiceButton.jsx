@@ -3,6 +3,7 @@ import { Download, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 import logError from '../../utils/logError';
 import { useTranslation } from 'react-i18next';
+import { fetchPdfBlob, downloadBlob } from '../../utils/invoicePdf';
 
 /**
  * Triggers server-side PDF download for a transaction (invoice/return/quote).
@@ -16,24 +17,8 @@ const DownloadInvoiceButton = ({ transactionId, filenamePrefix = 'invoice', clas
         if (!transactionId) return;
         setLoading(true);
         try {
-            const response = await api.get(`/transactions/${transactionId}/download`, {
-                responseType: 'blob'
-            });
-            const blob = response.data;
-            const disposition = response.headers['content-disposition'];
-            let filename = `${filenamePrefix}.pdf`;
-            if (disposition && disposition.includes('filename=')) {
-                const match = disposition.match(/filename="?([^";]+)"?/);
-                if (match) filename = match[1].trim();
-            }
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
+            const { blob, filename } = await fetchPdfBlob(api, String(transactionId));
+            downloadBlob(blob, filename || `${filenamePrefix}.pdf`);
         } catch (err) {
             logError('Download failed:', err);
             const message = err.response?.data?.message || err.message || t('sales.invoices.pdf_capture_failed');

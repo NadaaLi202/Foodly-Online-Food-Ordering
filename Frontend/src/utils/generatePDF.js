@@ -1,4 +1,5 @@
 import api from '../services/api';
+import { requestPrintTemplateSelection } from '../services/printTemplateService';
 
 const escapeHtml = (value) => String(value ?? '')
     .replace(/&/g, '&amp;')
@@ -174,10 +175,18 @@ export function buildReportHtml({
 
 export async function generatePDF(htmlContent, filename = 'report.pdf', pdfOptions = {}) {
     try {
+        const templateStyle = await requestPrintTemplateSelection({
+            actionType: 'pdf',
+            source: 'generatePDF',
+            filename,
+        });
         const response = await api.post('/reports/pdf/generate', {
             htmlContent,
             filename,
-            pdfOptions,
+            pdfOptions: {
+                ...pdfOptions,
+                templateStyle,
+            },
         }, {
             responseType: 'arraybuffer',
             headers: {

@@ -2,6 +2,7 @@
 import { Plus, Search, RefreshCw, X, Upload, FileText, Trash2, Printer, Download, Share2, Edit2, Link, MoreVertical, Copy, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { generatePDF } from '../../utils/generatePDF';
+import { requestPrintTemplateSelection } from '../../services/printTemplateService';
 import api from '../../services/api';
 import logError from '../../utils/logError';
 import { confirmDelete } from '../../utils/confirmDelete';
@@ -248,7 +249,16 @@ const Expenses = () => {
         setOpenActionMenu(null);
     };
 
-    const handlePrint = () => {
+    const handlePrint = async () => {
+        try {
+            await requestPrintTemplateSelection({
+                actionType: 'print',
+                source: 'expenses-print',
+            });
+        } catch {
+            return;
+        }
+
         const content = document.getElementById('expense-details');
         if (!content) return;
 
