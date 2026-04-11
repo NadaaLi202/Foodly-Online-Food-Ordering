@@ -1,4 +1,5 @@
 import { Buffer } from 'buffer';
+
 if (typeof window !== 'undefined' && !window.Buffer) {
     window.Buffer = Buffer;
 }
@@ -10,18 +11,11 @@ import { Document, Page, Text, View, StyleSheet, Font, Image, PDFViewer } from '
 Font.register({
     family: 'Tajawal',
     fonts: [
-        {
-            src: '/fonts/Tajawal-Regular.ttf',
-            fontWeight: 'normal',
-        },
-        {
-            src: '/fonts/Tajawal-Bold.ttf',
-            fontWeight: 'bold',
-        }
-    ]
+        { src: '/fonts/Tajawal-Regular.ttf', fontWeight: 'normal' },
+        { src: '/fonts/Tajawal-Bold.ttf', fontWeight: 'bold' },
+    ],
 });
 
-// ZATCA TLV encoding
 const buildZatcaTlv = ({ sellerName = '', vatNumber = '', timestamp = '', totalWithVat = '', vatAmount = '' }) => {
     const encoder = new TextEncoder();
     const fields = [
@@ -31,7 +25,8 @@ const buildZatcaTlv = ({ sellerName = '', vatNumber = '', timestamp = '', totalW
         { tag: 4, value: String(totalWithVat) },
         { tag: 5, value: String(vatAmount) },
     ];
-    let buffers = [];
+
+    const buffers = [];
     let totalLen = 0;
 
     for (const { tag, value } of fields) {
@@ -51,180 +46,395 @@ const buildZatcaTlv = ({ sellerName = '', vatNumber = '', timestamp = '', totalW
         offset += b.length;
     }
 
-    // btoa fallback for Node/Browser environments
     if (typeof btoa !== 'undefined') {
         let binary = '';
         const bytes = new Uint8Array(result);
-        const len = bytes.byteLength;
-        for (let i = 0; i < len; i++) {
+        for (let i = 0; i < bytes.byteLength; i += 1) {
             binary += String.fromCharCode(bytes[i]);
         }
         return btoa(binary);
     }
+
     return '';
 };
 
-// Generates QR Code Data URL asynchronously
+const normalizeQrDataUrl = (value = '') => {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    if (raw.startsWith('data:image/')) return raw;
+    if (/^[A-Za-z0-9+/=]+$/.test(raw)) return `data:image/png;base64,${raw}`;
+    return '';
+};
+
+const formatAmount = (value) => Number(value || 0).toFixed(2);
+
 const useQRCodeDataUrl = (company, totals) => {
     const [qrUrl, setQrUrl] = useState('');
+
     useEffect(() => {
         const tlvBase64 = buildZatcaTlv({
-            sellerName: company?.name || 'Company',
-            vatNumber: company?.tax_number || '300000000000003',
+            sellerName: company?.name || '',
+            vatNumber: company?.vat || company?.tax_number || '',
             timestamp: new Date().toISOString(),
             totalWithVat: totals?.total || '0.00',
             vatAmount: totals?.vat || '0.00',
         });
 
+        if (!tlvBase64) return;
+
         QRCode.toDataURL(tlvBase64, {
             errorCorrectionLevel: 'M',
             margin: 1,
-            color: { dark: '#000000', light: '#ffffff' }
-        }).then(url => setQrUrl(url)).catch(console.error);
+            color: { dark: '#000000', light: '#ffffff' },
+        })
+            .then((url) => setQrUrl(url))
+            .catch(() => setQrUrl(''));
     }, [JSON.stringify(company), JSON.stringify(totals)]);
+
     return qrUrl;
 };
 
-export const resolvePlaceholders = (text = '', context = {}) => {
-    return text.replace(/\{\{([^}]+)\}\}/g, (match, key) => {
-        const trimmed = key.trim();
-        const parts = trimmed.split('.');
-        let val = context;
-        for (const p of parts) {
-            if (val && Object.prototype.hasOwnProperty.call(val, p)) {
-                val = val[p];
-            } else {
-                return match;
-            }
+const getAccountInfoText = (account) => {
+    if (!account) return '';
+    if (typeof account === 'string') return account.trim();
+
+    const name = account.name || account.bank_name || account.bankName || '';
+    const accountNumber = account.accountNumber || account.account_number || '';
+    const iban = account.iban || account.iBan || '';
+
+    const parts = [];
+    if (name) parts.push(`البنك: ${name}`);
+    if (accountNumber) parts.push(`رقم الحساب: ${accountNumber}`);
+    if (iban) parts.push(`الآيبان: ${iban}`);
+
+    return parts.join(' - ');
+};
+
+const getPlaceholderValue = (key = '', context = {}) => {
+    const trimmed = String(key || '').trim();
+    if (!trimmed) return '';
+
+    if (trimmed === 'branch.state') {
+        return context?.branch?.state || context?.branch?.region || context?.company?.city || '';
+    }
+
+    if (trimmed === 'company.vat' || trimmed === 'company.tax_number') {
+        return context?.company?.vat || context?.company?.tax_number || '';
+    }
+
+    if (trimmed === 'company.commercial_register' || trimmed === 'company.register') {
+        return context?.company?.commercial_register || context?.company?.register || '';
+    }
+
+    if (trimmed === 'invoice.name' || trimmed === 'invoice.number') {
+        return context?.invoice?.name || context?.invoice?.number || '';
+    }
+
+    if (trimmed === 'invoice.invoice_date' || trimmed === 'invoice.date') {
+        return context?.invoice?.invoice_date || context?.invoice?.date || '';
+    }
+
+    if (trimmed === 'invoice.partner.name' || trimmed === 'partner.name') {
+        return context?.invoice?.partner?.name || context?.partner?.name || '';
+    }
+
+    if (trimmed === 'invoice.partner.street' || trimmed === 'partner.address') {
+        return context?.invoice?.partner?.street || context?.partner?.address || '';
+    }
+
+    if (trimmed === 'invoice.partner.vat' || trimmed === 'partner.tax_number') {
+        return context?.invoice?.partner?.vat || context?.partner?.vat || context?.partner?.tax_number || '';
+    }
+
+    if (trimmed === 'invoice.company_id.account_ids') {
+        const list = context?.invoice?.company_id?.account_ids;
+        if (!Array.isArray(list)) return '';
+        const text = list.map(getAccountInfoText).filter(Boolean).join(' | ');
+        return text;
+    }
+
+    const parts = trimmed.split('.');
+    let val = context;
+
+    for (const part of parts) {
+        if (val && Object.prototype.hasOwnProperty.call(val, part)) {
+            val = val[part];
+        } else {
+            return '';
         }
-        return val;
-    });
+    }
+
+    if (val == null) return '';
+    if (Array.isArray(val)) {
+        return val
+            .map((item) => (typeof item === 'object' ? JSON.stringify(item) : String(item || '').trim()))
+            .filter(Boolean)
+            .join(' | ');
+    }
+    if (typeof val === 'object') return '';
+    return val;
 };
 
-const filterTitleRows = (rows = []) => {
-    return rows.filter(r => {
-        if (!r || !r.text) return false;
-        const text = r.text.toLowerCase();
-        return !text.includes('simplified tax invoice') &&
-            !text.includes('فاتورة ضريبية مبسطة') &&
-            !text.includes('tax invoice');
-    });
+const extractPlaceholderKeys = (text = '') =>
+    [...String(text).matchAll(/\{\{([^}]+)\}\}/g)]
+        .map((m) => String(m[1] || '').trim())
+        .filter(Boolean);
+
+const resolvePlaceholders = (text = '', context = {}) =>
+    String(text).replace(/\{\{([^}]+)\}\}/g, (_, key) => String(getPlaceholderValue(key, context) ?? ''));
+
+const normalizeItem = (line, idx) => {
+    const quantity = Number(line?.quantity || 0);
+    const price = Number(line?.price ?? line?.unitPrice ?? 0);
+    const taxPercent = Number(line?.taxPercent ?? line?.tax_rate ?? line?.taxRate ?? 15);
+    const subtotal = Number(line?.subtotal ?? quantity * price);
+    const taxAmount = Number(line?.taxAmount ?? line?.tax_amount ?? (subtotal * taxPercent) / 100);
+    const total = Number(line?.total ?? subtotal + taxAmount);
+
+    return {
+        lineNumber: String(idx + 1),
+        description: String(line?.description || line?.productName || line?.name || line?.product?.name || ''),
+        quantity: String(line?.quantity ?? 0),
+        price: formatAmount(price),
+        taxRate: `${taxPercent}%`,
+        subtotal: formatAmount(subtotal),
+        taxAmount: formatAmount(taxAmount),
+        total: formatAmount(total),
+        code: String(line?.code || line?.product?.code || ''),
+    };
 };
 
-/* ═════════════════════════════════════════════════════════════════
-   Global Styles for PDF Elements
-   ═════════════════════════════════════════════════════════════ */
+const getColumnFlex = (key) => {
+    if (key === 'description') return 2.6;
+    if (key === 'lineNumber') return 1;
+    return 1.2;
+};
+
 const s = StyleSheet.create({
-    page: { fontFamily: 'Tajawal', display: 'flex', flexDirection: 'column', textAlign: 'right' },
-    row: { fontFamily: 'Tajawal', display: 'flex', flexDirection: 'row' },
-    rowRtl: { fontFamily: 'Tajawal', display: 'flex', flexDirection: 'row-reverse' },
-    col: { fontFamily: 'Tajawal', display: 'flex', flexDirection: 'column' },
-    textRight: { fontFamily: 'Tajawal', textAlign: 'right' },
-    textCenter: { fontFamily: 'Tajawal', textAlign: 'center' },
-    textLeft: { fontFamily: 'Tajawal', textAlign: 'left' },
-    bold: { fontFamily: 'Tajawal', fontWeight: 'bold' },
-    borderBottom: { fontFamily: 'Tajawal', borderBottomWidth: 1, borderBottomColor: '#333' },
-    dashedBottom: { fontFamily: 'Tajawal', borderBottomWidth: 1, borderBottomColor: '#ccc', borderBottomStyle: 'dashed' },
-    dashedTop: { fontFamily: 'Tajawal', borderTopWidth: 1, borderTopColor: '#ccc', borderTopStyle: 'dashed' },
-    table: { fontFamily: 'Tajawal', width: '100%', marginBottom: 16 },
-    tableHeaderRow: { fontFamily: 'Tajawal', flexDirection: 'row', backgroundColor: '#f3f4f6', borderBottomWidth: 1, borderColor: '#ddd' },
-    tableRow: { fontFamily: 'Tajawal', flexDirection: 'row', borderBottomWidth: 1, borderColor: '#ddd' },
-    tableCell: { fontFamily: 'Tajawal', padding: 4, textAlign: 'center', justifyContent: 'center' },
-    tableThermalHeaderRow: { fontFamily: 'Tajawal', flexDirection: 'row', borderBottomWidth: 1, borderColor: '#ccc', borderBottomStyle: 'dashed' },
-    tableThermalRow: { fontFamily: 'Tajawal', flexDirection: 'row' },
+    page: {
+        fontFamily: 'Tajawal',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: '#ffffff',
+        color: '#000000',
+        textAlign: 'right',
+    },
+    row: { display: 'flex', flexDirection: 'row' },
+    rowRtl: { display: 'flex', flexDirection: 'row-reverse' },
+    col: { display: 'flex', flexDirection: 'column' },
+
+    headerWrap: {
+        borderBottomWidth: 1,
+        borderBottomColor: '#d1d5db',
+        paddingBottom: 10,
+        marginBottom: 10,
+    },
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+    },
+    headerLeft: {
+        width: '52%',
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    headerCompanyText: {
+        flex: 1,
+        marginLeft: 8,
+        textAlign: 'right',
+    },
+    headerRight: {
+        width: '46%',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+    },
+    titleText: { fontSize: 18, fontWeight: 'bold', marginBottom: 4, textAlign: 'center' },
+
+    buyerBox: {
+        borderWidth: 1,
+        borderColor: '#d1d5db',
+        borderRadius: 4,
+        padding: 8,
+        marginBottom: 10,
+    },
+    buyerTitle: { fontSize: 12, fontWeight: 'bold', marginBottom: 4, textAlign: 'right' },
+
+    table: { width: '100%', marginBottom: 10 },
+    tableHeaderRow: {
+        flexDirection: 'row-reverse',
+        backgroundColor: '#f3f4f6',
+        borderWidth: 1,
+        borderColor: '#d1d5db',
+        minHeight: 28,
+        alignItems: 'center',
+    },
+    tableRow: {
+        flexDirection: 'row-reverse',
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        borderBottomWidth: 1,
+        borderColor: '#d1d5db',
+        minHeight: 26,
+        alignItems: 'center',
+    },
+    tableCell: {
+        borderLeftWidth: 1,
+        borderLeftColor: '#d1d5db',
+        paddingHorizontal: 6,
+        paddingVertical: 4,
+        justifyContent: 'center',
+    },
+    tableHeadText: { fontSize: 10.5, fontWeight: 'bold', textAlign: 'center' },
+    tableBodyText: { fontSize: 10, textAlign: 'center' },
+    tableBodyTextDesc: { fontSize: 10, textAlign: 'right' },
+
+    totalsWrap: { alignItems: 'flex-end', marginBottom: 14 },
+    totalsBox: { width: '46%', minWidth: 200 },
+    totalRow: {
+        flexDirection: 'row-reverse',
+        justifyContent: 'space-between',
+        borderBottomWidth: 1,
+        borderBottomColor: '#d1d5db',
+        paddingVertical: 4,
+    },
+    totalLabel: { fontSize: 11, textAlign: 'right' },
+    totalValue: { fontSize: 11, textAlign: 'left' },
+    totalBold: { fontWeight: 'bold' },
+
+    footerRow: {
+        marginTop: 16,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-end',
+    },
+    signatureText: { fontSize: 11, textAlign: 'left' },
+    bankStrip: {
+        marginTop: 14,
+        borderTopWidth: 1,
+        borderTopColor: '#d1d5db',
+        backgroundColor: '#f9fafb',
+        padding: 6,
+    },
+    bankStripText: { fontSize: 9.5, textAlign: 'center' },
 });
 
-const PdfTextRow = ({ row, defaultSize, isRtl, context }) => {
-    const text = resolvePlaceholders(row?.text || '', context);
-    if (!text) return null;
+const PdfTextRow = ({ row, defaultSize, isRtl, context, forceAlign }) => {
+    const rawText = row?.text || '';
+    if (!rawText) return null;
+
+    const keys = extractPlaceholderKeys(rawText);
+    if (keys.length > 0) {
+        const hasMissingValue = keys.some((key) => !String(getPlaceholderValue(key, context)).trim());
+        if (hasMissingValue) return null;
+    }
+
+    const text = resolvePlaceholders(rawText, context);
+    if (!String(text).trim()) return null;
+
     const fmt = row?.format || {};
-    const fontSize = fmt.fontSize || defaultSize;
-    let align = fmt.align || (isRtl ? 'right' : 'left');
 
     return (
-        <Text style={{
-            fontFamily: 'Tajawal',
-            fontSize: fontSize,
-            color: fmt.color || '#000',
-            textAlign: align,
-            fontWeight: fmt.bold ? 'bold' : 'normal',
-            marginBottom: 2
-        }}>
+        <Text
+            style={{
+                fontFamily: 'Tajawal',
+                fontSize: fmt.fontSize || defaultSize,
+                color: fmt.color || '#000',
+                textAlign: forceAlign || fmt.align || (isRtl ? 'right' : 'left'),
+                fontWeight: fmt.bold ? 'bold' : 'normal',
+                marginBottom: 2,
+            }}
+        >
             {text}
         </Text>
     );
 };
 
 const LogoImage = ({ logo, style }) => {
-    if (logo && logo.url && typeof logo.url === 'string' && logo.url.trim() !== '') {
-        return <Image src={logo.url} style={{ width: logo.size || 70, height: 50, objectFit: 'contain', ...style }} />;
-    }
+    const logoUrl = logo?.url || logo?.logo || '';
+    if (!logoUrl || typeof logoUrl !== 'string' || !logoUrl.trim()) return null;
+
     return (
-        <View style={{ borderWidth: 1, borderColor: '#d1d5db', borderStyle: 'dashed', padding: 4, width: 70, height: 50, justifyContent: 'center', alignItems: 'center', ...style }}>
-            <Text style={{ fontSize: 8, color: '#9ca3af', textAlign: 'center' }}>شعار</Text>
-        </View>
+        <Image
+            src={logoUrl}
+            style={{
+                width: logo?.size || 64,
+                height: 48,
+                objectFit: 'contain',
+                ...style,
+            }}
+        />
     );
 };
 
-/* ═════════════════════════════════════════════════════════════════
-   Design 1: Arabic-Only Layout
-   ═════════════════════════════════════════════════════════════ */
-const Design1Layout = ({ template, context, sampleProducts, sampleTotals, isRtl, qrUrl }) => {
-    const { page = {}, logo = {}, header = {}, partner = {}, table = {}, footer = {} } = template;
-    const titleObj = header.titles?.saleInvoice || { text: 'فاتورة ضريبية', format: { fontSize: 14, bold: true } };
-    const enabledCols = (table.columns || []).filter(c => c.enabled !== false);
-    const enabledFooter = (table.footerRows || []).filter(r => r.enabled !== false);
+const Design1Layout = ({ template, context, sampleProducts, sampleTotals, qrUrl }) => {
+    const { logo = {}, header = {}, partner = {}, table = {}, footer = {} } = template;
+
+    const titleObj = header.titles?.saleInvoice || { text: 'فاتورة ضريبية مبسطة', format: { fontSize: 18, bold: true } };
+    const enabledCols = (table.columns || []).filter((c) => c.enabled !== false);
+    const enabledFooter = (table.footerRows || []).filter((r) => r.enabled !== false);
+
+    const bankAccounts = context?.invoice?.company_id?.account_ids;
+    const bankInfoText = Array.isArray(bankAccounts)
+        ? bankAccounts.map(getAccountInfoText).filter(Boolean).join(' | ')
+        : '';
+
+    const logoContext = {
+        ...logo,
+        url: logo?.url || context?.company?.logo || context?.company?.logo_path || '',
+    };
 
     return (
         <View style={s.col}>
-            {/* Header */}
-            <View style={[isRtl ? s.rowRtl : s.row, { justifyContent: 'space-between', marginBottom: 16, paddingBottom: 8, ...(header.showBottomBorder ? s.borderBottom : {}) }]}>
-                <View style={{ width: 70 }}>
-                    {qrUrl && typeof qrUrl === 'string' && qrUrl.startsWith('data:') && <Image src={qrUrl} style={{ width: 70, height: 70 }} />}
-                </View>
-                <View style={[s.col, { flex: 1, paddingHorizontal: 16 }]}>
-                    <PdfTextRow row={{ ...titleObj, format: { ...titleObj.format, align: 'center' } }} defaultSize={16} isRtl={isRtl} context={context} />
-                    {filterTitleRows(header.invoiceInfoRows).map((r, i) => (
-                        <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'center' } }} defaultSize={11} isRtl={isRtl} context={context} />
-                    ))}
-                </View>
-                <View style={{ width: 70, alignItems: 'flex-end' }}>
-                    <LogoImage logo={logo} />
+            <View style={s.headerWrap}>
+                <View style={s.headerRow}>
+                    <View style={s.headerLeft}>
+                        <LogoImage logo={logoContext} />
+                        <View style={s.headerCompanyText}>
+                            {(header.rows || []).map((r, i) => (
+                                <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'right' } }} defaultSize={11} isRtl context={context} />
+                            ))}
+                        </View>
+                    </View>
+
+                    <View style={s.headerRight}>
+                        <PdfTextRow
+                            row={{ ...titleObj, format: { ...titleObj.format, align: 'center', bold: true, fontSize: titleObj?.format?.fontSize || 18 } }}
+                            defaultSize={18}
+                            isRtl
+                            context={context}
+                            forceAlign="center"
+                        />
+                        {(header.invoiceInfoRows || []).map((r, i) => (
+                            <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'center' } }} defaultSize={11} isRtl context={context} forceAlign="center" />
+                        ))}
+                    </View>
                 </View>
             </View>
 
-            {/* From/To */}
-            <View style={[s.row, { justifyContent: 'space-between', marginBottom: 16 }]}>
-                <View style={[s.col, { flex: 1 }]}>
-                    <Text style={{ fontFamily: 'Tajawal', fontSize: 11, color: '#666', marginBottom: 4, textAlign: 'right' }}>إلى :</Text>
-                    {(partner.clientRows || []).map((r, i) => (
-                        <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'right' } }} defaultSize={11} isRtl={true} context={context} />
-                    ))}
-                </View>
-                <View style={{ width: 24 }} />
-                <View style={[s.col, { flex: 1 }]}>
-                    <Text style={{ fontFamily: 'Tajawal', fontSize: 11, color: '#666', marginBottom: 4, textAlign: 'right' }}>من :</Text>
-                    {(header.rows || []).map((r, i) => (
-                        <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'right' } }} defaultSize={page.fontSize || 12} isRtl={true} context={context} />
-                    ))}
-                </View>
+            <View style={s.buyerBox}>
+                <Text style={s.buyerTitle}>العميل</Text>
+                {(partner.clientRows || []).map((r, i) => (
+                    <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'right' } }} defaultSize={11} isRtl context={context} />
+                ))}
             </View>
 
-            {/* Table */}
             {enabledCols.length > 0 && (
                 <View style={s.table}>
                     <View style={s.tableHeaderRow}>
-                        {enabledCols.map(col => (
-                            <View key={col.key} style={[s.tableCell, { flex: 1 }]}>
-                                <Text style={{ fontFamily: 'Tajawal', fontSize: col.labelFormat?.fontSize || 11, fontWeight: 'bold' }}>{col.label}</Text>
+                        {enabledCols.map((col) => (
+                            <View key={col.key} style={[s.tableCell, { flex: getColumnFlex(col.key) }]}>
+                                <Text style={s.tableHeadText}>{col.label}</Text>
                             </View>
                         ))}
                     </View>
+
                     {sampleProducts.map((row, i) => (
                         <View key={i} style={s.tableRow}>
-                            {enabledCols.map(col => (
-                                <View key={col.key} style={[s.tableCell, { flex: 1 }]}>
-                                    <Text style={{ fontFamily: 'Tajawal', fontSize: col.valueFormat?.fontSize || 11 }}>{row[col.key] || '-'}</Text>
+                            {enabledCols.map((col) => (
+                                <View key={col.key} style={[s.tableCell, { flex: getColumnFlex(col.key) }]}>
+                                    <Text style={col.key === 'description' ? s.tableBodyTextDesc : s.tableBodyText}>{row[col.key] || '-'}</Text>
                                 </View>
                             ))}
                         </View>
@@ -232,206 +442,85 @@ const Design1Layout = ({ template, context, sampleProducts, sampleTotals, isRtl,
                 </View>
             )}
 
-            {/* Totals */}
             {enabledFooter.length > 0 && (
-                <View style={[s.col, { width: '45%' }]}>
-                    {enabledFooter.map(r => {
-                        const isTotal = r.key === 'total' || r.key === 'paid';
-                        return (
-                            <View key={r.key} style={[s.row, { justifyContent: 'space-between', paddingVertical: 4, borderTopWidth: isTotal ? 1 : 0, borderBottomWidth: r.key === 'total' ? 1 : 0, borderColor: '#000' }]}>
-                                <Text style={{ fontFamily: 'Tajawal', fontSize: 12, fontWeight: isTotal ? 'bold' : 'normal' }}>{r.label}</Text>
-                                <Text style={{ fontFamily: 'Tajawal', fontSize: 12, fontWeight: isTotal ? 'bold' : 'normal' }}>{sampleTotals[r.key] || '0.00'}</Text>
-                            </View>
-                        );
-                    })}
+                <View style={s.totalsWrap}>
+                    <View style={s.totalsBox}>
+                        {enabledFooter.map((r) => {
+                            const isFinal = r.key === 'total';
+                            return (
+                                <View key={r.key} style={s.totalRow}>
+                                    <Text style={[s.totalLabel, isFinal ? s.totalBold : null]}>{r.label}</Text>
+                                    <Text style={[s.totalValue, isFinal ? s.totalBold : null]}>{sampleTotals[r.key] || '0.00'}</Text>
+                                </View>
+                            );
+                        })}
+                    </View>
                 </View>
             )}
 
-            {/* Signature & Notes */}
-            <View style={[s.row, { justifyContent: 'space-between', marginTop: 32, alignItems: 'flex-end' }]}>
+            <View style={s.footerRow}>
                 <View style={s.col}>
-                    {footer.signatures?.filter(s => s.rows?.[0]?.text).length > 0 ? (
-                        footer.signatures.filter(s => s.rows?.[0]?.text).map((sig, i) => (
-                            <View key={i} style={s.col}>
-                                {sig.rows.map((r, j) => <PdfTextRow key={j} row={r} defaultSize={10} isRtl={isRtl} context={context} />)}
-                                <View style={{ width: 120, borderBottomWidth: 1, borderColor: '#999', marginTop: 4 }} />
-                            </View>
-                        ))
-                    ) : (
-                        <View style={s.col}>
-                            <View style={{ width: 120, borderBottomWidth: 1, borderColor: '#999', marginBottom: 4 }} />
-                            <Text style={{ fontSize: 12, color: '#999' }}>التوقيع</Text>
-                        </View>
-                    )}
+                    <Text style={s.signatureText}>التوقيع : __________________</Text>
                 </View>
-                <View style={[s.col, { alignItems: 'flex-end' }]}>
+                <View style={s.col}>
+                    {qrUrl ? <Image src={qrUrl} style={{ width: 70, height: 70 }} /> : null}
+                </View>
+            </View>
+
+            {(footer.notesRows || []).length > 0 && (
+                <View style={{ marginTop: 8 }}>
                     {(footer.notesRows || []).map((r, i) => (
-                        <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'right' } }} defaultSize={12} isRtl={isRtl} context={context} />
-                    ))}
-                    {(!footer.notesRows || footer.notesRows.length === 0) && (
-                        <Text style={{ fontSize: 14, fontWeight: 'bold' }}>ملاحظات</Text>
-                    )}
-                </View>
-            </View>
-        </View>
-    );
-};
-
-/* ═════════════════════════════════════════════════════════════════
-   Design 2: Bilingual Layout
-   ═════════════════════════════════════════════════════════════ */
-const Design2Layout = ({ template, context, sampleProducts, sampleTotals, isRtl, qrUrl }) => {
-    const { page = {}, logo = {}, header = {}, partner = {}, table = {}, footer = {} } = template;
-    const titleObj = header.titles?.saleInvoice || { text: 'فاتورة ضريبية\nTAX INVOICE', format: { fontSize: 14, bold: true } };
-    const enabledCols = (table.columns || []).filter(c => c.enabled !== false);
-    const enabledFooter = (table.footerRows || []).filter(r => r.enabled !== false);
-
-    return (
-        <View style={s.col}>
-            {/* Header */}
-            <View style={[isRtl ? s.rowRtl : s.row, { justifyContent: 'space-between', marginBottom: 8 }]}>
-                <View style={[s.col, { flex: 1 }]}>
-                    {(header.rows || []).map((r, i) => <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'left' } }} defaultSize={page.fontSize || 12} isRtl={false} context={context} />)}
-                </View>
-                <View style={{ width: 70, alignItems: 'center' }}>
-                    <LogoImage logo={logo} />
-                </View>
-                <View style={[s.col, { flex: 1 }]}>
-                    {(header.rows || []).map((r, i) => <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'right' } }} defaultSize={page.fontSize || 12} isRtl={true} context={context} />)}
-                </View>
-            </View>
-
-            {/* Title */}
-            <View style={[s.col, { alignItems: 'center', marginBottom: 12, paddingBottom: 8, ...(header.showBottomBorder ? s.borderBottom : {}) }]}>
-                <PdfTextRow row={{ ...titleObj, format: { ...titleObj.format, align: 'center' } }} defaultSize={16} isRtl={isRtl} context={context} />
-            </View>
-
-            {/* Info */}
-            <View style={[s.row, { justifyContent: 'space-between', marginBottom: 16 }]}>
-                <View style={[s.col, { flex: 1 }]}>
-                    {(partner.clientRows || []).map((r, i) => <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'left' } }} defaultSize={11} isRtl={false} context={context} />)}
-                </View>
-                <View style={[s.col, { flex: 1 }]}>
-                    {filterTitleRows(header.invoiceInfoRows).map((r, i) => <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'right' } }} defaultSize={11} isRtl={true} context={context} />)}
-                </View>
-            </View>
-
-            {/* Table */}
-            {enabledCols.length > 0 && (
-                <View style={s.table}>
-                    <View style={s.tableHeaderRow}>
-                        {enabledCols.map(col => (
-                            <View key={col.key} style={[s.tableCell, { flex: 1 }]}>
-                                <Text style={{ fontFamily: 'Tajawal', fontSize: col.labelFormat?.fontSize || 11, fontWeight: 'bold' }}>{col.label}</Text>
-                            </View>
-                        ))}
-                    </View>
-                    {sampleProducts.map((row, i) => (
-                        <View key={i} style={s.tableRow}>
-                            {enabledCols.map(col => (
-                                <View key={col.key} style={[s.tableCell, { flex: 1 }]}>
-                                    <Text style={{ fontFamily: 'Tajawal', fontSize: col.valueFormat?.fontSize || 11 }}>{row[col.key] || '-'}</Text>
-                                </View>
-                            ))}
-                        </View>
+                        <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'center' } }} defaultSize={9} isRtl context={context} forceAlign="center" />
                     ))}
                 </View>
             )}
 
-            {/* Totals */}
-            {enabledFooter.length > 0 && (
-                <View style={[s.col, { width: '45%' }]}>
-                    {enabledFooter.map(r => {
-                        const isTotal = r.key === 'total' || r.key === 'paid';
-                        return (
-                            <View key={r.key} style={[s.row, { justifyContent: 'space-between', paddingVertical: 4, borderTopWidth: isTotal ? 1 : 0, borderBottomWidth: r.key === 'total' ? 1 : 0, borderColor: '#000' }]}>
-                                <Text style={{ fontFamily: 'Tajawal', fontSize: 12 }}>{r.label}</Text>
-                                <Text style={{ fontFamily: 'Tajawal', fontSize: 12, fontWeight: isTotal ? 'bold' : 'normal' }}>{sampleTotals[r.key] || '0.00'}</Text>
-                            </View>
-                        );
-                    })}
+            {bankInfoText ? (
+                <View style={s.bankStrip}>
+                    <Text style={s.bankStripText}>{bankInfoText}</Text>
                 </View>
-            )}
-
-            {/* Sign and Notes */}
-            <View style={[s.row, { justifyContent: 'space-between', marginTop: 32, alignItems: 'flex-end' }]}>
-                <View style={s.col}>
-                    {footer.signatures?.filter(s => s.rows?.[0]?.text).length > 0 ? (
-                        footer.signatures.filter(s => s.rows?.[0]?.text).map((sig, i) => (
-                            <View key={i} style={s.col}>
-                                {sig.rows.map((r, j) => <PdfTextRow key={j} row={r} defaultSize={10} isRtl={isRtl} context={context} />)}
-                                <View style={{ width: 120, borderBottomWidth: 1, borderColor: '#999', marginTop: 4 }} />
-                            </View>
-                        ))
-                    ) : (
-                        <View style={s.col}>
-                            <View style={{ width: 120, borderBottomWidth: 1, borderColor: '#999', marginBottom: 4 }} />
-                            <Text style={{ fontFamily: 'Tajawal', fontSize: 12, color: '#999' }}>Signature - التوقيع</Text>
-                        </View>
-                    )}
-                </View>
-                <View style={[s.col, { alignItems: 'flex-end', gap: 4 }]}>
-                    {(footer.notesRows || []).map((r, i) => <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'right' } }} defaultSize={12} isRtl={isRtl} context={context} />)}
-                    {(!footer.notesRows || footer.notesRows.length === 0) && <Text style={{ fontFamily: 'Tajawal', fontSize: 12, color: '#999' }}>Notes - ملاحظات</Text>}
-                    {qrUrl && typeof qrUrl === 'string' && qrUrl.startsWith('data:') && <Image src={qrUrl} style={{ width: 56, height: 56, marginTop: 4 }} />}
-                </View>
-            </View>
-
-            {/* Bank Bar */}
-            <View style={{ marginTop: 'auto', paddingTop: 24 }}>
-                <View style={{ backgroundColor: '#f3f4f6', padding: 8, borderTopWidth: 1, borderColor: '#ddd' }}>
-                    <Text style={{ fontFamily: 'Tajawal', fontSize: 10, color: '#666', textAlign: 'center' }}>
-                        مصرف الراجحي     رقم الحساب : 00000000000000     رقم الايبان : SA0000000000000000000
-                    </Text>
-                </View>
-            </View>
+            ) : null}
         </View>
     );
 };
 
-/* ═════════════════════════════════════════════════════════════════
-   Thermal Layout
-   ═════════════════════════════════════════════════════════════ */
-const ThermalLayout = ({ template, context, sampleProducts, sampleTotals, isRtl, qrUrl }) => {
-    const { page = {}, logo = {}, header = {}, partner = {}, table = {}, footer = {} } = template;
-    const titleObj = header.titles?.saleInvoice || { text: 'فاتورة ضريبية', format: { fontSize: 14, bold: true } };
-    const enabledCols = (table.columns || []).filter(c => c.enabled !== false);
-    const enabledFooter = (table.footerRows || []).filter(r => r.enabled !== false);
+const Design2Layout = (props) => <Design1Layout {...props} />;
+
+const ThermalLayout = ({ template, context, sampleProducts, sampleTotals, qrUrl }) => {
+    const { logo = {}, header = {}, partner = {}, table = {} } = template;
+    const titleObj = header.titles?.saleInvoice || { text: 'فاتورة ضريبية مبسطة', format: { fontSize: 12, bold: true } };
+    const enabledCols = (table.columns || []).filter((c) => c.enabled !== false);
+    const enabledFooter = (table.footerRows || []).filter((r) => r.enabled !== false);
 
     return (
         <View style={[s.col, { alignItems: 'center' }]}>
-            <View style={{ marginBottom: 8, alignItems: 'center' }}>
-                <LogoImage logo={logo} style={{ width: 90, height: 70 }} />
+            <LogoImage logo={logo} style={{ width: 90, height: 60 }} />
+            <PdfTextRow row={{ ...titleObj, format: { ...titleObj.format, align: 'center' } }} defaultSize={12} isRtl context={context} forceAlign="center" />
+
+            {(header.invoiceInfoRows || []).map((r, i) => (
+                <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'center' } }} defaultSize={9} isRtl context={context} forceAlign="center" />
+            ))}
+
+            <View style={{ marginVertical: 6, width: '100%' }}>
+                {(partner.clientRows || []).map((r, i) => (
+                    <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'center' } }} defaultSize={9} isRtl context={context} forceAlign="center" />
+                ))}
             </View>
-
-            {(header.rows || []).map((r, i) => <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'center' } }} defaultSize={10} isRtl={isRtl} context={context} />)}
-
-            <View style={{ marginVertical: 8 }}>
-                <PdfTextRow row={{ ...titleObj, format: { ...titleObj.format, align: 'center' } }} defaultSize={12} isRtl={isRtl} context={context} />
-            </View>
-
-            {filterTitleRows(header.invoiceInfoRows).map((r, i) => <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'center' } }} defaultSize={9} isRtl={isRtl} context={context} />)}
-
-            <View style={{ marginVertical: 8, width: '100%' }}>
-                {(partner.clientRows || []).map((r, i) => <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'center' } }} defaultSize={9} isRtl={isRtl} context={context} />)}
-            </View>
-
-            <View style={[s.dashedBottom, { width: '100%', marginBottom: 4 }]} />
 
             {enabledCols.length > 0 && (
                 <View style={[s.table, { marginBottom: 8 }]}>
-                    <View style={s.tableThermalHeaderRow}>
-                        {enabledCols.map(col => (
-                            <View key={col.key} style={[s.tableCell, { flex: 1, padding: 2 }]}>
-                                <Text style={{ fontFamily: 'Tajawal', fontSize: 9, fontWeight: 'bold' }}>{col.label}</Text>
+                    <View style={s.tableHeaderRow}>
+                        {enabledCols.map((col) => (
+                            <View key={col.key} style={[s.tableCell, { flex: getColumnFlex(col.key), paddingVertical: 2 }]}>
+                                <Text style={{ fontSize: 8.5, fontWeight: 'bold', textAlign: 'center' }}>{col.label}</Text>
                             </View>
                         ))}
                     </View>
                     {sampleProducts.map((row, i) => (
-                        <View key={i} style={s.tableThermalRow}>
-                            {enabledCols.map(col => (
-                                <View key={col.key} style={[s.tableCell, { flex: 1, padding: 2 }]}>
-                                    <Text style={{ fontFamily: 'Tajawal', fontSize: 9 }}>{row[col.key] || '-'}</Text>
+                        <View key={i} style={s.tableRow}>
+                            {enabledCols.map((col) => (
+                                <View key={col.key} style={[s.tableCell, { flex: getColumnFlex(col.key), paddingVertical: 2 }]}>
+                                    <Text style={{ fontSize: 8.5, textAlign: col.key === 'description' ? 'right' : 'center' }}>{row[col.key] || '-'}</Text>
                                 </View>
                             ))}
                         </View>
@@ -439,72 +528,101 @@ const ThermalLayout = ({ template, context, sampleProducts, sampleTotals, isRtl,
                 </View>
             )}
 
-            <View style={[s.dashedTop, { width: '100%', marginTop: 4 }]} />
-
             {enabledFooter.length > 0 && (
-                <View style={[s.col, { width: '90%' }]}>
-                    {enabledFooter.map(r => {
-                        const isTotal = r.key === 'total' || r.key === 'paid';
-                        return (
-                            <View key={r.key} style={[isRtl ? s.rowRtl : s.row, { justifyContent: 'space-between', paddingVertical: 2, borderTopWidth: isTotal ? 1 : 0, borderColor: '#ccc', borderTopStyle: 'dashed' }]}>
-                                <Text style={{ fontFamily: 'Tajawal', fontSize: 9 }}>{r.label}</Text>
-                                <Text style={{ fontFamily: 'Tajawal', fontSize: 9, fontWeight: isTotal ? 'bold' : 'normal' }}>{sampleTotals[r.key] || '0.00'}</Text>
-                            </View>
-                        );
-                    })}
+                <View style={{ width: '100%', marginBottom: 8 }}>
+                    {enabledFooter.map((r) => (
+                        <View key={r.key} style={[s.rowRtl, { justifyContent: 'space-between', paddingVertical: 2 }]}> 
+                            <Text style={{ fontSize: 9 }}>{r.label}</Text>
+                            <Text style={{ fontSize: 9, fontWeight: r.key === 'total' ? 'bold' : 'normal' }}>{sampleTotals[r.key] || '0.00'}</Text>
+                        </View>
+                    ))}
                 </View>
             )}
 
-            <View style={[s.col, { marginVertical: 8, width: '100%', alignItems: 'center' }]}>
-                {(footer.notesRows || []).map((r, i) => <PdfTextRow key={i} row={{ ...r, format: { ...r.format, align: 'center' } }} defaultSize={9} isRtl={isRtl} context={context} />)}
-                {(!footer.notesRows || footer.notesRows.length === 0) && <Text style={{ fontSize: 10, fontWeight: 'bold' }}>ملاحظات</Text>}
-            </View>
-
-            {qrUrl && typeof qrUrl === 'string' && qrUrl.startsWith('data:') && <Image src={qrUrl} style={{ width: 80, height: 80 }} />}
+            {qrUrl ? <Image src={qrUrl} style={{ width: 70, height: 70 }} /> : null}
         </View>
     );
 };
 
-/* ═════════════════════════════════════════════════════════════════
-   InvoicePreview
-   ═════════════════════════════════════════════════════════════ */
 const InvoicePreview = ({ template = {}, direction = 'rtl', context = {} }) => {
     const page = template.page || {};
     const table = template.table || {};
-    const isRtl = direction === 'rtl';
     const margins = page.margins || { top: 40, right: 40, bottom: 40, left: 40 };
     const designId = template.designId || 'design-1';
 
     const pSize = page?.pageSize ? String(page.pageSize).toLowerCase() : 'a4';
     const isThermal = pSize === '80mm';
-    const pageSizeArr = isThermal ? [226, 800] : (pSize === 'a5' ? 'A5' : (pSize === 'letter' ? 'LETTER' : 'A4'));
+    const pageSizeArr = isThermal ? [226, 900] : pSize === 'a5' ? 'A5' : pSize === 'letter' ? 'LETTER' : 'A4';
 
     const deductTax = table.deductTaxFromAmounts === true;
-    const basePrice = 5000.00;
+    const basePrice = 5000;
     const qty = 1;
     const rawSubtotal = basePrice * qty;
     const vatRate = 0.15;
-    let computedSubtotal = deductTax ? rawSubtotal / (1 + vatRate) : rawSubtotal;
-    let computedVat = deductTax ? computedSubtotal * vatRate : rawSubtotal * vatRate;
-    let computedTotal = deductTax ? rawSubtotal : rawSubtotal + computedVat;
 
-    // Use dynamic items/totals from context if available, otherwise use fallback dummy data
-    const sampleProducts = context?.items?.length > 0 ? context.items : [
-        { lineNumber: '1', description: 'شاشة كمبيوتر حديثة', quantity: `${qty}`, price: basePrice.toFixed(2), taxRate: '15%', subtotal: computedSubtotal.toFixed(2), taxAmount: computedVat.toFixed(2), total: computedTotal.toFixed(2), discount: '0.00', code: 'SCR-01' },
-        { lineNumber: '2', description: 'لوحة مفاتيح لاسلكية', quantity: '2', price: '150.00', taxRate: '15%', subtotal: '300.00', taxAmount: '45.00', total: '345.00', discount: '0.00', code: 'KB-02' }
+    const computedSubtotal = deductTax ? rawSubtotal / (1 + vatRate) : rawSubtotal;
+    const computedVat = deductTax ? computedSubtotal * vatRate : rawSubtotal * vatRate;
+    const computedTotal = deductTax ? rawSubtotal : rawSubtotal + computedVat;
+
+    const fallbackItems = [
+        { lineNumber: '1', description: 'منتج عام', quantity: '1', price: formatAmount(basePrice), taxRate: '15%', subtotal: formatAmount(computedSubtotal), taxAmount: formatAmount(computedVat), total: formatAmount(computedTotal) },
     ];
 
-    const sampleTotals = context?.totals || { subtotal: computedSubtotal.toFixed(2), discount: '0.00', vat: computedVat.toFixed(2), total: computedTotal.toFixed(2), paid: computedTotal.toFixed(2), remaining: '0.00' };
+    const invoiceLineIds = Array.isArray(context?.invoice?.invoice_line_ids)
+        ? context.invoice.invoice_line_ids
+        : Array.isArray(context?.items)
+            ? context.items
+            : [];
 
-    const qrUrl = useQRCodeDataUrl(context.company, sampleTotals);
-    const layoutProps = { template, context, sampleProducts, sampleTotals, isRtl, qrUrl };
+    const sampleProducts = invoiceLineIds.length > 0
+        ? invoiceLineIds.map((line, idx) => normalizeItem(line, idx))
+        : fallbackItems;
+
+    const sampleTotals = context?.totals || {
+        subtotal: formatAmount(context?.invoice?.amount_untaxed ?? computedSubtotal),
+        vat: formatAmount(context?.invoice?.amount_tax ?? computedVat),
+        total: formatAmount(context?.invoice?.amount_total ?? computedTotal),
+    };
+
+    const normalizedTotals = {
+        subtotal: sampleTotals.subtotal || formatAmount(0),
+        vat: sampleTotals.vat || formatAmount(0),
+        total: sampleTotals.total || formatAmount(0),
+    };
+
+    const providedQr = normalizeQrDataUrl(getPlaceholderValue('invoice.qr_code', context));
+    const generatedQr = useQRCodeDataUrl(context?.company || {}, normalizedTotals);
+    const qrUrl = providedQr || generatedQr;
+
+    const layoutProps = {
+        template,
+        context,
+        sampleProducts,
+        sampleTotals: normalizedTotals,
+        qrUrl,
+    };
 
     return (
-        <div className="w-full h-full rounded-md border border-gray-300 overflow-hidden">
-            <PDFViewer width="100%" height="100%" showToolbar={true}>
+        <div className="w-full h-full rounded-md border border-gray-300 overflow-hidden" dir={direction === 'rtl' ? 'rtl' : 'ltr'}>
+            <PDFViewer width="100%" height="100%" showToolbar>
                 <Document>
-                    <Page size={pageSizeArr} style={[s.page, { padding: `${margins.top}px ${margins.right}px ${margins.bottom}px ${margins.left}px` }]}>
-                        {isThermal ? <ThermalLayout {...layoutProps} /> : designId === 'design-2' ? <Design2Layout {...layoutProps} /> : <Design1Layout {...layoutProps} />}
+                    <Page
+                        size={pageSizeArr}
+                        style={[
+                            s.page,
+                            {
+                                paddingTop: Number(margins.top) || 40,
+                                paddingRight: Number(margins.right) || 40,
+                                paddingBottom: Number(margins.bottom) || 40,
+                                paddingLeft: Number(margins.left) || 40,
+                            },
+                        ]}
+                    >
+                        {isThermal
+                            ? <ThermalLayout {...layoutProps} />
+                            : designId === 'design-2'
+                                ? <Design2Layout {...layoutProps} />
+                                : <Design1Layout {...layoutProps} />}
                     </Page>
                 </Document>
             </PDFViewer>
@@ -512,20 +630,16 @@ const InvoicePreview = ({ template = {}, direction = 'rtl', context = {} }) => {
     );
 };
 
-export const GeneralPreview = ({ template = {}, direction = 'rtl', context = {} }) => {
-    return (
-        <div className="w-full h-full rounded-md border border-gray-300 flex items-center justify-center bg-gray-100">
-            <span className="text-gray-500">General Preview rendering uses standard HTML currently. Not fully migrated to PDFViewer yet.</span>
-        </div>
-    );
-};
+export const GeneralPreview = () => (
+    <div className="w-full h-full rounded-md border border-gray-300 flex items-center justify-center bg-gray-100">
+        <span className="text-gray-500">General Preview rendering uses standard HTML currently. Not fully migrated to PDFViewer yet.</span>
+    </div>
+);
 
-export const LabelPreview = ({ width = 40, height = 22, direction = 'rtl', rows = [], fontSize = 10, margins = {}, context = {} }) => {
-    return (
-        <div className="w-full h-full rounded-md border border-gray-300 flex items-center justify-center bg-gray-100">
-            <span className="text-gray-500">Label Preview rendering uses standard HTML currently. Not fully migrated to PDFViewer yet.</span>
-        </div>
-    );
-};
+export const LabelPreview = () => (
+    <div className="w-full h-full rounded-md border border-gray-300 flex items-center justify-center bg-gray-100">
+        <span className="text-gray-500">Label Preview rendering uses standard HTML currently. Not fully migrated to PDFViewer yet.</span>
+    </div>
+);
 
 export default InvoicePreview;

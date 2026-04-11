@@ -103,14 +103,14 @@ const templateSchema = new mongoose.Schema({
         invoiceInfoRows: { type: [rowSchema], default: () => ([{ text: '', format: {} }]) },
         // Document Titles (Invoice)
         titles: {
-            saleInvoice: { type: rowSchema, default: () => ({ text: 'فاتورة ضريبية مبسطة\nSIMPLIFIED TAX INVOICE', format: { fontSize: 14, bold: true } }) },
-            saleCreditNote: { type: rowSchema, default: () => ({ text: 'فاتورة مرتجعات\nCREDIT NOTE', format: { fontSize: 14, bold: true } }) },
-            purchaseInvoice: { type: rowSchema, default: () => ({ text: 'فاتورة مشتريات\nPURCHASE INVOICE', format: { fontSize: 14, bold: true } }) },
-            purchaseCreditNote: { type: rowSchema, default: () => ({ text: 'فاتورة مرتجعات مشتريات\nPURCHASE CREDIT NOTE', format: { fontSize: 14, bold: true } }) },
-            quotation: { type: rowSchema, default: () => ({ text: 'عرض سعر\nQUOTATION', format: { fontSize: 14, bold: true } }) },
-            salesOrder: { type: rowSchema, default: () => ({ text: 'أمر بيع\nSALES ORDER', format: { fontSize: 14, bold: true } }) },
-            purchaseRequest: { type: rowSchema, default: () => ({ text: 'طلب شراء\nPURCHASE REQUEST', format: { fontSize: 14, bold: true } }) },
-            purchaseOrder: { type: rowSchema, default: () => ({ text: 'أمر شراء\nPURCHASE ORDER', format: { fontSize: 14, bold: true } }) }
+            saleInvoice: { type: rowSchema, default: () => ({ text: 'فاتورة ضريبية مبسطة', format: { fontSize: 14, bold: true } }) },
+            saleCreditNote: { type: rowSchema, default: () => ({ text: 'فاتورة مرتجعات', format: { fontSize: 14, bold: true } }) },
+            purchaseInvoice: { type: rowSchema, default: () => ({ text: 'فاتورة مشتريات', format: { fontSize: 14, bold: true } }) },
+            purchaseCreditNote: { type: rowSchema, default: () => ({ text: 'فاتورة مرتجعات مشتريات', format: { fontSize: 14, bold: true } }) },
+            quotation: { type: rowSchema, default: () => ({ text: 'عرض سعر', format: { fontSize: 14, bold: true } }) },
+            salesOrder: { type: rowSchema, default: () => ({ text: 'أمر بيع', format: { fontSize: 14, bold: true } }) },
+            purchaseRequest: { type: rowSchema, default: () => ({ text: 'طلب شراء', format: { fontSize: 14, bold: true } }) },
+            purchaseOrder: { type: rowSchema, default: () => ({ text: 'أمر شراء', format: { fontSize: 14, bold: true } }) }
         }
     },
 
@@ -149,16 +149,16 @@ const templateSchema = new mongoose.Schema({
         clientRows: {
             type: [rowSchema],
             default: () => ([
-                { text: '{{partner.name}}', format: { fontSize: 12 } },
-                { text: '{{partner.tax_number}}', format: { fontSize: 11 } },
-                { text: '{{partner.address}}', format: { fontSize: 11 } }
+                { text: '{{invoice.partner.name}}', format: { fontSize: 12 } },
+                { text: '{{invoice.partner.street}}', format: { fontSize: 11 } },
+                { text: 'الرقم الضريبي : {{invoice.partner.vat}}', format: { fontSize: 11 } }
             ])
         },
         supplierRows: {
             type: [rowSchema],
             default: () => ([
-                { text: '{{partner.name}}', format: { fontSize: 12 } },
-                { text: '{{partner.tax_number}}', format: { fontSize: 11 } }
+                { text: '{{invoice.partner.name}}', format: { fontSize: 12 } },
+                { text: '{{invoice.partner.street}}', format: { fontSize: 11 } }
             ])
         }
     },
@@ -180,10 +180,9 @@ const templateSchema = new mongoose.Schema({
                 { key: 'description', label: 'الوصف', enabled: true },
                 { key: 'quantity', label: 'الكمية', enabled: true },
                 { key: 'price', label: 'السعر', enabled: true },
-                { key: 'discount', label: 'الخصم', enabled: false },
                 { key: 'taxRate', label: 'نسبة الضريبة', enabled: true },
-                { key: 'taxAmount', label: 'قيمة الضريبة', enabled: false },
                 { key: 'total', label: 'الإجمالي', enabled: true },
+                { key: 'discount', label: 'الخصم', enabled: false },
                 { key: 'code', label: 'الكود', enabled: false }
             ])
         },
@@ -195,10 +194,10 @@ const templateSchema = new mongoose.Schema({
                 enabled: { type: Boolean, default: true }
             }],
             default: () => ([
-                { key: 'subtotal', label: 'الإجمالي قبل الضرائب', enabled: true },
-                { key: 'discount', label: 'الخصم', enabled: false },
+                { key: 'subtotal', label: 'الإجمالي قبل الضريبة', enabled: true },
                 { key: 'vat', label: 'القيمة المضافة 15%', enabled: true },
                 { key: 'total', label: 'الإجمالي بعد الضريبة', enabled: true },
+                { key: 'discount', label: 'الخصم', enabled: false },
                 { key: 'paid', label: 'المدفوع', enabled: false },
                 { key: 'remaining', label: 'المتبقي', enabled: false }
             ])

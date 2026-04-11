@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Home, FileText, Receipt, Tag } from 'lucide-react';
+import { Home, FileText, Receipt, Tag, CheckSquare } from 'lucide-react';
 
 const TemplatesMainPage = () => {
     const { t, i18n } = useTranslation();
@@ -28,6 +28,13 @@ const TemplatesMainPage = () => {
             icon: Tag,
             to: '/dashboard/templates/product-labels',
             color: 'text-purple-600 bg-purple-50',
+        },
+        {
+            title: t('Invoice QA Tool', 'أداة اختبار الفواتير'),
+            desc: t('Test invoice templates before sending', 'اختبر قوالب الفواتير قبل الإرسال'),
+            icon: CheckSquare,
+            to: '/dashboard/templates/invoice-qa',
+            color: 'text-orange-600 bg-orange-50',
         },
     ];
 

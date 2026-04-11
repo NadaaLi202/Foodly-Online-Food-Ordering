@@ -43,7 +43,7 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, onRefreshI
         }
         setDownloadLoading(true);
         try {
-            const { blob, filename } = await fetchPdfBlob(api, String(id));
+            const { blob, filename } = await fetchPdfBlob(api, String(id), { previewInvoice: invoice });
             downloadBlob(blob, filename);
             toast.success(t('sales.invoices.download') + ' — OK');
         } catch (err) {
@@ -62,7 +62,7 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, onRefreshI
         }
         setPrintLoading(true);
         try {
-            const { blob } = await fetchPdfBlob(api, String(id));
+            const { blob } = await fetchPdfBlob(api, String(id), { previewInvoice: invoice });
             openBlobInNewTab(blob);
             toast.success(t('sales.invoices.print_pdf') + ' — OK');
         } catch (err) {

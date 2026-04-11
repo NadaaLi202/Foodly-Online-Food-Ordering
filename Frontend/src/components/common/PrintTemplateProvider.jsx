@@ -1,87 +1,276 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { setPrintTemplateRequestHandler, getSavedPrintTemplate, setSavedPrintTemplate, PRINT_TEMPLATE_OPTIONS, normalizePrintTemplate, requestPrintTemplateSelection } from '../../services/printTemplateService';
+import { QRCodeCanvas } from 'qrcode.react';
+import api, { BASE_URL } from '../../services/api';
+import { formatCurrency } from '../../utils/currencyFormatter';
+import { useAuth } from '../../context/AuthContext';
+import {
+    setPrintTemplateRequestHandler,
+    getSavedPrintTemplate,
+    setSavedPrintTemplate,
+    PRINT_TEMPLATE_OPTIONS,
+    normalizePrintTemplate,
+    requestPrintTemplateSelection
+} from '../../services/printTemplateService';
 
-const getPreviewTone = (value) => {
-    switch (value) {
-        case 'thermal':
-            return {
-                frame: 'bg-white border-gray-300',
-                accent: 'bg-gray-900',
-                header: 'bg-gray-100',
-                line: 'bg-gray-200',
-                badge: 'bg-gray-900',
-            };
-        case 'normal':
-            return {
-                frame: 'bg-white border-slate-200',
-                accent: 'bg-indigo-600',
-                header: 'bg-indigo-50',
-                line: 'bg-slate-200',
-                badge: 'bg-indigo-600',
-            };
-        case 'tax':
-        default:
-            return {
-                frame: 'bg-white border-indigo-200',
-                accent: 'bg-indigo-600',
-                header: 'bg-indigo-50',
-                line: 'bg-indigo-100',
-                badge: 'bg-indigo-600',
-            };
-    }
+const toNumber = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
 };
 
-const ModalPreview = ({ template }) => {
-    const tones = getPreviewTone(template);
+const formatDate = (value, isRTL) => {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+    return d.toLocaleDateString(isRTL ? 'ar-SA' : 'en-US');
+};
+
+const resolveTransactionFromResponse = (payload) =>
+    payload?.data?.transaction || payload?.transaction || payload?.data || payload || null;
+
+const getCompanyLogoUrl = (logoPath) => {
+    if (!logoPath || typeof logoPath !== 'string') return '';
+    return logoPath.startsWith('http') ? logoPath : `${BASE_URL}${logoPath}`;
+};
+
+const resolveEntityAddress = (entity) => {
+    if (!entity || typeof entity !== 'object') return '—';
+    const address = entity.address || {};
+    return (
+        address.address1 ||
+        address.city ||
+        entity.location ||
+        entity.city ||
+        entity.address1 ||
+        entity.address ||
+        '—'
+    );
+};
+
+const SAMPLE_DATA = {
+    transactionNumber: 'DOC-0000-X',
+    issueDate: new Date().toISOString(),
+    dueDate: new Date(Date.now() + 86400000 * 7).toISOString(),
+    currency: 'SAR',
+    contact: { 
+        name: 'عميل افتراضي / Sample Customer', 
+        phone: '05XXXXXXXX',
+        address: { city: 'الرياض / Riyadh' }
+    },
+    items: [
+        { productName: 'منتج تجريبي أ / Sample Item A', quantity: 2, unitPrice: 50, taxPercent: 15 },
+        { productName: 'منتج تجريبي ب / Sample Item B', quantity: 1, unitPrice: 100, taxPercent: 15 },
+    ],
+    subtotal: 200,
+    totalTax: 30,
+    totalAmount: 230,
+};
+
+const resolveCompanyInfo = ({ companySettings, user, requestMeta }) => {
+    const fromMeta = requestMeta?.companyInfo || {};
+    return {
+        name:
+            fromMeta.company_name ||
+            fromMeta.name ||
+            companySettings?.company_name ||
+            user?.name ||
+            '—',
+        logoPath: fromMeta.logo_path || companySettings?.logo_path || user?.logo_path || '',
+        taxNumber:
+            fromMeta.tax_number ||
+            fromMeta.taxNumber ||
+            companySettings?.tax_number ||
+            user?.taxNumber ||
+            '—',
+        commercialRegister:
+            fromMeta.commercial_register ||
+            fromMeta.commercialRegister ||
+            companySettings?.commercial_register ||
+            user?.commercialRegister ||
+            '—',
+        address:
+            fromMeta.address ||
+            companySettings?.address ||
+            companySettings?.location ||
+            companySettings?.city ||
+            user?.address ||
+            '—',
+        currency: companySettings?.currency || 'SAR',
+    };
+};
+
+const buildLines = (invoice) => {
+    const source = Array.isArray(invoice?.items) ? invoice.items : [];
+    return source.map((item) => {
+        const qty = toNumber(item?.quantity);
+        const unitPrice = toNumber(item?.unitPrice ?? item?.price);
+        const base = qty * unitPrice;
+        const discount = toNumber(item?.discountAmount) + (base * toNumber(item?.discountPercent) / 100);
+        const taxable = Math.max(0, base - discount);
+        const taxAmount = item?.taxAmount != null ? toNumber(item.taxAmount) : (taxable * toNumber(item?.taxRate ?? item?.taxPercent) / 100);
+        const total = item?.total != null ? toNumber(item.total) : taxable + taxAmount;
+        return {
+            description: item?.productName || item?.product?.name || item?.description || '—',
+            qty,
+            unitPrice,
+            taxAmount,
+            total,
+        };
+    });
+};
+
+const ModalPreview = ({ template, invoice, company, loading, isRTL, t }) => {
+    if (loading) {
+        return (
+            <div className="h-full min-h-[360px] flex items-center justify-center bg-white rounded-lg border border-gray-200">
+                <div className="h-8 w-8 rounded-full border-2 border-indigo-200 border-t-indigo-600 animate-spin" />
+            </div>
+        );
+    }
+
+    const activeInvoice = invoice || SAMPLE_DATA;
+
+    const currency = activeInvoice?.currency || company?.currency || 'SAR';
+    const logoUrl = getCompanyLogoUrl(company?.logoPath);
+    const contact = activeInvoice?.contactSnapshot || activeInvoice?.contact || {};
+    const lines = buildLines(activeInvoice);
+    const subtotalFromLines = lines.reduce((sum, line) => sum + (line.total - line.taxAmount), 0);
+    const taxFromLines = lines.reduce((sum, line) => sum + line.taxAmount, 0);
+    const subtotal = activeInvoice?.subtotal != null ? toNumber(activeInvoice.subtotal) : subtotalFromLines;
+    const taxAmount = activeInvoice?.totalTax != null ? toNumber(activeInvoice.totalTax) : taxFromLines;
+    const grandTotal = activeInvoice?.totalAmount != null ? toNumber(activeInvoice.totalAmount) : subtotal + taxAmount;
+    const qrValue = JSON.stringify({
+        invoiceNumber: activeInvoice?.transactionNumber || activeInvoice?._id || 'SAMPLE',
+        total: grandTotal,
+        company: company?.name,
+        date: activeInvoice?.issueDate,
+    });
+
+    if (template === 'thermal') {
+        return (
+            <div className="h-full max-h-[68vh] overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div className="mx-auto w-[304px] bg-white border border-gray-300 shadow-sm p-3 text-[11px] leading-5" dir="rtl">
+                    <div className="text-center border-b border-dashed border-gray-300 pb-2">
+                        {logoUrl ? <img src={logoUrl} alt={company?.name || 'Company'} className="h-10 mx-auto mb-1 object-contain" /> : null}
+                        <p className="font-bold text-[12px]">{company?.name}</p>
+                        <p>{t('sales.invoices.invoice_number', 'رقم الفاتورة')}: {activeInvoice?.transactionNumber || '—'}</p>
+                        <p>{t('sales.invoices.issue_date', 'تاريخ الفاتورة')}: {formatDate(activeInvoice?.issueDate, isRTL)}</p>
+                        <p className="font-semibold mt-1">{t('sales_settings.template_arabic_thermal', 'قالب فاتورة طابعة حرارية عربي')}</p>
+                    </div>
+
+                    <div className="py-2 border-b border-dashed border-gray-300">
+                        <p><span className="font-semibold">{t('sales.common.seller', 'البائع')}:</span> {company?.name}</p>
+                        <p><span className="font-semibold">{t('sales.common.buyer', 'المشتري')}:</span> {contact?.name || '—'}</p>
+                    </div>
+
+                    <div className="py-2 space-y-1 border-b border-dashed border-gray-300">
+                        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-1 text-[10px] font-semibold text-gray-500">
+                            <span>{t('sales.common.description', 'الوصف')}</span>
+                            <span>{t('sales.common.qty', 'ك')}</span>
+                            <span>{t('sales.common.tax', 'ض')}</span>
+                            <span>{t('sales.common.total', 'إج')}</span>
+                        </div>
+                        {lines.map((line, idx) => (
+                            <div key={`${line.description}-${idx}`} className="grid grid-cols-[1fr_auto_auto_auto] gap-1">
+                                <div>
+                                    <p className="font-medium">{line.description}</p>
+                                    <p className="text-[10px] text-gray-500">{formatCurrency(line.unitPrice, currency)}</p>
+                                </div>
+                                <p className="font-medium whitespace-nowrap">{line.qty}</p>
+                                <p className="font-medium whitespace-nowrap">{formatCurrency(line.taxAmount, currency)}</p>
+                                <p className="font-semibold whitespace-nowrap">{formatCurrency(line.total, currency)}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="py-2 space-y-1">
+                        <div className="flex justify-between"><span>{t('sales.common.subtotal', 'الإجمالي قبل الضريبة')}</span><span>{formatCurrency(subtotal, currency)}</span></div>
+                        <div className="flex justify-between"><span>{t('sales.common.tax', 'الضريبة')}</span><span>{formatCurrency(taxAmount, currency)}</span></div>
+                        <div className="flex justify-between font-bold border-t border-gray-300 pt-1"><span>{t('sales.common.total', 'الإجمالي')}</span><span>{formatCurrency(grandTotal, currency)}</span></div>
+                    </div>
+
+                    <div className="pt-2 border-t border-dashed border-gray-300 flex justify-center">
+                        <QRCodeCanvas value={qrValue} size={90} level="M" includeMargin />
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className={`h-full rounded-lg border ${tones.frame} overflow-hidden shadow-inner`}>
-            <div className={`${tones.header} border-b border-gray-200 px-4 py-3 flex items-center justify-between`}>
-                <div className={`h-2 rounded-full ${tones.accent}`} style={{ width: template === 'thermal' ? '48px' : '72px' }} />
-                <div className={`h-2 rounded-full ${tones.line}`} style={{ width: '28px' }} />
-            </div>
-            <div className="p-4 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-2 flex-1">
-                        <div className={`h-3 rounded ${tones.line}`} style={{ width: '58%' }} />
-                        <div className={`h-2 rounded ${tones.line}`} style={{ width: '36%' }} />
-                        <div className={`h-2 rounded ${tones.line}`} style={{ width: '42%' }} />
+        <div className="h-full max-h-[68vh] overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-4" dir="rtl">
+            <div className={`mx-auto bg-white border shadow-sm p-5 ${template === 'tax' ? 'border-indigo-200' : 'border-slate-200'} min-h-[520px]`}>
+                <div className="flex items-start justify-between border-b border-gray-200 pb-3 mb-4 gap-4">
+                    <div className="text-left min-w-[180px]">
+                        <p className="font-bold text-sm">
+                            {template === 'tax'
+                                ? t('sales_settings.template_arabic_tax', 'قالب فاتورة ضريبية عربي')
+                                : t('sales_settings.template_arabic_normal', 'قالب فاتورة عادية عربي')}
+                        </p>
+                        <p className="text-xs text-gray-600 mt-1">{t('sales.invoices.invoice_number', 'رقم الفاتورة')}: {activeInvoice?.transactionNumber || '—'}</p>
+                        <p className="text-xs text-gray-600">{t('sales.invoices.issue_date', 'تاريخ الفاتورة')}: {formatDate(activeInvoice?.issueDate, isRTL)}</p>
                     </div>
-                    <div className={`h-10 w-10 rounded ${tones.badge} opacity-90`} />
-                </div>
-                <div className="rounded-md border border-gray-200 overflow-hidden">
-                    <div className={`${tones.header} grid grid-cols-4 gap-2 px-3 py-2`}>
-                        <span className="h-2 rounded bg-white/80" />
-                        <span className="h-2 rounded bg-white/80" />
-                        <span className="h-2 rounded bg-white/80" />
-                        <span className="h-2 rounded bg-white/80" />
-                    </div>
-                    <div className="space-y-2 px-3 py-3 bg-white">
-                        <div className="grid grid-cols-4 gap-2">
-                            <span className={`h-2 rounded ${tones.line}`} />
-                            <span className={`h-2 rounded ${tones.line}`} />
-                            <span className={`h-2 rounded ${tones.line}`} />
-                            <span className={`h-2 rounded ${tones.line}`} />
-                        </div>
-                        <div className="grid grid-cols-4 gap-2">
-                            <span className={`h-2 rounded ${tones.line}`} />
-                            <span className={`h-2 rounded ${tones.line}`} />
-                            <span className={`h-2 rounded ${tones.line}`} />
-                            <span className={`h-2 rounded ${tones.line}`} />
-                        </div>
-                        <div className="grid grid-cols-4 gap-2">
-                            <span className={`h-2 rounded ${tones.line}`} />
-                            <span className={`h-2 rounded ${tones.line}`} />
-                            <span className={`h-2 rounded ${tones.line}`} />
-                            <span className={`h-2 rounded ${tones.line}`} />
-                        </div>
+
+                    <div className="text-right">
+                        {logoUrl ? <img src={logoUrl} alt={company?.name || 'Company'} className="h-14 w-auto object-contain ms-auto mb-1" /> : null}
+                        <p className="font-bold text-sm">{company?.name}</p>
+                        <p className="text-xs text-gray-600">{t('sales.common.tax_number', 'الرقم الضريبي')}: {company?.taxNumber}</p>
+                        <p className="text-xs text-gray-600">{t('sales.common.commercial_register', 'السجل التجاري')}: {company?.commercialRegister}</p>
                     </div>
                 </div>
-                <div className="flex items-center justify-between pt-1">
-                    <div className={`h-2 rounded ${tones.line}`} style={{ width: '38%' }} />
-                    <div className={`h-7 rounded-md ${tones.badge} opacity-85`} style={{ width: template === 'thermal' ? '92px' : '120px' }} />
+
+                <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
+                    <div className="rounded-lg border border-gray-200 p-3 bg-white">
+                        <p className="font-semibold mb-1">{t('sales.common.seller', 'البائع')}</p>
+                        <p>{company?.name}</p>
+                        <p>{company?.address}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-200 p-3 bg-white">
+                        <p className="font-semibold mb-1">{t('sales.common.buyer', 'المشتري')}</p>
+                        <p>{contact?.name || '—'}</p>
+                        <p>{contact?.phone || '—'}</p>
+                        <p>{resolveEntityAddress(contact)}</p>
+                    </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full text-xs border border-gray-200">
+                        <thead className={template === 'tax' ? 'bg-indigo-50' : 'bg-gray-50'}>
+                            <tr>
+                                <th className="p-2 border-b border-gray-200 text-right">{t('sales.common.description', 'الوصف')}</th>
+                                <th className="p-2 border-b border-gray-200 text-center">{t('sales.common.qty', 'الكمية')}</th>
+                                <th className="p-2 border-b border-gray-200 text-center">{t('sales.invoices.price', 'السعر')}</th>
+                                <th className="p-2 border-b border-gray-200 text-center">{t('sales.common.tax', 'الضريبة')}</th>
+                                <th className="p-2 border-b border-gray-200 text-center">{t('sales.common.total', 'الإجمالي')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {lines.map((line, idx) => (
+                                <tr key={`${line.description}-${idx}`} className="border-b border-gray-100">
+                                    <td className="p-2 text-right">{line.description}</td>
+                                    <td className="p-2 text-center">{line.qty.toLocaleString('ar-SA')}</td>
+                                    <td className="p-2 text-center">{formatCurrency(line.unitPrice, currency)}</td>
+                                    <td className="p-2 text-center">{formatCurrency(line.taxAmount, currency)}</td>
+                                    <td className="p-2 text-center font-semibold">{formatCurrency(line.total, currency)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="mt-4 flex justify-between gap-4 items-end">
+                    <div className="shrink-0">
+                        <QRCodeCanvas value={qrValue} size={90} level="M" includeMargin />
+                    </div>
+                    <div className="w-full max-w-[260px] text-xs space-y-1">
+                        <div className="flex justify-between"><span>{t('sales.common.subtotal', 'الإجمالي قبل الضريبة')}</span><span>{formatCurrency(subtotal, currency)}</span></div>
+                        <div className="flex justify-between"><span>{t('sales.common.tax', 'الضريبة')}</span><span>{formatCurrency(taxAmount, currency)}</span></div>
+                        <div className={`flex justify-between pt-1 border-t font-bold ${template === 'tax' ? 'text-indigo-700 border-indigo-200' : 'text-gray-900 border-gray-200'}`}>
+                            <span>{t('sales.common.total', 'الإجمالي')}</span>
+                            <span>{formatCurrency(grandTotal, currency)}</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -90,9 +279,12 @@ const ModalPreview = ({ template }) => {
 
 const PrintTemplateProvider = ({ children }) => {
     const { t, i18n } = useTranslation();
+    const { companySettings, user } = useAuth();
     const defaultTemplate = getSavedPrintTemplate();
     const [isReady, setIsReady] = useState(false);
     const [request, setRequest] = useState(null);
+    const [previewInvoice, setPreviewInvoice] = useState(null);
+    const [previewLoading, setPreviewLoading] = useState(false);
     const requestRef = useRef(null);
     const originalPrintRef = useRef(null);
     const selectedTemplateRef = useRef(defaultTemplate);
@@ -155,6 +347,47 @@ const PrintTemplateProvider = ({ children }) => {
         };
     }, []);
 
+    useEffect(() => {
+        if (!request) {
+            setPreviewInvoice(null);
+            setPreviewLoading(false);
+            return;
+        }
+
+        let cancelled = false;
+        const meta = request.meta || {};
+        const instant = meta.previewInvoice || meta.invoice || null;
+        if (instant) {
+            setPreviewInvoice(instant);
+            setPreviewLoading(false);
+            return;
+        }
+
+        const transactionId = meta.transactionId;
+        if (!transactionId) {
+            setPreviewInvoice(null);
+            setPreviewLoading(false);
+            return;
+        }
+
+        setPreviewLoading(true);
+        api.get(`/transactions/${transactionId}`)
+            .then((res) => {
+                if (cancelled) return;
+                setPreviewInvoice(resolveTransactionFromResponse(res.data));
+            })
+            .catch(() => {
+                if (!cancelled) setPreviewInvoice(null);
+            })
+            .finally(() => {
+                if (!cancelled) setPreviewLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [request]);
+
     const closeRequest = () => {
         const current = requestRef.current;
         if (current?.reject) {
@@ -181,9 +414,12 @@ const PrintTemplateProvider = ({ children }) => {
     };
 
     const optionLabel = (opt) => t(opt.labelKey, opt.fallbackLabel);
-
     const previewTemplate = selectedTemplate || getSavedPrintTemplate();
     const isRTL = i18n.language === 'ar';
+    const previewCompany = useMemo(
+        () => resolveCompanyInfo({ companySettings, user, requestMeta: request?.meta }),
+        [companySettings, user, request]
+    );
 
     return (
         <>
@@ -197,7 +433,14 @@ const PrintTemplateProvider = ({ children }) => {
 
                         <div className="grid gap-0 md:grid-cols-[1.2fr_0.8fr]">
                             <div className="min-h-[360px] bg-gray-50 p-4 md:p-5">
-                                <ModalPreview template={previewTemplate} />
+                                <ModalPreview
+                                    template={previewTemplate}
+                                    invoice={previewInvoice}
+                                    company={previewCompany}
+                                    loading={previewLoading}
+                                    isRTL={isRTL}
+                                    t={t}
+                                />
                             </div>
 
                             <div className="border-t border-gray-100 bg-white p-4 md:border-t-0 md:border-s md:p-5">
