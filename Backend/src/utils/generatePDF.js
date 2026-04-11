@@ -7,16 +7,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const fontToDataUri = (fileName) => {
-    const fontPath = join(__dirname, "../assets/fonts", fileName);
-    const fontBuffer = readFileSync(fontPath);
-    return `data:font/ttf;base64,${fontBuffer.toString("base64")}`;
+  const fontPath = join(__dirname, "../assets/fonts", fileName);
+  const fontBuffer = readFileSync(fontPath);
+  return `data:font/ttf;base64,${fontBuffer.toString("base64")}`;
 };
 
 const cairoRegular = fontToDataUri("Cairo-Regular.ttf");
 const cairoBold = fontToDataUri("Cairo-Bold.ttf");
 
 const injectArabicStyles = (htmlContent) => {
-    const styles = `
+  const styles = `
       <style id="pdf-arabic-fonts">
         @font-face {
           font-family: "Cairo";
@@ -63,53 +63,54 @@ const injectArabicStyles = (htmlContent) => {
       </style>
     `;
 
-    const withUtf8 = String(htmlContent || "").replace(
-        /<head>/i,
-        `<head><meta charset="UTF-8" />`
-    );
+  const withUtf8 = String(htmlContent || "").replace(
+    /<head>/i,
+    `<head><meta charset="UTF-8" />`
+  );
 
-    if (withUtf8.includes("</head>")) {
-        return withUtf8.replace("</head>", `${styles}</head>`);
-    }
-    return `${styles}${withUtf8}`;
+  if (withUtf8.includes("</head>")) {
+    return withUtf8.replace("</head>", `${styles}</head>`);
+  }
+  return `${styles}${withUtf8}`;
 };
 
 export async function generatePDF(htmlContent, pdfOptions = {}) {
-    const browser = await puppeteer.launch({
-        headless: "new",
-        executablePath: puppeteer.executablePath(),
-        args: [
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-dev-shm-usage",
-        ],
+  const browser = await puppeteer.launch({
+    headless: "new",
+    executablePath: puppeteer.executablePath(),
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+    ],
+  });
+
+  try {
+    const page = await browser.newPage();
+    await page.setExtraHTTPHeaders({
+      "Accept-Charset": "utf-8",
+    });
+    await page.setContent(injectArabicStyles(htmlContent), {
+      waitUntil: "networkidle0",
+    });
+    await page.emulateMediaType("print");
+    await page.evaluate(() => (document.fonts ? document.fonts.ready : Promise.resolve()));
+
+    const pdf = await page.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: {
+        top: "15mm",
+        bottom: "15mm",
+        left: "15mm",
+        right: "15mm",
+      },
+      ...pdfOptions,
     });
 
-    try {
-        const page = await browser.newPage();
-        await page.setExtraHTTPHeaders({
-            "Accept-Charset": "utf-8",
-        });
-        await page.setContent(injectArabicStyles(htmlContent), {
-            waitUntil: "networkidle0",
-        });
-        await page.emulateMediaType("print");
-        await page.evaluate(() => (document.fonts ? document.fonts.ready : Promise.resolve()));
-
-        const pdf = await page.pdf({
-            format: "A4",
-            printBackground: true,
-            margin: {
-                top: "15mm",
-                bottom: "15mm",
-                left: "15mm",
-                right: "15mm",
-            },
-            ...pdfOptions,
-        });
-
-        return Buffer.from(pdf);
-    } finally {
-        await browser.close();
-    }
+    return Buffer.from(pdf);
+  } finally {
+    await browser.close();
+  }
 }
