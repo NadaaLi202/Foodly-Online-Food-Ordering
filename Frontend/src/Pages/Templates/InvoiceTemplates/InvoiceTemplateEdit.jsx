@@ -17,6 +17,7 @@ const buildBranchContext = (branch = {}) => ({
     address_line_1: branch.address1 || '',
     address_line_2: branch.address2 || '',
     city: branch.city || '',
+    state: branch.state || branch.region || '',
     region: branch.region || '',
     neighborhood: branch.neighborhood || '',
     postal_code: branch.postalCode || '',
@@ -44,21 +45,21 @@ const getTabs = (t, pageSize) => {
 };
 
 const getTableColsDefault = (t) => [
-    { key: 'lineNumber', label: t('Item', 'البند\nItem'), enabled: true },
-    { key: 'description', label: t('Description', 'الوصف\nDescription'), enabled: true },
-    { key: 'price', label: t('Price', 'السعر\nPrice'), enabled: true },
-    { key: 'quantity', label: t('Quantity', 'الكمية\nQuantity'), enabled: true },
-    { key: 'total', label: t('Total', 'المجموع\nTotal'), enabled: true },
+    { key: 'lineNumber', label: t('Item', 'البند'), enabled: true },
+    { key: 'description', label: t('Description', 'الوصف'), enabled: true },
+    { key: 'quantity', label: t('Quantity', 'الكمية'), enabled: true },
+    { key: 'price', label: t('Price', 'السعر'), enabled: true },
+    { key: 'taxRate', label: t('Tax Rate', 'نسبة الضريبة'), enabled: true },
+    { key: 'total', label: t('Total', 'الإجمالي'), enabled: true },
     { key: 'discount', label: t('Discount', 'الخصم'), enabled: false },
-    { key: 'taxRate', label: t('Tax Rate', 'نسبة الضريبة'), enabled: false },
-    { key: 'subtotal', label: t('Subtotal', 'المجموع بدون الضريبة'), enabled: false },
+    { key: 'subtotal', label: t('Subtotal', 'الإجمالي قبل الضريبة'), enabled: false },
     { key: 'code', label: t('Code', 'الكود'), enabled: false },
 ];
 const getTableFooterDefault = (t) => [
-    { key: 'subtotal', label: t('Subtotal', 'المجموع\nSubtotal'), enabled: true },
+    { key: 'subtotal', label: t('Subtotal', 'الإجمالي قبل الضريبة'), enabled: true },
     { key: 'vat', label: t('VAT 15%', 'القيمة المضافة 15%'), enabled: true },
-    { key: 'total', label: t('Total (SAR)', 'الإجمالي ( ﷼ )\nTotal (SAR)'), enabled: true },
-    { key: 'paid', label: t('Due (SAR)', 'المستحق ( ﷼ )\nDue (SAR)'), enabled: true },
+    { key: 'total', label: t('Total (SAR)', 'الإجمالي بعد الضريبة'), enabled: true },
+    { key: 'paid', label: t('Paid', 'المدفوع'), enabled: false },
     { key: 'discount', label: t('Discount', 'الخصم'), enabled: false },
     { key: 'remaining', label: t('Remaining', 'المتبقي'), enabled: false },
 ];
@@ -94,6 +95,7 @@ const InvoiceTemplateEdit = () => {
     const [companyData, setCompanyData] = useState({});
     const [branches, setBranches] = useState([]);
     const [selectedBranch, setSelectedBranch] = useState('');
+    const [bankAccounts, setBankAccounts] = useState([]);
 
     const [name, setName] = useState('');
     const [designId, setDesignId] = useState('design-1');
@@ -105,34 +107,35 @@ const InvoiceTemplateEdit = () => {
     // Header Data
     const [headerRows, setHeaderRows] = useState([
         { text: '{{company.name}}', format: { fontSize: 13, bold: true } },
-        { text: `${t('Commercial Register - Register Number', 'السجل التجاري - Register Number')} : {{company.register}}`, format: { fontSize: 11 } },
-        { text: `${t('Tax Number', 'الرقم الضريبي - Tax Number')} : {{company.tax_number}}`, format: { fontSize: 11 } },
-        { text: '{{branch.city}}', format: { fontSize: 11 } },
+        { text: 'السجل التجاري : {{company.commercial_register}}', format: { fontSize: 11 } },
+        { text: 'الرقم الضريبي : {{company.vat}}', format: { fontSize: 11 } },
+        { text: '{{company.city}}', format: { fontSize: 11 } },
         { text: '{{branch.state}}', format: { fontSize: 11 } },
     ]);
     const [invoiceInfoRows, setInvoiceInfoRows] = useState([
-        { text: `${t('Number', 'الرقم - Number')} : {{invoice.number}}`, format: { fontSize: 11 } },
-        { text: `${t('Date', 'التاريخ - Date')} : {{invoice.date}}`, format: { fontSize: 11 } },
+        { text: 'الرقم : {{invoice.name}}', format: { fontSize: 11 } },
+        { text: 'التاريخ : {{invoice.invoice_date}}', format: { fontSize: 11 } },
     ]);
     const [logoMargins, setLogoMargins] = useState({ top: 0, right: 0, bottom: 0, left: 0 });
     const [titles, setTitles] = useState({
-        saleInvoice: { text: t('Simplified Tax Invoice', 'فاتورة ضريبية مبسطة\nSIMPLIFIED TAX INVOICE'), format: { fontSize: 14, bold: true } },
-        saleCreditNote: { text: t('Credit Note', 'فاتورة مرتجعات\nCREDIT NOTE'), format: { fontSize: 14, bold: true } },
-        purchaseInvoice: { text: t('Purchase Invoice', 'فاتورة مشتريات\nPURCHASE INVOICE'), format: { fontSize: 14, bold: true } },
-        purchaseCreditNote: { text: t('Purchase Credit Note', 'فاتورة مرتجعات مشتريات\nPURCHASE CREDIT NOTE'), format: { fontSize: 14, bold: true } },
-        quotation: { text: t('Quotation', 'عرض سعر\nQUOTATION'), format: { fontSize: 14, bold: true } },
-        salesOrder: { text: t('Sales Order', 'أمر بيع\nSALES ORDER'), format: { fontSize: 14, bold: true } },
-        purchaseRequest: { text: t('Purchase Request', 'طلب شراء\nPURCHASE REQUEST'), format: { fontSize: 14, bold: true } },
-        purchaseOrder: { text: t('Purchase Order', 'أمر شراء\nPURCHASE ORDER'), format: { fontSize: 14, bold: true } }
+        saleInvoice: { text: t('Simplified Tax Invoice', 'فاتورة ضريبية مبسطة'), format: { fontSize: 14, bold: true } },
+        saleCreditNote: { text: t('Credit Note', 'فاتورة مرتجعات'), format: { fontSize: 14, bold: true } },
+        purchaseInvoice: { text: t('Purchase Invoice', 'فاتورة مشتريات'), format: { fontSize: 14, bold: true } },
+        purchaseCreditNote: { text: t('Purchase Credit Note', 'فاتورة مرتجعات مشتريات'), format: { fontSize: 14, bold: true } },
+        quotation: { text: t('Quotation', 'عرض سعر'), format: { fontSize: 14, bold: true } },
+        salesOrder: { text: t('Sales Order', 'أمر بيع'), format: { fontSize: 14, bold: true } },
+        purchaseRequest: { text: t('Purchase Request', 'طلب شراء'), format: { fontSize: 14, bold: true } },
+        purchaseOrder: { text: t('Purchase Order', 'أمر شراء'), format: { fontSize: 14, bold: true } }
     });
     const [clientRows, setClientRows] = useState([
-        { text: `${t('Client', 'العميل - Client')} : {{partner.name}}`, format: { fontSize: 12 } },
-        { text: `${t('Address', 'العنوان - Address')} : {{partner.address}}`, format: { fontSize: 12 } },
+        { text: '{{invoice.partner.name}}', format: { fontSize: 12 } },
+        { text: '{{invoice.partner.street}}', format: { fontSize: 11 } },
+        { text: 'الرقم الضريبي : {{invoice.partner.vat}}', format: { fontSize: 11 } },
     ]);
     const [supplierRows, setSupplierRows] = useState([{ text: '', format: {} }]);
     const [tableCfg, setTableCfg] = useState({ deductTaxFromAmounts: false, showTableLines: true, cellMargins: { top: 3, right: 5, bottom: 3, left: 5 }, columns: getTableColsDefault(t), footerRows: getTableFooterDefault(t) });
-    const [footerRows, setFooterRows] = useState([{ text: t('Notes', 'ملاحظات - Notes'), format: { fontSize: 12 } }]);
-    const [sigRows1, setSigRows1] = useState([{ text: t('Signature', 'التوقيع - Signature'), format: { fontSize: 12 } }]);
+    const [footerRows, setFooterRows] = useState([{ text: '', format: {} }]);
+    const [sigRows1, setSigRows1] = useState([{ text: t('Signature', 'التوقيع'), format: { fontSize: 12 } }]);
     const [sigRows2, setSigRows2] = useState([{ text: '', format: {} }]);
     const [sigRows3, setSigRows3] = useState([{ text: '', format: {} }]);
 
@@ -143,51 +146,64 @@ const InvoiceTemplateEdit = () => {
     useEffect(() => {
         (async () => {
             try {
-                const [tmplRes, branchRes] = await Promise.all([
+                const [tmplRes, branchRes, bankRes] = await Promise.all([
                     api.get(`/templates/${id}`),
                     branchService.getAllBranches().catch(() => ({ branches: [] })),
+                    api.get('/bank-accounts').catch(() => ({ data: { bankAccounts: [] } })),
                 ]);
-                const t = tmplRes.data.template;
-                setName(t.name ?? '');
-                setDesignId(t.designId ?? 'design-1');
-                setPage(t.page ?? { direction: 'rtl', pageSize: 'A4', fontSize: 12, margins: { top: 40, right: 40, bottom: 40, left: 40 } });
-                setLogo(t.logo ?? { url: '', size: 70 });
-                setLogoMargins(t.logo?.margins ?? { top: 0, right: 0, bottom: 0, left: 0 });
-                setHeaderOrder(t.header?.order ?? 'Logo, Company Info, Invoice Info');
-                setShowBottomBorder(t.header?.showBottomBorder ?? false);
-                if (t.header?.rows?.length) setHeaderRows(t.header.rows);
-                if (t.header?.invoiceInfoRows?.length) setInvoiceInfoRows(t.header.invoiceInfoRows);
-                if (t.header?.titles) setTitles(prev => ({ ...prev, ...t.header.titles }));
-                if (t.partner?.clientRows?.length) setClientRows(t.partner.clientRows);
-                if (t.partner?.supplierRows?.length) setSupplierRows(t.partner.supplierRows);
-                if (t.table) {
+                const template = tmplRes.data.template;
+                setName(template.name ?? '');
+                setDesignId(template.designId ?? 'design-1');
+                setPage(template.page ?? { direction: 'rtl', pageSize: 'A4', fontSize: 12, margins: { top: 40, right: 40, bottom: 40, left: 40 } });
+                setLogo(template.logo ?? { url: '', size: 70 });
+                setLogoMargins(template.logo?.margins ?? { top: 0, right: 0, bottom: 0, left: 0 });
+                setHeaderOrder(template.header?.order ?? 'Logo, Company Info, Invoice Info');
+                setShowBottomBorder(template.header?.showBottomBorder ?? false);
+                if (template.header?.rows?.length) setHeaderRows(template.header.rows);
+                if (template.header?.invoiceInfoRows?.length) setInvoiceInfoRows(template.header.invoiceInfoRows);
+                if (template.header?.titles) setTitles(prev => ({ ...prev, ...template.header.titles }));
+                if (template.partner?.clientRows?.length) setClientRows(template.partner.clientRows);
+                if (template.partner?.supplierRows?.length) setSupplierRows(template.partner.supplierRows);
+                if (template.table) {
                     setTableCfg({
-                        deductTaxFromAmounts: t.table.deductTaxFromAmounts ?? false,
-                        showTableLines: t.table.showTableLines ?? true,
-                        cellMargins: t.table.cellMargins ?? { top: 3, right: 5, bottom: 3, left: 5 },
-                        columns: t.table.columns?.length ? t.table.columns : getTableColsDefault(tmplRes.data.template),
-                        footerRows: t.table.footerRows?.length ? t.table.footerRows : getTableFooterDefault(tmplRes.data.template),
+                        deductTaxFromAmounts: template.table.deductTaxFromAmounts ?? false,
+                        showTableLines: template.table.showTableLines ?? true,
+                        cellMargins: template.table.cellMargins ?? { top: 3, right: 5, bottom: 3, left: 5 },
+                        columns: template.table.columns?.length ? template.table.columns : getTableColsDefault(t),
+                        footerRows: template.table.footerRows?.length ? template.table.footerRows : getTableFooterDefault(t),
                     });
                 }
-                if (t.footer?.notesRows?.length) setFooterRows(t.footer.notesRows);
-                if (t.footer?.signatures?.length >= 3) {
-                    setSigRows1(ensureRows(t.footer.signatures[0]?.rows));
-                    setSigRows2(ensureRows(t.footer.signatures[1]?.rows));
-                    setSigRows3(ensureRows(t.footer.signatures[2]?.rows));
+                if (template.footer?.notesRows?.length) setFooterRows(template.footer.notesRows);
+                if (template.footer?.signatures?.length >= 3) {
+                    setSigRows1(ensureRows(template.footer.signatures[0]?.rows));
+                    setSigRows2(ensureRows(template.footer.signatures[1]?.rows));
+                    setSigRows3(ensureRows(template.footer.signatures[2]?.rows));
                 }
                 // Branches
                 const bl = branchRes.branches || branchRes || [];
                 const branchList = Array.isArray(bl) ? bl : [];
                 setBranches(branchList);
                 if (branchList.length > 0) setSelectedBranch(branchList[0]._id);
+                const bankList = bankRes?.data?.bankAccounts || bankRes?.data?.data || [];
+                const normalizedBanks = Array.isArray(bankList) ? bankList : [];
+                setBankAccounts(normalizedBanks);
                 // Company data from user context
                 setCompanyData({
-                    name: user?.name || 'Company Name',
+                    name: user?.name || 'اسم الشركة',
                     email: user?.email || '',
                     phone: user?.phone || '',
-                    register: user?.commercialRegister || user?.register || '20501683340',
-                    tax_number: user?.taxNumber || user?.tax_number || '300545522455',
+                    vat: user?.taxNumber || user?.tax_number || '',
+                    tax_number: user?.taxNumber || user?.tax_number || '',
+                    commercial_register: user?.commercialRegister || user?.register || '',
+                    register: user?.commercialRegister || user?.register || '',
+                    city: user?.city || user?.region || user?.location || '',
+                    logo: user?.logo || user?.logo_path || '',
                     currency: { ar: 'ر.س', en: 'SAR' },
+                    account_ids: normalizedBanks.map((bank) => ({
+                        name: bank?.name || '',
+                        accountNumber: bank?.accountNumber || '',
+                        iban: bank?.iban || ''
+                    })),
                 });
 
                 // AUTO-LOAD LATEST INVOICE
@@ -270,29 +286,69 @@ const InvoiceTemplateEdit = () => {
 
     // Build context for placeholder resolution
     const activeBranch = branches.find(b => b._id === selectedBranch) || branches[0] || {};
+    const branchContext = buildBranchContext(activeBranch);
+    const resolvedBranchState = branchContext.state || branchContext.region || companyData?.city || '';
+    const resolvedPartnerTaxNumber =
+        fetchedPreviewData?.partner?.vat ||
+        fetchedPreviewData?.contactSnapshot?.vat ||
+        fetchedPreviewData?.contactSnapshot?.tax_number ||
+        fetchedPreviewData?.contactSnapshot?.taxNumber ||
+        fetchedPreviewData?.contact?.vat ||
+        fetchedPreviewData?.contact?.tax_number ||
+        fetchedPreviewData?.contact?.taxNumber ||
+        '';
+    const previewItems = fetchedPreviewData?.items?.map((it, idx) => ({
+        lineNumber: String(idx + 1),
+        description: it.productName || it.product?.name || it.description || '',
+        quantity: String(it.quantity || 0),
+        price: (it.unitPrice || 0).toFixed(2),
+        taxRate: (it.taxPercent || 0) + '%',
+        subtotal: (it.subtotal || 0).toFixed(2),
+        taxAmount: (it.taxAmount || 0).toFixed(2),
+        total: (it.total || 0).toFixed(2),
+        code: it.product?.code || ''
+    })) || [];
+    const bankAccountContext = bankAccounts.map((bank) => ({
+        name: bank?.name || '',
+        accountNumber: bank?.accountNumber || '',
+        iban: bank?.iban || ''
+    }));
+    const resolvedPartnerName = fetchedPreviewData?.contactSnapshot?.name || fetchedPreviewData?.contact?.name || 'اسم العميل';
+    const resolvedPartnerStreet = fetchedPreviewData?.contact?.address?.address1 || fetchedPreviewData?.contactSnapshot?.address || '';
+    const resolvedInvoiceDate = fetchedPreviewData?.issueDate ? new Date(fetchedPreviewData.issueDate).toLocaleDateString('en-CA') : '2026-04-11';
+    const resolvedInvoiceName = fetchedPreviewData?.transactionNumber || 'INV-0001';
     const previewContext = {
-        company: companyData,
-        branch: buildBranchContext(activeBranch),
+        company: {
+            ...companyData,
+            logo: logo?.url || companyData?.logo || '',
+            account_ids: bankAccountContext
+        },
+        branch: { ...branchContext, state: resolvedBranchState },
         partner: { 
-            name: fetchedPreviewData?.contactSnapshot?.name || fetchedPreviewData?.contact?.name || 'عبدالعزيز بن ناصر الشهري', 
-            tax_number: fetchedPreviewData?.contact?.taxNumber || '{{partner.tax_number}}', 
-            address: fetchedPreviewData?.contact?.address?.address1 || 'طريق الملك فهد الرياض' 
+            name: resolvedPartnerName,
+            vat: resolvedPartnerTaxNumber,
+            tax_number: resolvedPartnerTaxNumber, 
+            address: resolvedPartnerStreet,
+            street: resolvedPartnerStreet
         },
         invoice: { 
-            number: fetchedPreviewData?.transactionNumber || 'INV-25-1-000001', 
-            date: fetchedPreviewData?.issueDate ? new Date(fetchedPreviewData.issueDate).toLocaleDateString('en-CA') : '2025-09-04' 
+            name: resolvedInvoiceName,
+            number: resolvedInvoiceName,
+            invoice_date: resolvedInvoiceDate,
+            date: resolvedInvoiceDate,
+            partner: {
+                name: resolvedPartnerName,
+                street: resolvedPartnerStreet,
+                vat: resolvedPartnerTaxNumber
+            },
+            invoice_line_ids: previewItems,
+            amount_untaxed: (fetchedPreviewData?.subtotal || 0).toFixed(2),
+            amount_tax: (fetchedPreviewData?.totalTax || 0).toFixed(2),
+            amount_total: (fetchedPreviewData?.totalAmount || 0).toFixed(2),
+            qr_code: fetchedPreviewData?.qrCode || fetchedPreviewData?.qr_code || '',
+            company_id: { account_ids: bankAccountContext }
         },
-        items: fetchedPreviewData?.items?.map((it, idx) => ({
-            lineNumber: String(idx + 1),
-            description: it.productName || it.product?.name || it.description || '',
-            quantity: String(it.quantity || 0),
-            price: (it.unitPrice || 0).toFixed(2),
-            taxRate: (it.taxPercent || 0) + '%',
-            subtotal: (it.subtotal || 0).toFixed(2),
-            taxAmount: (it.taxAmount || 0).toFixed(2),
-            total: (it.total || 0).toFixed(2),
-            code: it.product?.code || ''
-        })),
+        items: previewItems,
         totals: fetchedPreviewData ? {
             subtotal: (fetchedPreviewData.subtotal || 0).toFixed(2),
             discount: (fetchedPreviewData.totalDiscount || 0).toFixed(2),
@@ -359,7 +415,7 @@ const InvoiceTemplateEdit = () => {
                         <div><Label>{t('Size', 'الحجم')}</Label><input type="number" value={logo.size} min={10} max={500} onChange={e => setLogo(l => ({ ...l, size: +e.target.value }))} className={inputClass} /></div>
                     </div>
                 );
-            case 'header':
+            case 'header': {
                 const normalizedOrderList = (headerOrder || 'Logo, Company Info, Invoice Info').split(',').map(s => s.trim().toLowerCase());
 
                 const componentsMap = {
@@ -420,6 +476,7 @@ const InvoiceTemplateEdit = () => {
                         </div>
                     </div>
                 );
+            }
             case 'company':
                 return (
                     <div className="space-y-4">

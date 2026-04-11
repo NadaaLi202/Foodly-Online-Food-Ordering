@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Home, ChevronLeft } from 'lucide-react';
 import api from '../../../services/api.js';
-import branchService from '../../../services/branchService.js';
 import toast from 'react-hot-toast';
 
 const InvoiceTemplateAdd = () => {
@@ -24,7 +23,6 @@ const InvoiceTemplateAdd = () => {
     const [previewSearch, setPreviewSearch] = useState('');
     const [fetchedPreviewData, setFetchedPreviewData] = useState(null);
     const [fetchingPreview, setFetchingPreview] = useState(false);
-    const [branches, setBranches] = useState([]);
 
     // Auto-load latest invoice for preview
     useEffect(() => {
@@ -52,7 +50,7 @@ const InvoiceTemplateAdd = () => {
         { id: 'thermal', label: t('Thermal', 'حراري'), desc: '' },
     ];
 
-    const designOptions = ['design-1', 'design-2'];
+    const designOptions = ['design-1'];
 
     /* ── SVG building blocks ─────────────────────────────────── */
     const QRBlock = ({ x, y, s = 18 }) => (
@@ -290,37 +288,65 @@ const InvoiceTemplateAdd = () => {
 
             const headerRows = [
                 { text: '{{company.name}}', format: { fontSize: 14, bold: true } },
-                { text: `${t('Commercial Register - Register Number', 'السجل التجاري - Register Number')} : {{company.register}}`, format: { fontSize: 11 } },
-                { text: `${t('Tax Number', 'الرقم الضريبي - Tax Number')} : {{company.tax_number}}`, format: { fontSize: 11 } },
-                { text: '{{branch.city}}', format: { fontSize: 11 } },
+                { text: 'السجل التجاري : {{company.commercial_register}}', format: { fontSize: 11 } },
+                { text: 'الرقم الضريبي : {{company.vat}}', format: { fontSize: 11 } },
+                { text: '{{company.city}}', format: { fontSize: 11 } },
                 { text: '{{branch.state}}', format: { fontSize: 11 } },
             ];
 
             const invoiceInfoRows = [
-                { text: `${t('Number', 'الرقم - Number')} : {{invoice.number}}`, format: { fontSize: 11 } },
-                { text: `${t('Date', 'التاريخ - Date')} : {{invoice.date}}`, format: { fontSize: 11 } },
+                { text: 'الرقم : {{invoice.name}}', format: { fontSize: 11 } },
+                { text: 'التاريخ : {{invoice.invoice_date}}', format: { fontSize: 11 } },
             ];
 
             const partnerClientRows = [
-                { text: `${t('Client', 'العميل')} : {{partner.name}}`, format: { fontSize: 12 } },
-                { text: `{{partner.address}}`, format: { fontSize: 12 } },
-                { text: `{{partner.tax_number}}`, format: { fontSize: 12 } },
+                { text: '{{invoice.partner.name}}', format: { fontSize: 12 } },
+                { text: '{{invoice.partner.street}}', format: { fontSize: 11 } },
+                { text: 'الرقم الضريبي : {{invoice.partner.vat}}', format: { fontSize: 11 } },
             ];
 
             const partnerSupplierRows = [
-                { text: `${t('Supplier', 'المورد')} : {{partner.name}}`, format: { fontSize: 12 } },
-                { text: `{{partner.address}}`, format: { fontSize: 12 } },
+                { text: '{{invoice.partner.name}}', format: { fontSize: 12 } },
+                { text: '{{invoice.partner.street}}', format: { fontSize: 11 } },
             ];
 
             const defaultTitles = {
-                saleInvoice: { text: t('Simplified Tax Invoice', 'فاتورة ضريبية مبسطة\nSIMPLIFIED TAX INVOICE'), format: { fontSize: 14, bold: true } },
-                saleCreditNote: { text: t('Credit Note', 'فاتورة مرتجعات\nCREDIT NOTE'), format: { fontSize: 14, bold: true } },
-                purchaseInvoice: { text: t('Purchase Invoice', 'فاتورة مشتريات\nPURCHASE INVOICE'), format: { fontSize: 14, bold: true } },
-                purchaseCreditNote: { text: t('Purchase Credit Note', 'فاتورة مرتجعات مشتريات\nPURCHASE CREDIT NOTE'), format: { fontSize: 14, bold: true } },
-                quotation: { text: t('Quotation', 'عرض سعر\nQUOTATION'), format: { fontSize: 14, bold: true } },
-                salesOrder: { text: t('Sales Order', 'أمر بيع\nSALES ORDER'), format: { fontSize: 14, bold: true } },
-                purchaseRequest: { text: t('Purchase Request', 'طلب شراء\nPURCHASE REQUEST'), format: { fontSize: 14, bold: true } },
-                purchaseOrder: { text: t('Purchase Order', 'أمر شراء\nPURCHASE ORDER'), format: { fontSize: 14, bold: true } }
+                saleInvoice: { text: t('Simplified Tax Invoice', 'فاتورة ضريبية مبسطة'), format: { fontSize: 14, bold: true } },
+                saleCreditNote: { text: t('Credit Note', 'فاتورة مرتجعات'), format: { fontSize: 14, bold: true } },
+                purchaseInvoice: { text: t('Purchase Invoice', 'فاتورة مشتريات'), format: { fontSize: 14, bold: true } },
+                purchaseCreditNote: { text: t('Purchase Credit Note', 'فاتورة مرتجعات مشتريات'), format: { fontSize: 14, bold: true } },
+                quotation: { text: t('Quotation', 'عرض سعر'), format: { fontSize: 14, bold: true } },
+                salesOrder: { text: t('Sales Order', 'أمر بيع'), format: { fontSize: 14, bold: true } },
+                purchaseRequest: { text: t('Purchase Request', 'طلب شراء'), format: { fontSize: 14, bold: true } },
+                purchaseOrder: { text: t('Purchase Order', 'أمر شراء'), format: { fontSize: 14, bold: true } }
+            };
+
+            const table = {
+                deductTaxFromAmounts: false,
+                showTableLines: true,
+                cellMargins: { top: 3, right: 5, bottom: 3, left: 5 },
+                columns: [
+                    { key: 'lineNumber', label: 'البند', enabled: true },
+                    { key: 'description', label: 'الوصف', enabled: true },
+                    { key: 'quantity', label: 'الكمية', enabled: true },
+                    { key: 'price', label: 'السعر', enabled: true },
+                    { key: 'taxRate', label: 'نسبة الضريبة', enabled: true },
+                    { key: 'total', label: 'الإجمالي', enabled: true },
+                ],
+                footerRows: [
+                    { key: 'subtotal', label: 'الإجمالي قبل الضريبة', enabled: true },
+                    { key: 'vat', label: 'القيمة المضافة 15%', enabled: true },
+                    { key: 'total', label: 'الإجمالي بعد الضريبة', enabled: true },
+                ],
+            };
+
+            const footer = {
+                notesRows: [],
+                signatures: [
+                    { label: 'right', rows: [{ text: 'التوقيع', format: { fontSize: 11 } }] },
+                    { label: 'middle', rows: [{ text: '', format: {} }] },
+                    { label: 'left', rows: [{ text: '', format: {} }] },
+                ],
             };
 
             const { data } = await api.post('/templates', {
@@ -330,6 +356,8 @@ const InvoiceTemplateAdd = () => {
                 logo: { url: '', size: 70, margins: { top: 0, right: 0, bottom: 0, left: 0 } },
                 header: { rows: headerRows, invoiceInfoRows, order: 'Logo, Company Info, Invoice Info', titles: defaultTitles },
                 partner: { clientRows: partnerClientRows, supplierRows: partnerSupplierRows },
+                table,
+                footer,
                 invoiceType,
                 designId: selectedDesign,
                 isTaxInvoice,

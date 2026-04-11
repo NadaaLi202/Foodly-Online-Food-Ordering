@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Search, RefreshCw, X, Upload, FileText, Trash2, Printer, Download, Share2, Edit2, Link, MoreVertical, Copy, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { generatePDF } from '../../utils/generatePDF';
@@ -9,8 +10,21 @@ import { confirmDelete } from '../../utils/confirmDelete';
 import toast from 'react-hot-toast';
 import { handleUniversalShare } from '../../utils/shareUtils';
 
+const getInitialExpenseFormData = () => ({
+    code: '',
+    date: new Date().toISOString().split('T')[0],
+    wallet: 'main',
+    account: '',
+    amount: '',
+    taxes: '',
+    description: '',
+    attachments: []
+});
+
 const Expenses = () => {
     const { t, i18n } = useTranslation();
+    const location = useLocation();
+    const navigate = useNavigate();
     const [expenses, setExpenses] = useState([]);
     const [loading, setLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,16 +35,7 @@ const Expenses = () => {
     const [modalMode, setModalMode] = useState('add');
     const [openActionMenu, setOpenActionMenu] = useState(null);
 
-    const [formData, setFormData] = useState({
-        code: '',
-        date: new Date().toISOString().split('T')[0],
-        wallet: 'main',
-        account: '',
-        amount: '',
-        taxes: '',
-        description: '',
-        attachments: []
-    });
+    const [formData, setFormData] = useState(getInitialExpenseFormData);
 
     const fetchExpenses = async (search = '') => {
         setLoading(true);
@@ -50,6 +55,26 @@ const Expenses = () => {
     useEffect(() => {
         fetchExpenses();
     }, []);
+
+    useEffect(() => {
+        const openByNewRoute = location.pathname.endsWith('/finance/expenses/new');
+        const openByState = Boolean(location.state?.openAddModal);
+
+        if (!openByNewRoute && !openByState) return;
+
+        setModalMode('add');
+        setEditingExpense(null);
+        setFormData(getInitialExpenseFormData());
+        setUploadedFiles([]);
+        setErrors({});
+        setIsModalOpen(true);
+
+        if (openByNewRoute) {
+            navigate('/dashboard/finance/expenses', { replace: true });
+        } else {
+            navigate(location.pathname, { replace: true });
+        }
+    }, [location.pathname, location.state, navigate]);
 
     // ✅ إنشاء كود فريد تلقائياً
     const generateUniqueCode = (currentExpenses) => {
@@ -454,15 +479,7 @@ const Expenses = () => {
     };
 
     const resetForm = () => {
-        setFormData({
-            code: '',
-            date: new Date().toISOString().split('T')[0],
-            wallet: 'main',
-            account: '',
-            amount: '',
-            taxes: '',
-            description: ''
-        });
+        setFormData(getInitialExpenseFormData());
         setEditingExpense(null);
         setUploadedFiles([]);
         setErrors({});
@@ -982,6 +999,4 @@ const Expenses = () => {
 };
 
 export default Expenses;
-
-
 

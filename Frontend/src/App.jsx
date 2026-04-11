@@ -54,6 +54,7 @@ import Users from './Pages/Users/Users';
 import Roles from './Pages/Users/Roles';
 import LandingPage from './Pages/LandingPage';
 import Login from './Pages/login';
+import InvoiceQATool from './Pages/Tools/InvoiceQATool';
 
 // import CompanyLogin from './Pages/CompanyLogin';
 import SalesMainPage from './Pages/Sales/SalesMainPage';
@@ -205,200 +206,204 @@ function App() {
         <PrintTemplateProvider>
           <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
           <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<Login />} />
+            {/* Public Routes */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<Login />} />
 
-          {/* Signup Flow */}
-          <Route path="/signup" element={<SignupLayout />}>
-            <Route index element={<SignupForm />} />
-            <Route path="company" element={<SignupCompanyForm />} />
-            <Route path="tax" element={<TaxSettings />} />
-            <Route path="pending" element={<PendingPage />} />
-          </Route>
 
-          <Route path="/company-login" element={<CompanyAutoLogin />} />
-          <Route path="/company/:slug/login" element={<CompanyAutoLogin />} />
-
-          {/* SuperAdmin Layout Route */}
-          <Route
-            path="/super-admin"
-            element={
-              <ProtectedRoute allowedRoles={['superAdmin']}>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<SuperAdminDashboard />} />
-            <Route path="companies" element={<CompanyList />} />
-            <Route path="companies/new" element={<CompanyForm />} />
-            <Route path="companies/edit/:id" element={<CompanyForm />} />
-            <Route path="companies/:companyId/users" element={<UserManagement />} />
-          </Route>
-
-          {/* Dashboard Layout Route - SuperAdmin can access to view all company data */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute allowedRoles={['superAdmin', 'admin', 'accountant', 'employee', 'company']}>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<DashboardPage />} />
-
-            <Route path="sales">
-              <Route index element={<SalesMainPage />} />
-              <Route path="invoices" element={<Invoices />} />
-              <Route path="invoices/new" element={<Invoices />} />
-              <Route path="returns" element={<Returns />} />
-              <Route path="returns/new" element={<Returns />} />
-              <Route path="quotations" element={<Quotations />} />
-              <Route path="quotations/new" element={<Quotations />} />
-              <Route path="customers" element={<Customers />} />
-              <Route path="customers/:id" element={<Customers />} />
-              <Route path="payments" element={<Payments />} />
+            {/* Signup Flow */}
+            <Route path="/signup" element={<SignupLayout />}>
+              <Route index element={<SignupForm />} />
+              <Route path="company" element={<SignupCompanyForm />} />
+              <Route path="tax" element={<TaxSettings />} />
+              <Route path="pending" element={<PendingPage />} />
             </Route>
 
-            <Route path="inventory">
-              <Route index element={<InventoryMainPage />} />
-              <Route path="products" element={<Products />} />
-              <Route path="categories" element={<Categories />} />
-              <Route path="operations" element={<Operations />} />
-              <Route path="permissions" element={<Permissions />} />
-              <Route path="warehouses" element={<Warehouses />} />
-              <Route path="inventories" element={<Inventories />} />
+            <Route path="/company-login" element={<CompanyAutoLogin />} />
+            <Route path="/company/:slug/login" element={<CompanyAutoLogin />} />
+
+            {/* SuperAdmin Layout Route */}
+            <Route
+              path="/super-admin"
+              element={
+                <ProtectedRoute allowedRoles={['superAdmin']}>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<SuperAdminDashboard />} />
+              <Route path="companies" element={<CompanyList />} />
+              <Route path="companies/new" element={<CompanyForm />} />
+              <Route path="companies/edit/:id" element={<CompanyForm />} />
+              <Route path="companies/:companyId/users" element={<UserManagement />} />
             </Route>
 
-            <Route path="accounting">
-              <Route index element={<AccountingMainPage />} />
-              <Route path="journal-entries" element={<JournalEntries />} />
-              <Route path="chart-of-accounts" element={<ChartOfAccounts />} />
-              <Route path="cost-centers" element={<CostCenters />} />
-            </Route>
-
-            <Route path="reports">
-              <Route index element={<ReportsMainPage />} />
+            {/* Dashboard Layout Route - SuperAdmin can access to view all company data */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['superAdmin', 'admin', 'accountant', 'employee', 'company']}>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<DashboardPage />} />
 
               <Route path="sales">
-                <Route index element={<SalesReportsPage />} />
-                <Route path="detailed" element={<DetailedSalesReport />} />
-                <Route path="payments-detailed" element={<DetailedPaymentsReport />} />
+                <Route index element={<SalesMainPage />} />
+                <Route path="invoices" element={<Invoices />} />
+                <Route path="invoices/new" element={<Invoices />} />
+                <Route path="returns" element={<Returns />} />
+                <Route path="returns/new" element={<Returns />} />
+                <Route path="quotations" element={<Quotations />} />
+                <Route path="quotations/new" element={<Quotations />} />
+                <Route path="customers" element={<Customers />} />
+                <Route path="customers/:id" element={<Customers />} />
+                <Route path="payments" element={<Payments />} />
               </Route>
-              <Route path="purchases">
-                <Route index element={<PurchasesReportsPage />} />
-                <Route path="detailed" element={<DetailedPurchasesReport />} />
-                <Route path="payments-detailed" element={<DetailedSupplierPaymentsReport />} />
+
+              <Route path="inventory">
+                <Route index element={<InventoryMainPage />} />
+                <Route path="products" element={<Products />} />
+                <Route path="categories" element={<Categories />} />
+                <Route path="operations" element={<Operations />} />
+                <Route path="permissions" element={<Permissions />} />
+                <Route path="warehouses" element={<Warehouses />} />
+                <Route path="inventories" element={<Inventories />} />
               </Route>
-              <Route path="clients" element={<ReportsLayout title="Clients Reports" />}>
-                <Route index element={<ClientsReportsPage />} />
-                <Route path="summary" element={<SummaryCustomerReport />} />
-              </Route>
-              <Route path="customers" element={<PlaceholderPage title="Customers Reports" />} />
-              <Route path="suppliers" element={<ReportsLayout title="Suppliers Reports" />}>
-                <Route index element={<SuppliersReportsPage />} />
-                <Route path="detailed" element={<DetailedSuppliersReport />} />
-              </Route>
-              <Route path="inventory" element={<ReportsLayout title="Inventory Reports" />}>
-                <Route index element={<InventoryReportsPage />} />
-                <Route path="value" element={<InventoryValueReport />} />
-                <Route path="value-detailed" element={<InventoryValueDetailedReport />} />
-              </Route>
+
               <Route path="accounting">
-                <Route index element={<AccountingReportsPage />} />
-                <Route path="balance-sheet" element={<BalanceSheetReport />} />
-                <Route path="income-statement" element={<IncomeStatementReport />} />
-                <Route path="trial-balance" element={<TrialBalanceReport />} />
-                <Route path="general-ledger" element={<GeneralLedgerReport />} />
-                <Route path="journal-analytic-account" element={<JournalAnalyticAccountReport />} />
-                <Route path="safe-account-statement" element={<SafeAccountStatementReport />} />
-                <Route path="tax-summary" element={<SummaryTaxReport />} />
-                <Route path="tax-detailed" element={<DetailedTaxReport />} />
-                <Route path="tax-return" element={<TaxReturnReport />} />
+                <Route index element={<AccountingMainPage />} />
+                <Route path="journal-entries" element={<JournalEntries />} />
+                <Route path="chart-of-accounts" element={<ChartOfAccounts />} />
+                <Route path="cost-centers" element={<CostCenters />} />
+              </Route>
+
+              <Route path="reports">
+                <Route index element={<ReportsMainPage />} />
+
+                <Route path="sales">
+                  <Route index element={<SalesReportsPage />} />
+                  <Route path="detailed" element={<DetailedSalesReport />} />
+                  <Route path="payments-detailed" element={<DetailedPaymentsReport />} />
+                </Route>
+                <Route path="purchases">
+                  <Route index element={<PurchasesReportsPage />} />
+                  <Route path="detailed" element={<DetailedPurchasesReport />} />
+                  <Route path="payments-detailed" element={<DetailedSupplierPaymentsReport />} />
+                </Route>
+                <Route path="clients" element={<ReportsLayout title="Clients Reports" />}>
+                  <Route index element={<ClientsReportsPage />} />
+                  <Route path="summary" element={<SummaryCustomerReport />} />
+                </Route>
+                <Route path="customers" element={<PlaceholderPage title="Customers Reports" />} />
+                <Route path="suppliers" element={<ReportsLayout title="Suppliers Reports" />}>
+                  <Route index element={<SuppliersReportsPage />} />
+                  <Route path="detailed" element={<DetailedSuppliersReport />} />
+                </Route>
+                <Route path="inventory" element={<ReportsLayout title="Inventory Reports" />}>
+                  <Route index element={<InventoryReportsPage />} />
+                  <Route path="value" element={<InventoryValueReport />} />
+                  <Route path="value-detailed" element={<InventoryValueDetailedReport />} />
+                </Route>
+                <Route path="accounting">
+                  <Route index element={<AccountingReportsPage />} />
+                  <Route path="balance-sheet" element={<BalanceSheetReport />} />
+                  <Route path="income-statement" element={<IncomeStatementReport />} />
+                  <Route path="trial-balance" element={<TrialBalanceReport />} />
+                  <Route path="general-ledger" element={<GeneralLedgerReport />} />
+                  <Route path="journal-analytic-account" element={<JournalAnalyticAccountReport />} />
+                  <Route path="safe-account-statement" element={<SafeAccountStatementReport />} />
+                  <Route path="tax-summary" element={<SummaryTaxReport />} />
+                  <Route path="tax-detailed" element={<DetailedTaxReport />} />
+                  <Route path="tax-return" element={<TaxReturnReport />} />
+                </Route>
+              </Route>
+
+              <Route path="purchases">
+                <Route index element={<PurchasesMainPage />} />
+                <Route path="dashboard" element={<PurchasesPage />} />
+                <Route path="suppliers/:id" element={<Suppliers />} />
+                <Route path="invoices" element={<PurchaseInvoices />} />
+                <Route path="invoices/new" element={<PurchaseInvoices />} />
+                <Route path="invoices/add" element={<PurchaseInvoices />} />
+                <Route path="purchase-orders" element={<PurchaseOrders />} />
+                <Route path="purchase-orders/new" element={<PurchaseOrders />} />
+                <Route path="returns" element={<PurchaseReturns />} />
+                <Route path="returns/new" element={<PurchaseReturns />} />
+                <Route path="requests" element={<PurchaseRequests />} />
+                <Route path="requests/new" element={<PurchaseRequests />} />
+                <Route path="suppliers" element={<Suppliers />} />
+                <Route path="payments" element={<SupplierPayments />} />
+              </Route>
+
+              <Route path="finance">
+                <Route index element={<FinanceMainPage />} />
+                <Route path="expenses" element={<Expenses />} />
+                <Route path="expenses/new" element={<Expenses />} />
+                <Route path="transactions" element={<Transactions />} />
+                <Route path="permissions" element={<PermissionsFinance />} />
+                <Route path="requisitions" element={<PermissionsFinance />} />
+                <Route path="requisitions/new" element={<PermissionsFinance />} />
+                <Route path="safes" element={<Safes />} />
+                <Route path="bank-accounts" element={<BankAccounts />} />
+              </Route>
+
+              <Route path="users">
+                <Route index element={<UsersMainPage />} />
+                <Route path="list" element={<Users />} />
+                <Route path="roles" element={<Roles />} />
+              </Route>
+
+              <Route path="branches">
+                <Route index element={<BranchesMainPage />} />
+                <Route path="list" element={<Branches />} />
+                <Route path="partner-lists" element={<PartnerLists />} />
+                <Route path="businesses" element={<Activities />} />
+              </Route>
+
+              <Route path="templates">
+                <Route index element={<TemplatesMainPage />} />
+                <Route path="general" element={<GeneralTemplates />} />
+                <Route path="general/add" element={<GeneralTemplateAdd />} />
+                <Route path="general/:id/edit" element={<GeneralTemplateEdit />} />
+                <Route path="invoices" element={<InvoiceTemplates />} />
+                <Route path="invoices/add" element={<InvoiceTemplateAdd />} />
+                <Route path="invoices/:id/edit" element={<InvoiceTemplateEdit />} />
+                <Route path="product-labels" element={<ProductLabels />} />
+                <Route path="product-labels/add" element={<ProductLabelAdd />} />
+                <Route path="product-labels/:id/edit" element={<ProductLabelEdit />} />
+                <Route path="invoice-qa" element={<InvoiceQATool />} />
               </Route>
             </Route>
 
-            <Route path="purchases">
-              <Route index element={<PurchasesMainPage />} />
-              <Route path="dashboard" element={<PurchasesPage />} />
-              <Route path="suppliers/:id" element={<Suppliers />} />
-              <Route path="invoices" element={<PurchaseInvoices />} />
-              <Route path="invoices/new" element={<PurchaseInvoices />} />
-              <Route path="invoices/add" element={<PurchaseInvoices />} />
-              <Route path="purchase-orders" element={<PurchaseOrders />} />
-              <Route path="purchase-orders/new" element={<PurchaseOrders />} />
-              <Route path="returns" element={<PurchaseReturns />} />
-              <Route path="returns/new" element={<PurchaseReturns />} />
-              <Route path="requests" element={<PurchaseRequests />} />
-              <Route path="requests/new" element={<PurchaseRequests />} />
-              <Route path="suppliers" element={<Suppliers />} />
-              <Route path="payments" element={<SupplierPayments />} />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute allowedRoles={['superAdmin', 'admin', 'accountant', 'employee', 'company']}>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="general" element={<GeneralSettings />} />
+              <Route path="sales" element={<SalesSettings />} />
+              <Route path="purchases" element={<PurchasesSettings />} />
+              <Route path="customers" element={<CustomersSettings />} />
+              <Route path="suppliers" element={<SuppliersSettings />} />
+              <Route path="accounting" element={<AccountingSettings />} />
+              <Route path="taxes" element={<TaxesSettings />} />
+              <Route path="einvoice" element={<ZatcaSettings />} />
+              <Route path="import">
+                <Route index element={<ImportingSettings />} />
+                <Route path=":entity" element={<ImportEntityPage />} />
+              </Route>
+              <Route path="export" element={<ExportingSettings />} />
+              <Route path="coding" element={<CodingSettings />} />
+              <Route path="api" element={<ApiSettings />} />
+              <Route path="backups" element={<BackupSettings />} />
             </Route>
 
-            <Route path="finance">
-              <Route index element={<FinanceMainPage />} />
-              <Route path="expenses" element={<Expenses />} />
-              <Route path="expenses/new" element={<Expenses />} />
-              <Route path="transactions" element={<Transactions />} />
-              <Route path="permissions" element={<PermissionsFinance />} />
-              <Route path="safes" element={<Safes />} />
-              <Route path="bank-accounts" element={<BankAccounts />} />
-            </Route>
-
-            <Route path="users">
-              <Route index element={<UsersMainPage />} />
-              <Route path="list" element={<Users />} />
-              <Route path="roles" element={<Roles />} />
-            </Route>
-
-            <Route path="branches">
-              <Route index element={<BranchesMainPage />} />
-              <Route path="list" element={<Branches />} />
-              <Route path="partner-lists" element={<PartnerLists />} />
-              <Route path="businesses" element={<Activities />} />
-            </Route>
-
-            <Route path="templates">
-              <Route index element={<TemplatesMainPage />} />
-              <Route path="general" element={<GeneralTemplates />} />
-              <Route path="general/add" element={<GeneralTemplateAdd />} />
-              <Route path="general/:id/edit" element={<GeneralTemplateEdit />} />
-              <Route path="invoices" element={<InvoiceTemplates />} />
-              <Route path="invoices/add" element={<InvoiceTemplateAdd />} />
-              <Route path="invoices/:id/edit" element={<InvoiceTemplateEdit />} />
-              <Route path="product-labels" element={<ProductLabels />} />
-              <Route path="product-labels/add" element={<ProductLabelAdd />} />
-              <Route path="product-labels/:id/edit" element={<ProductLabelEdit />} />
-            </Route>
-          </Route>
-
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute allowedRoles={['superAdmin', 'admin', 'accountant', 'employee', 'company']}>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="general" element={<GeneralSettings />} />
-            <Route path="sales" element={<SalesSettings />} />
-            <Route path="purchases" element={<PurchasesSettings />} />
-            <Route path="customers" element={<CustomersSettings />} />
-            <Route path="suppliers" element={<SuppliersSettings />} />
-            <Route path="accounting" element={<AccountingSettings />} />
-            <Route path="taxes" element={<TaxesSettings />} />
-            <Route path="einvoice" element={<ZatcaSettings />} />
-            <Route path="import">
-              <Route index element={<ImportingSettings />} />
-              <Route path=":entity" element={<ImportEntityPage />} />
-            </Route>
-            <Route path="export" element={<ExportingSettings />} />
-            <Route path="coding" element={<CodingSettings />} />
-            <Route path="api" element={<ApiSettings />} />
-            <Route path="backups" element={<BackupSettings />} />
-          </Route>
-
-          <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </PrintTemplateProvider>
       </AuthProvider>

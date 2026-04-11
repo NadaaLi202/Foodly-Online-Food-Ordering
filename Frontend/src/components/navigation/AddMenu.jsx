@@ -1,7 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+﻿import React, { useState, useRef, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, FileText, UserPlus, Package, ShoppingCart, Truck, CreditCard, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import toast from 'react-hot-toast';
 import { usePermissions } from '../../hooks/usePermissions';
 import { addMenuConfig } from '../../config/addMenuConfig';
 
@@ -17,12 +18,13 @@ const iconMap = {
 const AddMenu = ({ isRtl }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const location = useLocation();
     const { hasPermission } = usePermissions();
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef(null);
 
     // Filter items based on permissions
-    const allowedItems = addMenuConfig.filter(item =>
+    const allowedItems = addMenuConfig.filter((item) =>
         hasPermission(item.permission.module, item.permission.action)
     );
 
@@ -37,9 +39,32 @@ const AddMenu = ({ isRtl }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    const resolveItemTarget = (item) => {
+        const isDashboardContext = location.pathname.startsWith('/dashboard');
+        const preferredPath = isDashboardContext ? (item.fallbackPath || item.route) : (item.route || item.fallbackPath);
+
+        if (!preferredPath) {
+            // TODO: page not built yet
+            return null;
+        }
+
+        return {
+            path: preferredPath,
+            state: item.state
+        };
+    };
+
     const handleItemClick = (item) => {
         setIsOpen(false);
-        navigate(item.path, { state: item.state });
+
+        const target = resolveItemTarget(item);
+        if (!target) {
+            // TODO: page not built yet
+            toast.error('هذه الصفحة قيد التطوير');
+            return;
+        }
+
+        navigate(target.path, { state: target.state });
     };
 
     if (allowedItems.length === 0) return null;
@@ -63,7 +88,7 @@ const AddMenu = ({ isRtl }) => {
                         const IconComponent = iconMap[item.icon] || FileText;
                         return (
                             <button
-                                key={index}
+                                key={item.key || index}
                                 onClick={() => handleItemClick(item)}
                                 className={`w-full px-4 py-2 flex items-center gap-3 hover:bg-gray-50 transition-colors ${isRtl ? 'flex-row-reverse text-right' : 'text-left'}`}
                             >

@@ -22,23 +22,31 @@ import { useAuth } from '../context/AuthContext';
 import logo from '../assets/SidebarLogo.jpg';
 
 
-const Sidebar = ({ isMobile, isOpen, onClose }) => {
+const Sidebar = ({ isMobile, isOpen }) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
     const [openMenu, setOpenMenu] = useState(null);
+    const [openChildMenu, setOpenChildMenu] = useState(null);
     const isSuperAdmin = user?.role === 'superAdmin';
     const canAccessBackups = isSuperAdmin || user?.role === 'company' || user?.systemRole === 'companyOwner';
     const adminRoles = ['superAdmin', 'admin', 'company', 'manager'];
     const isAdmin = adminRoles.includes(user?.role);
 
-    useEffect(() => {
-        const path = location.pathname;
+    const syncMenusFromPath = (path) => {
         if (path.startsWith('/dashboard/accounting')) setOpenMenu((m) => (m === 'accounting' ? m : 'accounting'));
         else if (path.startsWith('/dashboard/reports')) setOpenMenu((m) => (m === 'reports' ? m : 'reports'));
         else if (path.startsWith('/super-admin')) setOpenMenu((m) => (m === 'superAdmin' ? m : 'superAdmin'));
         else if (path.startsWith('/settings')) setOpenMenu((m) => (m === 'settings' ? m : 'settings'));
+        else if (path.startsWith('/dashboard/finance')) setOpenMenu((m) => (m === 'finance' ? m : 'finance'));
+
+    };
+
+    useEffect(() => {
+        // Keep accordion sections in sync with direct URL navigation.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        syncMenusFromPath(location.pathname);
     }, [location.pathname]);
 
     const handleLogout = () => {
@@ -103,16 +111,16 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
         {
             key: 'finance',
             icon: Banknote,
-            path: '/dashboard/finance',
-            hasSub: true,
-            children: [
-                { key: 'expenses', path: '/dashboard/finance/expenses' },
-                { key: 'transactions', path: '/dashboard/finance/transactions' },
-                { key: 'requisitions', path: '/dashboard/finance/permissions' },
-                { key: 'safes', path: '/dashboard/finance/safes' },
-                { key: 'bank_accounts', path: '/dashboard/finance/bank-accounts' },
-            ]
-        },
+                path: '/dashboard/finance',
+                hasSub: true,
+                children: [
+                    { key: 'expenses', path: '/dashboard/finance/expenses' },
+                    { key: 'transactions', path: '/dashboard/finance/transactions' },
+                    { key: 'requisitions', path: '/dashboard/finance/requisitions' },
+                    { key: 'safes', path: '/dashboard/finance/safes' },
+                    { key: 'bank_accounts', path: '/dashboard/finance/bank-accounts' },
+                ]
+            },
         {
             key: 'accounting',
             icon: Scale,
@@ -202,6 +210,9 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
         }`
         : 'w-64 bg-[#0097A7] text-white min-h-screen flex flex-col transition-all duration-300 print:hidden';
 
+    const isPathActive = (path) => location.pathname === path;
+    const isChildGroupActive = (children = []) => children.some((child) => isPathActive(child.path));
+
     return (
         <aside className={sidebarClasses}>
             <div className="p-4 flex items-center justify-center border-b border-white/15">
@@ -258,18 +269,57 @@ const Sidebar = ({ isMobile, isOpen, onClose }) => {
                             {item.children && openMenu === item.key && (
                                 <div className="ms-9 mt-1 flex flex-col space-y-0.5">
                                     {item.children.map((child) => (
-                                        <NavLink
-                                            key={child.key}
-                                            to={child.path}
-                                            className={({ isActive }) =>
-                                                `text-xs font-medium rounded px-2 py-1 transition-colors ${isActive
-                                                    ? 'text-white bg-[#1d9fe0]'
-                                                    : 'text-cyan-50 hover:bg-[#7dd3fc] hover:text-slate-900'
-                                                }`
-                                            }
-                                        >
-                                            {child.label || t(`sidebar.${child.key}`)}
-                                        </NavLink>
+                                        child.hasSub ? (
+                                            <div key={child.key} className="flex flex-col">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setOpenChildMenu(openChildMenu === `${item.key}-${child.key}` ? null : `${item.key}-${child.key}`)}
+                                                    className={`flex items-center w-full text-xs font-medium rounded px-2 py-1 transition-colors ${isChildGroupActive(child.children)
+                                                        ? 'text-white bg-[#1d9fe0]'
+                                                        : 'text-cyan-50 hover:bg-[#7dd3fc] hover:text-slate-900'
+                                                        }`}
+                                                >
+                                                    <span className="flex-1 text-start">{child.label || t(`sidebar.${child.key}`)}</span>
+                                                    <Play
+                                                        className={`rtl:rotate-180 h-3.5 w-3.5 flex-shrink-0 transition-transform duration-150 ease-in-out ${openChildMenu === `${item.key}-${child.key}` ? 'rotate-90' : ''}`}
+                                                        size={14}
+                                                        fill="currentColor"
+                                                    />
+                                                </button>
+
+                                                {openChildMenu === `${item.key}-${child.key}` && (
+                                                    <div className="ms-4 mt-1 flex flex-col space-y-0.5">
+                                                        {child.children.map((subChild) => (
+                                                            <NavLink
+                                                                key={subChild.key}
+                                                                to={subChild.path}
+                                                                className={({ isActive }) =>
+                                                                    `text-xs font-medium rounded px-2 py-1 transition-colors ${isActive
+                                                                        ? 'text-white bg-[#1d9fe0]'
+                                                                        : 'text-cyan-50 hover:bg-[#7dd3fc] hover:text-slate-900'
+                                                                        }`
+                                                                }
+                                                            >
+                                                                {subChild.label || t(`sidebar.${subChild.key}`)}
+                                                            </NavLink>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <NavLink
+                                                key={child.key}
+                                                to={child.path}
+                                                className={({ isActive }) =>
+                                                    `text-xs font-medium rounded px-2 py-1 transition-colors ${isActive
+                                                        ? 'text-white bg-[#1d9fe0]'
+                                                        : 'text-cyan-50 hover:bg-[#7dd3fc] hover:text-slate-900'
+                                                        }`
+                                                }
+                                            >
+                                                {child.label || t(`sidebar.${child.key}`)}
+                                            </NavLink>
+                                        )
                                     ))}
                                 </div>
                             )}

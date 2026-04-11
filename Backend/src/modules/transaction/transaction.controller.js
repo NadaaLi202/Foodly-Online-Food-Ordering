@@ -13,6 +13,7 @@ import PDFDocument from "pdfkit";
 import path from "path";
 import { fileURLToPath } from "url";
 import { processArabic } from "../../utils/arabic.js";
+import { generatePDF } from "../../utils/generatePDF.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -420,27 +421,29 @@ const deleteOne = catchAsyncError(async (req, res, next) => {
 const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
     const baseQuery = { _id: id, deletedAt: { $in: [null, undefined] } };
-    // Company-scoped: same as getOne; superAdmin can fallback without filter
+    
     let transaction = await Transaction.findOne({ ...baseQuery, ...req.companyFilter })
         .populate("contact", "name email phone type address")
         .populate("items.product", "name sellingPrice")
         .lean();
+    
     if (!transaction && req.user?.role === "superAdmin") {
         transaction = await Transaction.findOne(baseQuery)
             .populate("contact", "name email phone type address")
             .populate("items.product", "name sellingPrice")
             .lean();
     }
+    
     if (!transaction) return next(new AppError("Document not found", 404));
 
-    // Set headers only; do not send JSON — pipe PDF stream to res
-    const company = await companyModel.findById(transaction.companyId).select("name logo defaultCurrency").lean();
+    const company = await companyModel.findById(transaction.companyId).select("name logo defaultCurrency commercial_register tax_number address").lean();
     const companyName = company?.name || "Company";
     const companyLogoUrl = company?.logo?.url;
     const currency = transaction.currency || company?.defaultCurrency || "EGP";
     const CURRENCY_SYMBOLS = { EGP: "ج.م", USD: "$", EUR: "€", SAR: "﷼", AED: "د.إ", GBP: "£" };
     const currencySymbol = CURRENCY_SYMBOLS[currency] || currency;
 
+    // Build QR Payload
     const qrPayload = {
         invoiceNumber: transaction.transactionNumber,
         companyName,
@@ -450,107 +453,219 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
     };
     const qrDataURL = await QRCode.toDataURL(JSON.stringify(qrPayload), { width: 200, margin: 1 });
 
-    let logoBuffer = null;
-    if (companyLogoUrl) {
-        try {
-            const response = await fetch(companyLogoUrl);
-            const arrayBuffer = await response.arrayBuffer();
-            logoBuffer = Buffer.from(arrayBuffer);
-        } catch (e) {
-            console.error("Failed to fetch logo:", e.message);
+    const esc = (value) => String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+
+    const fmt = (n) => Number(n ?? 0).toFixed(2);
+    const contact = transaction.contactSnapshot || transaction.contact;
+    const contactName = (contact?.name || transaction.contact?.name) || "—";
+    
+    // Build HTML Content
+    const htmlContent = `
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>${esc(transaction.transactionNumber)}</title>
+    <style>
+        @page { size: A4; margin: 0; }
+        body {
+            font-family: 'Cairo', 'Arial', sans-serif;
+            margin: 0;
+            padding: 40px;
+            color: #333;
+            line-height: 1.6;
+            direction: rtl;
         }
-    }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #f3f4f6;
+            padding-bottom: 20px;
+        }
+        .logo { max-width: 150px; max-height: 80px; }
+        .company-info { text-align: left; }
+        .invoice-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a56db;
+            margin: 0 0 10px 0;
+        }
+        .meta-table {
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        .meta-table td { padding: 5px 0; }
+        .billing-info {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        .billing-box { flex: 1; }
+        .label {
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #6b7280;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        table.items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+        table.items-table th {
+            background-color: #f9fafb;
+            color: #374151;
+            text-align: right;
+            padding: 12px;
+            font-size: 12px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        table.items-table td {
+            padding: 12px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 11px;
+        }
+        .summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .qr-code { width: 100px; height: 100px; }
+        .totals-table { width: 250px; }
+        .totals-table td { padding: 5px 0; text-align: left; }
+        .totals-table td:first-child { text-align: right; color: #6b7280; }
+        .totals-table .grand-total {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1a56db;
+            border-top: 2px solid #e5e7eb;
+            padding-top: 10px;
+        }
+        .footer {
+            margin-top: 60px;
+            text-align: center;
+            font-size: 10px;
+            color: #9ca3af;
+            border-top: 1px solid #f3f4f6;
+            padding-top: 20px;
+        }
+        .arabic-text { direction: rtl; unicode-bidi: embed; }
+        .number { direction: ltr; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="company-brand">
+            ${companyLogoUrl ? `<img src="${companyLogoUrl}" class="logo" />` : `<h1 style="margin:0">${esc(companyName)}</h1>`}
+        </div>
+        <div class="company-info" style="text-align: right;">
+            <p style="margin:0; font-weight:bold;">${esc(companyName)}</p>
+            ${company.commercial_register ? `<p style="margin:2px 0; font-size:11px;">\u0633\u062c\u0644 \u062a\u062c\u0627\u0631\u064a: ${esc(company.commercial_register)}</p>` : ''}
+            ${company.tax_number ? `<p style="margin:2px 0; font-size:11px;">\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0636\u0631\u064a\u0628\u064a: ${esc(company.tax_number)}</p>` : ''}
+            ${company.address ? `<p style="margin:2px 0; font-size:11px;">${esc(company.address)}</p>` : ''}
+        </div>
+    </div>
+
+    <div style="display:flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px;">
+        <div>
+            <h2 class="invoice-title">${esc(docTypeLabel(transaction.module, transaction.documentType))}</h2>
+            <p style="margin:0; font-weight:bold;"># ${esc(transaction.transactionNumber)}</p>
+        </div>
+        <div style="text-align: left;">
+            <p style="margin:0; font-size:11px;"><span style="color:#6b7280;">\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0625\u0635\u062f\u0627\u0631:</span> ${new Date(transaction.issueDate).toLocaleDateString('ar-SA')}</p>
+            ${transaction.dueDate ? `<p style="margin:2px 0; font-size:11px;"><span style="color:#6b7280;">\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0627\u0633\u062a\u062d\u0642\u0627\u0642:</span> ${new Date(transaction.dueDate).toLocaleDateString('ar-SA')}</p>` : ''}
+        </div>
+    </div>
+
+    <div class="billing-info">
+        <div class="billing-box">
+            <div class="label">\u0641\u0627\u062a\u0648\u0631\u0629 \u0625\u0644\u0649</div>
+            <p style="margin:0; font-weight:bold;">${esc(contactName)}</p>
+            <p style="margin:2px 0; font-size:11px;">${esc(contact?.address?.address1 || contact?.address?.city || "")}</p>
+            ${contact?.phone ? `<p style="margin:2px 0; font-size:11px;">${esc(contact.phone)}</p>` : ''}
+        </div>
+    </div>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th style="width: 50%;">\u0627\u0644\u0648\u0635\u0641</th>
+                <th style="text-align: center;">\u0627\u0644\u0643\u0645\u064a\u0629</th>
+                <th style="text-align: center;">\u0627\u0644\u0633\u0639\u0631</th>
+                <th style="text-align: left;">\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${(transaction.items || []).map(item => {
+                const name = item.productName || item.product?.name || "—";
+                const total = item.total ?? (item.quantity * item.unitPrice - (item.discountAmount || 0) + (item.taxAmount || 0));
+                return `
+                    <tr>
+                        <td>${esc(name)}</td>
+                        <td style="text-align: center;" class="number">${fmt(item.quantity)}</td>
+                        <td style="text-align: center;" class="number">${fmt(item.unitPrice)}</td>
+                        <td style="text-align: left;" class="number">${fmt(total)} ${esc(currencySymbol)}</td>
+                    </tr>
+                `;
+            }).join('')}
+        </tbody>
+    </table>
+
+    <div class="summary">
+        <div style="text-align: center;">
+            <img src="${qrDataURL}" class="qr-code" />
+            <p style="margin:5px 0 0 0; font-size:9px; color:#9ca3af;">\u0645\u0633\u062d \u0644\u0644\u062a\u062d\u0642\u0642</p>
+        </div>
+        <table class="totals-table">
+            <tr>
+                <td>\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0641\u0631\u0631\u0639\u064a:</td>
+                <td class="number">${fmt(transaction.subtotal)} ${esc(currencySymbol)}</td>
+            </tr>
+            ${transaction.totalDiscount > 0 ? `
+            <tr>
+                <td>\u0627\u0644\u062e\u0635\u0645:</td>
+                <td class="number">-${fmt(transaction.totalDiscount)} ${esc(currencySymbol)}</td>
+            </tr>
+            ` : ''}
+            <tr>
+                <td>\u0627\u0644\u0636\u0631\u064a\u0628\u0629:</td>
+                <td class="number">${fmt(transaction.totalTax)} ${esc(currencySymbol)}</td>
+            </tr>
+            <tr class="grand-total">
+                <td>\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0646\u0647\u0627\u0626\u064a:</td>
+                <td class="number">${fmt(transaction.totalAmount)} ${esc(currencySymbol)}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        <p>${esc(companyName)} — \u062c\u0645\u064a\u0631 \u0627\u0644\u062d\u0642\u0648\u0642 \u0645\u062d\u0641\u0648\u0638\u0629</p>
+        <p style="margin-top:5px; color:#e5e7eb;">Generated by Dafater Accounting</p>
+    </div>
+</body>
+</html>
+    `;
+
+    const pdfBuffer = await generatePDF(htmlContent, {
+        format: "A4",
+        margin: { top: "0mm", bottom: "0mm", left: "0mm", right: "0mm" }
+    });
 
     const filename = `invoice-${(transaction.transactionNumber || id).replace(/[^a-zA-Z0-9-_]/g, "_")}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-
-    const doc = new PDFDocument({ size: "A4", margin: 40, rtl: true });
-    const regularFontPath = path.join(__dirname, "../../assets/fonts/Arial-Regular.ttf");
-    const boldFontPath = path.join(__dirname, "../../assets/fonts/Arial-Bold.ttf");
-    doc.registerFont("ArabicFont", regularFontPath);
-    doc.registerFont("ArabicFontBold", boldFontPath);
-    doc.font("ArabicFont"); // Set default font
-
-    doc.pipe(res);
-
-    let y = 40;
-    const pageWidth = doc.page.width - 80;
-    const rightCol = 350;
-
-    if (logoBuffer) {
-        try {
-            doc.image(logoBuffer, 40, y, { width: 50, height: 50 });
-        } catch (e) {
-            // if image load fails, skip
-        }
-        y += 55;
-    }
-    doc.fontSize(18).font("ArabicFontBold").text(processArabic(companyName), 40, y, { width: pageWidth, align: "right" });
-    y += 28;
-    doc.fontSize(10).font("ArabicFont").text(processArabic(docTypeLabel(transaction.module, transaction.documentType)), 40, y, { width: pageWidth, align: "right" });
-    doc.fontSize(12).text(`# ${transaction.transactionNumber}`, rightCol, y);
-    y += 20;
-    doc.fontSize(9).text(`Issue: ${new Date(transaction.issueDate).toLocaleDateString()}`, rightCol, y);
-    doc.text(`Due: ${transaction.dueDate ? new Date(transaction.dueDate).toLocaleDateString() : "—"}`, rightCol, y + 14);
-    y += 40;
-
-    const contact = transaction.contactSnapshot || transaction.contact;
-    const contactName = (contact?.name || transaction.contact?.name) || "—";
-    const contactAddr = contact?.address ? (contact.address.address1 || contact.address.city || "") : "";
-    doc.fontSize(10).font("ArabicFontBold").text(processArabic("فاتورة إلى"), 40, y, { width: pageWidth, align: "right" });
-    y += 16;
-    doc.font("ArabicFont").text(processArabic(contactName), 40, y, { width: pageWidth, align: "right" });
-    if (contactAddr) doc.text(processArabic(contactAddr), 40, y + 14, { width: pageWidth, align: "right" });
-    y += 36;
-
-    doc.fontSize(9).font("ArabicFontBold");
-    doc.text(processArabic("المنتج"), 40, y, { width: 170, align: "right" });
-    doc.text(processArabic("الكمية"), 220, y, { width: 40, align: "right" });
-    doc.text(processArabic("السعر"), 260, y, { width: 50, align: "right" });
-    doc.text(processArabic("الإجمالي"), 320, y, { width: pageWidth - 280, align: "right" });
-    y += 18;
-    doc.moveTo(40, y).lineTo(pageWidth + 40, y).stroke();
-    y += 10;
-
-    doc.font("ArabicFont");
-    const fmt = (n) => Number(n ?? 0).toFixed(2);
-    (transaction.items || []).forEach((item) => {
-        const name = item.productName || item.product?.name || "—";
-        const total = item.total ?? (item.quantity * item.unitPrice - (item.discountAmount || 0) + (item.taxAmount || 0));
-        doc.fontSize(9).text(processArabic(name.substring(0, 35)), 40, y, { width: 170, align: "right" });
-        doc.text(fmt(item.quantity), 210, y, { width: 40, align: "right" });
-        doc.text(fmt(item.unitPrice), 250, y, { width: 60, align: "right" });
-        doc.text(`${fmt(total)} ${processArabic(currencySymbol)}`, 310, y, { width: pageWidth - 270, align: "right" });
-        y += 18;
-    });
-    y += 12;
-
-    doc.moveTo(40, y).lineTo(pageWidth + 40, y).stroke();
-    y += 16;
-    doc.font("ArabicFontBold").text(processArabic("الإجمالي الفرعي:"), 260, y, { width: 80, align: "right" });
-    doc.text(`${fmt(transaction.subtotal)} ${processArabic(currencySymbol)}`, 350, y, { width: pageWidth - 310, align: "right" });
-    y += 14;
-    if (transaction.totalDiscount > 0) {
-        doc.text(processArabic("الخصم:"), 260, y, { width: 80, align: "right" });
-        doc.text(`-${fmt(transaction.totalDiscount)} ${processArabic(currencySymbol)}`, 350, y, { width: pageWidth - 310, align: "right" });
-        y += 14;
-    }
-    doc.font("ArabicFontBold").text(processArabic("الضريبة:"), 260, y, { width: 80, align: "right" });
-    doc.font("ArabicFont").text(`${fmt(transaction.totalTax)} ${processArabic(currencySymbol)}`, 350, y, { width: pageWidth - 310, align: "right" });
-    y += 14;
-    doc.font("ArabicFontBold").fontSize(11).text(processArabic("الإجمالي النهائي:"), 260, y, { width: 80, align: "right" });
-    doc.font("ArabicFont").text(`${fmt(transaction.totalAmount)} ${processArabic(currencySymbol)}`, 350, y, { width: pageWidth - 310, align: "right" });
-    y += 28;
-
-    const qrBase64 = qrDataURL.replace(/^data:image\/\w+;base64,/, "");
-    const qrBuffer = Buffer.from(qrBase64, "base64");
-    doc.image(qrBuffer, pageWidth + 40 - 80, y, { width: 80, height: 80 });
-    doc.fontSize(8).font("ArabicFont").text(processArabic("التحقق من المستند عبر رمز QR"), pageWidth + 40 - 80, y + 84, { width: 80, align: "right" });
-
-    doc.fontSize(8).text(`${companyName} — ${transaction.transactionNumber}`, 40, doc.page.height - 40);
-    doc.end();
+    res.setHeader("Content-Length", pdfBuffer.length);
+    res.end(pdfBuffer);
 });
+
 
 /** Alias for PDF download (invoice/transaction); used by route GET /:id/download */
 const downloadInvoicePDF = generateTransactionPDF;

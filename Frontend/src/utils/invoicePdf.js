@@ -12,11 +12,12 @@ import { requestPrintTemplateSelection } from '../services/printTemplateService'
  * @param {string} transactionId
  * @returns {Promise<{ blob: Blob, filename: string }>}
  */
-export async function fetchPdfBlob(api, transactionId) {
+export async function fetchPdfBlob(api, transactionId, selectionMeta = {}) {
     const templateStyle = await requestPrintTemplateSelection({
         actionType: 'pdf',
         source: 'fetchPdfBlob',
         transactionId,
+        ...selectionMeta,
     });
 
     const response = await api.get(`/transactions/${transactionId}/download`, {
@@ -118,21 +119,29 @@ export function downloadBlob(blob, filename) {
     setTimeout(() => {
         try {
             window.URL.revokeObjectURL(url);
-        } catch (_) {}
+        } catch (_) { }
         a.remove();
     }, 1500);
 }
 
 /**
- * Open blob as PDF in new tab (for print preview).
+ * Open blob as PDF without needing popup permission.
+ * Uses a direct download approach (Option 2) to bypass popup blockers.
  */
 export function openBlobInNewTab(blob) {
     const url = window.URL.createObjectURL(blob);
-    const w = window.open(url, '_blank', 'noopener,noreferrer');
-    if (w) w.onload = () => setTimeout(() => window.URL.revokeObjectURL(url), 5000);
-    else {
-        window.URL.revokeObjectURL(url);
-        throw new Error('Popup blocked. Please allow popups to open PDF.');
-    }
-}
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'invoice.pdf';
+    a.rel = 'noopener noreferrer';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
 
+    setTimeout(() => {
+        try {
+            window.URL.revokeObjectURL(url);
+        } catch (_) { }
+        a.remove();
+    }, 1500);
+}

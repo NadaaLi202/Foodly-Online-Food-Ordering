@@ -1,12 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import { Search, Building, Menu, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import AddMenu from './navigation/AddMenu';
 
 const TopBar = ({ onToggleSidebar, isMobile }) => {
     const { t, i18n } = useTranslation();
+    const location = useLocation();
     const isRtl = i18n.language === 'ar';
+    const currentPath = window.location.pathname;
+    const isRequisitionsPage = false; // Always show even on requisitions page to match Safes behavior
     const { user, isImpersonating, restoreSuperAdmin, updateCompanySettings } = useAuth();
     const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
     const langMenuRef = useRef(null);
@@ -44,7 +48,7 @@ const TopBar = ({ onToggleSidebar, isMobile }) => {
                 )}
 
                 <div className={`flex items-center gap-2 ${isRtl ? 'flex-row-reverse' : ''}`}>
-                    <AddMenu isRtl={isRtl} />
+                    {!isRequisitionsPage && <AddMenu isRtl={isRtl} />}
                     <button className={`flex items-center gap-1 text-indigo-700 font-medium hover:bg-indigo-50 px-2 py-1 rounded-md transition-colors ${isRtl ? 'flex-row-reverse' : ''}`}>
                         <Search size={18} />
                         <span>{t('topbar.view')}</span>
