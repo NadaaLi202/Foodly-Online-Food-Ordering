@@ -111,12 +111,12 @@ const TaxReturnReport = () => {
             total: fmtNum(summary.totalSalesTax)
         },
         purchases: {
-            taxable: fmtNum(summary.totalPurchaseAmount),
-            tax: fmtNum(summary.totalPurchaseTax),
+            taxable: fmtNum(-Math.abs(summary.totalPurchaseAmount)),
+            tax: fmtNum(-Math.abs(summary.totalPurchaseTax)),
             adjustment: fmtNum(0),
-            total: fmtNum(summary.totalPurchaseTax)
+            total: fmtNum(-Math.abs(summary.totalPurchaseTax))
         },
-        netTax: fmtNum(summary.netTaxPayable)
+        netTax: fmtNum(summary.totalSalesTax + (-Math.abs(summary.totalPurchaseTax)))
     };
 
     const handleExportExcel = () => {
@@ -154,9 +154,9 @@ const TaxReturnReport = () => {
     return (
         <div className="p-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                    <div className="hidden print:block mb-6">
-                        <PrintHeader title={t('reports.accounting.tax.return_report_title') || 'Tax Return Report'} isRTL={true} showLogo={false} />
-                    </div>
+                <div className="hidden print:block mb-6">
+                    <PrintHeader title={t('reports.accounting.tax.return_report_title') || 'Tax Return Report'} isRTL={true} showLogo={false} />
+                </div>
                 {/* Filters Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                     {/* Period */}

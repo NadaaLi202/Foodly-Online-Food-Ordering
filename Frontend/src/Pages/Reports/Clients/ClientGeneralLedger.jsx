@@ -6,9 +6,13 @@ import reportsService from '../../../services/reportsService';
 import { exportClientStatementToExcel } from '../../../utils/customerSupplierInventoryExport';
 import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import PrintHeader from '../../../components/common/PrintHeader';
+import { useAuth } from '../../../context/AuthContext';
+import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
 
 const ClientGeneralLedger = () => {
     const { t } = useTranslation();
+    const { companySettings } = useAuth();
+    const currency = companySettings?.currency || 'EGP';
     const printRef = useRef(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -92,9 +96,7 @@ const ClientGeneralLedger = () => {
         return date.toLocaleDateString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount || 0);
-    };
+    const formatCurrency = (amount) => utilFormatCurrency(amount, currency);
 
     const getDocumentLink = (entry) => {
         if (!entry?.documentId) return null;

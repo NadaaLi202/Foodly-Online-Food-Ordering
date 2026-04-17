@@ -20,8 +20,8 @@ const __dirname = path.dirname(__filename);
 
 import * as inventoryService from "../product/inventory.service.js";
 import logError from "../../utils/logError.js";
-import { createInvoiceJournalEntry, createPaymentJournalEntry } from "./transaction.accounting.js";
-import { createTransactionFromInvoice } from "../FinancialTransactions/services/accountingTransaction.service.js";
+import { createInvoiceJournalEntry, createPaymentJournalEntry, deleteInvoiceJournalEntry } from "./transaction.accounting.js";
+import { createTransactionFromInvoice, deleteTransactionFromInvoice } from "../FinancialTransactions/services/accountingTransaction.service.js";
 
 const docTypeLabel = (module, type) => {
     if (module === 'Purchases') return type === 'return' ? 'مرتجع مشتريات' : 'فاتورة مشتريات';
@@ -194,8 +194,9 @@ const createTransaction = (module, documentType) =>
             // Accounting: Generate/Sync journal entry for all invoices/returns (non-draft)
             if (txn.documentType === 'invoice' || txn.documentType === 'return') {
                 createInvoiceJournalEntry(txn, companyId).catch(() => { });
-                if (txn.module === 'sales' && txn.documentType === 'invoice' && txn.status !== 'draft') {
-                    createTransactionFromInvoice(txn).catch(() => { });
+                if (txn.documentType === 'invoice' && txn.status !== 'draft') {
+                    const treasuryId = opData.payment?.treasury;
+                    createTransactionFromInvoice(txn, treasuryId ? { safeId: treasuryId, safeModel: 'Safe' } : null).catch(() => { });
                 }
             }
 
@@ -355,8 +356,9 @@ const updateOne = catchAsyncError(async (req, res, next) => {
     // Accounting: Sync journal entry
     if (doc.documentType === 'invoice' || doc.documentType === 'return') {
         createInvoiceJournalEntry(doc, doc.companyId).catch(() => { });
-        if (doc.module === 'sales' && doc.documentType === 'invoice' && doc.status !== 'draft') {
-            createTransactionFromInvoice(doc).catch(() => { });
+        if (doc.documentType === 'invoice' && doc.status !== 'draft') {
+            const treasuryId = opData.payment?.treasury || doc.payment?.treasury;
+            createTransactionFromInvoice(doc, treasuryId ? { safeId: treasuryId, safeModel: 'Safe' } : null).catch(() => { });
         }
     }
 
@@ -407,6 +409,9 @@ const deleteOne = catchAsyncError(async (req, res, next) => {
 
             // Delete linked journal entry
             await deleteInvoiceJournalEntry(doc.transactionNumber, doc.companyId);
+
+            // Delete linked auto-transaction
+            await deleteTransactionFromInvoice(doc._id);
         });
 
         res.json({ message: "تم الحذف" });

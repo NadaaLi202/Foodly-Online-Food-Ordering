@@ -63,6 +63,19 @@ const dailyRestrictionSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Company',
         required: true
+    },
+    currency: {
+        type: String,
+        default: 'EGP'
+    },
+    invoiceId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Transaction'
+    },
+    sourceType: {
+        type: String,
+        enum: ['invoice', 'expense', 'manual', 'payment'],
+        default: 'manual'
     }
 }, {
     timestamps: true

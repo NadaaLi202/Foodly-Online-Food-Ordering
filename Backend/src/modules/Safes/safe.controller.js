@@ -47,6 +47,7 @@ export const getAllSafes = catchAsyncError(async (req, res) => {
     const safes = await safeModel
         .find(filter)
         .populate("users", "name email role")
+        .populate("journalAccount", "name code")
         .sort({ isDefault: -1, createdAt: 1 });
 
     // Calculate dynamic balance for each safe from transactions
@@ -69,7 +70,8 @@ export const getAllSafes = catchAsyncError(async (req, res) => {
 export const getSafeById = catchAsyncError(async (req, res, next) => {
     const safe = await safeModel
         .findOne({ _id: req.params.id, ...req.companyFilter })
-        .populate("users", "name email role");
+        .populate("users", "name email role")
+        .populate("journalAccount", "name code");
 
     if (!safe) {
         return next(new AppError("الخزنة غير موجودة", 404));

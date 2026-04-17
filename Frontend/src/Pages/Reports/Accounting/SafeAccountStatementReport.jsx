@@ -4,6 +4,8 @@ import { FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import api from '../../../services/api';
 import PrintHeader from '../../../components/common/PrintHeader';
+import { useAuth } from '../../../context/AuthContext';
+import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
 
 const getMonthRange = (date = new Date()) => {
     const start = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -14,6 +16,8 @@ const getMonthRange = (date = new Date()) => {
 
 const SafeAccountStatementReport = () => {
     const { t, i18n } = useTranslation();
+    const { companySettings } = useAuth();
+    const currency = companySettings?.currency || 'EGP';
     const location = useLocation();
     const { startDate: defaultFrom, endDate: defaultTo } = getMonthRange();
     const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
@@ -146,6 +150,7 @@ const SafeAccountStatementReport = () => {
     };
 
     const isRtl = i18n.language === 'ar';
+    const formatCurrency = (amount) => utilFormatCurrency(amount, currency);
 
     return (
         <div className="py-6 px-4 sm:px-6 lg:px-8" dir={isRtl ? 'rtl' : 'ltr'}>
@@ -291,13 +296,13 @@ const SafeAccountStatementReport = () => {
                                                 {entry.description || '-'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {entry.debit ? entry.debit.toLocaleString() : '-'}
+                                                {entry.debit ? formatCurrency(entry.debit) : '-'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {entry.credit ? entry.credit.toLocaleString() : '-'}
+                                                {entry.credit ? formatCurrency(entry.credit) : '-'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                {entry.balance?.toLocaleString() || '0'}
+                                                {formatCurrency(entry.balance || 0)}
                                             </td>
                                         </tr>
                                     ))
@@ -310,13 +315,13 @@ const SafeAccountStatementReport = () => {
                                             {t('reports.account_statement.total')}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                                            {reportData.summary.totalDebit.toLocaleString()}
+                                            {formatCurrency(reportData.summary.totalDebit)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                                            {reportData.summary.totalCredit.toLocaleString()}
+                                            {formatCurrency(reportData.summary.totalCredit)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
-                                            {reportData.summary.finalBalance.toLocaleString()}
+                                            {formatCurrency(reportData.summary.finalBalance)}
                                         </td>
                                     </tr>
                                 </tfoot>

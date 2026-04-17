@@ -59,7 +59,10 @@ const createOrUpdateJournalEntryForInvoice = async (invoice) => {
         totalDebit: invoice.total,
         totalCredit: invoice.total,
         entries: entries,
-        companyId: invoice.companyId
+        companyId: invoice.companyId,
+        currency: invoice.currency || 'EGP',
+        invoiceId: invoice._id,
+        sourceType: 'invoice'
     };
 
     if (existingEntry) {

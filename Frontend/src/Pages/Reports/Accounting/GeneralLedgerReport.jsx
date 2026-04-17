@@ -6,6 +6,8 @@ import { buildAccountingReportPdf, exportGeneralLedgerToExcel } from '../../../u
 import api from '../../../services/api';
 import chartOfAccountsService from '../../../services/chartOfAccountsService';
 import PrintHeader from '../../../components/common/PrintHeader';
+import { useAuth } from '../../../context/AuthContext';
+import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
 
 const getMonthRange = (date = new Date()) => {
     const start = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -16,11 +18,14 @@ const getMonthRange = (date = new Date()) => {
 
 const GeneralLedgerReport = () => {
     const { t, i18n } = useTranslation();
+    const { companySettings } = useAuth();
+    const currency = companySettings?.currency || 'EGP';
     const isRTL = i18n.language === 'ar';
     const location = useLocation();
     const { startDate: defaultFrom, endDate: defaultTo } = getMonthRange();
     const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
     const defaultAccountId = params.get('journal_account_id') || 'all';
+    const defaultAccountCode = params.get('accountCode') || '';
 
     const [filters, setFilters] = useState({
         period: 'current_month',
@@ -28,6 +33,7 @@ const GeneralLedgerReport = () => {
         toDate: defaultTo,
         branch: 'all',
         journalAccount: defaultAccountId,
+        accountCode: defaultAccountCode,
         displayedAccounts: 'with_transactions',
     });
 
@@ -103,6 +109,7 @@ const GeneralLedgerReport = () => {
                     endDate: filters.toDate,
                     branch: filters.branch !== 'all' ? filters.branch : undefined,
                     accountId: filters.journalAccount !== 'all' ? filters.journalAccount : undefined,
+                    accountCode: filters.accountCode || undefined,
                 }
             });
             setReportData({
@@ -131,16 +138,16 @@ const GeneralLedgerReport = () => {
 
     // Placeholder column headers for General Ledger
     const tableColumns = [
-        { key: 'date', label: t('reports.columns.date') || 'Date' },
-        { key: 'description', label: t('reports.columns.description') || 'Description' },
-        { key: 'account', label: t('reports.columns.account') || 'Account' },
-        { key: 'debit', label: t('reports.columns.debit') || 'Debit' },
-        { key: 'credit', label: t('reports.columns.credit') || 'Credit' },
-        { key: 'balance', label: t('reports.columns.balance') || 'Balance' },
+        { key: 'date', label: t('reports.columns.date') },
+        { key: 'description', label: t('reports.columns.description') || 'البيان' },
+        { key: 'account', label: t('reports.columns.account') || 'الحساب' },
+        { key: 'debit', label: t('reports.columns.debit') },
+        { key: 'credit', label: t('reports.columns.credit') },
+        { key: 'balance', label: t('reports.columns.balance') },
     ];
 
     const fmtDate = (d) => d ? new Date(d).toLocaleDateString() : '';
-    const fmtNum = (n) => (n == null || n === '' || n === undefined) ? '' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formatCurrency = (amount, entryCurrency) => utilFormatCurrency(amount, entryCurrency || currency);
 
     const handleExportExcel = () => {
         exportGeneralLedgerToExcel(reportData.entries, reportData.account, t);
@@ -166,9 +173,9 @@ const GeneralLedgerReport = () => {
             contentRows.push([
                 fmtDate(entry.date),
                 entry.description || '',
-                fmtNum(entry.debit || 0),
-                fmtNum(entry.credit || 0),
-                fmtNum(entry.balance || 0),
+                formatCurrency(entry.debit || 0, entry.currency),
+                formatCurrency(entry.credit || 0, entry.currency),
+                formatCurrency(entry.balance || 0, entry.currency),
             ]);
         });
         const blob = await buildAccountingReportPdf(t('reports.accounting.general_ledger') || 'General Ledger', contentRows, t);
@@ -202,8 +209,8 @@ const GeneralLedgerReport = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('reports.filters.period')}</label>
                         <div className="relative">
-                            <select 
-                                value={filters.period} 
+                            <select
+                                value={filters.period}
                                 onChange={(e) => {
                                     const value = e.target.value;
                                     const range = applyPeriod(value);
@@ -221,8 +228,8 @@ const GeneralLedgerReport = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('reports.filters.branch')}</label>
                         <div className="relative">
-                            <select 
-                                value={filters.branch} 
+                            <select
+                                value={filters.branch}
                                 onChange={(e) => handleFilterChange('branch', e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             >
@@ -239,9 +246,9 @@ const GeneralLedgerReport = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('reports.filters.journal_account') || 'Journal Account'}</label>
                         <div className="relative">
-                            <select 
-                                value={filters.journalAccount} 
-                                onChange={(e) => handleFilterChange('journalAccount', e.target.value)}
+                            <select
+                                value={filters.journalAccount}
+                                onChange={(e) => setFilters(prev => ({ ...prev, journalAccount: e.target.value, accountCode: '' }))}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             >
                                 <option value="all">{t('reports.filters.all_journal_accounts') || 'All Journal Accounts'}</option>
@@ -256,27 +263,27 @@ const GeneralLedgerReport = () => {
 
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-3">
-                    <button 
+                    <button
                         onClick={fetchReport}
                         className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
                     >
                         {t('reports.show_reports') || 'Show Reports'}
                     </button>
-                    <button 
+                    <button
                         onClick={handleExportExcel}
                         className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors border border-green-200"
                     >
                         <FileSpreadsheet className="w-4 h-4" />
                         {t('reports.export.excel')}
                     </button>
-                    <button 
+                    <button
                         onClick={handleExportPdf}
                         className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors border border-purple-200"
                     >
                         <FileText className="w-4 h-4" />
                         {t('reports.export.pdf')}
                     </button>
-                    <button 
+                    <button
                         onClick={handlePrint}
                         className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors border border-blue-200"
                     >
@@ -310,13 +317,24 @@ const GeneralLedgerReport = () => {
                                     </tr>
                                 ) : (
                                     reportData.entries.map((entry, index) => (
-                                        <tr key={`${entry.restrictionNumber || ''}-${index}`} className="hover:bg-gray-50 border-b border-gray-100">
-                                            <td className="px-4 py-3 text-sm text-gray-900">{fmtDate(entry.date)}</td>
+                                        <tr
+                                            key={index}
+                                            className={`hover:bg-gray-50 border-b border-gray-100 ${entry.isOpening ? 'bg-gray-50 font-bold' : ''}`}
+                                        >
+                                            <td className="px-4 py-3 text-sm text-gray-900">{entry.date ? fmtDate(entry.date) : ''}</td>
                                             <td className="px-4 py-3 text-sm text-gray-900">{entry.description || ''}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">{entry.accountCode || ''}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 text-right">{entry.debit > 0 ? fmtNum(entry.debit) : ''}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 text-right">{entry.credit > 0 ? fmtNum(entry.credit) : ''}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 text-right font-medium">{fmtNum(entry.balance || 0)}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-900">
+                                                {entry.accountName || entry.accountCode || ''}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-gray-900 text-right text-emerald-600">
+                                                {entry.debit > 0 ? formatCurrency(entry.debit, entry.currency) : ''}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm text-gray-900 text-right text-red-600">
+                                                {entry.credit > 0 ? formatCurrency(entry.credit, entry.currency) : ''}
+                                            </td>
+                                            <td className={`px-4 py-3 text-sm text-right font-medium ${entry.balance >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                                                {formatCurrency(entry.balance || 0, entry.currency)}
+                                            </td>
                                         </tr>
                                     ))
                                 )}

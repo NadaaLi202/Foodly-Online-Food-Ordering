@@ -53,8 +53,8 @@ const SAMPLE_DATA = {
     issueDate: new Date().toISOString(),
     dueDate: new Date(Date.now() + 86400000 * 7).toISOString(),
     currency: 'SAR',
-    contact: { 
-        name: 'عميل افتراضي / Sample Customer', 
+    contact: {
+        name: 'عميل افتراضي / Sample Customer',
         phone: '05XXXXXXXX',
         address: { city: 'الرياض / Riyadh' }
     },
@@ -192,6 +192,94 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t }) => {
 
                     <div className="pt-2 border-t border-dashed border-gray-300 flex justify-center">
                         <QRCodeCanvas value={qrValue} size={90} level="M" includeMargin />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (template === 'invoice-qa') {
+        return (
+            <div className="h-full max-h-[68vh] overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-4" dir="rtl">
+                <div
+                    className="mx-auto bg-white border border-gray-300 shadow-sm p-4 text-xs min-h-[520px] flex flex-col gap-3"
+                    style={{ marginTop: '2cm' }}
+                >
+                    {/* Adjusted Header: Logo | Text | QR */}
+                    <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+                        <div className="w-[70px] flex items-center justify-center">
+                            {logoUrl && <img src={logoUrl} alt="Logo" className="max-h-12 w-auto object-contain" />}
+                        </div>
+                        <div className="text-center flex-1">
+                            <p className="font-bold text-sm">فاتورة ضريبية</p>
+                            <p className="text-gray-500">رقم الفاتورة: {activeInvoice?.transactionNumber || '—'}</p>
+                            <p className="text-gray-500">التاريخ: {formatDate(activeInvoice?.issueDate, isRTL)}</p>
+                        </div>
+                        <div className="w-[70px] flex items-center justify-center">
+                            <QRCodeCanvas value={qrValue} size={60} level="M" includeMargin />
+                        </div>
+                    </div>
+
+                    {/* Seller & Buyer */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="border border-gray-200 rounded p-2">
+                            <p className="font-bold mb-1 text-gray-700">بيانات البائع</p>
+                            <p>{company?.name || '—'}</p>
+                            <p className="text-gray-500">السجل التجاري: {company?.commercialRegister || '—'}</p>
+                            <p className="text-gray-500">الرقم الضريبي: {company?.taxNumber || '—'}</p>
+                            <p className="text-gray-500">العنوان: {company?.address || '—'}</p>
+                        </div>
+                        <div className="border border-gray-200 rounded p-2">
+                            <p className="font-bold mb-1 text-gray-700">بيانات المشتري</p>
+                            <p>{contact?.name || '—'}</p>
+                            <p className="text-gray-500">السجل التجاري: {contact?.commercialRegNumber || contact?.commercialRegister || '—'}</p>
+                            <p className="text-gray-500">الرقم الضريبي: {contact?.taxNumber || '—'}</p>
+                            <p className="text-gray-500">العنوان: {resolveEntityAddress(contact)}</p>
+                        </div>
+                    </div>
+
+                    {/* Items table */}
+                    <table className="w-full border border-gray-200 border-collapse">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className="p-2 border border-gray-200 text-right">{t('sales.common.description', 'الوصف')}</th>
+                                <th className="p-2 border border-gray-200 text-center">{t('sales.common.qty', 'الكمية')}</th>
+                                <th className="p-2 border border-gray-200 text-center">{t('sales.invoices.price', 'السعر')}</th>
+                                <th className="p-2 border border-gray-200 text-center">{t('sales.common.total', 'الإجمالي')}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {lines.map((line, idx) => (
+                                <tr key={`qa-${idx}`} className="border-b border-gray-100">
+                                    <td className="p-2 text-right">{line.description}</td>
+                                    <td className="p-2 text-center">{line.qty}</td>
+                                    <td className="p-2 text-center">{formatCurrency(line.unitPrice, currency)}</td>
+                                    <td className="p-2 text-center font-semibold">{formatCurrency(line.total, currency)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {/* Totals — directly below table */}
+                    <div className="self-end w-full max-w-[240px] border border-gray-200 rounded p-2 space-y-1">
+                        <div className="flex justify-between"><span>الإجمالي قبل الضريبة</span><span>{formatCurrency(subtotal, currency)}</span></div>
+                        <div className="flex justify-between"><span>الضريبة (15%)</span><span>{formatCurrency(taxAmount, currency)}</span></div>
+                        <div className="flex justify-between font-bold border-t border-gray-300 pt-1"><span>الإجمالي شامل الضريبة</span><span>{formatCurrency(grandTotal, currency)}</span></div>
+                    </div>
+
+                    {/* Signature */}
+                    <div className="grid grid-cols-2 gap-4 mt-2 pt-2 border-t border-dashed border-gray-300">
+                        <div className="text-center">
+                            <p className="text-gray-500 mb-2 italic">ختم البائع</p>
+                            <div className="min-h-[60px] flex items-center justify-center">
+                                {company?.logoPath && <img src={getCompanyLogoUrl(company.logoPath)} alt="Seal" className="max-h-12 opacity-70" />}
+                            </div>
+                            <div className="border-t border-gray-300 mx-4" />
+                        </div>
+                        <div className="text-center">
+                            <p className="text-gray-500 mb-6">توقيع المشتري</p>
+                            <div className="border-t border-gray-300 mx-4" />
+                        </div>
                     </div>
                 </div>
             </div>

@@ -192,29 +192,32 @@ const Transactions = () => {
                                             {t('sales.common.actions')}
                                         </th>
                                         <th scope="col" className="whitespace-nowrap text-start text-sm font-bold text-gray-900 px-3 py-3.5">
-                                            {t('finance.code')}
+                                            {isRtl ? 'العملية المالية' : 'Transaction'}
                                         </th>
                                         <th scope="col" className="whitespace-nowrap text-start text-sm font-bold text-gray-900 px-3 py-3.5">
-                                            {t('finance.date')}
+                                            {isRtl ? 'المصدر' : 'Source'}
                                         </th>
                                         <th scope="col" className="whitespace-nowrap text-start text-sm font-bold text-gray-900 px-3 py-3.5">
-                                            {t('sales.common.status')}
+                                            {t('finance.amount')}
                                         </th>
                                         <th scope="col" className="whitespace-nowrap text-start text-sm font-bold text-gray-900 px-3 py-3.5">
                                             {t('finance.type')}
                                         </th>
                                         <th scope="col" className="whitespace-nowrap text-start text-sm font-bold text-gray-900 px-3 py-3.5">
-                                            {t('finance.account')}
+                                            {t('sales.common.status')}
                                         </th>
                                         <th scope="col" className="whitespace-nowrap text-start text-sm font-bold text-gray-900 px-3 py-3.5">
-                                            {t('finance.amount')}
+                                            {isRtl ? 'الخزينة' : 'Safe/Bank'}
+                                        </th>
+                                        <th scope="col" className="whitespace-nowrap text-start text-sm font-bold text-gray-900 px-3 py-3.5">
+                                            {t('finance.date')}
                                         </th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 bg-white">
                                     {loading ? (
                                         <tr>
-                                            <td colSpan="6" className="py-10">
+                                            <td colSpan="8" className="py-10">
                                                 <div className="flex justify-center flex-col items-center gap-2">
                                                     <div className="animate-spin rounded-full h-8 w-8 border-2 border-indigo-600 border-t-transparent" />
                                                     <span className="text-xs text-gray-500 font-medium">{t('sales.common.loading')}</span>
@@ -223,7 +226,7 @@ const Transactions = () => {
                                         </tr>
                                     ) : filteredTransactions.length === 0 ? (
                                         <tr>
-                                            <td colSpan="6" className="py-12 text-center">
+                                            <td colSpan="8" className="py-12 text-center">
                                                 <div className="flex flex-col items-center justify-center gap-3">
                                                     <div className="p-4 bg-gray-50 rounded-full text-gray-300">
                                                         <FileText size={40} />
@@ -240,7 +243,7 @@ const Transactions = () => {
                                             <tr key={tx._id} className="hover:bg-gray-50 transition-colors group">
                                                 <td className={`align-middle text-sm whitespace-nowrap text-start py-4 ${isRtl ? 'pr-4 sm:pr-6 pl-3' : 'pl-4 sm:pl-6 pr-3'}`}>
                                                     <div className="relative">
-                                                        {(tx.type !== 'income' && tx.type !== 'receivable') && (
+                                                        {(tx.type !== 'income' && tx.type !== 'receivable' && tx.type !== 'expense' && tx.type !== 'payable') && (
                                                             <button
                                                                 onClick={() => setOpenActionMenu(openActionMenu === tx._id ? null : tx._id)}
                                                                 className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
@@ -284,37 +287,59 @@ const Transactions = () => {
                                                     </div>
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-indigo-600 font-bold">
-                                                    #{tx.code}
-                                                </td>
-                                                <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-600">
-                                                    {new Date(tx.date).toLocaleDateString(i18n.language)}
+                                                    #{tx.code || '-'}
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700 uppercase`}>
-                                                        {t('sales.common.posted')}
-                                                    </span>
-                                                </td>
-                                                <td className="align-middle text-sm whitespace-nowrap px-3 py-4">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${getTypeStyle(tx.type)}`}>
-                                                        {getTypeLabel(tx.type)}
-                                                    </span>
-                                                </td>
-                                                <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700">
                                                     <div className="flex flex-col">
-                                                        <span className="font-bold text-gray-900">
-                                                            {tx.type === 'transfer'
-                                                                ? `${tx.fromAccount?.name || '-'} → ${tx.toAccount?.name || '-'}`
-                                                                : (tx.account?.name === 'Unknown' ? t('sales.common.unknown') : (tx.account?.name || '-'))}
-                                                        </span>
+                                                        <span className="font-bold text-gray-900">{tx.source || '-'}</span>
                                                         <span className="text-[10px] text-gray-400 truncate max-w-[150px]">
-                                                            {tx.description === 'Auto-generated Invoice sync'
-                                                                ? t('finance.auto_generated_sync')
-                                                                : (tx.description || '-')}
+                                                            {tx.account?.name || tx.description || '-'}
                                                         </span>
                                                     </div>
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-900 font-black">
                                                     {Number(tx.amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('currency_label')}
+                                                </td>
+                                                <td className="align-middle text-sm whitespace-nowrap px-3 py-4">
+                                                    {(tx.type === 'receipt' || tx.type === 'income') ? (
+                                                        <div className="flex items-center gap-1 text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded-lg w-fit">
+                                                            <div className="p-1 bg-emerald-100 rounded-md">
+                                                                <ChevronDown size={14} className="rotate-0" />
+                                                            </div>
+                                                            <span className="text-xs">{isRtl ? 'إيرادات' : 'Income'}</span>
+                                                        </div>
+                                                    ) : (tx.type === 'disbursement' || tx.type === 'expense') ? (
+                                                        <div className="flex items-center gap-1 text-red-600 font-bold bg-red-50 px-2 py-1 rounded-lg w-fit">
+                                                            <div className="p-1 bg-red-100 rounded-md">
+                                                                <ChevronDown size={14} className="rotate-180" />
+                                                            </div>
+                                                            <span className="text-xs">{isRtl ? 'مصروف' : 'Expense'}</span>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-1 text-indigo-600 font-bold bg-indigo-50 px-2 py-1 rounded-lg w-fit">
+                                                            <div className="p-1 bg-indigo-100 rounded-md">
+                                                                <ArrowLeftRight size={14} />
+                                                            </div>
+                                                            <span className="text-xs">{getTypeLabel(tx.type)}</span>
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="align-middle text-sm whitespace-nowrap px-3 py-4">
+                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700`}>
+                                                        {isRtl ? 'تمت' : 'Completed'}
+                                                    </span>
+                                                </td>
+                                                <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700">
+                                                    <span className="font-medium text-gray-900 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
+                                                        {tx.safe?.name !== '-' ? tx.safe?.name : (tx.account?.name !== 'Unknown' && tx.account?.name) || '-'}
+                                                    </span>
+                                                </td>
+                                                <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-600 font-medium">
+                                                    {new Date(tx.date).toLocaleDateString(isRtl ? 'ar-EG' : 'en-US', {
+                                                        year: 'numeric',
+                                                        month: 'long',
+                                                        day: 'numeric'
+                                                    })}
                                                 </td>
                                             </tr>
                                         ))

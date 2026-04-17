@@ -120,7 +120,8 @@ const getAllFinancialTransactions = catchAsyncError(async (req, res) => {
         filter.$or = [
             { code: { $regex: search, $options: 'i' } },
             { description: { $regex: search, $options: 'i' } },
-            { externalAccount: { $regex: search, $options: 'i' } }
+            { externalAccount: { $regex: search, $options: 'i' } },
+            { referenceCode: { $regex: search, $options: 'i' } }
         ];
     }
 
@@ -130,6 +131,8 @@ const getAllFinancialTransactions = catchAsyncError(async (req, res) => {
             .populate('account')
             .populate('fromAccount')
             .populate('toAccount')
+            .populate('safe')
+            .populate('invoiceId')
             .lean();
         transactions = transactions.map(t => ({ ...t, type }));
     } else {
@@ -138,25 +141,58 @@ const getAllFinancialTransactions = catchAsyncError(async (req, res) => {
             FinancialReceipt.find(filter).populate('account').lean(),
             FinancialDisbursement.find(filter).populate('account').lean(),
             FinancialTransfer.find(filter).populate('fromAccount').populate('toAccount').lean(),
-            AccountingTransaction.find(filter).lean()
+            AccountingTransaction.find(filter)
+                .populate('safe')
+                .populate({
+                    path: 'invoiceId',
+                    populate: { path: 'contact', select: 'name' }
+                })
         ]);
 
         const accMapped = accounting.map(t => ({
             _id: t._id,
             type: t.type.toLowerCase(),
             code: t.referenceCode,
+            source: t.invoiceId?.transactionNumber || t.referenceCode || '-',
             date: t.date,
             amount: t.amount,
-            account: { name: t.account },
-            description: `Auto-generated Invoice sync`,
+            account: {
+                name: (t.account && t.account !== 'Unknown')
+                    ? t.account
+                    : (t.invoiceId?.contact?.name || t.invoiceId?.contactName || 'Unknown')
+            },
+            safe: t.safe || (t.invoiceId?.paymentMethod ? { name: t.invoiceId.paymentMethod } : { name: '-' }),
+            description: t.description || `Auto-generated Invoice sync`,
             companyId: t.companyId,
             createdAt: t.createdAt
         }));
 
+        const receiptMapped = receipts.map(t => ({
+            ...t,
+            type: 'receipt',
+            source: t.externalAccount || 'Manual',
+            safe: t.account || { name: '-' }
+        }));
+
+        const disbursementMapped = disbursements.map(t => ({
+            ...t,
+            type: 'disbursement',
+            source: t.externalAccount || 'Manual',
+            safe: t.account || { name: '-' }
+        }));
+
+        const transferMapped = transfers.map(t => ({
+            ...t,
+            type: 'transfer',
+            source: 'Transfer',
+            safe: { name: `${t.fromAccount?.name || '-'} \u2192 ${t.toAccount?.name || '-'}` },
+            account: { name: '-' }
+        }));
+
         transactions = [
-            ...receipts.map(t => ({ ...t, type: 'receipt' })),
-            ...disbursements.map(t => ({ ...t, type: 'disbursement' })),
-            ...transfers.map(t => ({ ...t, type: 'transfer' })),
+            ...receiptMapped,
+            ...disbursementMapped,
+            ...transferMapped,
             ...accMapped
         ];
     }

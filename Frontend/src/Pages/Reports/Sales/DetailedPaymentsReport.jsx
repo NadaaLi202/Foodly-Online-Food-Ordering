@@ -1,13 +1,17 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import reportsService from '../../../services/reportsService';
 import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import * as XLSX from 'xlsx';
 import PrintHeader from '../../../components/common/PrintHeader';
+import { useAuth } from '../../../context/AuthContext';
+import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
 
 const DetailedPaymentsReport = () => {
     const { t, i18n } = useTranslation();
+    const { companySettings } = useAuth();
+    const currency = companySettings?.currency || 'EGP';
     const printRef = useRef(null);
     const [reportData, setReportData] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -73,10 +77,10 @@ const DetailedPaymentsReport = () => {
     const handleExportExcel = () => {
         const worksheet = XLSX.utils.json_to_sheet(reportData.map(row => ({
             [t('reports.detailed_columns.code')]: row.invoiceNumber ?? '—',
-            [t('reports.payments.client_supplier') || t('reports.detailed_columns.client')]: row.client ?? '—',
+            [t('reports.detailed_columns.client')]: row.client ?? '—',
             [t('reports.payments.type')]: row.type === 'receive' ? t('reports.payments.receive') : t('reports.payments.spend'),
             [t('reports.payments.payment_method')]: row.paymentMethod ?? '—',
-            [t('reports.payments.amount')]: row.amount ?? 0,
+            [t('reports.payments.amount')]: formatCurrency(row.amount, row.currency),
             [t('reports.detailed_columns.issue_date')]: row.date ? new Date(row.date).toLocaleDateString() : '—'
         })));
         const workbook = XLSX.utils.book_new();
@@ -90,7 +94,7 @@ const DetailedPaymentsReport = () => {
             subtitle: `${t('reports.filters.from_date')}: ${filters.startDate}  ${t('reports.filters.to_date')}: ${filters.endDate}`,
             headers: [
                 t('reports.detailed_columns.code'),
-                t('reports.payments.client_supplier') || t('reports.detailed_columns.client'),
+                t('reports.detailed_columns.client'),
                 t('reports.payments.type'),
                 t('reports.payments.payment_method'),
                 t('reports.payments.amount'),
@@ -101,7 +105,7 @@ const DetailedPaymentsReport = () => {
                 row.client ?? '—',
                 row.type === 'receive' ? t('reports.payments.receive') : t('reports.payments.spend'),
                 row.paymentMethod ?? '—',
-                Number(row.amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
+                formatCurrency(row.amount || 0, row.currency),
                 row.date ? new Date(row.date).toLocaleDateString() : '—',
             ])),
             filename: `Detailed_Payments_Report_${filters.startDate}_to_${filters.endDate}.pdf`,
@@ -113,12 +117,7 @@ const DetailedPaymentsReport = () => {
         window.print();
     };
 
-    const formatCurrency = (val) => {
-        return new Intl.NumberFormat(i18n.language === 'ar' ? 'ar-EG' : 'en-US', {
-            style: 'currency',
-            currency: 'EGP'
-        }).format(val ?? 0);
-    };
+    const formatCurrency = (val, rowCurrency) => utilFormatCurrency(val, rowCurrency || currency);
 
     return (
         <div className={`p-8 bg-gray-50/50 min-h-screen ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -172,7 +171,7 @@ const DetailedPaymentsReport = () => {
                                     <option value="current_month">{t('reports.filters.current_month')}</option>
                                     <option value="last_month">{t('reports.filters.last_month')}</option>
                                     <option value="current_year">{t('reports.filters.current_year')}</option>
-                                    <option value="custom">{t('reports.filters.custom_period')}</option>
+                                    <option value="custom">{t('reports.filters.custom')}</option>
                                 </select>
                                 <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
                             </div>
@@ -225,7 +224,7 @@ const DetailedPaymentsReport = () => {
                                         {t('reports.detailed_columns.code')}
                                     </th>
                                     <th className={`px-6 py-6 text-${isRTL ? 'right' : 'left'} text-xs font-black text-gray-400 uppercase tracking-widest`}>
-                                        {t('reports.payments.client_supplier') || t('reports.detailed_columns.client')}
+                                        {t('reports.detailed_columns.client')}
                                     </th>
                                     <th className={`px-6 py-6 text-${isRTL ? 'right' : 'left'} text-xs font-black text-gray-400 uppercase tracking-widest`}>
                                         {t('reports.payments.type')}
@@ -284,7 +283,7 @@ const DetailedPaymentsReport = () => {
                                                         ? 'text-emerald-700 bg-emerald-50'
                                                         : 'text-amber-700 bg-amber-50'
                                                         }`}>
-                                                        {formatCurrency(row.amount)}
+                                                        {formatCurrency(row.amount, row.currency)}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-6 text-sm font-bold text-gray-400">

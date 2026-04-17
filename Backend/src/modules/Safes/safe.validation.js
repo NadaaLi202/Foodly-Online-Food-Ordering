@@ -8,7 +8,8 @@ const addSafeSchema = Joi.object({
     custodians: Joi.array().items(Joi.string()),
     enableReceiptPermissions: Joi.boolean(),
     enablePaymentPermissions: Joi.boolean(),
-    balance: Joi.number().min(0)
+    balance: Joi.number().min(0),
+    journalAccount: Joi.string().hex().length(24).allow(null, "")
 });
 
 const updateSafeSchema = Joi.object({
@@ -19,7 +20,8 @@ const updateSafeSchema = Joi.object({
     custodians: Joi.array().items(Joi.string()),
     enableReceiptPermissions: Joi.boolean(),
     enablePaymentPermissions: Joi.boolean(),
-    balance: Joi.number().min(0)
+    balance: Joi.number().min(0),
+    journalAccount: Joi.string().hex().length(24).allow(null, "")
 });
 
 export {

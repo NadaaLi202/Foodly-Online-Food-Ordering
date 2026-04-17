@@ -6,10 +6,14 @@ import toast from 'react-hot-toast';
 import api from '../../services/api';
 import logError from '../../utils/logError';
 import { confirmDelete } from '../../utils/confirmDelete';
+import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils/currencyFormatter';
 import SafeModal from './SafeModal';
 
 const Safes = () => {
     const { t, i18n } = useTranslation();
+    const { companySettings } = useAuth();
+    const currency = companySettings?.currency || 'EGP';
     const [safes, setSafes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -127,7 +131,14 @@ const Safes = () => {
                                                 <td className="align-middle text-sm whitespace-nowrap text-start py-4 ps-4 pe-3 sm:ps-6 text-gray-900 font-medium">
                                                     <div className="flex items-center gap-2">
                                                         <Landmark size={18} className="text-gray-400" />
-                                                        {safe.name}
+                                                        <div className="flex flex-col">
+                                                            <span>{safe.name}</span>
+                                                            {safe.journalAccount && (
+                                                                <span className="text-[10px] text-gray-400 font-mono">
+                                                                    {safe.journalAccount.name} #{safe.journalAccount.code}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700">
@@ -146,12 +157,12 @@ const Safes = () => {
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700">
                                                     {safe.custodians && safe.custodians.length > 0 ? safe.custodians.join(', ') : '-'}
                                                 </td>
-                                                <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700 font-semibold">
-                                                    {safe.balance?.toLocaleString()} {t('currency_label')}
+                                                <td className={`align-middle text-sm whitespace-nowrap px-3 py-4 font-bold ${safe.balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                                    {formatCurrency(safe.balance || 0, currency)}
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700">
                                                     <Link
-                                                        to={`/dashboard/reports/accounting/general-ledger?accountCode=${safe.accountNumber || ''}`}
+                                                        to={`/dashboard/reports/accounting/general-ledger?journal_account_id=${safe.journalAccount?._id || safe.journalAccount || ''}&accountCode=${safe.journalAccount?.code || ''}`}
                                                         className="text-indigo-600 hover:text-indigo-900 flex items-center gap-1"
                                                     >
                                                         <FileText size={18} />

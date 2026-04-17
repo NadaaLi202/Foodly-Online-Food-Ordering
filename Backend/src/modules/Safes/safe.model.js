@@ -18,6 +18,11 @@ const safeSchema = new mongoose.Schema(
             trim: true,
             default: ""
         },
+        journalAccount: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'ChartOfAccounts',
+            default: null
+        },
         branches: {
             type: [String],
             enum: ["main"],

@@ -34,7 +34,18 @@ const generateJournalEntryNumber = async (companyId, date = new Date()) => {
             if (!isNaN(n)) nextSeq = n + 1;
         }
     }
-    return `${prefix}${String(nextSeq).padStart(6, '0')}`;
+
+    let finalNumber = `${prefix}${String(nextSeq).padStart(6, '0')}`;
+
+    // Concurrent request safety: if number already exists, find the next available one
+    let exists = await dailyRestrictionModel.findOne({ number: finalNumber, companyId }).select('_id').lean();
+    while (exists) {
+        nextSeq++;
+        finalNumber = `${prefix}${String(nextSeq).padStart(6, '0')}`;
+        exists = await dailyRestrictionModel.findOne({ number: finalNumber, companyId }).select('_id').lean();
+    }
+
+    return finalNumber;
 };
 
 
@@ -135,8 +146,8 @@ export const createInvoiceJournalEntry = async (transaction, companyId) => {
                 //   Cr. Accounts Payable (212) -> totalAmount
                 const purchasesAccount = await findAccount(companyId, ['511', '51', '125'], ['مشتريات', 'المشتروات', 'مخزون']);
                 // For purchases, VAT is usually a receivable (Asset)
-                const taxReceivableAccount = totalTax > 0 
-                    ? await findAccount(companyId, ['124', '214', '21'], ['ضريبة مدخلات', 'ضريبة قيمة مضافة مدفوعة', 'ضريبة']) 
+                const taxReceivableAccount = totalTax > 0
+                    ? await findAccount(companyId, ['124', '214', '21'], ['ضريبة مدخلات', 'ضريبة قيمة مضافة مدفوعة', 'ضريبة'])
                     : null;
 
                 if (purchasesAccount) entries.push({ account: purchasesAccount, description: `فاتورة مشتريات رقم ${transaction.transactionNumber}`, debit: subtotal > 0 ? subtotal : totalAmount, credit: 0 });
@@ -150,8 +161,8 @@ export const createInvoiceJournalEntry = async (transaction, companyId) => {
                 //   Cr. Purchases Return (512) -> subtotal
                 //   Cr. Tax Receivable (124/214) -> totalTax
                 const purchasesReturnAccount = await findAccount(companyId, ['512', '51', '125'], ['مردودات مشتريات', 'مرتجع مشتريات', 'مخزون']);
-                const taxReceivableAccount = totalTax > 0 
-                    ? await findAccount(companyId, ['124', '214', '21'], ['ضريبة مدخلات', 'ضريبة قيمة مضافة مدفوعة', 'ضريبة']) 
+                const taxReceivableAccount = totalTax > 0
+                    ? await findAccount(companyId, ['124', '214', '21'], ['ضريبة مدخلات', 'ضريبة قيمة مضافة مدفوعة', 'ضريبة'])
                     : null;
 
                 if (apAccount) entries.push({ account: apAccount, description: `تخفيض دائنون لمرتجع مشتريات ${transaction.transactionNumber}`, debit: totalAmount, credit: 0 });
@@ -169,23 +180,39 @@ export const createInvoiceJournalEntry = async (transaction, companyId) => {
 
         const totalDebit = parseFloat(entries.reduce((s, e) => s + e.debit, 0).toFixed(2));
         const totalCredit = parseFloat(entries.reduce((s, e) => s + e.credit, 0).toFixed(2));
-
         const entryDate = transaction.issueDate ? new Date(transaction.issueDate) : new Date();
-        const number = await generateJournalEntryNumber(companyId, entryDate);
 
-        const restriction = new dailyRestrictionModel({
-            number,
-            date: entryDate,
-            description: `قيد آلي - فاتورة ${transaction.module === 'sales' ? 'مبيعات' : 'مشتريات'} ${transaction.transactionNumber}`,
-            source: transaction.transactionNumber,
-            totalDebit,
-            totalCredit,
-            entries,
-            companyId
-        });
+        let saved = false;
+        let attempts = 0;
+        while (!saved && attempts < 3) {
+            try {
+                const number = await generateJournalEntryNumber(companyId, entryDate);
+                const restriction = new dailyRestrictionModel({
+                    number,
+                    date: entryDate,
+                    description: `قيد آلي - فاتورة ${transaction.module === 'sales' ? 'مبيعات' : 'مشتريات'} ${transaction.transactionNumber}`,
+                    source: transaction.transactionNumber,
+                    totalDebit,
+                    totalCredit,
+                    entries,
+                    companyId,
+                    currency: transaction.currency || 'EGP',
+                    invoiceId: transaction._id,
+                    sourceType: 'invoice'
+                });
 
-        await restriction.save();
-        console.log(`[Accounting] Invoice journal entry created successfully: ${restriction.number} for invoice ${transaction.transactionNumber}`);
+                await restriction.save();
+                console.log(`[Accounting] Invoice journal entry created successfully: ${restriction.number} for invoice ${transaction.transactionNumber}`);
+                saved = true;
+            } catch (err) {
+                if (err.code === 11000 && attempts < 2) {
+                    attempts++;
+                    console.log(`[Accounting] Retrying journal entry for ${transaction.transactionNumber} due to race condition (attempt ${attempts})...`);
+                } else {
+                    throw err;
+                }
+            }
+        }
     } catch (err) {
         logError('[Accounting] createInvoiceJournalEntry error (non-fatal):', err);
     }
@@ -251,21 +278,37 @@ export const createPaymentJournalEntry = async (payment, transaction, companyId)
 
         const totalValue = parseFloat(amount.toFixed(2));
         const paymentDate = payment.date ? new Date(payment.date) : new Date();
-        const number = await generateJournalEntryNumber(companyId, paymentDate);
 
-        const restriction = new dailyRestrictionModel({
-            number,
-            date: paymentDate,
-            description: `قيد آلي - ${isSpend ? 'صرف' : 'تحصيل'} دفعة ${payment.referenceNumber || ''}`,
-            source: transaction?.transactionNumber || '',
-            totalDebit: totalValue,
-            totalCredit: totalValue,
-            entries,
-            companyId
-        });
+        let saved = false;
+        let attempts = 0;
+        while (!saved && attempts < 3) {
+            try {
+                const number = await generateJournalEntryNumber(companyId, paymentDate);
+                const restriction = new dailyRestrictionModel({
+                    number,
+                    date: paymentDate,
+                    description: `قيد آلي - ${isSpend ? 'صرف' : 'تحصيل'} دفعة ${payment.referenceNumber || ''}`,
+                    source: transaction?.transactionNumber || '',
+                    totalDebit: totalValue,
+                    totalCredit: totalValue,
+                    entries,
+                    companyId,
+                    currency: payment.currency || transaction?.currency || 'EGP',
+                    invoiceId: transaction?._id,
+                    sourceType: 'payment'
+                });
 
-        await restriction.save();
-        console.log(`[Accounting] Payment journal entry created successfully: ${restriction.number}`);
+                await restriction.save();
+                console.log(`[Accounting] Payment journal entry created successfully: ${restriction.number}`);
+                saved = true;
+            } catch (err) {
+                if (err.code === 11000 && attempts < 2) {
+                    attempts++;
+                } else {
+                    throw err;
+                }
+            }
+        }
     } catch (err) {
         logError('[Accounting] createPaymentJournalEntry error (non-fatal):', err);
     }

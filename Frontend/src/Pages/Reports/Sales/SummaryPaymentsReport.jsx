@@ -5,9 +5,13 @@ import reportsService from '../../../services/reportsService';
 import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import * as XLSX from 'xlsx';
 import PrintHeader from '../../../components/common/PrintHeader';
+import { useAuth } from '../../../context/AuthContext';
+import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
 
 const SummaryPaymentsReport = () => {
     const { t, i18n } = useTranslation();
+    const { companySettings } = useAuth();
+    const currency = companySettings?.currency || 'EGP';
     const printRef = useRef(null);
     const [summaryData, setSummaryData] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -45,12 +49,7 @@ const SummaryPaymentsReport = () => {
         return () => window.removeEventListener("payment-created", onRefresh);
     }, [fetchReport]);
 
-    const formatCurrency = (val) => {
-        return new Intl.NumberFormat(i18n.language === 'ar' ? 'ar-EG' : 'en-US', {
-            style: 'currency',
-            currency: 'EGP'
-        }).format(val ?? 0);
-    };
+    const formatCurrency = (val) => utilFormatCurrency(val, currency);
 
     const handleExportExcel = () => {
         const worksheet = XLSX.utils.json_to_sheet([{

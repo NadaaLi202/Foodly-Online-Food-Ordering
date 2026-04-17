@@ -1,7 +1,9 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Search, RefreshCw, X, Upload, FileText, Trash2, Printer, Download, Share2, Edit2, Link, MoreVertical, Copy, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils/currencyFormatter';
 import { generatePDF } from '../../utils/generatePDF';
 import { requestPrintTemplateSelection } from '../../services/printTemplateService';
 import api from '../../services/api';
@@ -23,6 +25,8 @@ const getInitialExpenseFormData = () => ({
 
 const Expenses = () => {
     const { t, i18n } = useTranslation();
+    const { companySettings } = useAuth();
+    const currency = companySettings?.currency || 'EGP';
     const location = useLocation();
     const navigate = useNavigate();
     const [expenses, setExpenses] = useState([]);
@@ -36,6 +40,10 @@ const Expenses = () => {
     const [openActionMenu, setOpenActionMenu] = useState(null);
 
     const [formData, setFormData] = useState(getInitialExpenseFormData);
+    const [chartAccounts, setChartAccounts] = useState([]);
+
+    const ACCOUNT_TYPE_LABELS = { asset: 'أصول', liability: 'التزامات', equity: 'حقوق الملكية', income: 'إيرادات', expense: 'مصروفات' };
+    const ACCOUNT_TYPE_ORDER = ['asset', 'liability', 'equity', 'income', 'expense'];
 
     const fetchExpenses = async (search = '') => {
         setLoading(true);
@@ -54,6 +62,9 @@ const Expenses = () => {
 
     useEffect(() => {
         fetchExpenses();
+        api.get('/chart-of-accounts')
+            .then(res => setChartAccounts(res.data.accounts || res.data.data || []))
+            .catch(() => setChartAccounts([]));
     }, []);
 
     useEffect(() => {
@@ -393,9 +404,9 @@ const Expenses = () => {
             <p>${formData.description}</p>
         </div>` : ''}
         <div class="totals">
-            <div><span>${label('المبلغ', 'Amount')}</span><span>${amount} EGP</span></div>
-            <div><span>${label('الضرائب', 'Taxes')}</span><span>${taxes} EGP</span></div>
-            <div class="grand"><span>${label('إجمالي المصروف', 'Total Expense')}</span><span>${total} EGP</span></div>
+            <div><span>${label('المبلغ', 'Amount')}</span><span>${formatCurrency(amount, currency)}</span></div>
+            <div><span>${label('الضرائب', 'Taxes')}</span><span>${formatCurrency(taxes, currency)}</span></div>
+            <div class="grand"><span>${label('إجمالي المصروف', 'Total Expense')}</span><span>${formatCurrency(total, currency)}</span></div>
         </div>
     </div>
 </body>
@@ -444,7 +455,7 @@ const Expenses = () => {
     const handleShare = async () => {
         await handleUniversalShare({
             title: i18n.language === 'ar' ? 'تفاصيل المصروف' : 'Expense Details',
-            text: `${i18n.language === 'ar' ? 'كود المصروف' : 'Expense Code'}: ${formData.code}\n${i18n.language === 'ar' ? 'المبلغ' : 'Amount'}: ${calculateTotal()} EGP`,
+            text: `${i18n.language === 'ar' ? 'كود المصروف' : 'Expense Code'}: ${formData.code}\n${i18n.language === 'ar' ? 'المبلغ' : 'Amount'}: ${formatCurrency(calculateTotal(), currency)}`,
             url: window.location.href,
             t
         });
@@ -585,7 +596,7 @@ const Expenses = () => {
                                             {expense.description || '-'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                                            {expense.totalAmount?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || expense.amount?.toLocaleString(undefined, { minimumFractionDigits: 2 })} {i18n.language === 'ar' ? 'ج.م' : 'EGP'}
+                                            {formatCurrency(expense.totalAmount || expense.amount, currency)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm relative">
                                             <div className="relative">
@@ -734,11 +745,11 @@ const Expenses = () => {
                                         </div>
                                         <div>
                                             <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">{i18n.language === 'ar' ? 'المبلغ' : 'Amount'}</label>
-                                            <p className="text-sm font-bold text-gray-800 bg-gray-50 p-3 rounded-lg">{parseFloat(formData.amount).toLocaleString()} {i18n.language === 'ar' ? 'ج.م' : 'EGP'}</p>
+                                            <p className="text-sm font-bold text-gray-800 bg-gray-50 p-3 rounded-lg">{formatCurrency(formData.amount, currency)}</p>
                                         </div>
                                         <div>
                                             <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">{i18n.language === 'ar' ? 'الضرائب' : 'Taxes'}</label>
-                                            <p className="text-sm font-bold text-gray-800 bg-gray-50 p-3 rounded-lg">{formData.taxes ? `${parseFloat(formData.taxes).toLocaleString()} EGP` : (i18n.language === 'ar' ? 'بدون ضرائب' : 'No Taxes')}</p>
+                                            <p className="text-sm font-bold text-gray-800 bg-gray-50 p-3 rounded-lg">{formData.taxes ? formatCurrency(formData.taxes, currency) : (i18n.language === 'ar' ? 'بدون ضرائب' : 'No Taxes')}</p>
                                         </div>
                                     </div>
 
@@ -777,7 +788,7 @@ const Expenses = () => {
 
                                     <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-200 text-center">
                                         <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">{i18n.language === 'ar' ? 'إجمالي المصروف' : 'Total Expense'}</p>
-                                        <p className="text-3xl font-bold text-indigo-600">{calculateTotal()} <span className="text-sm opacity-80">{i18n.language === 'ar' ? 'ج.م' : 'EGP'}</span></p>
+                                        <p className="text-3xl font-bold text-indigo-600">{formatCurrency(calculateTotal(), currency)}</p>
                                     </div>
                                 </div>
                             ) : (
@@ -835,14 +846,28 @@ const Expenses = () => {
                                         <label className={`block text-sm font-bold text-gray-700 mb-1.5`}>
                                             {i18n.language === 'ar' ? 'الحساب' : 'Account'}
                                         </label>
-                                        <input
-                                            type="text"
+                                        <select
                                             name="account"
                                             value={formData.account}
                                             onChange={handleInputChange}
-                                            placeholder={i18n.language === 'ar' ? 'اختياري' : 'Optional'}
-                                            className={`w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent font-medium`}
-                                        />
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white font-medium"
+                                            dir="rtl"
+                                        >
+                                            <option value="">{i18n.language === 'ar' ? 'اختر حساب' : 'Select Account'}</option>
+                                            {ACCOUNT_TYPE_ORDER.map(typeKey => {
+                                                const group = chartAccounts.filter(a => a.accountCategory === typeKey);
+                                                if (group.length === 0) return null;
+                                                return (
+                                                    <optgroup key={typeKey} label={ACCOUNT_TYPE_LABELS[typeKey]}>
+                                                        {group.map(acc => (
+                                                            <option key={acc._id || acc.code} value={`${acc.name} #${acc.code}`}>
+                                                                {acc.name} #{acc.code}
+                                                            </option>
+                                                        ))}
+                                                    </optgroup>
+                                                );
+                                            })}
+                                        </select>
                                     </div>
 
                                     {/* Amount and Taxes */}

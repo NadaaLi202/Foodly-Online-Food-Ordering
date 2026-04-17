@@ -6,42 +6,14 @@ import api from '../../services/api';
 import logError from '../../utils/logError';
 import costCentersService from '../../services/costCentersService';
 
-const PREDEFINED_ACCOUNTS = [
-    { code: '1211', name: 'الخزنة الرئيسية #1211' },
-    { code: '1221', name: 'الحساب البنكي الرئيسي #1221' },
-    { code: '1251', name: 'المستودع الرئيسي #1251' },
-    { code: '12610001', name: 'عملاء أخرون #12610001' },
-    { code: '12610002', name: 'شركة بلاكريدج للتطوير التجاري #12610002' },
-    { code: '1262', name: 'اطراف مدينه أخرى #1262' },
-    { code: '127', name: 'عجز وزيادة الصندوق #127' },
-    { code: '129', name: 'المشتريات تحت الإسلام #129' },
-    { code: '128', name: 'تغيير عملة #128' },
-    { code: '21110001', name: 'موردون أخرون #21110001' },
-    { code: '2112', name: 'اطراف دائنة أخرى #2112' },
-    { code: '213', name: 'أرصدة افتتاحية #213' },
-    { code: '2141', name: 'القيمة المضافة المدفوعة #2141' },
-    { code: '2142', name: 'القيمة المضافة المحصلة #2142' },
-    { code: '31', name: 'رأس المال #31' },
-    { code: '32', name: 'أرباح وخسائر مرحلة #32' },
-    { code: '411', name: 'المبيعات #411' },
-    { code: '412', name: 'مردودات المبيعات #412' },
-    { code: '421', name: 'إيرادات أخرى #421' },
-    { code: '422', name: 'أرباح وخسائر رأسمالية #422' },
-    { code: '423', name: 'تسوية المشتريات #423' },
-    { code: '523', name: 'تسوية المبيعات #523' },
-    { code: '511', name: 'المشتريات #511' },
-    { code: '512', name: 'مردودات المشتريات #512' },
-    { code: '521', name: 'تكلفة البضاعة المباعة #521' },
-    { code: '522', name: 'خصم مسموح به #522' },
-    { code: '5301', name: 'إيجار #5301' },
-    { code: '5303', name: 'هاتف وانترنت #5303' },
-    { code: '5304', name: 'صيانة #5304' },
-    { code: '5305', name: 'ماء #5305' },
-    { code: '5306', name: 'مصاريف حكومية #5306' },
-    { code: '541', name: 'الديون المعدومة #541' },
-    { code: '542', name: 'عجر وزيادة المخزون #542' },
-    { code: '543', name: 'مصروفات أخرى #543' }
-];
+const ACCOUNT_TYPE_LABELS = {
+    asset: 'أصول',
+    liability: 'التزامات',
+    equity: 'حقوق الملكية',
+    income: 'إيرادات',
+    expense: 'مصروفات'
+};
+const ACCOUNT_TYPE_ORDER = ['asset', 'liability', 'equity', 'income', 'expense'];
 
 const TAX_PRESETS = ['0', '10', '15'];
 const normalizeTaxesValue = (raw) => {
@@ -61,6 +33,7 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(isEdit || isView);
     const [accounts, setAccounts] = useState([]); // Safes + Bank Accounts
+    const [chartAccounts, setChartAccounts] = useState([]); // Chart of accounts from API
     const [type, setType] = useState(initialType);
 
     // Extraneous Dropdown states
@@ -121,16 +94,18 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
 
     const fetchAccounts = async () => {
         try {
-            const [safesRes, banksRes, costCentersRes] = await Promise.all([
+            const [safesRes, banksRes, costCentersRes, chartRes] = await Promise.all([
                 api.get('/safes'),
                 api.get('/bank-accounts'),
-                costCentersService.getAllCostCenters().catch(() => ({ data: { costCenters: [] } }))
+                costCentersService.getAllCostCenters().catch(() => ({ data: { costCenters: [] } })),
+                api.get('/chart-of-accounts').catch(() => ({ data: { accounts: [] } }))
             ]);
 
             const safes = (safesRes.data.safes || []).map(s => ({ ...s, model: 'Safe' }));
             const banks = (banksRes.data.data || []).map(b => ({ ...b, model: 'BankAccount' }));
 
             setAccounts([...safes, ...banks]);
+            setChartAccounts(chartRes.data.accounts || chartRes.data.data || []);
 
             const fetchedCC = costCentersRes.costCenters || costCentersRes.data?.costCenters || costCentersRes.data || [];
             setAvailableCostCenters(Array.isArray(fetchedCC) ? fetchedCC : (fetchedCC.data || []));
@@ -455,7 +430,7 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                                         </span>
                                     </div>
                                     {activeDropdown === 'externalAccount' && (
-                                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-100 rounded-lg shadow-xl max-h-60 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+                                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-100 rounded-lg shadow-xl max-h-72 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
                                             <div className="p-2 border-b border-gray-100">
                                                 <input
                                                     type="text"
@@ -468,19 +443,39 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                                                     dir="rtl"
                                                 />
                                             </div>
-                                            <div className="overflow-y-auto max-h-48 py-1">
-                                                {PREDEFINED_ACCOUNTS.filter(a => a.name.toLowerCase().includes(accountSearchTerm.toLowerCase())).map(acc => (
-                                                    <div
-                                                        key={acc.code}
-                                                        onClick={() => {
-                                                            setFormData(prev => ({ ...prev, externalAccount: acc.name }));
-                                                            setActiveDropdown(null);
-                                                        }}
-                                                        className={`px-4 py-2 hover:bg-indigo-50 cursor-pointer flex flex-col items-end ${formData.externalAccount === acc.name ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'text-gray-700'}`}
-                                                    >
-                                                        <span className="text-sm font-medium w-full text-right">{acc.name}</span>
+                                            <div className="overflow-y-auto py-1">
+                                                {ACCOUNT_TYPE_ORDER.map(typeKey => {
+                                                    const group = chartAccounts.filter(a =>
+                                                        a.accountCategory === typeKey &&
+                                                        (`${a.name} #${a.code}`).toLowerCase().includes(accountSearchTerm.toLowerCase())
+                                                    );
+                                                    if (group.length === 0) return null;
+                                                    return (
+                                                        <div key={typeKey}>
+                                                            <div className="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 border-b border-gray-100">
+                                                                {ACCOUNT_TYPE_LABELS[typeKey]}
+                                                            </div>
+                                                            {group.map(acc => (
+                                                                <div
+                                                                    key={acc._id || acc.code}
+                                                                    onClick={() => {
+                                                                        setFormData(prev => ({ ...prev, externalAccount: `${acc.name} #${acc.code}` }));
+                                                                        setActiveDropdown(null);
+                                                                    }}
+                                                                    className={`px-4 py-2 hover:bg-indigo-50 cursor-pointer flex justify-between items-center ${formData.externalAccount === `${acc.name} #${acc.code}` ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'text-gray-700'}`}
+                                                                >
+                                                                    <span className="text-xs text-gray-400 font-mono">{acc.code}</span>
+                                                                    <span className="text-sm font-medium text-right">{acc.name}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    );
+                                                })}
+                                                {chartAccounts.length === 0 && (
+                                                    <div className="px-4 py-6 text-center text-sm text-gray-400">
+                                                        {isRtl ? 'لا توجد حسابات' : 'No accounts found'}
                                                     </div>
-                                                ))}
+                                                )}
                                             </div>
                                         </div>
                                     )}

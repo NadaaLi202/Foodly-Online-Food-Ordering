@@ -8,6 +8,8 @@ import { routes } from './src/modules/index.routes.js';
 import { startBackupCron } from './src/backups/backup.cron.js';
 import logError from './src/utils/logError.js';
 import cors from 'cors';
+import { seedDefaultChartOfAccounts } from './src/modules/chartOfAccounts/chartOfAccounts.service.js';
+import { companyModel } from './src/modules/companies/company.model.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -72,12 +74,27 @@ app.use((err, req, res, next) => {
 // }
 
 
+async function runStartupMigrations() {
+    try {
+        const companies = await companyModel.find({}, '_id name').lean();
+        console.log(`🔄 Seeding chart of accounts for ${companies.length} company(ies)...`);
+        for (const company of companies) {
+            await seedDefaultChartOfAccounts(company._id);
+        }
+        console.log('✅ Chart of accounts seed complete.');
+    } catch (err) {
+        logError('⚠️ Startup migration error (non-fatal):', err);
+    }
+}
+
 async function bootstrap() {
     console.log("🔄 Connecting to DB...");
 
     await dbConnection();
 
     console.log("✅ DB Connected");
+
+    await runStartupMigrations();
 
     startBackupCron();
 

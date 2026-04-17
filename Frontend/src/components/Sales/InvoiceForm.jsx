@@ -8,6 +8,7 @@ import api from '../../services/api';
 import logError from '../../utils/logError';
 import { SUPPORTED_CURRENCIES } from '../../utils/currencyFormatter';
 import { currencySymbols } from '../../utils/currencySymbols';
+import { useAuth } from '../../context/AuthContext';
 
 const TAX_PRESET_VALUES = ['0', '10', '15'];
 const round2 = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
@@ -18,6 +19,9 @@ const getTaxMode = (taxValue) => {
 
 const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n, contactType = 'customers', addTitleKey, editTitleKey, numberPlaceholderKey, clientLabelKey, defaultCurrency = 'EGP', hidePaymentDetails = false, loading: isSavingProp }) => {
     const { t } = useTranslation();
+    const { companySettings } = useAuth();
+    const systemCurrency = companySettings?.currency || 'EGP';
+    const activeCurrency = defaultCurrency || systemCurrency;
     const addTitle = addTitleKey ? t(addTitleKey) : t('sales.invoices.add_invoice');
     const editTitle = editTitleKey ? t(editTitleKey) : t('sales.invoices.edit_invoice');
     const numberPlaceholder = numberPlaceholderKey ? t(numberPlaceholderKey) : t('sales.invoices.invoice_number_placeholder');
@@ -62,7 +66,7 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
         invoiceDiscountType: '%',
         warehouse: '',
         status: 'unpaid',
-        currency: defaultCurrency || 'EGP'
+        currency: activeCurrency
     });
 
     useEffect(() => {
