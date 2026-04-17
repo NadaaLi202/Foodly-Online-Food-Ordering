@@ -4,41 +4,43 @@ import { Calendar, ChevronDown, ChevronRight, FileSpreadsheet, FileText, Printer
 import { exportBalanceSheetToExcel, buildAccountingReportPdf } from '../../../utils/accountingReportsExport';
 import api from '../../../services/api';
 import PrintHeader from '../../../components/common/PrintHeader';
+import { useAuth } from '../../../context/AuthContext';
+import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
+
+const fmt = (n) => {
+    const v = Number(n || 0);
+    if (v === 0) return '0.00';
+    return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 
 const BalanceSheetReport = () => {
     const { t, i18n } = useTranslation();
+    const { companySettings } = useAuth();
+    const currency = companySettings?.currency || 'EGP';
     const isRTL = i18n.language === 'ar';
 
     const [filters, setFilters] = useState({
         toDate: new Date().toISOString().slice(0, 10),
-        displayedAccounts: 'all',
         branch: 'all',
     });
 
     const [branches, setBranches] = useState([]);
-    const [expandedSections, setExpandedSections] = useState({
-        'assets': true,
-        'assets-current': true,
-        'assets-fixed': true,
-        'liabilities': true,
-        'equity': true,
-    });
-
     const [loading, setLoading] = useState(false);
-    const hasFetched = useRef(false);
     const [reportData, setReportData] = useState({
-        assets: { fixed: [], current: [], total: 0 },
-        liabilities: { current: [], longTerm: [], total: 0 },
+        assets: { items: [], total: 0 },
+        liabilities: { items: [], total: 0 },
         equity: { items: [], total: 0 },
         totalLiabilitiesAndEquity: 0
     });
+    
+    // expanded state keyed by account id
+    const [expanded, setExpanded] = useState({
+        'root-assets': true,
+        'root-liabilities': true,
+        'root-equity': true
+    });
 
-    const toggleSection = (sectionId) => {
-        setExpandedSections(prev => ({
-            ...prev,
-            [sectionId]: !prev[sectionId]
-        }));
-    };
+    const hasFetched = useRef(false);
 
     const handleFilterChange = (field, value) => {
         setFilters(prev => ({ ...prev, [field]: value }));
@@ -46,11 +48,9 @@ const BalanceSheetReport = () => {
 
     const fetchBranches = useCallback(async () => {
         try {
-            const response = await api.get('/branches');
-            setBranches(response.data.branches || []);
-        } catch (error) {
-            console.error('Error fetching branches:', error);
-        }
+            const res = await api.get('/branches');
+            setBranches(Array.isArray(res.data) ? res.data : (res.data.branches || []));
+        } catch { setBranches([]); }
     }, []);
 
     const fetchReport = useCallback(async () => {
@@ -62,20 +62,22 @@ const BalanceSheetReport = () => {
                     branch: filters.branch !== 'all' ? filters.branch : undefined,
                 }
             });
-            setReportData({
-                assets: response.data?.assets || { fixed: [], current: [], total: 0 },
-                liabilities: response.data?.liabilities || { current: [], longTerm: [], total: 0 },
-                equity: response.data?.equity || { items: [], total: 0 },
-                totalLiabilitiesAndEquity: response.data?.totalLiabilitiesAndEquity || 0
-            });
+            setReportData(response.data);
+            
+            // Auto expand roots
+            const newExpanded = { 'root-assets': true, 'root-liabilities': true, 'root-equity': true };
+            const walk = (items) => {
+                items.forEach(item => {
+                    if (item.children?.length > 0) {
+                        newExpanded[item.id] = true;
+                        walk(item.children);
+                    }
+                });
+            };
+            walk([...(response.data.assets?.items || []), ...(response.data.liabilities?.items || []), ...(response.data.equity?.items || [])]);
+            setExpanded(newExpanded);
         } catch (error) {
             console.error('Error fetching balance sheet:', error);
-            setReportData({
-                assets: { fixed: [], current: [], total: 0 },
-                liabilities: { current: [], longTerm: [], total: 0 },
-                equity: { items: [], total: 0 },
-                totalLiabilitiesAndEquity: 0
-            });
         } finally {
             setLoading(false);
         }
@@ -83,269 +85,150 @@ const BalanceSheetReport = () => {
 
     useEffect(() => {
         fetchBranches();
-    }, [fetchBranches]);
-
-    useEffect(() => {
         if (hasFetched.current) return;
         hasFetched.current = true;
         fetchReport();
     }, []);
 
-    const fixedTotal = useMemo(
-        () => (reportData.assets?.fixed || []).reduce((sum, item) => sum + (item.amount || 0), 0),
-        [reportData.assets?.fixed]
-    );
-    const currentTotal = useMemo(
-        () => (reportData.assets?.current || []).reduce((sum, item) => sum + (item.amount || 0), 0),
-        [reportData.assets?.current]
-    );
-    const liabilitiesCurrentTotal = useMemo(
-        () => (reportData.liabilities?.current || []).reduce((sum, item) => sum + (item.amount || 0), 0),
-        [reportData.liabilities?.current]
-    );
+    const toggleRow = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
 
-    const handleExportExcel = () => {
-        exportBalanceSheetToExcel(reportData, t);
+    const handleExportExcel = () => exportBalanceSheetToExcel(reportData, t);
+    const handlePrint = () => window.print();
+
+    const formatCurrency = (amount) => utilFormatCurrency(amount, currency);
+
+    const renderRows = (nodes, depth = 0) => {
+        const rows = [];
+        for (const item of nodes) {
+            const hasChildren = item.children && item.children.length > 0;
+            const isOpen = !!expanded[item.id];
+            
+            rows.push(
+                <tr key={item.id} className={`border-b border-gray-200 hover:bg-gray-50 transition-colors ${item.level === 0 ? 'bg-gray-50 font-bold' : ''}`}>
+                    <td className="px-4 py-2 text-sm text-gray-900 border-l border-gray-300">
+                        <div className="flex items-center gap-1" style={{ paddingRight: `${depth * 20}px` }}>
+                            {hasChildren ? (
+                                <button onClick={() => toggleRow(item.id)} className="w-5 h-5 flex items-center justify-center text-gray-500">
+                                    <ChevronDown className={`w-4 h-4 transition-transform ${isOpen ? '' : '-rotate-90'}`} />
+                                </button>
+                            ) : <span className="w-5" />}
+                            <span>{item.name} {item.code && <span className="text-gray-400 text-xs mr-1">#{item.code}</span>}</span>
+                        </div>
+                    </td>
+                    <td className="px-4 py-2 text-sm text-center border-l border-gray-300 tabular-nums font-semibold" dir="ltr">
+                        {fmt(Math.abs(item.netBalance))}
+                    </td>
+                </tr>
+            );
+
+            if (hasChildren && isOpen) {
+                rows.push(...renderRows(item.children, depth + 1));
+            }
+        }
+        return rows;
     };
 
-    const handleExportPdf = async () => {
-        const contentRows = [];
-        contentRows.push([t('reports.accounting.balance_sheet') || 'Balance Sheet']);
-        contentRows.push([t('reports.filters.to_date') || 'To Date', filters.toDate]);
-        contentRows.push([]);
-        contentRows.push([t('reports.accounting.assets') || 'Assets', fmtNum(reportData.assets?.total || 0)]);
-        if (reportData.assets?.fixed?.length > 0) {
-            reportData.assets.fixed.forEach(item => {
-                contentRows.push(['', item.name || '', fmtNum(item.amount || 0)]);
-            });
-        }
-        if (reportData.assets?.current?.length > 0) {
-            reportData.assets.current.forEach(item => {
-                contentRows.push(['', item.name || '', fmtNum(item.amount || 0)]);
-            });
-        }
-        contentRows.push([]);
-        contentRows.push([t('reports.accounting.liabilities') || 'Liabilities', fmtNum(reportData.liabilities?.total || 0)]);
-        if (reportData.liabilities?.current?.length > 0) {
-            reportData.liabilities.current.forEach(item => {
-                contentRows.push(['', item.name || '', fmtNum(item.amount || 0)]);
-            });
-        }
-        contentRows.push([]);
-        contentRows.push([t('reports.accounting.equity') || 'Equity', fmtNum(reportData.equity?.total || 0)]);
-        const blob = await buildAccountingReportPdf(t('reports.accounting.balance_sheet') || 'Balance Sheet', contentRows, t);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Balance_Sheet_${new Date().toISOString().slice(0, 10)}.pdf`;
-        a.click();
-        URL.revokeObjectURL(url);
-    };
-
-    const handlePrint = () => {
-        window.print();
-    };
-
-    const fmtNum = (n) => (n == null || n === '' || n === undefined) ? '' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-    const renderRow = (label, amount, isHeader = false, isSubHeader = false, indent = 0, onClick = null, isOpen = false) => (
-        <div
-            className={`flex items-center justify-between py-2 px-4 border-b border-gray-100 ${isHeader ? 'bg-gray-100 font-bold text-gray-900' : ''} ${isSubHeader ? 'bg-gray-50 font-semibold text-gray-800' : 'text-gray-700'} hover:bg-gray-50 cursor-pointer`}
-            onClick={onClick}
-            style={{ paddingLeft: `${indent * 1.5 + 1}rem` }}
-        >
-            <div className="flex items-center gap-2">
-                {onClick && (
-                    isOpen ? <ChevronDown className="w-4 h-4 text-gray-500" /> : (isHeader || isSubHeader ? <ChevronRight className="w-4 h-4 text-gray-500" /> : null)
-                )}
-                {!onClick && (isHeader || isSubHeader) && <span className="w-4"></span>}
-
-                {!isHeader && !isSubHeader && <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>}
-
-                <span>{label}</span>
-            </div>
-            <span className={isHeader ? 'font-bold' : ''}>{Number(amount || 0).toFixed(2)}</span>
-        </div>
+    const SectionHeader = ({ id, title, total, color = 'bg-gray-100' }) => (
+        <>
+            <tr className={`${color} font-bold text-gray-900 border-b-2 border-gray-300`}>
+                <td className="px-4 py-3 text-base border-l border-gray-300">
+                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => toggleRow(id)}>
+                        <ChevronDown className={`w-5 h-5 transition-transform ${expanded[id] ? '' : '-rotate-90'}`} />
+                        <span>{title}</span>
+                    </div>
+                </td>
+                <td className="px-4 py-3 text-center text-base border-l border-gray-300 tabular-nums" dir="ltr">
+                    {fmt(total)}
+                </td>
+            </tr>
+        </>
     );
 
     return (
-        <>
-            <div className="p-6 max-w-7xl mx-auto" dir={isRTL ? 'rtl' : 'ltr'}>
-                <PrintHeader />
+        <div className="p-4" dir="rtl">
+            <style dangerouslySetInnerHTML={{ __html: `
+                @media print {
+                    @page { size: A4 portrait; margin: 1cm; }
+                    .print\\:hidden { display: none !important; }
+                    tr, div { page-break-inside: avoid !important; }
+                    table { font-size: 10pt !important; width: 100% !important; }
+                    body { margin: 0 !important; padding: 0 !important; }
+                }
+            `}} />
+            <div className="hidden print:block mb-6">
+                <PrintHeader title="قائمة المركز المالي" isRTL={true} showLogo={false} />
+            </div>
 
-                {/* Filters Section */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Filter className="w-5 h-5 text-gray-500" />
-                        <h3 className="text-lg font-semibold text-gray-900">{t('reports.accounting.balance_sheet_title') || 'Balance Sheet'}</h3>
+            {/* Filters */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4 print:hidden">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label className="block text-xs text-gray-600 mb-1">في تاريخ</label>
+                        <input type="date" value={filters.toDate} onChange={e => handleFilterChange('toDate', e.target.value)}
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm bg-white" />
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        {/* To Date */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                {t('reports.filters.to_date') || 'To Date'}
-                            </label>
-                            <input
-                                type="date"
-                                value={filters.toDate}
-                                onChange={(e) => handleFilterChange('toDate', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            />
-                        </div>
-
-                        {/* Branches */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                {t('reports.filters.branches') || 'Branches'}
-                            </label>
-                            <select
-                                value={filters.branch}
-                                onChange={(e) => handleFilterChange('branch', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            >
-                                <option value="all">{t('reports.filters.all_branches') || 'All Branches'}</option>
-                                {branches.map((branch) => (
-                                    <option key={branch._id} value={branch._id}>{branch.name}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Displayed Accounts */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                {t('reports.filters.displayed_accounts') || 'Displayed Accounts'}
-                            </label>
-                            <select
-                                value={filters.displayedAccounts}
-                                onChange={(e) => handleFilterChange('displayedAccounts', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                            >
-                                <option value="all">{t('reports.filters.all_accounts') || 'All Accounts'}</option>
-                                <option value="with_transactions">{t('reports.filters.with_transactions') || 'Accounts with Transactions'}</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-3">
-                        <button
-                            onClick={fetchReport}
-                            disabled={loading}
-                            className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:bg-indigo-400 transition-colors"
-                        >
-                            {loading ? t('reports.loading') : t('reports.view_report')}
-                        </button>
-
-                        <button
-                            onClick={handleExportExcel}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 border border-green-200 rounded-md text-sm font-medium hover:bg-green-100 transition-colors"
-                        >
-                            <FileSpreadsheet className="w-4 h-4" />
-                            {t('reports.export.excel')}
-                        </button>
-
-                        <button
-                            onClick={handleExportPdf}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-md text-sm font-medium hover:bg-purple-100 transition-colors"
-                        >
-                            <FileText className="w-4 h-4" />
-                            {t('reports.export.pdf')}
-                        </button>
-
-                        <button
-                            onClick={handlePrint}
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-md text-sm font-medium hover:bg-blue-100 transition-colors"
-                        >
-                            <Printer className="w-4 h-4" />
-                            {t('reports.export.print')}
-                        </button>
+                    <div>
+                        <label className="block text-xs text-gray-600 mb-1">الفرع</label>
+                        <select value={filters.branch} onChange={e => handleFilterChange('branch', e.target.value)}
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm bg-white">
+                            <option value="all">جميع الفروع</option>
+                            {branches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                        </select>
                     </div>
                 </div>
-
-                {/* Report Tables */}
-                {loading ? (
-                    <div className="flex justify-center items-center h-64">
-                        <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-600 border-t-transparent" />
-                    </div>
-                ) : (
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                        {/* Report Content */}
-                        <div className="border border-gray-200 overflow-hidden text-sm">
-                        {/* Assets */}
-                        {renderRow(t('reports.accounting.assets') || 'Assets #1', reportData.assets.total || 0, true, false, 0, () => toggleSection('assets'), expandedSections['assets'])}
-
-                        {expandedSections['assets'] && (
-                            <>
-                                {/* Fixed Assets */}
-                                {renderRow(t('reports.accounting.fixed_assets') || 'Fixed Assets #11', fixedTotal, false, true, 1, () => toggleSection('assets-fixed'), expandedSections['assets-fixed'])}
-                                {expandedSections['assets-fixed'] && (reportData.assets.fixed || []).map(item =>
-                                    renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2)
-                                )}
-
-                                {/* Current Assets */}
-                                {renderRow(t('reports.accounting.current_assets') || 'Current Assets #12', currentTotal, false, true, 1, () => toggleSection('assets-current'), expandedSections['assets-current'])}
-                                {expandedSections['assets-current'] && (reportData.assets.current || []).map(item =>
-                                    renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2)
-                                )}
-                            </>
-                        )}
-                        <div className="bg-gray-200 px-4 py-2 flex justify-between font-bold text-gray-900 border-t border-gray-300">
-                            <span>{t('reports.accounting.total_assets') || 'Total Assets'}</span>
-                            <span>{Number(reportData.assets.total || 0).toFixed(2)}</span>
-                        </div>
-
-                        <div className="h-4 bg-gray-50 border-t border-b border-gray-200"></div>
-
-                        {/* Liabilities */}
-                        {renderRow(t('reports.accounting.liabilities') || 'Liabilities #2', reportData.liabilities.total || 0, true, false, 0, () => toggleSection('liabilities'), expandedSections['liabilities'])}
-                        {expandedSections['liabilities'] && (
-                            <>
-                                {/* Current Liabilities */}
-                                {renderRow(t('reports.accounting.current_liabilities') || 'Current Liabilities #21', liabilitiesCurrentTotal, false, true, 1, () => toggleSection('liabilities-current'), expandedSections['liabilities-current'])}
-                                {expandedSections['liabilities-current'] && (reportData.liabilities.current || []).map(item =>
-                                    renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 2)
-                                )}
-
-                                {/* Long Term Liabilities */}
-                                {renderRow(t('reports.accounting.long_term_liabilities') || 'Long Term Liabilities #22', 0, false, true, 1, () => toggleSection('liabilities-longterm'), expandedSections['liabilities-longterm'])}
-                            </>
-                        )}
-                        <div className="bg-gray-200 px-4 py-2 flex justify-between font-bold text-gray-900 border-t border-gray-300">
-                            <span>{t('reports.accounting.total_liabilities') || 'Total Liabilities'}</span>
-                            <span>{Number(reportData.liabilities.total || 0).toFixed(2)}</span>
-                        </div>
-
-                        <div className="h-4 bg-gray-50 border-t border-b border-gray-200"></div>
-
-                        {/* Equity */}
-                        {renderRow(t('reports.accounting.equity') || 'Equity #3', reportData.equity.total || 0, true, false, 0, () => toggleSection('equity'), expandedSections['equity'])}
-                        {expandedSections['equity'] && (reportData.equity.items || []).map(item =>
-                            renderRow(`${item.name} #${item.code}`, item.amount || 0, false, false, 1)
-                        )}
-
-                        <div className="bg-gray-100 px-4 py-2 flex justify-between font-semibold text-gray-800 border-b border-gray-200">
-                            <span>{t('reports.accounting.unallocated_profit_loss') || 'Unallocated Profit/Loss'}</span>
-                            <span>{Number(reportData.equity.unallocatedProfitLoss || 0).toFixed(2)}</span>
-                        </div>
-                        <div className="bg-gray-100 px-4 py-2 flex justify-between font-semibold text-gray-800 border-b border-gray-200">
-                            <span>{t('reports.accounting.total_equity') || 'Total Equity'}</span>
-                            <span>{Number(reportData.equity.total || 0).toFixed(2)}</span>
-                        </div>
-                        <div className="bg-gray-200 px-4 py-2 flex justify-between font-bold text-gray-900 border-t border-gray-300">
-                            <span>{t('reports.accounting.total_liabilities_and_equity') || 'Total Liabilities and Equity'}</span>
-                            <span>{Number(reportData.totalLiabilitiesAndEquity || 0).toFixed(2)}</span>
-                        </div>
-
-                        </div>
-                    </div>
-                )}
+                <button onClick={fetchReport} className="px-5 py-1.5 bg-indigo-600 text-white rounded text-sm font-medium hover:bg-indigo-700 transition-colors">
+                    {loading ? '...' : 'عرض التقرير'}
+                </button>
             </div>
-        </>
+
+            {/* Report Content */}
+            {loading ? (
+                <div className="flex justify-center items-center py-20">
+                    <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-600 border-t-transparent" />
+                </div>
+            ) : (
+                <div className="bg-white rounded-lg border border-gray-300 overflow-hidden shadow-sm">
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 print:hidden bg-gray-50">
+                        <div className="flex gap-2">
+                            <button onClick={handlePrint} className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-100"><Printer className="w-3" /> طباعة</button>
+                            <button onClick={handleExportExcel} className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-green-700 bg-white border border-green-300 rounded hover:bg-green-50"><FileSpreadsheet className="w-3" /> Excel</button>
+                        </div>
+                    </div>
+
+                    <div className="px-4 py-2 text-center font-bold border-b border-gray-200 text-gray-800">
+                        قائمة المركز المالي في {filters.toDate}
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="bg-gray-200 text-gray-800 font-bold text-sm">
+                                    <th className="px-4 py-2 text-right border border-gray-300">البيان</th>
+                                    <th className="px-4 py-2 text-center border border-gray-300 w-48">الرصيد ({currency})</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <SectionHeader id="root-assets" title="الأصول (Assets)" total={reportData.assets.total} />
+                                {expanded['root-assets'] && renderRows(reportData.assets.items)}
+
+                                <SectionHeader id="root-liabilities" title="الخصوم (Liabilities)" total={reportData.liabilities.total} color="bg-orange-50" />
+                                {expanded['root-liabilities'] && renderRows(reportData.liabilities.items)}
+
+                                <SectionHeader id="root-equity" title="حقوق الملكية (Equity)" total={reportData.equity.total} color="bg-blue-50" />
+                                {expanded['root-equity'] && renderRows(reportData.equity.items)}
+                            </tbody>
+                            <tfoot>
+                                <tr className="bg-gray-800 text-white font-bold text-base">
+                                    <td className="px-4 py-3 border border-gray-700 text-right">إجمالي الخصوم وحقوق الملكية</td>
+                                    <td className="px-4 py-3 text-center border border-gray-700 tabular-nums" dir="ltr">{fmt(reportData.totalLiabilitiesAndEquity)}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 
 export default BalanceSheetReport;
-
-
-

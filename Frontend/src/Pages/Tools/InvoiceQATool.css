@@ -1,3 +1,4 @@
+/* ─── Page shell ──────────────────────────────────────────── */
 .invoice-qa-page {
   min-height: 100vh;
   background: #f4f6f8;
@@ -6,6 +7,7 @@
   color: #1f2937;
 }
 
+/* ─── Two-column layout ───────────────────────────────────── */
 .qa-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
@@ -29,13 +31,14 @@
   color: #0f172a;
 }
 
+/* ─── Invoice wrapper (A4 aspect ratio) ───────────────────── */
 .invoice-wrapper {
   width: min(100%, 680px);
   aspect-ratio: 210 / 297;
   margin-inline: auto;
   background-color: #fff;
   background-image: none;
-  background-size: cover;
+  background-size: 100% 100%;
   background-repeat: no-repeat;
   background-position: center;
   border: 1px solid #d1d5db;
@@ -44,59 +47,83 @@
   overflow: hidden;
 }
 
-.invoice-header {
+/* Background label (replaces the old 6 cm header area) */
+.invoice-bg-label {
   position: absolute;
   inset-inline: 0;
   top: 0;
-  height: 6cm;
+  height: 1.5cm;            /* Much smaller than the old 6 cm */
   background: transparent;
-  border-bottom: 1px dashed #6b7280;
+  border-bottom: 1px dashed #9ca3af;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding-top: 12px;
   z-index: 1;
 }
 
-.invoice-header span {
-  font-size: 0.8rem;
-  color: #1f2937;
-  letter-spacing: 0.2px;
-  background: transparent;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.85);
+.invoice-bg-label span {
+  font-size: 0.72rem;
+  color: #6b7280;
+  background: rgba(255,255,255,0.7);
+  padding: 1px 8px;
+  border-radius: 4px;
 }
 
+/* ─── Invoice content area ────────────────────────────────── */
 .invoice-content {
   position: relative;
   z-index: 2;
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.4);
   border-radius: 8px;
   padding: 16px;
-  margin: 6cm 12px 12px;
-  min-height: calc(100% - 6cm - 24px);
+  /* Increased margin to 3cm to provide space from background logo/header */
+  margin: 3cm 12px 12px;
+  min-height: calc(100% - 3cm - 28px);
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
+/* ─── Meta header (invoice # / date / QR) ─────────────────── */
 .invoice-meta-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
   border-bottom: 1px solid #d1d5db;
   padding-bottom: 8px;
 }
 
-.invoice-meta-header h3 {
-  margin: 0 0 4px;
-  font-size: 1.1rem;
+.meta-text-center {
+  flex: 1;
+  text-align: center;
 }
 
-.invoice-meta-header p {
+.side-box {
+  width: 75px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.header-logo {
+  max-width: 100%;
+  max-height: 60px;
+  width: auto;
+  object-fit: contain;
+}
+
+.meta-text-center h3 {
+  margin: 0 0 4px;
+  font-size: 1.1rem;
+  color: #111827;
+}
+
+.meta-text-center p {
   margin: 2px 0;
   font-size: 0.82rem;
-  color: #374151;
+  color: #4b5563;
 }
 
 .qr-placeholder {
@@ -110,8 +137,10 @@
   font-size: 0.85rem;
   color: #334155;
   background: #fff;
+  flex-shrink: 0;
 }
 
+/* ─── Seller / buyer grid ─────────────────────────────────── */
 .parties-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -133,14 +162,15 @@
 
 .info-box p {
   margin: 0 0 4px;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   color: #374151;
 }
 
+/* ─── Items table ─────────────────────────────────────────── */
 .items-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   table-layout: fixed;
 }
 
@@ -157,10 +187,11 @@
   color: #111827;
 }
 
+/* ─── Totals ──────────────────────────────────────────────── */
 .totals-box {
-  margin-top: auto;
-  align-self: flex-start;
-  width: min(100%, 280px);
+  /* No margin-top:auto so it sits directly below the table */
+  align-self: flex-end;
+  width: min(100%, 260px);
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   background: transparent;
@@ -168,8 +199,8 @@
 }
 
 .totals-box p {
-  margin: 6px 0;
-  font-size: 0.78rem;
+  margin: 5px 0;
+  font-size: 0.77rem;
   display: flex;
   justify-content: space-between;
   gap: 8px;
@@ -177,29 +208,70 @@
 
 .totals-box .grand-total {
   border-top: 1px solid #d1d5db;
-  padding-top: 6px;
+  padding-top: 5px;
   font-weight: 700;
   color: #0f172a;
 }
 
+/* ─── Signature section ───────────────────────────────────── */
+.signature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 8px;
+  border-top: 1px dashed #9ca3af;
+  padding-top: 10px;
+}
+
+.signature-box {
+  text-align: center;
+}
+
+.signature-box p {
+  font-size: 0.76rem;
+  color: #6b7280;
+  margin-bottom: 28px;
+}
+
+.signature-line {
+  border-top: 1px solid #6b7280;
+  margin: 0 12px;
+}
+
+/* ─── Checklist form ──────────────────────────────────────── */
 .input-form {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 14px;
+}
+
+.form-group {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.form-group legend {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f766e;
+  padding: 0 4px;
 }
 
 .input-form label {
   display: grid;
-  gap: 6px;
-  font-size: 0.82rem;
+  gap: 4px;
+  font-size: 0.81rem;
   color: #334155;
 }
 
 .input-form input {
   border: 1px solid #cbd5e1;
   border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 0.85rem;
+  padding: 7px 10px;
+  font-size: 0.84rem;
   font-family: inherit;
   outline: none;
 }
@@ -209,9 +281,8 @@
   box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.14);
 }
 
-.progress-wrap {
-  margin-bottom: 10px;
-}
+/* ─── Progress ────────────────────────────────────────────── */
+.progress-wrap { margin-bottom: 10px; }
 
 .progress-label {
   display: flex;
@@ -234,6 +305,7 @@
   transition: width 0.25s ease;
 }
 
+/* ─── Checklist items ─────────────────────────────────────── */
 .checklist {
   list-style: none;
   margin: 0;
@@ -250,14 +322,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  font-size: 0.84rem;
+  font-size: 0.83rem;
   background: #f9fafb;
 }
 
-.check-actions {
-  display: flex;
-  gap: 6px;
-}
+.check-actions { display: flex; gap: 6px; }
 
 .check-actions button {
   border: 1px solid #cbd5e1;
@@ -269,18 +338,10 @@
   font-size: 0.94rem;
 }
 
-.check-actions .active-pass {
-  background: #dcfce7;
-  border-color: #22c55e;
-  color: #166534;
-}
+.check-actions .active-pass { background: #dcfce7; border-color: #22c55e; color: #166534; }
+.check-actions .active-fail { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
 
-.check-actions .active-fail {
-  background: #fee2e2;
-  border-color: #ef4444;
-  color: #991b1b;
-}
-
+/* ─── Score card ──────────────────────────────────────────── */
 .score-card {
   margin-top: 12px;
   border-radius: 10px;
@@ -289,52 +350,23 @@
   text-align: center;
 }
 
-.score-green {
-  background: #dcfce7;
-  color: #166534;
-}
+.score-green  { background: #dcfce7; color: #166534; }
+.score-yellow { background: #fef9c3; color: #854d0e; }
+.score-red    { background: #fee2e2; color: #991b1b; }
 
-.score-yellow {
-  background: #fef9c3;
-  color: #854d0e;
-}
-
-.score-red {
-  background: #fee2e2;
-  color: #991b1b;
-}
-
+/* ─── Responsive ──────────────────────────────────────────── */
 @media (max-width: 1100px) {
-  .qa-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .invoice-wrapper {
-    width: min(100%, 560px);
-  }
+  .qa-layout { grid-template-columns: 1fr; }
+  .invoice-wrapper { width: min(100%, 560px); }
 }
 
+/* ─── Print ───────────────────────────────────────────────── */
 @media print {
-  .invoice-qa-page {
-    background: #ffffff;
-    padding: 0;
-  }
-
-  .qa-layout {
-    grid-template-columns: 1fr;
-  }
-
+  .invoice-qa-page { background: #ffffff; padding: 0; }
+  .qa-layout { grid-template-columns: 1fr; }
   .checklist-panel,
-  .preview-panel h2 {
-    display: none;
-  }
-
-  .preview-panel {
-    border: 0;
-    box-shadow: none;
-    padding: 0;
-  }
-
+  .preview-panel h2 { display: none; }
+  .preview-panel { border: 0; box-shadow: none; padding: 0; }
   .invoice-wrapper {
     width: 21cm;
     aspect-ratio: auto;

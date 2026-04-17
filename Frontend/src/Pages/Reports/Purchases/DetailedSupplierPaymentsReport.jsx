@@ -1,13 +1,17 @@
-﻿import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import reportsService from '../../../services/reportsService';
 import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import * as XLSX from 'xlsx';
 import PrintHeader from '../../../components/common/PrintHeader';
+import { useAuth } from '../../../context/AuthContext';
+import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
 
 const DetailedSupplierPaymentsReport = () => {
     const { t, i18n } = useTranslation();
+    const { companySettings } = useAuth();
+    const currency = companySettings?.currency || 'EGP';
     const printRef = useRef(null);
     const [detailedData, setDetailedData] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -68,7 +72,7 @@ const DetailedSupplierPaymentsReport = () => {
     }, [fetchReport]);
 
     const formatCellDate = (d) => d ? new Date(d).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US') : '—';
-    const formatAmount = (n) => Number(n).toLocaleString(i18n.language === 'ar' ? 'ar-EG' : 'en-US', { minimumFractionDigits: 2 });
+    const formatAmount = (n, rowCurrency) => utilFormatCurrency(n, rowCurrency || currency);
 
     const periodOptions = [
         { value: 'current_month', label: t('reports.filters.current_month') },
@@ -129,7 +133,7 @@ const DetailedSupplierPaymentsReport = () => {
                 else if (col.key === 'treasury') val = row.paymentMethod ?? '—';
                 else if (col.key === 'date') val = formatCellDate(row.date);
                 else if (col.key === 'supplier') val = row.supplier ?? row.client ?? '—';
-                else if (col.key === 'processed_amount') val = row.amount ?? 0;
+                else if (col.key === 'processed_amount') val = formatAmount(row.amount ?? 0, row.currency);
                 dataRow[col.label] = val;
             });
             return dataRow;
@@ -150,7 +154,7 @@ const DetailedSupplierPaymentsReport = () => {
                 if (col.key === 'treasury') return row.paymentMethod ?? '—';
                 if (col.key === 'date') return formatCellDate(row.date);
                 if (col.key === 'supplier') return row.supplier ?? row.client ?? '—';
-                if (col.key === 'processed_amount') return formatAmount(row.amount);
+                if (col.key === 'processed_amount') return formatAmount(row.amount, row.currency);
                 return '—';
             })),
             filename: `Detailed_Purchases_Report_${filters.fromDate}_to_${filters.toDate}.pdf`,
@@ -338,7 +342,7 @@ const DetailedSupplierPaymentsReport = () => {
                                                 else if (col.key === 'treasury') val = row.paymentMethod ?? '—';
                                                 else if (col.key === 'date') val = formatCellDate(row.date);
                                                 else if (col.key === 'supplier') val = row.supplier ?? row.client ?? '—';
-                                                else if (col.key === 'processed_amount') val = formatAmount(row.amount);
+                                                else if (col.key === 'processed_amount') val = formatAmount(row.amount, row.currency);
                                                 return <td key={col.key} className={`px-4 py-3 text-sm text-gray-700 text-${isRTL ? 'right' : 'left'}`}>{val}</td>;
                                             })}
                                         </tr>

@@ -1,11 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { RefreshCw, Plus, MoreVertical, Eye, Undo2, Copy, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../utils/currencyFormatter';
 import ClientLink from '../navigation/ClientLink';
 
-const InvoiceList = ({ invoices, loading, onAddClick, onRefresh, onInvoiceClick, onDuplicate, onCreateReturn, onDelete, i18n, noItemsKey, startKey, clientLabelKey, isSupplier = false, canAdd = true }) => {
+const InvoiceList = ({ invoices, loading, onAddClick, onRefresh, onInvoiceClick, onDuplicate, onDelete, i18n, noItemsKey, startKey, clientLabelKey, isSupplier = false, canAdd = true }) => {
     const { t } = useTranslation();
+    const { companySettings } = useAuth();
+    const systemCurrency = companySettings?.currency || 'EGP';
     const noItemsMsg = noItemsKey ? t(noItemsKey) : t('sales.invoices.no_invoices');
     const startMsg = startKey ? t(startKey) : t('sales.invoices.start_creating');
 
@@ -193,7 +196,7 @@ const InvoiceList = ({ invoices, loading, onAddClick, onRefresh, onInvoiceClick,
                                                 {new Date(invoice.issueDate).toLocaleDateString(i18n.language === 'ar' ? 'ar-EG' : 'en-US')}
                                             </td>
                                             <td className="px-6 py-5 whitespace-nowrap text-sm font-black text-gray-800">
-                                                {formatCurrency(invoice.totalAmount ?? invoice.total, invoice.currency || 'EGP')}
+                                                {formatCurrency(invoice.totalAmount ?? invoice.total, invoice.currency || systemCurrency)}
                                             </td>
                                             <td className="px-6 py-5 whitespace-nowrap">
                                                 <span className={`px-4 py-1.5 text-[10px] tracking-wide font-black rounded-full shadow-sm ${statusColor}`}>

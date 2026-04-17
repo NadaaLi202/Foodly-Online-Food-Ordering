@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../../utils/currencyFormatter';
 import { Plus, Search, RefreshCw, X, Upload, Calendar, Edit3, Home, MoreVertical, ChevronsUpDown, Minus, ArrowRightLeft, Share2, Printer, Download, Info, FileText } from 'lucide-react';
@@ -13,6 +14,8 @@ import chartOfAccountsService from '../../services/chartOfAccountsService';
 
 const JournalEntries = () => {
     const { t, i18n } = useTranslation();
+    const { companySettings } = useAuth();
+    const currency = companySettings?.currency || 'EGP';
     const isRTL = i18n.language === 'ar';
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -106,7 +109,8 @@ const JournalEntries = () => {
                     totalDebit: entry.totalDebit || 0,
                     totalCredit: entry.totalCredit || 0,
                     entries: entry.entries || [],
-                    attachment: entry.attachment || null
+                    attachment: entry.attachment || null,
+                    currency: entry.currency || null
                 }));
                 setEntries(formattedEntries);
             }
@@ -389,7 +393,8 @@ const JournalEntries = () => {
                 totalDebit: data.totalDebit ?? 0,
                 totalCredit: data.totalCredit ?? 0,
                 entries: data.entries || [],
-                attachment: data.attachment || null
+                attachment: data.attachment || null,
+                currency: data.currency || null
             };
             setViewingEntry(entryObj);
             const formRows = (data.entries || []).map((row, i) => ({
@@ -459,7 +464,7 @@ const JournalEntries = () => {
                 credit: Number(r.credit || 0),
                 description: r.description || ''
             }));
-            
+
             const formData = new FormData();
             formData.append('number', viewForm.number);
             formData.append('date', viewForm.date);
@@ -665,7 +670,7 @@ const JournalEntries = () => {
                                         </td>
                                         <td className="px-6 py-4 text-gray-600">{entry.date}</td>
 
-                                        <td className="px-6 py-4 text-center font-bold text-gray-900">{entry.total.toFixed(2)}</td>
+                                        <td className="px-6 py-4 text-center font-bold text-gray-900">{formatCurrency(entry.total, entry.currency || currency)}</td>
                                         <td className="px-6 py-4 flex items-center justify-center gap-3">
                                             <button
                                                 onClick={() => handleView(entry)}
@@ -787,18 +792,18 @@ const JournalEntries = () => {
                                                             <ArrowRightLeft size={14} />
                                                         </div>
                                                         <div className="relative flex-1">
-                                                        <select
-                                                            value={typeof row.account === 'object' ? row.account?._id : row.account}
-                                                            onChange={(e) => handleRowChange(row.id, 'account', e.target.value)}
-                                                            className="w-full h-11 bg-transparent outline-none text-gray-500 appearance-none text-start pr-8"
-                                                        >
-                                                            <option value="">{t('accounting.journal_entries.choose_account')}</option>
-                                                            {accounts.map((acc) => (
-                                                                <option key={acc._id} value={acc._id}>
-                                                                    {acc.code ? `${acc.code} - ${acc.name}` : acc.name}
-                                                                </option>
-                                                            ))}
-                                                        </select>
+                                                            <select
+                                                                value={typeof row.account === 'object' ? row.account?._id : row.account}
+                                                                onChange={(e) => handleRowChange(row.id, 'account', e.target.value)}
+                                                                className="w-full h-11 bg-transparent outline-none text-gray-500 appearance-none text-start pr-8"
+                                                            >
+                                                                <option value="">{t('accounting.journal_entries.choose_account')}</option>
+                                                                {accounts.map((acc) => (
+                                                                    <option key={acc._id} value={acc._id}>
+                                                                        {acc.code ? `${acc.code} - ${acc.name}` : acc.name}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -875,10 +880,10 @@ const JournalEntries = () => {
                                             </td>
                                             {costCentersEnabled && <td className="bg-white"></td>}
                                             <td className="text-center text-[#10B981] text-md font-bold">
-                                                {formatCurrency(totalDebit, 'EGP')}
+                                                {formatCurrency(totalDebit, currency)}
                                             </td>
                                             <td className="text-center text-[#10B981] text-md font-bold">
-                                                {formatCurrency(totalCredit, 'EGP')}
+                                                {formatCurrency(totalCredit, currency)}
                                             </td>
                                             <td className="bg-white"></td>
                                         </tr>
@@ -1163,8 +1168,8 @@ const JournalEntries = () => {
                                             </td>
                                             <td className="px-4 bg-white text-center font-bold">{t('accounting.journal_entries.total')}</td>
                                             {costCentersEnabled && <td className="bg-white"></td>}
-                                            <td className="text-center text-[#10B981] text-md font-bold">{formatCurrency(viewTotalDebit, 'EGP')}</td>
-                                            <td className="text-center text-[#10B981] text-md font-bold">{formatCurrency(viewTotalCredit, 'EGP')}</td>
+                                            <td className="text-center text-[#10B981] text-md font-bold">{formatCurrency(viewTotalDebit, viewingEntry?.currency || currency)}</td>
+                                            <td className="text-center text-[#10B981] text-md font-bold">{formatCurrency(viewTotalCredit, viewingEntry?.currency || currency)}</td>
                                         </tr>
                                     </tfoot>
                                 </table>

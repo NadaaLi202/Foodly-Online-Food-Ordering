@@ -22,6 +22,11 @@ const chartOfAccountsSchema = new mongoose.Schema({
         enum: ['main', 'sub'],
         required: true
     },
+    accountCategory: {
+        type: String,
+        enum: ['asset', 'liability', 'equity', 'income', 'expense'],
+        default: null
+    },
     parentAccount: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'ChartOfAccounts',

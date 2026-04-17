@@ -9,6 +9,7 @@ import InvoiceDetails from './InvoiceDetails';
 import api from '../../services/api';
 import logError from '../../utils/logError';
 import { usePermissions } from '../../hooks/usePermissions';
+import { useAuth } from '../../context/AuthContext';
 
 const TransactionPage = ({ configKey }) => {
     const { t, i18n } = useTranslation();
@@ -24,6 +25,8 @@ const TransactionPage = ({ configKey }) => {
     const [view, setView] = useState('list');
     const [selected, setSelected] = useState(null);
     const { hasPermission, loadingPermissions } = usePermissions();
+    const { companySettings } = useAuth();
+    const defaultCurrency = companySettings?.currency || 'EGP';
 
     const permissionModule = configKey?.startsWith('sales_')
         ? 'sales_invoices'
@@ -149,9 +152,6 @@ const TransactionPage = ({ configKey }) => {
             const url = selected ? config.getOneUrl(selected._id) : config.createUrl;
             const method = selected ? 'PATCH' : 'POST';
 
-            // Note: formData is likely a FormData object now due to file uploads
-            // api utility handles Content-Type automatically or we can force it if needed, 
-            // but Axios usually auto-detects FormData.
             const response = await api({
                 method,
                 url,
@@ -160,7 +160,6 @@ const TransactionPage = ({ configKey }) => {
 
             toast.success(t('sales.common.success_message'));
 
-            // Show payment creation toast if applicable
             if (response.data?.paymentCreated) {
                 toast.success(t('sales.payments.payment_registered_success') || "تم تسجيل الدفعة بنجاح");
             }
@@ -215,7 +214,6 @@ const TransactionPage = ({ configKey }) => {
             const suffix = Date.now().toString().slice(-6);
             const newInvoiceNumber = `INV-${yy}-${mm}-${suffix}`;
 
-            // Build a clean payload — API expects IDs as strings, not objects
             const newData = {
                 transactionNumber: newInvoiceNumber,
                 invoiceNumber: newInvoiceNumber,
@@ -226,7 +224,7 @@ const TransactionPage = ({ configKey }) => {
                 status: 'draft',
                 paidAmount: 0,
                 notes: oldData.notes || '',
-                currency: oldData.currency || 'EGP',
+                currency: oldData.currency || defaultCurrency,
                 paymentMethod: oldData.paymentMethod || 'cash',
                 items: (oldData.items || []).map(item => ({
                     product: item.product?._id || item.product || item.productId || '',
@@ -240,7 +238,6 @@ const TransactionPage = ({ configKey }) => {
                 })),
             };
 
-            console.log('[Duplicate] Sending payload:', newData);
             await api.post(config.createUrl, newData);
             toast.success('تم تكرار الفاتورة بنجاح');
             fetchList();
@@ -321,7 +318,7 @@ const TransactionPage = ({ configKey }) => {
                             editTitleKey={config.editTitleKey}
                             numberPlaceholderKey={config.numberPlaceholderKey}
                             clientLabelKey={config.clientLabelKey}
-                            defaultCurrency="EGP"
+                            defaultCurrency={defaultCurrency}
                             hidePaymentDetails={config.hidePaymentDetails}
                             loading={loading}
                         />

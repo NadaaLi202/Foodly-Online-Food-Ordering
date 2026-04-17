@@ -375,7 +375,7 @@ export async function getPurchasesPaymentsDetailed(startDate, endDate, companyFi
         status: { $ne: "cancelled" },
     })
         .sort({ date: -1 })
-        .populate("invoice", "transactionNumber")
+        .populate("invoice", "transactionNumber currency")
         .populate("contact", "name")
         .lean();
     return list.map((doc) => ({
@@ -386,6 +386,7 @@ export async function getPurchasesPaymentsDetailed(startDate, endDate, companyFi
         amount: doc.amount,
         date: doc.date,
         type: doc.operationType, // 'receive' or 'spend'
+        currency: doc.invoice?.currency || doc.currency || null
     }));
 }
 
@@ -597,9 +598,10 @@ export async function getPaymentsDetailed(startDate, endDate, companyFilter) {
         ...companyFilter,
         date: { $gte: start, $lte: end },
         status: { $ne: "cancelled" },
+        operationType: "receive",
     })
         .sort({ date: -1 })
-        .populate("invoice", "transactionNumber")
+        .populate("invoice", "transactionNumber currency")
         .populate("contact", "name")
         .lean();
 
@@ -610,6 +612,7 @@ export async function getPaymentsDetailed(startDate, endDate, companyFilter) {
         amount: doc.amount,
         date: doc.date,
         type: doc.operationType, // 'receive' or 'spend'
+        currency: doc.invoice?.currency || doc.currency || null
     }));
 }
 
@@ -1722,46 +1725,77 @@ async function buildAccountTree(companyFilter, accountCodes = null) {
 }
 
 /**
+ * Shared helper to build hierarchical balanced data.
+ */
+async function getHierarchicalReportData(startDate, endDate, companyFilter, branch, accountCodes = null) {
+    const balances = await getAccountBalances(startDate, endDate, companyFilter, accountCodes, branch);
+    const tree = await buildAccountTree(companyFilter, accountCodes);
+
+    const buildNode = (node, level = 0) => {
+        const code = node.code;
+        const bal = balances[code] || { openingDebit: 0, openingCredit: 0, periodDebit: 0, periodCredit: 0, closingDebit: 0, closingCredit: 0 };
+
+        const children = (node.children || []).map(child => buildNode(child, level + 1));
+
+        let initialDebit = bal.openingDebit || 0;
+        let initialCredit = bal.openingCredit || 0;
+        let transactionDebit = bal.periodDebit || 0;
+        let transactionCredit = bal.periodCredit || 0;
+
+        for (const child of children) {
+            initialDebit += child.initialDebit;
+            initialCredit += child.initialCredit;
+            transactionDebit += child.transactionDebit;
+            transactionCredit += child.transactionCredit;
+        }
+
+        const openingNet = initialDebit - initialCredit;
+        const periodNet = transactionDebit - transactionCredit;
+        const closingNet = openingNet + periodNet;
+        
+        // Trial Balance usually shows Debit/Credit columns separately
+        const endDebit = closingNet > 0 ? closingNet : 0;
+        const endCredit = closingNet < 0 ? Math.abs(closingNet) : 0;
+
+        return {
+            id: node._id.toString(),
+            code,
+            name: node.name,
+            type: node.type,
+            level,
+            initialDebit,
+            initialCredit,
+            transactionDebit,
+            transactionCredit,
+            endDebit,
+            endCredit,
+            netBalance: closingNet, // Useful for BS/IS
+            children,
+        };
+    };
+
+    const data = tree.map(root => buildNode(root, 0));
+
+    const totals = data.reduce((acc, root) => {
+        acc.initialDebit += root.initialDebit;
+        acc.initialCredit += root.initialCredit;
+        acc.transactionDebit += root.transactionDebit;
+        acc.transactionCredit += root.transactionCredit;
+        acc.endDebit += root.endDebit;
+        acc.endCredit += root.endCredit;
+        return acc;
+    }, { initialDebit: 0, initialCredit: 0, transactionDebit: 0, transactionCredit: 0, endDebit: 0, endCredit: 0 });
+
+    return { data, totals };
+}
+
+/**
  * Trial Balance: All accounts with opening balance, period movements, closing balance.
+ * Parent accounts aggregate all descendant balances bottom-up.
  */
 export async function getTrialBalance(startDate, endDate, companyFilter, filters = {}) {
     const { branch, accountCodes } = filters;
-    console.log("[reports] getTrialBalance companyFilter:", JSON.stringify(companyFilter));
-    const balances = await getAccountBalances(startDate, endDate, companyFilter, accountCodes, branch);
-    const tree = await buildAccountTree(companyFilter, accountCodes);
-    const flatten = (nodes, level = 0) => {
-        const result = [];
-        for (const node of nodes) {
-            const code = node.code;
-            const bal = balances[code] || { openingDebit: 0, openingCredit: 0, periodDebit: 0, periodCredit: 0, closingDebit: 0, closingCredit: 0 };
-            result.push({
-                id: node._id.toString(),
-                code,
-                name: node.name,
-                type: node.type,
-                level,
-                initialDebit: bal.openingDebit,
-                initialCredit: bal.openingCredit,
-                transactionDebit: bal.periodDebit,
-                transactionCredit: bal.periodCredit,
-                endDebit: bal.closingDebit,
-                endCredit: bal.closingCredit,
-                children: node.children.length > 0 ? flatten(node.children, level + 1) : [],
-            });
-        }
-        return result;
-    };
-    const data = flatten(tree);
-    const totals = data.reduce((acc, r) => {
-        acc.initialDebit += r.initialDebit;
-        acc.initialCredit += r.initialCredit;
-        acc.transactionDebit += r.transactionDebit;
-        acc.transactionCredit += r.transactionCredit;
-        acc.endDebit += r.endDebit;
-        acc.endCredit += r.endCredit;
-        return acc;
-    }, { initialDebit: 0, initialCredit: 0, transactionDebit: 0, transactionCredit: 0, endDebit: 0, endCredit: 0 });
-    return { data, totals };
+    return await getHierarchicalReportData(startDate, endDate, companyFilter, branch, accountCodes);
 }
 
 /**
@@ -1770,43 +1804,24 @@ export async function getTrialBalance(startDate, endDate, companyFilter, filters
 export async function getBalanceSheet(asOfDate, companyFilter, filters = {}) {
     const { branch } = filters;
     const endDate = asOfDate || new Date().toISOString().split("T")[0];
-    const balances = await getAccountBalances("2000-01-01", endDate, companyFilter, null, branch);
-    const tree = await buildAccountTree(companyFilter);
-    const getAccountType = (code) => {
-        if (code.startsWith("1")) return "asset";
-        if (code.startsWith("2")) return "liability";
-        if (code.startsWith("3")) return "equity";
-        return "other";
+    const { data } = await getHierarchicalReportData("1970-01-01", endDate, companyFilter, branch);
+
+    const assets = data.filter(n => n.code.startsWith("1"));
+    const liabilities = data.filter(n => n.code.startsWith("2"));
+    const equity = data.filter(n => n.code.startsWith("3"));
+
+    const sumSection = (nodes) => nodes.reduce((sum, n) => sum + n.netBalance, 0);
+
+    const totalAssets = sumSection(assets);
+    const totalLiabilities = Math.abs(sumSection(liabilities));
+    const totalEquity = Math.abs(sumSection(equity));
+
+    return {
+        assets: { items: assets, total: totalAssets },
+        liabilities: { items: liabilities, total: totalLiabilities },
+        equity: { items: equity, total: totalEquity },
+        totalLiabilitiesAndEquity: totalLiabilities + totalEquity
     };
-    const categorize = (nodes) => {
-        const assets = { fixed: [], current: [], total: 0 };
-        const liabilities = { current: [], longTerm: [], total: 0 };
-        const equity = { items: [], total: 0 };
-        const processNode = (node, bal) => {
-            const type = getAccountType(node.code);
-            const amount = (bal?.closingDebit || 0) - (bal?.closingCredit || 0);
-            if (type === "asset") {
-                if (node.code.startsWith("11")) assets.fixed.push({ code: node.code, name: node.name, amount });
-                else assets.current.push({ code: node.code, name: node.name, amount });
-            } else if (type === "liability") {
-                liabilities.current.push({ code: node.code, name: node.name, amount: Math.abs(amount) });
-            } else if (type === "equity") {
-                equity.items.push({ code: node.code, name: node.name, amount });
-            }
-            for (const child of node.children || []) {
-                processNode(child, balances[child.code]);
-            }
-        };
-        for (const root of tree) {
-            processNode(root, balances[root.code]);
-        }
-        assets.total = [...assets.fixed, ...assets.current].reduce((sum, a) => sum + Math.max(0, a.amount), 0);
-        liabilities.total = liabilities.current.reduce((sum, l) => sum + l.amount, 0);
-        equity.total = equity.items.reduce((sum, e) => sum + e.amount, 0);
-        const totalLiabilitiesAndEquity = liabilities.total + equity.total;
-        return { assets, liabilities, equity, totalLiabilitiesAndEquity };
-    };
-    return categorize(tree);
 }
 
 /**
@@ -1814,31 +1829,29 @@ export async function getBalanceSheet(asOfDate, companyFilter, filters = {}) {
  */
 export async function getIncomeStatement(startDate, endDate, companyFilter, filters = {}) {
     const { branch } = filters;
-    const balances = await getAccountBalances(startDate, endDate, companyFilter, null, branch);
-    const tree = await buildAccountTree(companyFilter);
-    const getAccountType = (code) => {
-        if (code.startsWith("4")) return "revenue";
-        if (code.startsWith("5")) return "expense";
-        return null;
+    const { data } = await getHierarchicalReportData(startDate, endDate, companyFilter, branch);
+
+    const revenue = data.filter(n => n.code.startsWith("4"));
+    const expenses = data.filter(n => n.code.startsWith("5"));
+
+    const sumSection = (nodes) => nodes.reduce((sum, n) => {
+        // For IS, we usually want absolute or net impacts
+        // Revenue is typically Credit balance (negative closingNet as implemented)
+        // Expense is typically Debit balance (positive closingNet)
+        // We'll return them as they are and let the UI decide, OR normalize here.
+        // Let's normalize: Revenue (+ve), Expense (+ve)
+        return sum + Math.abs(n.netBalance);
+    }, 0);
+
+    const totalRevenue = sumSection(revenue);
+    const totalExpenses = sumSection(expenses);
+    const netIncome = totalRevenue - totalExpenses;
+
+    return {
+        revenue: { items: revenue, total: totalRevenue },
+        expenses: { items: expenses, total: totalExpenses },
+        netIncome
     };
-    const categorize = (nodes) => {
-        const revenue = [];
-        const expenses = [];
-        const processNode = (node) => {
-            const type = getAccountType(node.code);
-            const bal = balances[node.code] || { periodDebit: 0, periodCredit: 0 };
-            const amount = type === "revenue" ? bal.periodCredit - bal.periodDebit : bal.periodDebit - bal.periodCredit;
-            if (type === "revenue") revenue.push({ code: node.code, name: node.name, amount: Math.max(0, amount) });
-            else if (type === "expense") expenses.push({ code: node.code, name: node.name, amount: Math.max(0, amount) });
-            for (const child of node.children || []) processNode(child);
-        };
-        for (const root of tree) processNode(root);
-        const totalRevenue = revenue.reduce((sum, r) => sum + r.amount, 0);
-        const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-        const netIncome = totalRevenue - totalExpenses;
-        return { revenue, expenses, totalRevenue, totalExpenses, netIncome };
-    };
-    return categorize(tree);
 }
 
 /**
@@ -1847,34 +1860,110 @@ export async function getIncomeStatement(startDate, endDate, companyFilter, filt
 export async function getGeneralLedger(startDate, endDate, companyFilter, filters = {}) {
     const { branch, accountId, accountCode } = filters;
     const { start, end } = getDateRange(startDate, endDate);
+
+    // Resolve accounting IDs for the requested target
+    let targetAccountIds = null;
+    let selectedAccountDoc = null;
+
+    if (accountId && accountId !== 'all') {
+        selectedAccountDoc = await chartOfAccountsModel.findOne({ _id: accountId, ...companyFilter }).select("name code").lean();
+        if (selectedAccountDoc) {
+            targetAccountIds = [selectedAccountDoc._id.toString()];
+        }
+    } else if (accountCode) {
+        selectedAccountDoc = await chartOfAccountsModel.findOne({ code: accountCode, ...companyFilter }).select("name code").lean();
+        if (selectedAccountDoc) {
+            targetAccountIds = [selectedAccountDoc._id.toString()];
+        }
+    }
+
+    // 1. Calculate Opening Balance (from beginning of time until 'start')
+    let openingBalance = 0;
+    if (targetAccountIds) {
+        const openingQuery = {
+            ...companyFilter,
+            date: { $lt: start }
+        };
+        const pastRestrictions = await dailyRestrictionModel.find(openingQuery).select("entries").lean();
+        for (const res of pastRestrictions) {
+            for (const entry of res.entries || []) {
+                if (targetAccountIds.includes(String(entry.account).trim())) {
+                    openingBalance += (Number(entry.debit || 0) - Number(entry.credit || 0));
+                }
+            }
+        }
+    }
+
+    // 2. Fetch Transactions in Period
     const query = { ...companyFilter, date: { $gte: start, $lte: end } };
-    // Note: branch filtering not available in dailyRestrictionModel yet
-    const restrictions = await dailyRestrictionModel.find(query).sort({ date: 1, createdAt: 1 }).select("number date description source entries").lean();
-    const accounts = accountCode ? [accountCode] : (accountId ? await chartOfAccountsModel.find({ _id: accountId, ...companyFilter }).select("code").lean().then(list => list.map(a => a.code)) : null);
+    const restrictions = await dailyRestrictionModel.find(query)
+        .sort({ date: 1, createdAt: 1 })
+        .populate("entries.account", "name code")
+        .lean();
+
     const entries = [];
-    let runningBalance = 0;
+    let runningBalance = openingBalance;
+
+    // Add Opening Balance Entry
+    entries.push({
+        date: null,
+        description: "الرصيد السابق",
+        isOpening: true,
+        debit: 0,
+        credit: 0,
+        balance: openingBalance,
+        accountName: selectedAccountDoc ? `${selectedAccountDoc.name} #${selectedAccountDoc.code}` : ""
+    });
+
     for (const restriction of restrictions) {
         for (const entry of restriction.entries || []) {
-            const code = String(entry.account || "").trim();
-            if (!code) continue;
-            if (accounts && !accounts.includes(code)) continue;
+            if (!entry.account) continue;
+
+            // Handle both populated and unpopulated account field
+            const isPopulated = entry.account && typeof entry.account === 'object' && entry.account._id;
+            const entryAccountId = isPopulated ? entry.account._id.toString() : entry.account.toString();
+
+            if (targetAccountIds && !targetAccountIds.includes(entryAccountId)) continue;
+
+            // Optional branch filter
+            if (branch && branch !== 'all' && restriction.branch?.toString() !== branch.toString()) continue;
+
             const debit = Number(entry.debit || 0);
             const credit = Number(entry.credit || 0);
             runningBalance += debit - credit;
+
+            // Prepare account display string (Name + Code)
+            let accountDisplayName = "";
+            if (isPopulated) {
+                accountDisplayName = entry.account.name || "";
+                if (entry.account.code) {
+                    accountDisplayName += ` #${entry.account.code}`;
+                }
+            } else {
+                accountDisplayName = entry.account.toString(); // Fallback to ID if not found
+            }
+
             entries.push({
                 date: restriction.date,
                 description: entry.description || restriction.description || "",
-                accountCode: code,
+                accountCode: isPopulated ? entry.account.code : "",
+                accountName: accountDisplayName, // This is what the frontend mainly uses
                 debit,
                 credit,
                 balance: runningBalance,
                 restrictionNumber: restriction.number,
                 source: restriction.source || "",
+                currency: restriction.currency || "EGP",
             });
         }
     }
-    const account = accountCode ? await chartOfAccountsModel.findOne({ code: accountCode, ...companyFilter }).select("name code").lean() : null;
-    return { account: account ? { name: account.name, code: account.code } : null, entries, totalEntries: entries.length };
+
+    return {
+        account: selectedAccountDoc ? { name: selectedAccountDoc.name, code: selectedAccountDoc.code } : null,
+        openingBalance,
+        entries,
+        totalEntries: entries.length
+    };
 }
 
 /**
