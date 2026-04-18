@@ -97,9 +97,9 @@ import DetailedPaymentsReport from './Pages/Reports/Sales/DetailedPaymentsReport
 import DetailedPurchasesReport from './Pages/Reports/Purchases/DetailedPurchasesReport';
 import DetailedSupplierPaymentsReport from './Pages/Reports/Purchases/DetailedSupplierPaymentsReport';
 import ClientsReportsPage from './Pages/Reports/Clients/ClientsReportsPage';
-import SummaryCustomerReport from './Pages/Reports/Clients/SummaryCustomerReport';
+import ClientGeneralLedger from './Pages/Reports/Clients/ClientGeneralLedger';
 import SuppliersReportsPage from './Pages/Reports/Suppliers/SuppliersReportsPage';
-import DetailedSuppliersReport from './Pages/Reports/Suppliers/DetailedSuppliersReport';
+import SupplierGeneralLedger from './Pages/Reports/Suppliers/SupplierGeneralLedger';
 import InventoryReportsPage from './Pages/Reports/Inventory/InventoryReportsPage';
 import InventoryValueReport from './Pages/Reports/Inventory/InventoryValueReport';
 import InventoryValueDetailedReport from './Pages/Reports/Inventory/InventoryValueDetailedReport';
@@ -294,12 +294,12 @@ function App() {
                 </Route>
                 <Route path="clients" element={<ReportsLayout title="Clients Reports" />}>
                   <Route index element={<ClientsReportsPage />} />
-                  <Route path="summary" element={<SummaryCustomerReport />} />
+                  <Route path="general-ledger" element={<ClientGeneralLedger />} />
                 </Route>
                 <Route path="customers" element={<PlaceholderPage title="Customers Reports" />} />
                 <Route path="suppliers" element={<ReportsLayout title="Suppliers Reports" />}>
                   <Route index element={<SuppliersReportsPage />} />
-                  <Route path="detailed" element={<DetailedSuppliersReport />} />
+                  <Route path="general-ledger" element={<SupplierGeneralLedger />} />
                 </Route>
                 <Route path="inventory" element={<ReportsLayout title="Inventory Reports" />}>
                   <Route index element={<InventoryReportsPage />} />

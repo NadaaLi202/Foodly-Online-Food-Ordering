@@ -16,6 +16,7 @@ const cairoRegular = fontToDataUri("Cairo-Regular.ttf");
 const cairoBold = fontToDataUri("Cairo-Bold.ttf");
 
 const injectArabicStyles = (htmlContent) => {
+  const isBilingual = htmlContent && htmlContent.includes('bilingual-template');
   const styles = `
       <style id="pdf-arabic-fonts">
         @font-face {
@@ -30,15 +31,18 @@ const injectArabicStyles = (htmlContent) => {
           font-weight: 700;
           font-style: normal;
         }
+        ${!isBilingual ? `
         * {
           direction: rtl !important;
           text-align: right !important;
           font-family: "Cairo", "Arial Unicode MS", "Tahoma", sans-serif !important;
           unicode-bidi: embed;
         }
+        ` : ''}
         body {
           direction: rtl;
           unicode-bidi: embed;
+          font-family: "Cairo", "Arial Unicode MS", "Tahoma", sans-serif ${isBilingual ? '' : '!important'};
         }
         table {
           direction: rtl;
@@ -51,7 +55,7 @@ const injectArabicStyles = (htmlContent) => {
           text-align: right;
           border: 1px solid #333;
           padding: 8px 10px;
-          font-family: "Cairo", "Arial Unicode MS", "Tahoma", sans-serif !important;
+          font-family: "Cairo", "Arial Unicode MS", "Tahoma", sans-serif ${isBilingual ? '' : '!important'};
         }
         .number,
         td.amount,

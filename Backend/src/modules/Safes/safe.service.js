@@ -61,23 +61,23 @@ export const calculateSafeBalance = async (safeId, companyFilter) => {
         // If safe is linked to an accounting account, use the ledger balance (Source of truth)
         if (safe.journalAccount) {
             const { dailyRestrictionModel } = await import("../dailyRestrictions/dailyRestrictions.model.js");
-            const targetAccountId = safe.journalAccount._id?.toString() || safe.journalAccount.toString();
+            const targetAccountId = new mongoose.Types.ObjectId(safe.journalAccount._id?.toString() || safe.journalAccount.toString());
             const category = (safe.journalAccount.accountCategory || 'asset').toLowerCase();
 
-            // Sum all debits and credits for this account ID
-            const restrictions = await dailyRestrictionModel.find({ ...match }).select("entries").lean();
-            let totalDebit = 0;
-            let totalCredit = 0;
-
-            for (const res of restrictions) {
-                for (const entry of res.entries || []) {
-                    const entryAccountId = entry.account?._id?.toString() || entry.account?.toString();
-                    if (entryAccountId === targetAccountId) {
-                        totalDebit += Number(entry.debit || 0);
-                        totalCredit += Number(entry.credit || 0);
+            const result = await dailyRestrictionModel.aggregate([
+                { $match: match },
+                { $unwind: "$entries" },
+                { $match: { "entries.account": targetAccountId } },
+                {
+                    $group: {
+                        _id: null,
+                        totalDebit: { $sum: "$entries.debit" },
+                        totalCredit: { $sum: "$entries.credit" }
                     }
                 }
-            }
+            ]);
+
+            const { totalDebit = 0, totalCredit = 0 } = result[0] || {};
 
             // Asset/Expense/Income Net Balance logic:
             // Safes are Assets -> Balance = Debit - Credit
@@ -111,5 +111,48 @@ export const calculateSafeBalance = async (safeId, companyFilter) => {
     } catch (error) {
         console.error(`Error calculating balance for safe ${safeId}:`, error);
         return 0;
+    }
+};
+
+/**
+ * Migration function: Fixes unlinked safes by automatically linking them to the correct accounting account (1211).
+ * Logic: Links any orphaned safe to the journal account with code 1211 (الخزنة الرئيسية) as a fallback.
+ */
+export const fixUnlinkedSafes = async () => {
+    try {
+        const { chartOfAccountsModel } = await import("../chartOfAccounts/chartOfAccounts.model.js");
+
+        // Find all safes with missing journalAccount
+        const unlinkedSafes = await safeModel.find({
+            $or: [
+                { journalAccount: null },
+                { journalAccount: { $exists: false } }
+            ]
+        });
+
+        if (unlinkedSafes.length === 0) return true;
+
+        console.log(`[Migration] Checking ${unlinkedSafes.length} unlinked safes for automatic mapping...`);
+
+        for (const safe of unlinkedSafes) {
+            // Find journal account code 1211 (الخزنة الرئيسية)
+            const journalAccount = await chartOfAccountsModel.findOne({
+                companyId: safe.companyId,
+                code: "1211"
+            });
+
+            if (journalAccount) {
+                safe.journalAccount = journalAccount._id;
+                await safe.save();
+                console.log(`[Migration] Auto-linked safe "${safe.name}" to journal account "${journalAccount.name}" (#${journalAccount.code})`);
+            } else {
+                console.warn(`[Migration] Could not find journal account 1211 for safe "${safe.name}"`);
+            }
+        }
+
+        return true;
+    } catch (error) {
+        console.error("Error fixing unlinked safes:", error);
+        return false;
     }
 };

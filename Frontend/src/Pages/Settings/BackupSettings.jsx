@@ -170,6 +170,7 @@ const BackupSettings = () => {
                                     <th className="px-4 py-3 font-bold text-gray-700">{t("backup_settings.size", "File Size")}</th>
                                     <th className="px-4 py-3 font-bold text-gray-700">{t("backup_settings.storage", "Storage")}</th>
                                     <th className="px-4 py-3 font-bold text-gray-700">{t("backup_settings.status", "Status")}</th>
+                                    <th className="px-4 py-3 font-bold text-gray-700">{t("backup_settings.availability", "File")}</th>
                                     <th className="px-4 py-3 font-bold text-gray-700 text-right">{t("sales.common.actions", "Actions")}</th>
                                 </tr>
                             </thead>
@@ -187,43 +188,70 @@ const BackupSettings = () => {
                                         </td>
                                     </tr>
                                 ) : (
-                                    rows.map((b) => (
-                                        <tr key={b._id || b.backupId}>
-                                            <td className="px-4 py-3 font-medium text-gray-900">
-                                                {b.backupDate ? new Date(b.backupDate).toLocaleString() : "—"}
-                                            </td>
-                                            <td className="px-4 py-3">{(b.format || "jsonl").toUpperCase()}</td>
-                                            <td className="px-4 py-3">{formatBytes(b.fileSizeBytes)}</td>
-                                            <td className="px-4 py-3">
-                                                {b.storage?.type || "local"}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${b.status === "success" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
-                                                    {b.status || "unknown"}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => handleDownload(b._id || b.backupId)}
-                                                        className="h-7 px-2 rounded border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 flex items-center gap-1"
-                                                    >
-                                                        <Download size={12} />
-                                                        {t("backup_settings.download", "Download")}
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => openRestoreModal(b)}
-                                                        className="h-7 px-2 rounded border border-red-200 text-xs font-bold text-red-600 hover:bg-red-50 flex items-center gap-1"
-                                                    >
-                                                        <RotateCcw size={12} />
-                                                        {t("backup_settings.restore", "Restore")}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+                                    rows.map((b) => {
+                                        const available = b.fileExists !== false;
+                                        const unavailableTitle = "الملف غير متوفر على هذا الجهاز — تم إنشاؤه على خادم آخر";
+                                        return (
+                                            <tr key={b._id || b.backupId} className={available ? "" : "opacity-75 bg-amber-50/40"}>
+                                                <td className="px-4 py-3 font-medium text-gray-900">
+                                                    {b.backupDate ? new Date(b.backupDate).toLocaleString() : "—"}
+                                                </td>
+                                                <td className="px-4 py-3">{(b.format || "jsonl").toUpperCase()}</td>
+                                                <td className="px-4 py-3">{formatBytes(b.fileSizeBytes)}</td>
+                                                <td className="px-4 py-3">
+                                                    {b.storage?.type || "local"}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${b.status === "success" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                                                        {b.status || "unknown"}
+                                                    </span>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {available ? (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-emerald-50 text-emerald-700">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                                                            متاح
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold bg-amber-50 text-amber-700" title={unavailableTitle}>
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                                                            غير متاح
+                                                        </span>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDownload(b._id || b.backupId)}
+                                                            disabled={!available}
+                                                            title={available ? t("backup_settings.download", "Download") : unavailableTitle}
+                                                            className={`h-7 px-2 rounded border text-xs font-bold flex items-center gap-1 ${available
+                                                                ? "border-gray-200 text-gray-600 hover:bg-gray-50"
+                                                                : "border-gray-100 text-gray-300 cursor-not-allowed"
+                                                                }`}
+                                                        >
+                                                            <Download size={12} />
+                                                            {t("backup_settings.download", "Download")}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openRestoreModal(b)}
+                                                            disabled={!available}
+                                                            title={available ? t("backup_settings.restore", "Restore") : unavailableTitle}
+                                                            className={`h-7 px-2 rounded border text-xs font-bold flex items-center gap-1 ${available
+                                                                ? "border-red-200 text-red-600 hover:bg-red-50"
+                                                                : "border-gray-100 text-gray-300 cursor-not-allowed"
+                                                                }`}
+                                                        >
+                                                            <RotateCcw size={12} />
+                                                            {t("backup_settings.restore", "Restore")}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 )}
                             </tbody>
                         </table>

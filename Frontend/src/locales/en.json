@@ -379,6 +379,8 @@
         "balance": "Balance",
         "restriction_number": "Journal Entry",
         "view_report": "View Report",
+        "show_report": "Show Report",
+        "show_reports": "Show Report",
         "select_columns": "Select Columns",
         "no_data": "No data available",
         "error_load": "Error loading report",
@@ -635,7 +637,6 @@
                 "total": "Total"
             }
         },
-        "tax_return": "Tax Return",
         "clients": {
             "client_general_ledger": "Client General Ledger",
             "client_general_ledger_desc": "View Client General Ledger reports.",

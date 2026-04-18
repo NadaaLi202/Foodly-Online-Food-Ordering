@@ -89,10 +89,14 @@ const COLLECTION_REGISTRY = {
 
 import { uploadBackupToS3, getBackupReadStream, deleteBackupFromS3 } from "./backup.storage.js";
 
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const BACKUP_RETENTION_DAYS = 30;
 const BACKUP_DIR = process.env.BACKUP_DIR
     ? path.resolve(process.env.BACKUP_DIR)
-    : path.resolve(process.cwd(), "backups", "system");
+    : path.resolve(__dirname, "../../backups/system");
 const BACKUP_FORMAT = "jsonl";
 const ZIP_ENABLED = String(process.env.BACKUP_ZIP_ENABLED || "").toLowerCase() === "true";
 const ZIP_KEEP_JSONL = String(process.env.BACKUP_ZIP_KEEP_JSONL || "").toLowerCase() === "true";
@@ -378,7 +382,22 @@ export const restoreFromBackup = async (backupId, options = {}) => {
             }
         }
 
-        const inputStream = await getBackupReadStream(backup.storage, backup.filePath);
+        // Rebuild path from filename only — the stored absolute path may be from a different machine.
+        let resolvedFilePath = backup.filePath || null;
+        if (resolvedFilePath && backup.storage?.type !== "s3") {
+            const filename = path.basename(resolvedFilePath);
+            resolvedFilePath = path.join(process.cwd(), "backups", "system", filename);
+        }
+
+        // Check the file actually exists before attempting to open it.
+        if (backup.storage?.type !== "s3" && resolvedFilePath && !fs.existsSync(resolvedFilePath)) {
+            throw Object.assign(
+                new Error("Backup file is not available on this machine. It may have been created on a different server and has not been transferred here."),
+                { statusCode: 404 }
+            );
+        }
+
+        const inputStream = await getBackupReadStream(backup.storage, resolvedFilePath);
         const dataStream = await maybeUnzipStream(backup, inputStream);
         const rl = readline.createInterface({ input: dataStream, crlfDelay: Infinity });
         const batchSize = 500;
@@ -449,5 +468,16 @@ export const listBackups = async (limit = 20, companyId = null) => {
         .limit(limit)
         .select("backupDate totalRecords createdAt filePath fileSizeBytes storage format status backupName backupNameJsonl backupNameZip jsonlPath zipPath jsonlSizeBytes zipSizeBytes backupForCompanyId")
         .lean();
-    return backups;
+    // Enrich each record with a fileExists flag based on the resolved local path.
+    return backups.map(b => {
+        let fileExists = false;
+        if (b.storage?.type === "s3") {
+            fileExists = true; // S3 files are assumed available
+        } else if (b.filePath) {
+            const filename = path.basename(b.filePath);
+            const localPath = path.join(process.cwd(), "backups", "system", filename);
+            fileExists = fs.existsSync(localPath);
+        }
+        return { ...b, fileExists };
+    });
 };

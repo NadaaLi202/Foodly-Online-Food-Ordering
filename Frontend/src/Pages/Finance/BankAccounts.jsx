@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Edit, Trash2, FileText, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
@@ -10,6 +10,7 @@ import BankAccountModal from './BankAccountModal';
 
 const BankAccounts = () => {
     const { t, i18n } = useTranslation();
+    const navigate = useNavigate();
     const [accounts, setAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -121,13 +122,20 @@ const BankAccounts = () => {
                                                     {account.balance?.toLocaleString()} {t('currency_label')}
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700">
-                                                    <Link
-                                                        to={`/dashboard/reports/accounting/general-ledger?journal_account_id=${account._id}`}
-                                                        className="text-indigo-600 hover:text-indigo-900 flex items-center gap-1"
+                                                    <button
+                                                        onClick={() => {
+                                                            if (account.journalAccount) {
+                                                                const jAccountId = account.journalAccount?._id || account.journalAccount;
+                                                                navigate(`/dashboard/reports/accounting/general-ledger?journal_account_id=${jAccountId}`);
+                                                            } else {
+                                                                toast.error(isRtl ? 'يرجى ربط الحساب المحاسبي من تعديل الحساب البنكي أولاً' : 'Please link an accounting account from Edit Bank Account first');
+                                                            }
+                                                        }}
+                                                        className="text-indigo-600 hover:text-indigo-900 flex items-center gap-1 transition-colors"
                                                     >
                                                         <FileText size={18} />
                                                         <span className="hidden sm:inline">{t('bank_accounts_page.general_ledger')}</span>
-                                                    </Link>
+                                                    </button>
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap text-end py-4 ps-3 pe-4 sm:pe-6 text-gray-700 relative font-medium">
                                                     <div className="flex justify-end gap-3">

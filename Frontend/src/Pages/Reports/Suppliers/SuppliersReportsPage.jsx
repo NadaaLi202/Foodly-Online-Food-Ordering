@@ -8,13 +8,13 @@ const SuppliersReportsPage = () => {
 
     const reportSections = [
         {
-            id: 'detailed-suppliers',
+            id: 'suppliers-general-ledger',
             title: 'كشف حساب المورد',
             description: 'عرض تقارير كشف حساب المورد',
             icon: Users,
             iconBg: 'bg-green-50',
             iconColor: 'text-green-600',
-            link: '/dashboard/reports/suppliers/detailed',
+            link: '/dashboard/reports/suppliers/general-ledger',
         },
     ];
 

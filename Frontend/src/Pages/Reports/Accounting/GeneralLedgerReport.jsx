@@ -24,7 +24,8 @@ const GeneralLedgerReport = () => {
     const location = useLocation();
     const { startDate: defaultFrom, endDate: defaultTo } = getMonthRange();
     const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
-    const defaultAccountId = params.get('journal_account_id') || 'all';
+    const journalAccountIdParam = params.get('journal_account_id');
+    const defaultAccountId = (journalAccountIdParam && journalAccountIdParam !== 'undefined' && journalAccountIdParam !== 'null') ? journalAccountIdParam : 'all';
     const defaultAccountCode = params.get('accountCode') || '';
 
     const [filters, setFilters] = useState({

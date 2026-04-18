@@ -14,6 +14,7 @@ const BankAccountModal = ({ isOpen, onClose, onSave, accountId = null }) => {
     const [fetching, setFetching] = useState(isEdit);
     const [branches, setBranches] = useState([]);
     const [users, setUsers] = useState([]);
+    const [chartAccounts, setChartAccounts] = useState([]);
 
     // Dropdown state for design matching
     const [activeDropdown, setActiveDropdown] = useState(null);
@@ -21,6 +22,7 @@ const BankAccountModal = ({ isOpen, onClose, onSave, accountId = null }) => {
     const [formData, setFormData] = useState({
         name: '',
         accountNumber: '',
+        journalAccount: '',
         branches: ['main'],
         users: [],
         enableReceiptPermissions: false,
@@ -37,6 +39,7 @@ const BankAccountModal = ({ isOpen, onClose, onSave, accountId = null }) => {
                 setFormData({
                     name: '',
                     accountNumber: '',
+                    journalAccount: '',
                     branches: ['main'],
                     users: [],
                     enableReceiptPermissions: false,
@@ -49,12 +52,14 @@ const BankAccountModal = ({ isOpen, onClose, onSave, accountId = null }) => {
 
     const fetchInitialData = async () => {
         try {
-            const [branchesRes, usersRes] = await Promise.all([
+            const [branchesRes, usersRes, chartAccountsRes] = await Promise.all([
                 api.get('/branches'),
-                api.get('/users')
+                api.get('/users'),
+                api.get('/chart-of-accounts')
             ]);
             setBranches(branchesRes.data.branches || []);
             setUsers(usersRes.data.users || []);
+            setChartAccounts(chartAccountsRes.data.accounts || chartAccountsRes.data.data || []);
         } catch (error) {
             logError('Error fetching initial data:', error);
         }
@@ -68,6 +73,7 @@ const BankAccountModal = ({ isOpen, onClose, onSave, accountId = null }) => {
             setFormData({
                 name: account.name || '',
                 accountNumber: account.accountNumber || '',
+                journalAccount: account.journalAccount?._id || account.journalAccount || '',
                 branches: account.branches || ['main'],
                 users: account.users?.map(u => typeof u === 'object' ? u._id : u) || [],
                 enableReceiptPermissions: account.enableReceiptPermissions || false,
@@ -176,21 +182,48 @@ const BankAccountModal = ({ isOpen, onClose, onSave, accountId = null }) => {
                             />
                         </div>
 
-                        {/* Account Account (Design shows a dropdown here) */}
+                        {/* Accounting Account (Live Dropdown) */}
                         <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-1.5">
-                                {t('safes_page.account')}
+                            <label className="block text-sm font-bold text-gray-700 mb-1.5 flex justify-between items-center">
+                                <span>{t('safes_page.account')}</span>
+                                {isEdit && formData.journalAccount && (
+                                    <span className="text-[10px] font-mono text-gray-400">
+                                        {chartAccounts.find(a => a._id === formData.journalAccount)?.code}
+                                    </span>
+                                )}
                             </label>
                             <div className="relative">
                                 <select
-                                    name="accountNumber"
-                                    value={formData.accountNumber}
+                                    name="journalAccount"
+                                    value={formData.journalAccount}
                                     onChange={handleInputChange}
                                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none appearance-none font-medium text-gray-800"
                                 >
-                                    <option value="">{t('safes_page.new_account')}</option>
-                                    <option value="main_treasury">{isRtl ? 'الخزنة الرئيسية' : 'Main Treasury'}</option>
-                                    <option value="main_bank">{isRtl ? 'الحساب البنكي الرئيسي' : 'Main Bank Account'}</option>
+                                    <option value="">{t('safes_page.choose_account', 'اختر حساباً')}</option>
+                                    {['asset', 'liability', 'equity', 'income', 'expense'].map(type => {
+                                        const group = chartAccounts.filter(a => a.accountCategory === type && a.type === 'sub');
+                                        if (group.length === 0) return null;
+                                        const typeLabels = { asset: 'أصول', liability: 'التزامات', equity: 'حقوق الملكية', income: 'إيرادات', expense: 'مصروفات' };
+                                        return (
+                                            <optgroup key={type} label={isRtl ? typeLabels[type] : type.toUpperCase()}>
+                                                {group.map(acc => (
+                                                    <option key={acc._id} value={acc._id}>
+                                                        {acc.name} # {acc.code}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                        );
+                                    })}
+                                    {/* Handle accounts with no category or uncategorized subs */}
+                                    {chartAccounts.filter(a => !a.accountCategory && a.type === 'sub').length > 0 && (
+                                        <optgroup label={isRtl ? 'أخرى' : 'Others'}>
+                                            {chartAccounts.filter(a => !a.accountCategory && a.type === 'sub').map(acc => (
+                                                <option key={acc._id} value={acc._id}>
+                                                    {acc.name} # {acc.code}
+                                                </option>
+                                            ))}
+                                        </optgroup>
+                                    )}
                                 </select>
                                 <ChevronDown className={`absolute ${isRtl ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none`} size={18} />
                             </div>
