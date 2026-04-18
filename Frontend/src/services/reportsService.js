@@ -173,16 +173,19 @@ export async function getCustomersDetailed(startDate, endDate) {
 }
 
 export async function getClientGeneralLedger(filterState) {
-    const { fromDate, toDate, clientId, branch, journalAccount } = filterState || {};
+    const { fromDate, toDate, clientId, branch, journalAccount, accountId, accountCode } = filterState || {};
     const query = {};
     const p = params(fromDate, toDate);
     if (p) {
         query.startDate = p.startDate;
         query.endDate = p.endDate;
     }
-    if (clientId && clientId !== 'unspecified') query.clientId = clientId;
+    if (clientId && clientId !== 'unspecified' && clientId !== 'all') query.clientId = clientId;
     if (branch && branch !== 'all') query.branch = branch;
     if (journalAccount && journalAccount !== 'all') query.journalAccount = journalAccount;
+    if (accountId && accountId !== 'all') query.accountId = accountId;
+    if (accountCode) query.accountCode = accountCode;
+
     const response = await api.get("/reports/customers/general-ledger", { params: Object.keys(query).length ? query : undefined });
     return response.data;
 }
@@ -218,7 +221,7 @@ export async function getSuppliersDetailed(startDate, endDate) {
 }
 
 export async function getSupplierGeneralLedger(filterState) {
-    const { fromDate, toDate, supplierId, branch, journalAccount } = filterState || {};
+    const { fromDate, toDate, supplierId, branch, journalAccount, accountId } = filterState || {};
     const p = params(fromDate, toDate);
     const now = new Date();
     const defaultStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
@@ -227,9 +230,10 @@ export async function getSupplierGeneralLedger(filterState) {
         startDate: p?.startDate ?? defaultStart,
         endDate: p?.endDate ?? defaultEnd,
     };
-    if (supplierId && supplierId !== 'unspecified') query.supplierId = supplierId;
+    if (supplierId && supplierId !== 'unspecified' && supplierId !== 'all') query.supplierId = supplierId;
     if (branch && branch !== 'all') query.branch = branch;
-    if (journalAccount && journalAccount !== 'all') query.journalAccount = journalAccount;
+    const effectiveAcc = journalAccount || accountId;
+    if (effectiveAcc && effectiveAcc !== 'all') query.accountId = effectiveAcc;
     const response = await api.get("/reports/suppliers/general-ledger", { params: query });
     return response.data;
 }

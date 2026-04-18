@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, FileSpreadsheet, FileText, Printer, Search, Settings2 } from 'lucide-react';
 import reportsService from '../../../services/reportsService';
 import chartOfAccountsService from '../../../services/chartOfAccountsService';
 import branchService from '../../../services/branchService';
-import { exportClientStatementToExcel, exportClientStatementToPdf } from '../../../utils/customerSupplierInventoryExport';
+import { exportSupplierStatementToExcel, exportSupplierStatementToPdf } from '../../../utils/customerSupplierInventoryExport';
 import PrintHeader from '../../../components/common/PrintHeader';
 import { useAuth } from '../../../context/AuthContext';
 import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
 
-const ClientGeneralLedger = () => {
+const SupplierGeneralLedger = () => {
     const { t } = useTranslation();
     const { companySettings } = useAuth();
     const currency = companySettings?.currency || 'EGP';
@@ -38,6 +38,7 @@ const ClientGeneralLedger = () => {
         fromDate: formatDate(firstDay),
         toDate: formatDate(lastDay),
         branch: 'all',
+        supplierId: 'all',
         accountId: 'all',
         showAccounts: 'with_activity',
     });
@@ -71,6 +72,9 @@ const ClientGeneralLedger = () => {
                     chartOfAccountsService.getAllAccounts({ type: 'sub' })
                 ]);
                 setBranches(Array.isArray(branchesList) ? branchesList : (branchesList?.data || []));
+                
+                // Filter accounts to show only supplier accounts (starting with 211) or all if needed
+                // But usually we show all searchable
                 setAccounts(Array.isArray(accountsList) ? accountsList : (accountsList?.accounts || []));
             } catch (err) {
                 console.error("Error loading filter options:", err);
@@ -83,18 +87,19 @@ const ClientGeneralLedger = () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await reportsService.getClientGeneralLedger({
+            const res = await reportsService.getSupplierGeneralLedger({
                 fromDate: filters.fromDate,
                 toDate: filters.toDate,
                 branch: filters.branch,
+                supplierId: filters.supplierId,
                 accountId: filters.accountId,
             });
-
+            
             let data = res?.data ?? [];
             if (filters.showAccounts === 'with_activity') {
                 data = data.filter(acc => acc.entries?.length > 0 || acc.openingBalance !== 0);
             }
-
+            
             setReportData(data);
             setTotals(res?.totals || null);
         } catch (err) {
@@ -122,21 +127,20 @@ const ClientGeneralLedger = () => {
     };
 
     const handlePrint = () => window.print();
-    const handleExportExcel = () => exportClientStatementToExcel(reportData, totals, { fromDate: filters.fromDate, toDate: filters.toDate }, t);
-    const handleExportPdf = () => exportClientStatementToPdf(reportData, totals, { fromDate: filters.fromDate, toDate: filters.toDate }, t);
+    const handleExportExcel = () => exportSupplierStatementToExcel(reportData, totals, { fromDate: filters.fromDate, toDate: filters.toDate }, t);
+    const handleExportPdf = () => exportSupplierStatementToPdf(reportData, totals, { fromDate: filters.fromDate, toDate: filters.toDate }, t);
 
-    // Helper for display report date range in Arabic
     const getReportTitle = () => {
         const fromDate = new Date(filters.fromDate);
         const toDate = new Date(filters.toDate);
         const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-        return `تقرير حساب الأستاذ لحسابات العملاء من تاريخ ${fromDate.toLocaleDateString('ar-EG', options)} إلى تاريخ ${toDate.toLocaleDateString('ar-EG', options)}`;
+        return `تقرير حساب الأستاذ لحسابات الموردين من تاريخ ${fromDate.toLocaleDateString('ar-EG', options)} إلى تاريخ ${toDate.toLocaleDateString('ar-EG', options)}`;
     };
 
     return (
         <div className="p-4 bg-white min-h-screen text-right" dir="rtl">
             <div className="max-w-full mx-auto space-y-4">
-
+                
                 {/* Filters Section */}
                 <div className="bg-[#fcfcfc] rounded shadow-sm border border-gray-100 p-6 no-print">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-4">
@@ -144,8 +148,8 @@ const ClientGeneralLedger = () => {
                         <div className="flex flex-col gap-1">
                             <label className="text-sm font-bold text-gray-700">الفترة</label>
                             <div className="relative">
-                                <select
-                                    value={filters.period}
+                                <select 
+                                    value={filters.period} 
                                     onChange={(e) => handleFilterChange('period', e.target.value)}
                                     className="w-full h-[42px] px-3 bg-white border border-gray-300 rounded text-sm appearance-none focus:border-blue-500"
                                 >
@@ -161,9 +165,9 @@ const ClientGeneralLedger = () => {
                         {/* From Date */}
                         <div className="flex flex-col gap-1">
                             <label className="text-sm font-bold text-gray-700">من تاريخ</label>
-                            <input
-                                type="date"
-                                value={filters.fromDate}
+                            <input 
+                                type="date" 
+                                value={filters.fromDate} 
                                 onChange={(e) => handleFilterChange('fromDate', e.target.value)}
                                 className="w-full h-[42px] px-3 bg-white border border-gray-300 rounded text-sm"
                             />
@@ -172,9 +176,9 @@ const ClientGeneralLedger = () => {
                         {/* To Date */}
                         <div className="flex flex-col gap-1">
                             <label className="text-sm font-bold text-gray-700">إلى تاريخ</label>
-                            <input
-                                type="date"
-                                value={filters.toDate}
+                            <input 
+                                type="date" 
+                                value={filters.toDate} 
                                 onChange={(e) => handleFilterChange('toDate', e.target.value)}
                                 className="w-full h-[42px] px-3 bg-white border border-gray-300 rounded text-sm"
                             />
@@ -184,8 +188,8 @@ const ClientGeneralLedger = () => {
                         <div className="flex flex-col gap-1">
                             <label className="text-sm font-bold text-gray-700">الفروع</label>
                             <div className="relative">
-                                <select
-                                    value={filters.branch}
+                                <select 
+                                    value={filters.branch} 
                                     onChange={(e) => handleFilterChange('branch', e.target.value)}
                                     className="w-full h-[42px] px-3 bg-white border border-gray-300 rounded text-sm appearance-none"
                                 >
@@ -200,8 +204,8 @@ const ClientGeneralLedger = () => {
                         <div className="md:col-span-2 flex flex-col gap-1">
                             <label className="text-sm font-bold text-gray-700">الحساب</label>
                             <div className="relative">
-                                <select
-                                    value={filters.accountId}
+                                <select 
+                                    value={filters.accountId} 
                                     onChange={(e) => handleFilterChange('accountId', e.target.value)}
                                     className="w-full h-[42px] px-3 bg-white border border-gray-300 rounded text-sm appearance-none"
                                 >
@@ -216,8 +220,8 @@ const ClientGeneralLedger = () => {
                         <div className="flex flex-col gap-1">
                             <label className="text-sm font-bold text-gray-700">إظهار الحسابات</label>
                             <div className="relative">
-                                <select
-                                    value={filters.showAccounts}
+                                <select 
+                                    value={filters.showAccounts} 
                                     onChange={(e) => handleFilterChange('showAccounts', e.target.value)}
                                     className="w-full h-[42px] px-3 bg-white border border-gray-300 rounded text-sm appearance-none"
                                 >
@@ -230,8 +234,8 @@ const ClientGeneralLedger = () => {
 
                         {/* View Button */}
                         <div className="flex items-end">
-                            <button
-                                onClick={fetchReport}
+                            <button 
+                                onClick={fetchReport} 
                                 disabled={loading}
                                 className="w-full h-[42px] px-6 bg-[#10b981] hover:bg-[#059669] text-white font-bold rounded transition-colors flex items-center justify-center gap-2"
                                 style={{ backgroundColor: '#10b981' }}
@@ -265,7 +269,7 @@ const ClientGeneralLedger = () => {
                     <div className="text-center font-bold text-gray-900 text-[15px] flex-1">
                         {getReportTitle()}
                     </div>
-                    <div className="w-48 invisible md:visible" />
+                    <div className="w-48 invisible md:visible" /> 
                 </div>
 
                 {/* Table Content */}
@@ -364,8 +368,7 @@ const ClientGeneralLedger = () => {
                 </div>
             </div>
 
-            <style dangerouslySetInnerHTML={{
-                __html: `
+            <style dangerouslySetInnerHTML={{ __html: `
                 @media print {
                     @page { size: landscape; margin: 1cm; }
                     .no-print { display: none !important; }
@@ -383,7 +386,4 @@ const ClientGeneralLedger = () => {
     );
 };
 
-export default ClientGeneralLedger;
-
-
-
+export default SupplierGeneralLedger;

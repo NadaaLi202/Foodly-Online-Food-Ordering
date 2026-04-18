@@ -9,6 +9,8 @@ import { startBackupCron } from './src/backups/backup.cron.js';
 import logError from './src/utils/logError.js';
 import cors from 'cors';
 import { seedDefaultChartOfAccounts } from './src/modules/chartOfAccounts/chartOfAccounts.service.js';
+import { seedDefaultBankAccount, fixPrimaryBankAccounts } from './src/modules/BankAccounts/bankAccount.service.js';
+import { seedDefaultSafe, fixUnlinkedSafes } from './src/modules/Safes/safe.service.js';
 import { companyModel } from './src/modules/companies/company.model.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -80,8 +82,14 @@ async function runStartupMigrations() {
         console.log(`🔄 Seeding chart of accounts for ${companies.length} company(ies)...`);
         for (const company of companies) {
             await seedDefaultChartOfAccounts(company._id);
+            await seedDefaultBankAccount(company._id);
+            await seedDefaultSafe(company._id);
         }
-        console.log('✅ Chart of accounts seed complete.');
+        console.log('✅ Chart of accounts, Bank accounts, and Safes seed complete.');
+        
+        await fixPrimaryBankAccounts();
+        await fixUnlinkedSafes();
+        console.log('✅ All financial data fixes complete.');
     } catch (err) {
         logError('⚠️ Startup migration error (non-fatal):', err);
     }

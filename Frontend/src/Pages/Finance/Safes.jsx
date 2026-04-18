@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Edit, Trash2, FileText, Plus, Landmark } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
@@ -12,6 +12,7 @@ import SafeModal from './SafeModal';
 
 const Safes = () => {
     const { t, i18n } = useTranslation();
+    const navigate = useNavigate();
     const { companySettings } = useAuth();
     const currency = companySettings?.currency || 'EGP';
     const [safes, setSafes] = useState([]);
@@ -161,13 +162,20 @@ const Safes = () => {
                                                     {formatCurrency(safe.balance || 0, currency)}
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700">
-                                                    <Link
-                                                        to={`/dashboard/reports/accounting/general-ledger?journal_account_id=${safe.journalAccount?._id || safe.journalAccount || ''}&accountCode=${safe.journalAccount?.code || ''}`}
-                                                        className="text-indigo-600 hover:text-indigo-900 flex items-center gap-1"
+                                                    <button
+                                                        onClick={() => {
+                                                            if (safe.journalAccount) {
+                                                                const jAccountId = safe.journalAccount?._id || safe.journalAccount;
+                                                                navigate(`/dashboard/reports/accounting/general-ledger?journal_account_id=${jAccountId}`);
+                                                            } else {
+                                                                toast.error(isRtl ? 'يرجى ربط الحساب المحاسبي من تعديل الخزنة أولاً' : 'Please link an accounting account from Edit Safe first');
+                                                            }
+                                                        }}
+                                                        className="text-indigo-600 hover:text-indigo-900 flex items-center gap-1 transition-colors"
                                                     >
                                                         <FileText size={18} />
                                                         <span className="hidden sm:inline">{t('safes_page.account_statement')}</span>
-                                                    </Link>
+                                                    </button>
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap text-end py-4 ps-3 pe-4 sm:pe-6 text-gray-700 relative font-medium">
                                                     <div className="flex justify-end gap-3">

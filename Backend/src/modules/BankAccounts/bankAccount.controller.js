@@ -2,6 +2,7 @@ import { AppError } from "../../utils/AppError.js";
 import { bankAccountModel } from "./bankAccount.model.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
+import { calculateBankAccountBalance } from "./bankAccount.service.js";
 
 
 // @desc    Add a new bank account
@@ -32,19 +33,42 @@ const getAllBankAccounts = catchAsyncError(async (req, res, next) => {
     const filter = {};
     if (name) filter.name = { $regex: name, $options: "i" };
 
-    const bankAccounts = await bankAccountModel.find({ ...filter, ...req.companyFilter }).populate("users", "name email role");
-    res.status(200).json({ message: "Success", bankAccounts });
+    const bankAccounts = await bankAccountModel
+        .find({ ...filter, ...req.companyFilter })
+        .populate("users", "name email role")
+        .populate("journalAccount", "name code");
+
+    // Calculate dynamic balance for each bank account
+    const bankAccountsWithBalance = await Promise.all(bankAccounts.map(async (account) => {
+        const balance = await calculateBankAccountBalance(account._id, req.companyFilter);
+        return {
+            ...account.toObject(),
+            balance: balance
+        };
+    }));
+
+    res.status(200).json({ message: "Success", bankAccounts: bankAccountsWithBalance });
 });
 
 // @desc    Get a single bank account by ID
 // @route   GET /api/v1/bank-accounts/:id
 // @access  Private
 const getBankAccountById = catchAsyncError(async (req, res, next) => {
-    const bankAccount = await bankAccountModel.findOne({ _id: req.params.id, ...req.companyFilter }).populate("users", "name email role");
+    const bankAccount = await bankAccountModel
+        .findOne({ _id: req.params.id, ...req.companyFilter })
+        .populate("users", "name email role")
+        .populate("journalAccount", "name code");
+
     if (!bankAccount) {
         return next(new AppError("Bank account not found", 404));
     }
-    res.status(200).json({ message: "Success", bankAccount });
+
+    const balance = await calculateBankAccountBalance(bankAccount._id, req.companyFilter);
+
+    res.status(200).json({
+        message: "Success",
+        bankAccount: { ...bankAccount.toObject(), balance }
+    });
 });
 
 // @desc    Update a bank account

@@ -275,7 +275,7 @@ export const getClientGeneralLedger = catchAsyncError(async (req, res) => {
         endDate: req.query.endDate,
         clientId: req.query.clientId,
         branch: req.query.branch,
-        journalAccount: req.query.journalAccount,
+        accountId: req.query.accountId || req.query.journalAccount,
     };
     const result = await reportsService.getClientGeneralLedger(filters, companyFilter);
     res.status(200).json(result);
@@ -317,7 +317,7 @@ export const getSupplierGeneralLedger = catchAsyncError(async (req, res) => {
         endDate: req.query.endDate,
         supplierId: req.query.supplierId,
         branch: req.query.branch,
-        journalAccount: req.query.journalAccount,
+        accountId: req.query.accountId || req.query.journalAccount,
     };
     const result = await reportsService.getSupplierGeneralLedger(filters, companyFilter);
     res.status(200).json(result);

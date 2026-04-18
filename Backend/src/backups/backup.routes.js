@@ -1,4 +1,5 @@
 import express from "express";
+import fs from "fs";
 import { allowedTo, protectedRoutes } from "../modules/auth/auth.controller.js";
 import { catchAsyncError } from "../middleware/catchAsyncError.js";
 import { runSystemBackup, restoreFromBackup, listBackups } from "./backup.service.js";
@@ -110,7 +111,21 @@ router.get(
             return res.redirect(302, url);
         }
 
-        const stream = await getBackupReadStream(backup.storage, backup.filePath);
+        // Rebuild path from filename only — the stored absolute path may be from a different machine.
+        let resolvedFilePath = backup.filePath || null;
+        if (resolvedFilePath && backup.storage?.type !== "s3") {
+            const filename = path.basename(resolvedFilePath);
+            resolvedFilePath = path.join(process.cwd(), "backups", "system", filename);
+        }
+
+        // Check the file exists locally before streaming it.
+        if (backup.storage?.type !== "s3" && resolvedFilePath && !fs.existsSync(resolvedFilePath)) {
+            return res.status(404).json({
+                message: "Backup file is not available on this machine. It was created on a different server and has not been transferred here."
+            });
+        }
+
+        const stream = await getBackupReadStream(backup.storage, resolvedFilePath);
         const filename = backup.backupName || path.basename(backup.filePath || `backup-${backupId}.jsonl`);
         const isZip = backup.format === "zip" || String(filename).endsWith(".zip");
         res.setHeader("Content-Type", isZip ? "application/zip" : "application/json");

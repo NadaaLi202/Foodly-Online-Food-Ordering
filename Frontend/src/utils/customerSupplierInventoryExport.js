@@ -316,43 +316,68 @@ const buildPdfBlob = async ({ title, headers, rows, dateRange, footer = true, la
  * Export Client Statement (Account Statement) to Excel
  * Same columns as UI: Date, Type, Document Number, Description, Debit, Credit, Balance + totals row
  */
-export function exportClientStatementToExcel(entries, totals, dateRange, t) {
+export function exportClientStatementToExcel(accountsData, totals, dateRange, t) {
     const rows = [];
-    const title = t('reports.clients.client_general_ledger') || 'Customer Statement';
+    const title = t('reports.clients.client_general_ledger') || 'كشف حساب عميل';
     rows.push([title]);
-    rows.push([t('reports.filters.from_date') || 'From Date', dateRange?.fromDate || '—']);
-    rows.push([t('reports.filters.to_date') || 'To Date', dateRange?.toDate || '—']);
+    rows.push([t('reports.filters.from_date') || 'من تاريخ', dateRange?.fromDate || '—']);
+    rows.push([t('reports.filters.to_date') || 'إلى تاريخ', dateRange?.toDate || '—']);
     rows.push([]);
-    const headers = [
-        t('reports.columns.date') || 'Date',
-        t('reports.columns.type') || 'Type',
-        t('reports.columns.document_number') || 'Document Number',
-        t('reports.columns.description') || 'Description',
-        t('reports.columns.debit') || 'Debit',
-        t('reports.columns.credit') || 'Credit',
-        t('reports.columns.balance') || 'Balance',
-    ];
-    rows.push(headers);
-    const typeLabel = (type) => {
-        if (type === 'invoice') return t('reports.invoice') || 'Invoice';
-        if (type === 'return') return t('reports.return') || 'Return';
-        return t('reports.payment') || 'Payment';
-    };
-    entries.forEach((entry) => {
+
+    accountsData.forEach((account) => {
+        // Account header
+        rows.push([`${account.accountName} #${account.accountCode}`]);
+
+        // Table Headers
         rows.push([
-            formatCellDate(entry.date),
-            typeLabel(entry.type),
-            entry.documentNumber || '—',
-            entry.description || '—',
-            fmtNum(entry.debit),
-            fmtNum(entry.credit),
-            fmtNum(entry.balance),
+            t('reports.columns.journal_entry') || 'قيد اليومية',
+            t('reports.columns.date') || 'التاريخ',
+            t('reports.columns.source') || 'المصدر',
+            t('reports.columns.description') || 'الوصف',
+            t('reports.columns.debit') || 'مديـن',
+            t('reports.columns.credit') || 'دائـن',
+            t('reports.columns.balance') || 'الرصيد',
         ]);
-    });
-    if (entries.length > 0 && totals) {
+
+        // Opening Balance
         rows.push([
             '',
-            t('reports.totals') || 'Totals',
+            '',
+            '',
+            'الرصيد الافتتاحي',
+            '',
+            '',
+            fmtNum(account.openingBalance)
+        ]);
+
+        // Entries
+        account.entries.forEach((entry) => {
+            rows.push([
+                entry.journalNumber || '—',
+                fmtDate(entry.date),
+                entry.source || '—',
+                entry.description || '—',
+                fmtNum(entry.debit),
+                fmtNum(entry.credit),
+                fmtNum(entry.balance),
+            ]);
+        });
+
+        // Account Footer
+        rows.push([
+            '',
+            '',
+            'إجمالي الحساب',
+            fmtNum(account.totalDebit),
+            fmtNum(account.totalCredit),
+            fmtNum(account.closingBalance),
+        ]);
+        rows.push([]); // Spacer
+    });
+
+    if (totals) {
+        rows.push([
+            'إجمالي العــملاء',
             '',
             '',
             fmtNum(totals.totalDebit),
@@ -360,6 +385,7 @@ export function exportClientStatementToExcel(entries, totals, dateRange, t) {
             fmtNum(totals.finalBalance),
         ]);
     }
+
     const ws = XLSX.utils.aoa_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Customer Statement');
@@ -371,78 +397,148 @@ export function exportClientStatementToExcel(entries, totals, dateRange, t) {
 /**
  * Build Client Statement (Account Statement) PDF - same layout as UI
  */
-export function buildClientStatementPdf(entries, totals, dateRange, t) {
-    const doc = createArabicPdfDoc({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const pageW = doc.internal.pageSize.getWidth();
-    const margin = 14;
-    let y = 18;
-    doc.setR2L(true);
-    const title = t('reports.clients.client_general_ledger') || 'Customer Statement';
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text(title, pageW - margin, y);
-    y += 8;
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'normal');
-    doc.text(`${t('reports.filters.from_date') || 'From Date'}: ${dateRange?.fromDate || '—'}`, pageW - margin, y);
-    y += 5;
-    doc.text(`${t('reports.filters.to_date') || 'To Date'}: ${dateRange?.toDate || '—'}`, pageW - margin, y);
-    y += 10;
-    const colW = (pageW - 2 * margin) / 7;
-    const headers = [
-        t('reports.columns.date') || 'Date',
-        t('reports.columns.type') || 'Type',
-        t('reports.columns.document_number') || 'Doc No',
-        t('reports.columns.description') || 'Description',
-        t('reports.columns.debit') || 'Debit',
-        t('reports.columns.credit') || 'Credit',
-        t('reports.columns.balance') || 'Balance',
-    ];
-    const typeLabel = (type) => {
-        if (type === 'invoice') return t('reports.invoice') || 'Invoice';
-        if (type === 'return') return t('reports.return') || 'Return';
-        return t('reports.payment') || 'Payment';
-    };
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(8);
-    headers.forEach((h, i) => {
-        doc.text(String(h).substring(0, 12), pageW - margin - (i + 1) * colW + 2, y);
-    });
-    y += 6;
-    doc.setFont(undefined, 'normal');
-    entries.forEach((entry) => {
-        if (y > doc.internal.pageSize.getHeight() - 20) {
-            doc.addPage(pageW, doc.internal.pageSize.getHeight(), 'l');
-            y = 18;
-            doc.setR2L(true);
-        }
-        const row = [
-            formatCellDate(entry.date),
-            typeLabel(entry.type),
-            String(entry.documentNumber || '—').substring(0, 14),
-            String(entry.description || '—').substring(0, 18),
-            fmtNum(entry.debit),
-            fmtNum(entry.credit),
-            fmtNum(entry.balance),
-        ];
-        row.forEach((cell, i) => {
-            doc.text(String(cell).substring(0, 18), pageW - margin - (i + 1) * colW + 2, y);
+/**
+ * Export Client Statement (Account Statement) to PDF
+ */
+export async function exportClientStatementToPdf(accountsData, totals, dateRange, t) {
+    try {
+        const company = await fetchCompanyProfile();
+        const title = t('reports.clients.client_general_ledger') || 'كشف حساب عميل';
+        
+        let htmlTable = `
+            <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10pt;">
+                <thead>
+                    <tr style="background: #f1f5f9;">
+                        <th rowspan="2" style="border: 1px solid #222; padding: 6px;">قيد اليومية</th>
+                        <th rowspan="2" style="border: 1px solid #222; padding: 6px;">التاريخ</th>
+                        <th rowspan="2" style="border: 1px solid #222; padding: 6px;">المصدر</th>
+                        <th rowspan="2" style="border: 1px solid #222; padding: 6px; min-width: 180px;">الوصف</th>
+                        <th colspan="2" style="border: 1px solid #222; padding: 6px; text-align: center;">القيد</th>
+                        <th colspan="2" style="border: 1px solid #222; padding: 6px; text-align: center;">الرصيد</th>
+                    </tr>
+                    <tr style="background: #f1f5f9;">
+                        <th style="border: 1px solid #222; padding: 6px; text-align: center; width: 80px;">مدين</th>
+                        <th style="border: 1px solid #222; padding: 6px; text-align: center; width: 80px;">دائن</th>
+                        <th style="border: 1px solid #222; padding: 6px; text-align: center; width: 80px;">مدين</th>
+                        <th style="border: 1px solid #222; padding: 6px; text-align: center; width: 80px;">دائن</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        accountsData.forEach(account => {
+            // Account Section Header
+            htmlTable += `
+                <tr style="background: #e2e8f0; font-weight: bold;">
+                    <td colspan="8" style="border: 1px solid #222; padding: 8px; text-align: center; background: #f8fafc;">
+                        ${account.accountName} #${account.accountCode}
+                    </td>
+                </tr>
+            `;
+
+            // Previous Balance
+            htmlTable += `
+                <tr style="background: #fffbeb;">
+                    <td style="border: 1px solid #222;"></td>
+                    <td style="border: 1px solid #222;"></td>
+                    <td style="border: 1px solid #222;"></td>
+                    <td style="border: 1px solid #222; padding: 6px; font-weight: bold;">الرصيد السابق</td>
+                    <td style="border: 1px solid #222;"></td>
+                    <td style="border: 1px solid #222;"></td>
+                    <td style="border: 1px solid #222; padding: 6px; text-align: center; font-weight: bold;">${account.openingBalance > 0 ? fmtNum(account.openingBalance) : '0.00'}</td>
+                    <td style="border: 1px solid #222; padding: 6px; text-align: center; font-weight: bold;">${account.openingBalance < 0 ? fmtNum(Math.abs(account.openingBalance)) : '0.00'}</td>
+                </tr>
+            `;
+
+            // Transaction Entries
+            account.entries.forEach(entry => {
+                htmlTable += `
+                    <tr>
+                        <td style="border: 1px solid #222; padding: 6px;">${entry.journalNumber || '--'}</td>
+                        <td style="border: 1px solid #222; padding: 6px;">${fmtDate(entry.date)}</td>
+                        <td style="border: 1px solid #222; padding: 6px;">${entry.source || '--'}</td>
+                        <td style="border: 1px solid #222; padding: 6px;">${entry.description || '--'}</td>
+                        <td style="border: 1px solid #222; padding: 6px; text-align: center;">${entry.debit > 0 ? fmtNum(entry.debit) : ''}</td>
+                        <td style="border: 1px solid #222; padding: 6px; text-align: center;">${entry.credit > 0 ? fmtNum(entry.credit) : ''}</td>
+                        <td style="border: 1px solid #222; padding: 6px; text-align: center; font-weight: bold;">${entry.balance > 0 ? fmtNum(entry.balance) : '0.00'}</td>
+                        <td style="border: 1px solid #222; padding: 6px; text-align: center; font-weight: bold;">${entry.balance < 0 ? fmtNum(Math.abs(entry.balance)) : '0.00'}</td>
+                    </tr>
+                `;
+            });
+
+            // Account Footer / Totals
+            htmlTable += `
+                <tr style="background: #f8fafc; font-weight: bold;">
+                    <td colspan="4" style="border: 1px solid #222; padding: 6px;">إجمالي الحساب</td>
+                    <td style="border: 1px solid #222; padding: 6px; text-align: center;">${fmtNum(account.totalDebit)}</td>
+                    <td style="border: 1px solid #222; padding: 6px; text-align: center;">${fmtNum(account.totalCredit)}</td>
+                    <td style="border: 1px solid #222; padding: 6px; text-align: center;">${account.closingBalance > 0 ? fmtNum(account.closingBalance) : '0.00'}</td>
+                    <td style="border: 1px solid #222; padding: 6px; text-align: center;">${account.closingBalance < 0 ? fmtNum(Math.abs(account.closingBalance)) : '0.00'}</td>
+                </tr>
+                <tr style="height: 10px;"><td colspan="8"></td></tr>
+            `;
         });
-        y += 5;
-    });
-    if (entries.length > 0 && totals) {
-        if (y > doc.internal.pageSize.getHeight() - 20) {
-            doc.addPage(pageW, doc.internal.pageSize.getHeight(), 'l');
-            y = 18;
-            doc.setR2L(true);
+
+        if (totals) {
+            htmlTable += `
+                <tr style="background: #eef2ff; font-weight: 900; font-size: 11pt;">
+                    <td colspan="4" style="border: 1px solid #222; padding: 10px;">إجماليات العملاء</td>
+                    <td style="border: 1px solid #222; padding: 10px; text-align: center;">${fmtNum(totals.totalDebit)}</td>
+                    <td style="border: 1px solid #222; padding: 10px; text-align: center;">${fmtNum(totals.totalCredit)}</td>
+                    <td style="border: 1px solid #222; padding: 10px; text-align: center;">${totals.finalBalance > 0 ? fmtNum(totals.finalBalance) : '0.00'}</td>
+                    <td style="border: 1px solid #222; padding: 10px; text-align: center;">${totals.finalBalance < 0 ? fmtNum(Math.abs(totals.finalBalance)) : '0.00'}</td>
+                </tr>
+            `;
         }
-        doc.setFont(undefined, 'bold');
-        const totalRow = ['', t('reports.totals') || 'Totals', '', '', fmtNum(totals.totalDebit), fmtNum(totals.totalCredit), fmtNum(totals.finalBalance)];
-        totalRow.forEach((cell, i) => {
-            doc.text(String(cell).substring(0, 18), pageW - margin - (i + 1) * colW + 2, y);
-        });
+
+        htmlTable += `</tbody></table>`;
+
+        const fullHtml = `
+            <!DOCTYPE html>
+            <html lang="ar" dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+                <style>
+                    * { direction: rtl; box-sizing: border-box; }
+                    body { font-family: 'Cairo', sans-serif; padding: 10mm; color: #111; }
+                    .header-top { border-bottom: 2px solid #000; padding-bottom: 5mm; margin-bottom: 5mm; display: flex; justify-content: space-between; }
+                    .company-name { font-size: 16pt; font-weight: 900; }
+                    .report-title { font-size: 18pt; font-weight: 900; text-align: center; margin: 5mm 0; }
+                    .report-subtitle { font-size: 11pt; text-align: center; margin-bottom: 5mm; color: #444; }
+                    table { width: 100%; border-collapse: collapse; border: 1.5px solid #000; }
+                    th, td { border: 1px solid #111; padding: 4px; text-align: right; }
+                    th { font-weight: bold; background-color: #f1f5f9; }
+                </style>
+            </head>
+            <body>
+                <div class="header-top">
+                    <div style="text-align: right;">
+                        <div class="company-name">${company.name || ''}</div>
+                        ${company.taxNumber ? `<div>الرقم الضريبي: ${company.taxNumber}</div>` : ''}
+                        ${company.commercialReg ? `<div>السجل التجاري: ${company.commercialReg}</div>` : ''}
+                    </div>
+                </div>
+                <div class="report-title">${title}</div>
+                <div class="report-subtitle">من تاريخ ${dateRange.fromDate} إلى تاريخ ${dateRange.toDate}</div>
+                ${htmlTable}
+            </body>
+            </html>
+        `;
+
+        const blob = await generatePDF(fullHtml, `Client_Statement.pdf`, { landscape: true });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `كشف_حساب_عميل_${new Date().toISOString().slice(0, 10)}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error("PDF Export Error:", err);
+        alert("Failed to export PDF: " + err.message);
     }
-    return doc.output('blob');
 }
 
 /**
@@ -497,6 +593,150 @@ export function exportSupplierStatementToExcel(entries, totals, dateRange, t) {
     const today = new Date();
     const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
     XLSX.writeFile(wb, `Supplier_Statement_${dateStr}.xlsx`);
+}
+
+/**
+ * Export Supplier Statement (Account Statement) to PDF
+ */
+export async function exportSupplierStatementToPdf(accountsData, totals, dateRange, t) {
+    try {
+        const company = await fetchCompanyProfile();
+        const title = t('reports.suppliers.supplier_general_ledger') || 'كشف حساب مورد';
+        
+        let htmlTable = `
+            <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 10pt;">
+                <thead>
+                    <tr style="background: #f1f5f9;">
+                        <th rowspan="2" style="border: 1px solid #222; padding: 6px;">قيد اليومية</th>
+                        <th rowspan="2" style="border: 1px solid #222; padding: 6px;">التاريخ</th>
+                        <th rowspan="2" style="border: 1px solid #222; padding: 6px;">المصدر</th>
+                        <th rowspan="2" style="border: 1px solid #222; padding: 6px; min-width: 180px;">الوصف</th>
+                        <th colspan="2" style="border: 1px solid #222; padding: 6px; text-align: center;">القيد</th>
+                        <th colspan="2" style="border: 1px solid #222; padding: 6px; text-align: center;">الرصيد</th>
+                    </tr>
+                    <tr style="background: #f1f5f9;">
+                        <th style="border: 1px solid #222; padding: 6px; text-align: center; width: 80px;">مدين</th>
+                        <th style="border: 1px solid #222; padding: 6px; text-align: center; width: 80px;">دائن</th>
+                        <th style="border: 1px solid #222; padding: 6px; text-align: center; width: 80px;">مدين</th>
+                        <th style="border: 1px solid #222; padding: 6px; text-align: center; width: 80px;">دائن</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        accountsData.forEach(account => {
+            // Account Section Header
+            htmlTable += `
+                <tr style="background: #e2e8f0; font-weight: bold;">
+                    <td colspan="8" style="border: 1px solid #222; padding: 8px; text-align: center; background: #f8fafc;">
+                        ${account.accountName} #${account.accountCode}
+                    </td>
+                </tr>
+            `;
+
+            // Previous Balance
+            htmlTable += `
+                <tr style="background: #fffbeb;">
+                    <td style="border: 1px solid #222;"></td>
+                    <td style="border: 1px solid #222;"></td>
+                    <td style="border: 1px solid #222;"></td>
+                    <td style="border: 1px solid #222; padding: 6px; font-weight: bold;">الرصيد السابق</td>
+                    <td style="border: 1px solid #222;"></td>
+                    <td style="border: 1px solid #222;"></td>
+                    <td style="border: 1px solid #222; padding: 6px; text-align: center; font-weight: bold;">${account.openingBalance > 0 ? fmtNum(account.openingBalance) : '0.00'}</td>
+                    <td style="border: 1px solid #222; padding: 6px; text-align: center; font-weight: bold;">${account.openingBalance < 0 ? fmtNum(Math.abs(account.openingBalance)) : '0.00'}</td>
+                </tr>
+            `;
+
+            // Transaction Entries
+            account.entries.forEach(entry => {
+                htmlTable += `
+                    <tr>
+                        <td style="border: 1px solid #222; padding: 6px;">${entry.journalNumber || '--'}</td>
+                        <td style="border: 1px solid #222; padding: 6px;">${fmtDate(entry.date)}</td>
+                        <td style="border: 1px solid #222; padding: 6px;">${entry.source || '--'}</td>
+                        <td style="border: 1px solid #222; padding: 6px;">${entry.description || '--'}</td>
+                        <td style="border: 1px solid #222; padding: 6px; text-align: center;">${entry.debit > 0 ? fmtNum(entry.debit) : ''}</td>
+                        <td style="border: 1px solid #222; padding: 6px; text-align: center;">${entry.credit > 0 ? fmtNum(entry.credit) : ''}</td>
+                        <td style="border: 1px solid #222; padding: 6px; text-align: center; font-weight: bold;">${entry.balance > 0 ? fmtNum(entry.balance) : '0.00'}</td>
+                        <td style="border: 1px solid #222; padding: 6px; text-align: center; font-weight: bold;">${entry.balance < 0 ? fmtNum(Math.abs(entry.balance)) : '0.00'}</td>
+                    </tr>
+                `;
+            });
+
+            // Account Footer / Totals
+            htmlTable += `
+                <tr style="background: #f8fafc; font-weight: bold;">
+                    <td colspan="4" style="border: 1px solid #222; padding: 6px;">إجمالي الحساب</td>
+                    <td style="border: 1px solid #222; padding: 6px; text-align: center;">${fmtNum(account.totalDebit)}</td>
+                    <td style="border: 1px solid #222; padding: 6px; text-align: center;">${fmtNum(account.totalCredit)}</td>
+                    <td style="border: 1px solid #222; padding: 6px; text-align: center;">${account.closingBalance > 0 ? fmtNum(account.closingBalance) : '0.00'}</td>
+                    <td style="border: 1px solid #222; padding: 6px; text-align: center;">${account.closingBalance < 0 ? fmtNum(Math.abs(account.closingBalance)) : '0.00'}</td>
+                </tr>
+                <tr style="height: 10px;"><td colspan="8"></td></tr>
+            `;
+        });
+
+        if (totals) {
+            htmlTable += `
+                <tr style="background: #eef2ff; font-weight: 900; font-size: 11pt;">
+                    <td colspan="4" style="border: 1px solid #222; padding: 10px;">إجماليات الموردين</td>
+                    <td style="border: 1px solid #222; padding: 10px; text-align: center;">${fmtNum(totals.totalDebit)}</td>
+                    <td style="border: 1px solid #222; padding: 10px; text-align: center;">${fmtNum(totals.totalCredit)}</td>
+                    <td style="border: 1px solid #222; padding: 10px; text-align: center;">${totals.finalBalance > 0 ? fmtNum(totals.finalBalance) : '0.00'}</td>
+                    <td style="border: 1px solid #222; padding: 10px; text-align: center;">${totals.finalBalance < 0 ? fmtNum(Math.abs(totals.finalBalance)) : '0.00'}</td>
+                </tr>
+            `;
+        }
+
+        htmlTable += `</tbody></table>`;
+
+        const fullHtml = `
+            <!DOCTYPE html>
+            <html lang="ar" dir="rtl">
+            <head>
+                <meta charset="UTF-8">
+                <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+                <style>
+                    * { direction: rtl; box-sizing: border-box; }
+                    body { font-family: 'Cairo', sans-serif; padding: 10mm; color: #111; }
+                    .header-top { border-bottom: 2px solid #000; padding-bottom: 5mm; margin-bottom: 5mm; display: flex; justify-content: space-between; }
+                    .company-name { font-size: 16pt; font-weight: 900; }
+                    .report-title { font-size: 18pt; font-weight: 900; text-align: center; margin: 5mm 0; }
+                    .report-subtitle { font-size: 11pt; text-align: center; margin-bottom: 5mm; color: #444; }
+                    table { width: 100%; border-collapse: collapse; border: 1.5px solid #000; }
+                    th, td { border: 1px solid #111; padding: 4px; text-align: right; }
+                    th { font-weight: bold; background-color: #f1f5f9; }
+                </style>
+            </head>
+            <body>
+                <div class="header-top">
+                    <div style="text-align: right;">
+                        <div class="company-name">${company.name || ''}</div>
+                        ${company.taxNumber ? `<div>الرقم الضريبي: ${company.taxNumber}</div>` : ''}
+                        ${company.commercialReg ? `<div>السجل التجاري: ${company.commercialReg}</div>` : ''}
+                    </div>
+                </div>
+                <div class="report-title">${title}</div>
+                <div class="report-subtitle">من تاريخ ${dateRange.fromDate} إلى تاريخ ${dateRange.toDate}</div>
+                ${htmlTable}
+            </body>
+            </html>
+        `;
+
+        const blob = await generatePDF(fullHtml, `Supplier_Statement.pdf`, { landscape: true });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `كشف_حساب_مورد_${new Date().toISOString().slice(0, 10)}.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error("PDF Export Error:", err);
+        alert("Failed to export PDF: " + err.message);
+    }
 }
 
 /**

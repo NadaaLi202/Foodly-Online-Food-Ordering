@@ -469,8 +469,141 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
     const contact = transaction.contactSnapshot || transaction.contact;
     const contactName = (contact?.name || transaction.contact?.name) || "—";
     
-    // Build HTML Content
-    const htmlContent = `
+    const templateStyle = req.query.templateStyle || 'normal';
+
+    let htmlContent = '';
+
+    if (templateStyle === 'tax-bilingual') {
+        htmlContent = `
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="bilingual-template">
+<head>
+    <meta charset="UTF-8">
+    <title>${esc(transaction.transactionNumber)}</title>
+    <style>
+        @page { size: A4; margin: 0; }
+        body { font-family: 'Arial', sans-serif; margin: 0; padding: 40px; color: #333; line-height: 1.6; direction: rtl; font-size: 11px; }
+        .header { display: flex; justify-content: space-between; border-bottom: 1px dashed #ccc; padding-bottom: 20px; font-size: 12px; margin-bottom: 20px;}
+        .col { width: 33%; }
+        .center-text { text-align: center; }
+        .left-text { text-align: left; }
+        .right-text { text-align: right; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; text-align: center; }
+        th { background: #f9fafb; border: 1px solid #ccc; padding: 10px; font-size: 11px; }
+        td { border: 1px solid #ccc; padding: 10px; font-size: 11px; }
+        .summary-container { display: flex; justify-content: space-between; margin-top: 20px; }
+        .summary-box { width: 55%; font-size: 12px; }
+        .notes-box { width: 35%; text-align: right; padding-right: 20px; }
+        .row { display: flex; justify-content: space-between; border-bottom: 1px solid #ccc; padding: 6px 0; }
+        .logo-placeholder { border: 1px dashed #999; padding: 15px; color: #999; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="col left-text" style="direction: ltr;">
+            <b>${esc(companyName)}</b><br>
+            Register Number : ${esc(company.commercial_register || '—')}<br>
+            Tax Number : ${esc(company.tax_number || '—')}<br>
+            City : ${esc(company.address || '—')}<br>
+        </div>
+        <div class="col center-text">
+            ${companyLogoUrl ? `<img src="${companyLogoUrl}" style="max-height:80px; max-width:150px; border:1px dashed #ccc; padding:4px;" />` : `<div class="logo-placeholder">ضع شعارك هنا</div>`}
+            <h2 style="margin:8px 0 0 0; font-size:16px;">فاتورة ضريبية</h2>
+            <h2 style="margin:2px 0 0 0; font-size:14px;">TAX INVOICE</h2>
+        </div>
+        <div class="col right-text" style="direction: rtl;">
+            <b>${esc(companyName)}</b><br>
+            السجل التجاري : ${esc(company.commercial_register || '—')}<br>
+            الرقم الضريبي : ${esc(company.tax_number || '—')}<br>
+            المدينة : ${esc(company.address || '—')}<br>
+        </div>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-weight:bold; font-size:12px;">
+        <div class="left-text" style="direction: ltr;">
+            ${esc(transaction.transactionNumber || '—')} : الرقم - Number<br>
+            ${new Date(transaction.issueDate).toISOString().split('T')[0]} : التاريخ - Date
+        </div>
+        <div class="right-text" style="text-align: right;">
+            العميل - Client : ${esc(contactName)}<br>
+            الرقم الضريبي - Tax Number : ${esc(contact?.taxNumber || contact?.tax_number || '—')}
+        </div>
+    </div>
+
+    <table dir="rtl">
+        <thead>
+            <tr>
+                <th>المجموع<br>Total</th>
+                <th>نسبة الضريبة<br>Tax Percentage</th>
+                <th>المجموع بدون<br>الضريبة<br>Pre-Tax Total</th>
+                <th>الكمية<br>Quantity</th>
+                <th>السعر<br>Price</th>
+                <th style="width: 25%;">الوصف<br>Description</th>
+                <th>البند<br>Item</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${(transaction.items || []).map((item, idx) => {
+                const preTax = item.quantity * item.unitPrice - (item.discountAmount || 0);
+                const total = item.total ?? (preTax + (item.taxAmount || 0));
+                const taxP = item.taxPercent || item.tax || (item.taxAmount > 0 ? ((item.taxAmount / preTax) * 100).toFixed(0) : '0');
+                return `
+                    <tr>
+                        <td dir="ltr">${fmt(total)} ${esc(currencySymbol)}</td>
+                        <td dir="ltr">${taxP}%</td>
+                        <td dir="ltr">${fmt(preTax)} ${esc(currencySymbol)}</td>
+                        <td>${item.quantity}</td>
+                        <td dir="ltr">${fmt(item.unitPrice)} ${esc(currencySymbol)}</td>
+                        <td style="text-align: right;">${esc(item.productName || item.product?.name)}</td>
+                        <td>${idx + 1}</td>
+                    </tr>
+                `;
+            }).join('')}
+        </tbody>
+    </table>
+
+    <div class="summary-container">
+        <div class="summary-box">
+            <div class="row">
+                <span style="width:33%; text-align:left;">Pre-Tax Total</span>
+                <span style="width:33%; text-align:center;">${fmt(transaction.subtotal)} ${esc(currencySymbol)}</span>
+                <span style="width:33%; text-align:right;">الإجمالي قبل الضريبة</span>
+            </div>
+            <div class="row">
+                <span style="width:33%; text-align:left;">VAT</span>
+                <span style="width:33%; text-align:center;">${fmt(transaction.totalTax)} ${esc(currencySymbol)}</span>
+                <span style="width:33%; text-align:right;">يشمل القيمة المضافة</span>
+            </div>
+            <div class="row" style="font-weight:bold;">
+                <span style="width:33%; text-align:left;">Total (${esc(currencySymbol)})</span>
+                <span style="width:33%; text-align:center;">${fmt(transaction.totalAmount)}</span>
+                <span style="width:33%; text-align:right;">الإجمالي (${esc(currencySymbol)})</span>
+            </div>
+            <div class="row">
+                <span style="width:33%; text-align:left;">Paid</span>
+                <span style="width:33%; text-align:center;">${fmt(transaction.paidAmount || 0)} ${esc(currencySymbol)}</span>
+                <span style="width:33%; text-align:right;">المدفوع</span>
+            </div>
+            <div class="row" style="font-weight:bold;">
+                <span style="width:33%; text-align:left;">Due (${esc(currencySymbol)})</span>
+                <span style="width:33%; text-align:center;">${fmt(Math.max(0, transaction.totalAmount - (transaction.paidAmount || 0)))}</span>
+                <span style="width:33%; text-align:right;">المستحق (${esc(currencySymbol)})</span>
+            </div>
+            <div style="margin-top: 40px; text-align:left;">
+                التوقيع - Signature __________________
+            </div>
+        </div>
+        <div class="notes-box">
+            <b>ملاحظات - Notes</b><br>
+            <div style="font-size: 10px; margin: 10px 0;">${esc(transaction.notes || '')}</div>
+            <img src="${qrDataURL}" style="width: 120px; height: 120px; display:block; margin-left:auto; margin-top:10px;" />
+        </div>
+    </div>
+</body>
+</html>
+        `;
+    } else {
+        htmlContent = `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -657,7 +790,8 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
     </div>
 </body>
 </html>
-    `;
+        `;
+    }
 
     const pdfBuffer = await generatePDF(htmlContent, {
         format: "A4",

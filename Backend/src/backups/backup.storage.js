@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -89,7 +90,18 @@ export const getBackupReadStream = async (storage, filePath) => {
     if (!filePath) {
         throw new Error("Missing filePath for local restore");
     }
-    return fs.createReadStream(path.resolve(filePath));
+    // Always rely on __dirname relative paths when path is broken
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const backupDir = process.env.BACKUP_DIR ? path.resolve(process.env.BACKUP_DIR) : path.resolve(__dirname, "../../backups/system");
+    const safePath = path.join(backupDir, path.basename(filePath));
+
+    // Check if the file actually exists at the DB-stored absolute path (e.g. if the user didn't move it) or fallback
+    if (fs.existsSync(filePath)) {
+        return fs.createReadStream(path.resolve(filePath));
+    } else {
+        return fs.createReadStream(safePath);
+    }
 };
 
 export const deleteBackupFromS3 = async (storage) => {

@@ -35,6 +35,11 @@ const bankAccountSchema = new mongoose.Schema(
             type: Boolean,
             default: false
         },
+        journalAccount: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'ChartOfAccounts',
+            default: null
+        },
         balance: {
             type: Number,
             default: 0

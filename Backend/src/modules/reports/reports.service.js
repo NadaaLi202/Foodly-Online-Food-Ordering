@@ -268,7 +268,7 @@ export async function getPurchasesInvoicesDetailed(filters, companyFilter) {
     }
     if (warehouse && String(warehouse).trim()) query.warehouse = { $regex: String(warehouse).trim(), $options: "i" };
     if (branch && String(branch).trim()) query.warehouse = { $regex: String(branch).trim(), $options: "i" };
-    if (supplier && String(supplier).trim()) {
+    if (supplier && String(supplier).trim() && supplier !== 'all' && mongoose.Types.ObjectId.isValid(supplier)) {
         query.$or = [
             { "contactSnapshot.name": { $regex: String(supplier).trim(), $options: "i" } },
             { contact: supplier },
@@ -441,7 +441,7 @@ export async function getSalesInvoicesDetailed(filters, companyFilter) {
 
     if (warehouse && String(warehouse).trim()) query.warehouse = { $regex: String(warehouse).trim(), $options: "i" };
     else if (branch && String(branch).trim()) query.warehouse = { $regex: String(branch).trim(), $options: "i" };
-    if (client && String(client).trim()) {
+    if (client && String(client).trim() && client !== 'all' && mongoose.Types.ObjectId.isValid(client)) {
         query.$or = [
             { "contactSnapshot.name": { $regex: String(client).trim(), $options: "i" } },
             { contact: client },
@@ -700,7 +700,7 @@ export async function getCustomersSummary(startDate, endDate, companyFilter, cus
         deletedAt: { $in: [null, undefined] },
     };
 
-    if (customerId && customerId !== 'all' && customerId !== '') {
+    if (customerId && customerId !== 'all' && customerId !== '' && mongoose.Types.ObjectId.isValid(customerId)) {
         const cid = new mongoose.Types.ObjectId(customerId);
 
         // 1. Total Invoices
@@ -929,165 +929,135 @@ export async function getCustomersDetailed(startDate, endDate, companyFilter) {
  * Client General Ledger: All transactions (invoices, returns, payments) for a specific client
  */
 export async function getClientGeneralLedger(filters, companyFilter) {
-    const { startDate, endDate, clientId, branch, journalAccount } = filters || {};
+    const { startDate, endDate, clientId, branch, accountId, accountCode, journalAccount } = filters || {};
+    const effectiveAccountId = accountId || journalAccount;
+    const { start, end } = getDateRange(startDate, endDate);
 
-    const matchCompany = { ...companyFilter };
-    if (matchCompany.companyId && typeof matchCompany.companyId === 'string') {
-        matchCompany.companyId = new mongoose.Types.ObjectId(matchCompany.companyId);
+    // 1. Identify Target Accounts
+    let targetAccounts = [];
+    if (effectiveAccountId && effectiveAccountId !== 'all' && mongoose.Types.ObjectId.isValid(effectiveAccountId)) {
+        const acc = await chartOfAccountsModel.findOne({ _id: effectiveAccountId, ...companyFilter }).select("name code").lean();
+        if (acc) targetAccounts.push(acc);
+    } else if (accountCode) {
+        const acc = await chartOfAccountsModel.findOne({ code: accountCode, ...companyFilter }).select("name code").lean();
+        if (acc) targetAccounts.push(acc);
+    } else if (clientId && clientId !== 'all' && mongoose.Types.ObjectId.isValid(clientId)) {
+        const contact = await Contact.findOne({ _id: clientId, ...companyFilter }).select("name").lean();
+        if (contact) {
+            const accs = await chartOfAccountsModel.find({
+                ...companyFilter,
+                name: { $regex: contact.name, $options: 'i' }
+            }).select("name code").lean();
+            targetAccounts = accs;
+        }
+    } else {
+        const accs = await chartOfAccountsModel.find({
+            ...companyFilter,
+            $or: [
+                { code: { $regex: '^12' } },
+                { name: { $regex: 'عميل|عملاء|Clients|Customers', $options: 'i' } }
+            ],
+            type: 'sub'
+        }).select("name code").lean();
+        targetAccounts = accs;
     }
 
-    const { start, end } = getDateRange(startDate, endDate);
-    const cid = (clientId && clientId !== 'unspecified' && clientId !== 'all') ? new mongoose.Types.ObjectId(clientId) : null;
+    const results = [];
+    let globalTotalDebit = 0;
+    let globalTotalCredit = 0;
 
-    const commonMatch = {
-        ...matchCompany,
-        issueDate: { $gte: start, $lte: end },
-        status: { $ne: "draft" },
-        deletedAt: { $in: [null, undefined] },
-    };
+    for (const acc of targetAccounts) {
+        const accIdStr = acc._id.toString();
 
-    if (cid) commonMatch.contact = cid; // Transaction uses 'contact'
+        // A. Opening Balance
+        let openingBalance = 0;
+        const openingQuery = {
+            ...companyFilter,
+            date: { $lt: start }
+        };
+        const pastRestrictions = await dailyRestrictionModel.find(openingQuery).select("entries").lean();
+        for (const res of pastRestrictions) {
+            for (const entry of res.entries || []) {
+                const entryAccId = entry.account?._id ? String(entry.account._id) : String(entry.account);
+                if (entryAccId === accIdStr) {
+                    openingBalance += (Number(entry.debit || 0) - Number(entry.credit || 0));
+                }
+            }
+        }
 
-    // 1. Transactions (Sales Invoice / Return)
-    const transactions = await Transaction.find(commonMatch)
-        .populate("contact", "name code")
-        .sort({ issueDate: 1 })
-        .lean();
+        // B. Period Transactions
+        const query = {
+            ...companyFilter,
+            date: { $gte: start, $lte: end }
+        };
+        if (branch && branch !== 'all') query.branch = branch;
 
-    // 2. Invoices (Invoice Model)
-    const invoiceMatch = {
-        ...matchCompany,
-        issueDate: { $gte: start, $lte: end },
-        status: { $ne: "draft" },
-        deletedAt: { $in: [null, undefined] },
-    };
-    if (cid) invoiceMatch.clientId = cid;
-    const accInvoices = await Invoice.find(invoiceMatch)
-        .populate("clientId", "name code")
-        .sort({ issueDate: 1 })
-        .lean();
+        const restrictions = await dailyRestrictionModel.find(query)
+            .sort({ date: 1, createdAt: 1 })
+            .lean();
 
-    // 3. Returns (ReturnDoc Model)
-    // We need to filter by customer via lookup or simple match if it were there, 
-    // but ReturnDoc usually references Invoice.
-    let accReturns = [];
-    const returnMatch = {
-        ...matchCompany,
-        date: { $gte: start, $lte: end },
-        status: { $nin: ["Rejected", "cancelled"] }
-    };
-    const returnDocs = await ReturnDoc.find(returnMatch)
-        .populate({
-            path: "invoice",
-            match: cid ? { clientId: cid } : {}
-        })
-        .lean();
+        const entries = [];
+        let runningBalance = openingBalance;
+        let accTotalDebit = 0;
+        let accTotalCredit = 0;
 
-    // Filter out if customer didn't match after populate
-    accReturns = returnDocs.filter(rd => rd.invoice);
+        for (const restriction of restrictions) {
+            for (const entry of restriction.entries || []) {
+                const entryAccId = entry.account?._id ? String(entry.account._id) : String(entry.account);
+                if (entryAccId !== accIdStr) continue;
 
-    // 4. Payments
-    const paymentMatch = {
-        ...matchCompany,
-        module: "sales",
-        operationType: "receive",
-        status: { $ne: "cancelled" },
-        date: { $gte: start, $lte: end },
-        deletedAt: { $in: [null, undefined] }
-    };
-    if (cid) paymentMatch.contact = cid;
-    const payments = await Payment.find(paymentMatch)
-        .populate("contact", "name code")
-        .sort({ date: 1 })
-        .lean();
+                const debit = Number(entry.debit || 0);
+                const credit = Number(entry.credit || 0);
+                runningBalance += debit - credit;
+                accTotalDebit += debit;
+                accTotalCredit += credit;
 
-    // Combine and format
-    const entries = [];
+                let displaySource = restriction.source || "";
+                if (restriction.sourceType === 'invoice') {
+                    displaySource = `${restriction.source}`;
+                } else if (restriction.sourceType === 'payment') {
+                    displaySource = `سداد ${restriction.source || ''}`;
+                } else if (restriction.sourceType === 'return') {
+                    displaySource = `مرتجع ${restriction.source || ''}`;
+                }
 
-    // Map Transactions
-    transactions.forEach(txn => {
-        const type = txn.documentType === 'invoice' ? 'invoice' : 'return';
-        entries.push({
-            documentId: txn._id?.toString(),
-            date: txn.issueDate,
-            type,
-            documentNumber: txn.transactionNumber,
-            description: txn.notes || (type === 'invoice' ? 'Invoice' : 'Return'),
-            debit: type === 'invoice' ? txn.totalAmount : 0,
-            credit: type === 'return' ? txn.totalAmount : 0,
-            customerName: txn.contact?.name || txn.contactSnapshot?.name || '—',
-            journalAccount: journalAccount || '—',
+                entries.push({
+                    date: restriction.date,
+                    journalNumber: restriction.number,
+                    description: entry.description || restriction.description || "",
+                    debit,
+                    credit,
+                    balance: runningBalance,
+                    source: displaySource,
+                    sourceType: restriction.sourceType || "manual"
+                });
+            }
+        }
+
+        globalTotalDebit += accTotalDebit;
+        globalTotalCredit += accTotalCredit;
+
+        results.push({
+            accountId: accIdStr,
+            accountName: acc.name,
+            accountCode: acc.code,
+            openingBalance,
+            entries,
+            netMovement: accTotalDebit - accTotalCredit,
+            closingBalance: runningBalance,
+            totalDebit: accTotalDebit,
+            totalCredit: accTotalCredit
         });
-    });
-
-    // Map Invoices
-    accInvoices.forEach(inv => {
-        entries.push({
-            documentId: inv._id?.toString(),
-            date: inv.issueDate,
-            type: 'invoice',
-            documentNumber: inv.invoiceNumber,
-            description: inv.notes || 'Invoice',
-            debit: inv.total || 0,
-            credit: 0,
-            customerName: inv.clientId?.name || '—',
-            journalAccount: journalAccount || '—',
-        });
-    });
-
-    // Map Returns
-    accReturns.forEach(ret => {
-        entries.push({
-            documentId: ret._id?.toString(),
-            date: ret.date,
-            type: 'return',
-            documentNumber: ret.returnNumber || `RET-${ret._id.toString().slice(-6)}`,
-            description: ret.notes || (ret.reason ?? 'Return'),
-            debit: 0,
-            credit: ret.totalRefundAmount || 0,
-            customerName: ret.invoice?.clientId?.name || '—',
-            journalAccount: journalAccount || '—',
-        });
-    });
-
-    // Map Payments
-    payments.forEach(payment => {
-        entries.push({
-            documentId: payment._id?.toString(),
-            date: payment.date,
-            type: 'payment',
-            documentNumber: payment.referenceNumber || `PY-${payment._id.toString().slice(-6)}`,
-            description: payment.notes || 'Payment',
-            debit: 0,
-            credit: payment.amount,
-            customerName: payment.contact?.name || '—',
-            journalAccount: journalAccount || '—',
-        });
-    });
-
-    // Sort by date and calculate running balance
-    entries.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-    let runningBalance = 0;
-    let totalDebit = 0;
-    let totalCredit = 0;
-
-    entries.forEach(entry => {
-        runningBalance += (entry.debit || 0) - (entry.credit || 0);
-        entry.balance = runningBalance;
-        totalDebit += entry.debit || 0;
-        totalCredit += entry.credit || 0;
-    });
+    }
 
     return {
         success: true,
-        results: entries.length,
-        data: entries,
+        data: results,
         totals: {
-            totalDebit,
-            totalCredit,
-            finalBalance: runningBalance,
-        },
+            totalDebit: globalTotalDebit,
+            totalCredit: globalTotalCredit,
+            finalBalance: results.reduce((sum, r) => sum + r.closingBalance, 0)
+        }
     };
 }
 
@@ -1111,7 +1081,7 @@ export async function getAgedReceivable(filters, companyFilter) {
         baseMatch.issueDate = { $gte: start, $lte: end };
     }
 
-    if (clientId && String(clientId).trim() && clientId !== 'unspecified') {
+    if (clientId && String(clientId).trim() && clientId !== 'unspecified' && clientId !== 'all' && mongoose.Types.ObjectId.isValid(clientId)) {
         baseMatch.contact = clientId;
     }
 
@@ -1239,110 +1209,163 @@ export async function getAgedReceivable(filters, companyFilter) {
 // ========== SUPPLIERS REPORTS ==========
 
 /**
- * Supplier General Ledger (Account Statement): All transactions (invoices, returns, payments) for a supplier
+ * Supplier General Ledger (Account Statement): All journal entries for accounts starting with 211 (Suppliers)
  */
 export async function getSupplierGeneralLedger(filters, companyFilter) {
-    const { startDate, endDate, supplierId, branch, journalAccount } = filters || {};
+    const { startDate, endDate, supplierId, branch, accountId, accountCode, journalAccount } = filters || {};
+    const effectiveAccountId = accountId || journalAccount;
+    const { start, end } = getDateRange(startDate, endDate);
 
-    const baseMatch = {
-        ...companyFilter,
-        module: "purchases",
-        deletedAt: { $in: [null, undefined] },
-        status: { $ne: "draft" },
-    };
+    console.log('[DEBUG-SUPPLIER-LEDGER] Inputs:', { companyFilter, startDate, endDate, supplierId, branch, effectiveAccountId });
 
-    if (startDate && endDate && String(startDate).trim() && String(endDate).trim()) {
-        const { start, end } = getDateRange(startDate, endDate);
-        baseMatch.issueDate = { $gte: start, $lte: end };
+    // 1. Identify Target Accounts
+    let targetAccounts = [];
+    if (effectiveAccountId && effectiveAccountId !== 'all' && mongoose.Types.ObjectId.isValid(effectiveAccountId)) {
+        const acc = await chartOfAccountsModel.findOne({ _id: effectiveAccountId, ...companyFilter }).select("name code").lean();
+        if (acc) targetAccounts.push(acc);
+    } else if (accountCode) {
+        const acc = await chartOfAccountsModel.findOne({ code: accountCode, ...companyFilter }).select("name code").lean();
+        if (acc) targetAccounts.push(acc);
+    } else if (supplierId && supplierId !== 'all' && mongoose.Types.ObjectId.isValid(supplierId)) {
+        const contact = await Contact.findOne({ _id: supplierId, ...companyFilter }).select("name").lean();
+        if (contact) {
+            // Find accounts that match the supplier name
+            const accs = await chartOfAccountsModel.find({
+                ...companyFilter,
+                name: { $regex: contact.name, $options: 'i' }
+            }).select("name code").lean();
+            targetAccounts = accs;
+        }
+    } else {
+        // Default: All accounts starting with 212 (standard for AP) or 211
+        const accs = await chartOfAccountsModel.find({
+            ...companyFilter,
+            $or: [
+                { code: { $regex: '^(212|211|21)' } },
+                { name: { $regex: 'مورد|موردين|دائنون|Suppliers|Vendors', $options: 'i' } }
+            ],
+            type: 'sub'
+        }).select("name code").lean();
+        targetAccounts = accs;
     }
 
-    if (supplierId && String(supplierId).trim() && supplierId !== 'unspecified') {
-        baseMatch.contact = supplierId;
-    }
+    console.log('[DEBUG-SUPPLIER-LEDGER] Target Accounts Found:', targetAccounts.map(a => `${a.name} (${a.code})`));
 
-    if (branch && String(branch).trim() && branch !== 'all') {
-        baseMatch.warehouse = { $regex: String(branch).trim(), $options: "i" };
-    }
+    const results = [];
+    let globalTotalDebit = 0;
+    let globalTotalCredit = 0;
 
-    const transactions = await Transaction.find(baseMatch)
-        .populate("contact", "name code")
-        .sort({ issueDate: 1 })
-        .lean();
+    for (const acc of targetAccounts) {
+        const accIdStr = acc._id.toString();
 
-    const paymentMatch = {
-        ...companyFilter,
-        module: "purchases",
-        operationType: "spend",
-        status: { $ne: "cancelled" },
-    };
+        // A. Opening Balance (from beginning of time until 'start')
+        let openingBalance = 0;
+        const openingQuery = {
+            ...companyFilter,
+            date: { $lt: start },
+            "entries.account": { $in: [acc._id, accIdStr] }
+        };
+        const pastRestrictions = await dailyRestrictionModel.find(openingQuery).select("entries").lean();
+        for (const res of pastRestrictions) {
+            for (const entry of res.entries || []) {
+                const entryAccId = entry.account?._id ? String(entry.account._id) : String(entry.account);
+                if (entryAccId === accIdStr) {
+                    openingBalance += (Number(entry.debit || 0) - Number(entry.credit || 0));
+                }
+            }
+        }
 
-    if (startDate && endDate && String(startDate).trim() && String(endDate).trim()) {
-        const { start, end } = getDateRange(startDate, endDate);
-        paymentMatch.date = { $gte: start, $lte: end };
-    }
+        // B. Period Transactions
+        const query = {
+            ...companyFilter,
+            date: { $gte: start, $lte: end },
+            "entries.account": { $in: [acc._id, accIdStr] }
+        };
+        if (branch && branch !== 'all') query.branch = branch;
 
-    if (supplierId && String(supplierId).trim() && supplierId !== 'unspecified') {
-        paymentMatch.contact = supplierId;
-    }
+        const rawRestrictions = await dailyRestrictionModel.find(query)
+            .sort({ date: 1, createdAt: 1 })
+            .lean();
 
-    const payments = await Payment.find(paymentMatch)
-        .populate("contact", "name code")
-        .sort({ date: 1 })
-        .lean();
+        // Post-fetch: trim each restriction's entries to only the lines for this account,
+        // then discard any restriction where no lines match.
+        const restrictions = rawRestrictions
+            .map(r => ({
+                ...r,
+                entries: (r.entries || []).filter(e => {
+                    const id = e.account?._id ? String(e.account._id) : String(e.account);
+                    return id === accIdStr;
+                })
+            }))
+            .filter(r => r.entries.length > 0);
 
-    const entries = [];
+        console.log(`[DEBUG-SUPPLIER-LEDGER] Account ${acc.name} (${acc.code}) - Raw: ${rawRestrictions.length}, After filter: ${restrictions.length}`);
+        if (restrictions.length > 0) {
+            console.log(`[DEBUG-SUPPLIER-LEDGER] First restriction matched entries: ${restrictions[0].entries.length}`);
+        }
 
-    transactions.forEach(txn => {
-        const type = txn.documentType === 'invoice' ? 'invoice' : 'return';
-        entries.push({
-            documentId: txn._id?.toString(),
-            date: txn.issueDate,
-            type,
-            documentNumber: txn.transactionNumber,
-            description: txn.notes || (type === 'invoice' ? 'Invoice' : 'Return'),
-            debit: type === 'invoice' ? txn.totalAmount : 0,
-            credit: type === 'return' ? txn.totalAmount : 0,
-            balance: 0,
-            supplierName: txn.contact?.name || txn.contactSnapshot?.name || '—',
-            journalAccount: journalAccount || '—',
+        const entries = [];
+        let runningBalance = openingBalance;
+        let accTotalDebit = 0;
+        let accTotalCredit = 0;
+
+        for (const restriction of restrictions) {
+            for (const entry of restriction.entries || []) {
+                const entryAccId = entry.account?._id ? String(entry.account._id) : String(entry.account);
+                if (entryAccId !== accIdStr) continue;
+
+                const debit = Number(entry.debit || 0);
+                const credit = Number(entry.credit || 0);
+                runningBalance += debit - credit;
+                accTotalDebit += debit;
+                accTotalCredit += credit;
+
+                let displaySource = restriction.source || "";
+                if (restriction.sourceType === 'purchases_invoice' || restriction.sourceType === 'invoice') {
+                    displaySource = `${restriction.source}`;
+                } else if (restriction.sourceType === 'payment' || restriction.sourceType === 'purchases_payment') {
+                    displaySource = `سداد ${restriction.source || ''}`;
+                } else if (restriction.sourceType === 'return' || restriction.sourceType === 'purchases_return') {
+                    displaySource = `مرتجع ${restriction.source || ''}`;
+                }
+
+                entries.push({
+                    date: restriction.date,
+                    journalNumber: restriction.number,
+                    description: entry.description || restriction.description || "",
+                    debit,
+                    credit,
+                    balance: runningBalance,
+                    source: displaySource,
+                    sourceType: restriction.sourceType || "manual"
+                });
+            }
+        }
+
+        globalTotalDebit += accTotalDebit;
+        globalTotalCredit += accTotalCredit;
+
+        results.push({
+            accountId: accIdStr,
+            accountName: acc.name,
+            accountCode: acc.code,
+            openingBalance,
+            entries,
+            netMovement: accTotalDebit - accTotalCredit,
+            closingBalance: runningBalance,
+            totalDebit: accTotalDebit,
+            totalCredit: accTotalCredit
         });
-    });
-
-    payments.forEach(payment => {
-        entries.push({
-            documentId: payment._id?.toString(),
-            date: payment.date,
-            type: 'payment',
-            documentNumber: payment.referenceNumber || payment._id.toString(),
-            description: payment.notes || 'Payment',
-            debit: 0,
-            credit: payment.amount,
-            balance: 0,
-            supplierName: payment.contact?.name || '—',
-            journalAccount: journalAccount || '—',
-        });
-    });
-
-    entries.sort((a, b) => new Date(a.date) - new Date(b.date));
-    let runningBalance = 0;
-    let totalDebit = 0;
-    let totalCredit = 0;
-    entries.forEach(entry => {
-        runningBalance += entry.debit - entry.credit;
-        entry.balance = runningBalance;
-        totalDebit += entry.debit || 0;
-        totalCredit += entry.credit || 0;
-    });
+    }
 
     return {
         success: true,
-        results: entries.length,
-        data: entries,
+        data: results,
         totals: {
-            totalDebit,
-            totalCredit,
-            finalBalance: runningBalance,
-        },
+            totalDebit: globalTotalDebit,
+            totalCredit: globalTotalCredit,
+            finalBalance: results.reduce((sum, r) => sum + r.closingBalance, 0)
+        }
     };
 }
 
@@ -1752,7 +1775,7 @@ async function getHierarchicalReportData(startDate, endDate, companyFilter, bran
         const openingNet = initialDebit - initialCredit;
         const periodNet = transactionDebit - transactionCredit;
         const closingNet = openingNet + periodNet;
-        
+
         // Trial Balance usually shows Debit/Credit columns separately
         const endDebit = closingNet > 0 ? closingNet : 0;
         const endCredit = closingNet < 0 ? Math.abs(closingNet) : 0;
