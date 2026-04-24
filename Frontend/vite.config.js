@@ -10,9 +10,15 @@ export default defineConfig({
     global: 'globalThis',
   },
   resolve: {
+    caseSensitive: false,
     alias: {
       // Polyfill buffer for browser usage
       buffer: 'buffer/',
     },
   },
+  server: {
+    fs: {
+      strict: false
+    }
+  }
 })
