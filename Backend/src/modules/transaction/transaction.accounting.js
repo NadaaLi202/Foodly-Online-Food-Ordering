@@ -5,17 +5,17 @@
  * Accounts are resolved dynamically from the company's chart of accounts.
  */
 
-import { dailyRestrictionModel } from '../dailyRestrictions/dailyRestrictions.model.js';
-import { chartOfAccountsModel } from '../chartOfAccounts/chartOfAccounts.model.js';
+import { dailyRestrictionModel } from '../dailyrestrictions/dailyrestrictions.model.js';
+import { chartOfAccountsModel } from '../chartofaccounts/chartofaccounts.model.js';
 import mongoose from 'mongoose';
-import logError from '../../utils/logError.js';
+import logError from '../../utils/logerror.js';
 
 /**
  * Generate the next journal entry number for a given company.
  * Replicates the pre-save hook logic so we can supply the number explicitly,
  * avoiding the Mongoose validate-before-hook race condition.
  */
-const generateJournalEntryNumber = async (companyId, date = new Date()) => {
+export const generateJournalEntryNumber = async (companyId, date = new Date()) => {
     const d = new Date(date);
     const year = String(d.getFullYear()).slice(-2);
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -53,7 +53,7 @@ const generateJournalEntryNumber = async (companyId, date = new Date()) => {
  * Find an account in the company's chart by code prefix or name pattern.
  * Returns the account's ObjectId string (used as `account` field in entries), or null.
  */
-const findAccount = async (companyId, codePatterns = [], namePatterns = []) => {
+export const findAccount = async (companyId, codePatterns = [], namePatterns = []) => {
     try {
         const conditions = [];
 
@@ -72,7 +72,9 @@ const findAccount = async (companyId, codePatterns = [], namePatterns = []) => {
             $or: conditions
         }).select('_id code name').lean();
 
-        // Return the raw ObjectId string so the balance sheet matches properly
+        if (account) {
+            console.log(`[Accounting] Resolved account: ${account.code} - ${account.name} (id: ${account._id})`);
+        }
         return account ? account._id.toString() : null;
     } catch (err) {
         logError('[Accounting] findAccount error:', err);
@@ -110,71 +112,44 @@ export const createInvoiceJournalEntry = async (transaction, companyId) => {
 
         // Universal VAT Account lookup
         const vatAccount = totalTax > 0
-            ? await findAccount(companyId, ['2142', '214', '124', '21'], ['ضريبة القيمة المضافة', 'قيمة مضافة محصلة', 'VAT', 'ضريبة'])
+            ? await findAccount(companyId, ['214', '124', '21', '2'], ['ضريبة', 'VAT'])
             : null;
 
         if (transaction.module === 'sales') {
-            const arAccount = await findAccount(companyId, ['126', '121', '12'], ['حسابات عملاء', 'حسابات العملاء', 'ذمم مدينة', 'مدينون', 'العملاء']);
+            const arAccount = await findAccount(companyId, ['126', '121', '12'], ['عملاء', 'مدينون', 'Customers', 'Receivable']);
+            const salesAccount = await findAccount(companyId, ['411', '41'], ['إيرادات المبيعات', 'المبيعات', 'مبيعات', 'Sales', 'Revenue']);
 
             if (transaction.documentType === 'invoice') {
-                // Dr. Accounts Receivable (126) -> totalAmount
-                //   Cr. Sales Revenue (411) -> subtotal
-                //   Cr. VAT (2142) -> totalTax
-                const salesAccount = await findAccount(companyId, ['411', '41'], ['إيرادات المبيعات', 'المبيعات', 'مبيعات']);
-
-                if (arAccount) entries.push({ account: arAccount, description: `فاتورة مبيعات رقم ${transaction.transactionNumber}`, debit: totalAmount, credit: 0 });
-                if (salesAccount) entries.push({ account: salesAccount, description: `إيراد فاتورة ${transaction.transactionNumber}`, debit: 0, credit: subtotal > 0 ? subtotal : totalAmount });
+                if (arAccount) entries.push({ account: arAccount, description: `إثبات مبيعات آجلة - فاتورة ${transaction.transactionNumber}`, debit: totalAmount, credit: 0 });
+                if (salesAccount) entries.push({ account: salesAccount, description: `إيراد المبيعات - فاتورة ${transaction.transactionNumber}`, debit: 0, credit: subtotal || totalAmount });
                 if (vatAccount && totalTax > 0) entries.push({ account: vatAccount, description: 'ضريبة القيمة المضافة المحصلة', debit: 0, credit: totalTax });
 
             } else if (transaction.documentType === 'return') {
-                // Dr. Sales Return (412) -> subtotal
-                // Dr. VAT (2142) -> totalTax
-                //   Cr. Accounts Receivable (126) -> totalAmount
-                const salesReturnAccount = await findAccount(companyId, ['412', '41'], ['مردودات مبيعات', 'مرتجع مبيعات', 'المبيعات']);
-
-                if (salesReturnAccount) entries.push({ account: salesReturnAccount, description: `مردودات مبيعات للفاتورة ${transaction.transactionNumber}`, debit: subtotal > 0 ? subtotal : totalAmount, credit: 0 });
+                const salesReturnAccount = await findAccount(companyId, ['412', '41'], ['مردودات مبيعات', 'مرتجع مبيعات', 'Returns']);
+                if (salesReturnAccount) entries.push({ account: salesReturnAccount, description: `مردودات مبيعات - فاتورة ${transaction.transactionNumber}`, debit: subtotal || totalAmount, credit: 0 });
                 if (vatAccount && totalTax > 0) entries.push({ account: vatAccount, description: 'ضريبة القيمة المضافة (مرتجع)', debit: totalTax, credit: 0 });
-                if (arAccount) entries.push({ account: arAccount, description: `تخفيض ذمم مدينة لمرتجع ${transaction.transactionNumber}`, debit: 0, credit: totalAmount });
+                if (arAccount) entries.push({ account: arAccount, description: `تخفيض ذمم لمرتجع ${transaction.transactionNumber}`, debit: 0, credit: totalAmount });
             }
 
         } else if (transaction.module === 'purchases') {
-            const apAccount = await findAccount(companyId, ['212', '21'], ['حسابات موردين', 'موردون', 'دائنون', 'الموردين']);
+            const apAccount = await findAccount(companyId, ['212', '21'], ['موردون', 'دائنون', 'Suppliers', 'Payable']);
 
             if (transaction.documentType === 'invoice') {
-                // Dr. Purchases/Inventory (511/125) -> subtotal
-                // Dr. Tax Receivable (124/214) -> totalTax
-                //   Cr. Accounts Payable (212) -> totalAmount
-                const purchasesAccount = await findAccount(companyId, ['511', '51', '125'], ['مشتريات', 'المشتروات', 'مخزون']);
-                // For purchases, VAT is usually a receivable (Asset)
-                const taxReceivableAccount = totalTax > 0
-                    ? await findAccount(companyId, ['124', '214', '21'], ['ضريبة مدخلات', 'ضريبة قيمة مضافة مدفوعة', 'ضريبة'])
-                    : null;
-
-                if (purchasesAccount) entries.push({ account: purchasesAccount, description: `فاتورة مشتريات رقم ${transaction.transactionNumber}`, debit: subtotal > 0 ? subtotal : totalAmount, credit: 0 });
-                if ((taxReceivableAccount || vatAccount) && totalTax > 0) {
-                    entries.push({ account: taxReceivableAccount || vatAccount, description: 'ضريبة القيمة المضافة المدفوعة', debit: totalTax, credit: 0 });
-                }
-                if (apAccount) entries.push({ account: apAccount, description: `استحقاق مورد لفاتورة ${transaction.transactionNumber}`, debit: 0, credit: totalAmount });
+                const purchasesAccount = await findAccount(companyId, ['511', '51', '125'], ['مشتريات', 'مخزون', 'Purchases', 'Inventory']);
+                if (purchasesAccount) entries.push({ account: purchasesAccount, description: `إثبات مشتريات - فاتورة ${transaction.transactionNumber}`, debit: subtotal || totalAmount, credit: 0 });
+                if (vatAccount && totalTax > 0) entries.push({ account: vatAccount, description: 'ضريبة القيمة المضافة المدفوعة', debit: totalTax, credit: 0 });
+                if (apAccount) entries.push({ account: apAccount, description: `إثبات استحقاق مورد - فاتورة ${transaction.transactionNumber}`, debit: 0, credit: totalAmount });
 
             } else if (transaction.documentType === 'return') {
-                // Dr. Accounts Payable (212) -> totalAmount
-                //   Cr. Purchases Return (512) -> subtotal
-                //   Cr. Tax Receivable (124/214) -> totalTax
-                const purchasesReturnAccount = await findAccount(companyId, ['512', '51', '125'], ['مردودات مشتريات', 'مرتجع مشتريات', 'مخزون']);
-                const taxReceivableAccount = totalTax > 0
-                    ? await findAccount(companyId, ['124', '214', '21'], ['ضريبة مدخلات', 'ضريبة قيمة مضافة مدفوعة', 'ضريبة'])
-                    : null;
-
-                if (apAccount) entries.push({ account: apAccount, description: `تخفيض دائنون لمرتجع مشتريات ${transaction.transactionNumber}`, debit: totalAmount, credit: 0 });
-                if (purchasesReturnAccount) entries.push({ account: purchasesReturnAccount, description: `مردودات مشتريات للفاتورة ${transaction.transactionNumber}`, debit: 0, credit: subtotal > 0 ? subtotal : totalAmount });
-                if ((taxReceivableAccount || vatAccount) && totalTax > 0) {
-                    entries.push({ account: taxReceivableAccount || vatAccount, description: 'ضريبة القيمة المضافة (مرتجع مشتريات)', debit: 0, credit: totalTax });
-                }
+                const purchasesReturnAccount = await findAccount(companyId, ['512', '51', '125'], ['مردودات مشتريات', 'مرتجع مشتريات']);
+                if (apAccount) entries.push({ account: apAccount, description: `تخفيض دائنون لمرتجع ${transaction.transactionNumber}`, debit: totalAmount, credit: 0 });
+                if (purchasesReturnAccount) entries.push({ account: purchasesReturnAccount, description: `مردودات مشتريات - فاتورة ${transaction.transactionNumber}`, debit: 0, credit: subtotal || totalAmount });
+                if (vatAccount && totalTax > 0) entries.push({ account: vatAccount, description: 'ضريبة القيمة المضافة (مرتجع)', debit: 0, credit: totalTax });
             }
         }
 
         if (entries.length < 2) {
-            console.log('[Accounting] Skipping invoice journal entry — insufficient accounts found for company', companyId);
+            console.warn(`[Accounting] WARNING: Skipping invoice journal entry ${transaction.transactionNumber} — Insufficient accounts found. [AR/AP: ${!!entries.find(e=>e.debit>0||e.credit>0)}, Revenue/Exp: ${entries.length > 1}]`);
             return;
         }
 
@@ -182,6 +157,7 @@ export const createInvoiceJournalEntry = async (transaction, companyId) => {
         const totalCredit = parseFloat(entries.reduce((s, e) => s + e.credit, 0).toFixed(2));
         const entryDate = transaction.issueDate ? new Date(transaction.issueDate) : new Date();
 
+        let savedEntryId = null;
         let saved = false;
         let attempts = 0;
         while (!saved && attempts < 3) {
@@ -202,7 +178,16 @@ export const createInvoiceJournalEntry = async (transaction, companyId) => {
                 });
 
                 await restriction.save();
+                
+                // User requested log
+                console.log('[JOURNAL] Created entry:', {
+                    id: restriction._id,
+                    number: restriction.number,
+                    entries: restriction.entries
+                });
+
                 console.log(`[Accounting] Invoice journal entry created successfully: ${restriction.number} for invoice ${transaction.transactionNumber}`);
+                savedEntryId = restriction._id;
                 saved = true;
             } catch (err) {
                 if (err.code === 11000 && attempts < 2) {
@@ -213,8 +198,10 @@ export const createInvoiceJournalEntry = async (transaction, companyId) => {
                 }
             }
         }
+        return savedEntryId;
     } catch (err) {
         logError('[Accounting] createInvoiceJournalEntry error (non-fatal):', err);
+        return null;
     }
 };
 
@@ -244,41 +231,48 @@ export const createPaymentJournalEntry = async (payment, transaction, companyId)
         const amount = Number(payment.amount || 0);
         if (amount <= 0) return;
 
-        const treasuryType = payment.treasury === 'bank' ? 'bank' : 'cash';
-        const operationType = payment.operationType || (transaction?.module === 'purchases' ? 'spend' : 'receive');
-        const isSpend = operationType === 'spend';
-
-        // Resolve accounts
-        const cashAccount = await (treasuryType === 'bank'
-            ? findAccount(companyId, ['11', '113'], ['بنك', 'حساب بنكي', 'البنك'])
-            : findAccount(companyId, ['111', '11'], ['صندوق', 'نقدية', 'كاش']));
-
-        const partyAccount = isSpend
-            ? await findAccount(companyId, ['212', '21'], ['حسابات موردين', 'دائنون', 'موردون', 'الموردين'])
-            : await findAccount(companyId, ['126', '121', '12'], ['حسابات عملاء', 'حسابات العملاء', 'ذمم مدينة', 'مدينون', 'العملاء']);
-
-        const entries = [];
-
-        if (isSpend) {
-            // Debit: AP
-            // Credit: Cash/Bank
-            if (partyAccount) entries.push({ account: partyAccount, description: `سداد لمورد ${transaction?.transactionNumber || ''}`, debit: amount, credit: 0 });
-            if (cashAccount) entries.push({ account: cashAccount, description: `صرف دفعة - ${payment.referenceNumber || ''}`, debit: 0, credit: amount });
-        } else {
-            // Debit: Cash/Bank
-            // Credit: AR
-            if (cashAccount) entries.push({ account: cashAccount, description: `تحصيل دفعة - ${transaction?.transactionNumber || ''}`, debit: amount, credit: 0 });
-            if (partyAccount) entries.push({ account: partyAccount, description: `سداد من فاتورة ${transaction?.transactionNumber || ''}`, debit: 0, credit: amount });
+        // Try to fetch bank/safe account directly if treasury is provided
+        let treasuryAccount = null;
+        if (payment.treasury && mongoose.Types.ObjectId.isValid(payment.treasury)) {
+            const { bankAccountModel } = await import('../bankaccounts/bankaccount.model.js');
+            const { safeModel } = await import('../safes/safe.model.js');
+            
+            if (payment.treasuryType === 'bank') {
+                const bankAcc = await bankAccountModel.findById(payment.treasury).lean();
+                treasuryAccount = bankAcc?.journalAccount;
+            } else {
+                const safe = await safeModel.findById(payment.treasury).lean();
+                treasuryAccount = safe?.journalAccount;
+            }
         }
 
-        if (entries.length < 2) {
-            console.log('[Accounting] Skipping payment journal entry — insufficient accounts found for company', companyId);
+        // Fallback to pattern search if no direct account linked
+        const cashAccount = treasuryAccount || (payment.treasuryType === 'bank'
+            ? await findAccount(companyId, ['122', '113', '11'], ['بنك', 'Bank'])
+            : await findAccount(companyId, ['111', '11', '1'], ['صندوق', 'كاش', 'Cash', 'Safe']));
+
+        const isSpend = payment.operationType === 'spend' || (transaction?.module === 'purchases');
+        const partyAccount = isSpend
+            ? await findAccount(companyId, ['212', '21'], ['موردون', 'دائنون', 'Suppliers', 'Payable'])
+            : await findAccount(companyId, ['126', '121', '12'], ['عملاء', 'مدينون', 'Customers', 'Receivable']);
+
+        if (!cashAccount || !partyAccount) {
+            console.warn(`[Accounting] Cannot create payment journal entry: Missing account. [Treasury: ${!!cashAccount}, Party: ${!!partyAccount}]`);
             return;
         }
 
-        const totalValue = parseFloat(amount.toFixed(2));
-        const paymentDate = payment.date ? new Date(payment.date) : new Date();
+        const entries = [];
+        if (isSpend) {
+            // Debit: AP, Credit: Cash/Bank
+            entries.push({ account: partyAccount, description: `سداد فاتورة ${transaction?.transactionNumber || ''}`, debit: amount, credit: 0 });
+            entries.push({ account: cashAccount, description: `دفع من البنك/الخزنة - فاتورة ${transaction?.transactionNumber || ''}`, debit: 0, credit: amount });
+        } else {
+            // Debit: Cash/Bank, Credit: AR
+            entries.push({ account: cashAccount, description: `تحصيل فاتورة ${transaction?.transactionNumber || ''}`, debit: amount, credit: 0 });
+            entries.push({ account: partyAccount, description: `سداد فاتورة مبيعات ${transaction?.transactionNumber || ''}`, debit: 0, credit: amount });
+        }
 
+        const paymentDate = payment.date ? new Date(payment.date) : new Date();
         let saved = false;
         let attempts = 0;
         while (!saved && attempts < 3) {
@@ -287,10 +281,10 @@ export const createPaymentJournalEntry = async (payment, transaction, companyId)
                 const restriction = new dailyRestrictionModel({
                     number,
                     date: paymentDate,
-                    description: `قيد آلي - ${isSpend ? 'صرف' : 'تحصيل'} دفعة ${payment.referenceNumber || ''}`,
-                    source: transaction?.transactionNumber || '',
-                    totalDebit: totalValue,
-                    totalCredit: totalValue,
+                    description: `قيد سداد آلي - ${isSpend ? 'صرف' : 'تحصيل'} دفعة للرقم ${transaction?.transactionNumber || payment.referenceNumber || ''}`,
+                    source: transaction?.transactionNumber || payment.referenceNumber || '',
+                    totalDebit: amount,
+                    totalCredit: amount,
                     entries,
                     companyId,
                     currency: payment.currency || transaction?.currency || 'EGP',
@@ -299,7 +293,7 @@ export const createPaymentJournalEntry = async (payment, transaction, companyId)
                 });
 
                 await restriction.save();
-                console.log(`[Accounting] Payment journal entry created successfully: ${restriction.number}`);
+                console.log(`[Accounting] Payment journal entry created: ${restriction.number}`);
                 saved = true;
             } catch (err) {
                 if (err.code === 11000 && attempts < 2) {
@@ -310,6 +304,6 @@ export const createPaymentJournalEntry = async (payment, transaction, companyId)
             }
         }
     } catch (err) {
-        logError('[Accounting] createPaymentJournalEntry error (non-fatal):', err);
+        logError('[Accounting] createPaymentJournalEntry error:', err);
     }
 };

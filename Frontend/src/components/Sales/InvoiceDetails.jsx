@@ -4,12 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { QRCodeCanvas } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import logError from '../../utils/logError';
-import DocumentActions from '../common/DocumentActions';
-import InvoiceLayout from '../invoice/InvoiceLayout';
-import InvoicePaymentsTab from './InvoicePaymentsTab';
-import { fetchPdfBlob, downloadBlob, openBlobInNewTab, getErrorMessage } from '../../utils/invoicePdf';
-import { handleUniversalShare } from '../../utils/shareUtils';
+import logError from '../../utils/logerror';
+import DocumentActions from '../common/documentactions';
+import InvoiceLayout from '../invoice/invoicelayout';
+import InvoicePaymentsTab from './invoicepaymentstab';
+import { fetchPdfBlob, downloadBlob, openBlobInNewTab, getErrorMessage } from '../../utils/invoicepdf';
+import { handleUniversalShare } from '../../utils/shareutils';
 
 const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, onRefreshInvoice, loading, i18n, viewTitleKey, filenamePrefix, paymentsModule = 'sales', canEdit = true, canDelete = true }) => {
     const { t } = useTranslation();

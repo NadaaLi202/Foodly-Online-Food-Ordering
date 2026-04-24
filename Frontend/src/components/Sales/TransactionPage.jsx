@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { getTransactionConfig } from '../../config/transactionTypes';
-import InvoiceList from './InvoiceList';
-import InvoiceForm from './InvoiceForm';
-import InvoiceDetails from './InvoiceDetails';
+import { getTransactionConfig } from '../../config/transactiontypes';
+import InvoiceList from './invoicelist';
+import InvoiceForm from './invoiceform';
+import InvoiceDetails from './invoicedetails';
 import api from '../../services/api';
-import logError from '../../utils/logError';
-import { usePermissions } from '../../hooks/usePermissions';
-import { useAuth } from '../../context/AuthContext';
+import logError from '../../utils/logerror';
+import { usePermissions } from '../../hooks/usepermissions';
+import { useAuth } from '../../context/authcontext';
 
 const TransactionPage = ({ configKey }) => {
     const { t, i18n } = useTranslation();

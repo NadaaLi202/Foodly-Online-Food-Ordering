@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Search, RefreshCw } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import AddPurchaseCreditNoteModal from '../../components/AddPurchaseCreditNoteModal';
+import AddPurchaseCreditNoteModal from '../../components/addpurchasecreditnotemodal';
 
 const PurchaseCreditNotes = () => {
     const { t } = useTranslation();

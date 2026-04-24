@@ -1,6 +1,6 @@
 import { salesCustomerModel } from "./customers.model.js";
-import { AppError } from "../../utils/AppError.js";
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { AppError } from "../../utils/apperror.js";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
 
 const addCustomer = catchAsyncError(async (req, res, next) => {
     const { email } = req.body;

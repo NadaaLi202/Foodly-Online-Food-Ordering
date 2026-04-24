@@ -1,5 +1,5 @@
 import api from '../services/api';
-import { requestPrintTemplateSelection } from '../services/printTemplateService';
+import { requestPrintTemplateSelection } from '../services/printtemplateservice';
 
 const escapeHtml = (value) => String(value ?? '')
     .replace(/&/g, '&amp;')

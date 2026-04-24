@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, DollarSign, FileSpreadsheet, FileText, Printer } from 'lucide-react';
-import reportsService from '../../../services/reportsService';
-import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
+import reportsService from '../../../services/reportsservice';
+import { downloadTablePdf } from '../../../utils/reportpdfbuilder';
 import * as XLSX from 'xlsx';
-import PrintHeader from '../../../components/common/PrintHeader';
-import { useAuth } from '../../../context/AuthContext';
-import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
+import PrintHeader from '../../../components/common/printheader';
+import { useAuth } from '../../../context/authcontext';
+import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyformatter';
 
 const SummaryPaymentsReport = () => {
     const { t, i18n } = useTranslation();

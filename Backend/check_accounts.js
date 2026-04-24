@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { chartOfAccountsModel } from '../src/modules/chartOfAccounts/chartOfAccounts.model.js';
+import { chartOfAccountsModel } from '../src/modules/chartofaccounts/chartofaccounts.model.js';
 import dotenv from 'dotenv';
 dotenv.config({ path: '../.env' });
 

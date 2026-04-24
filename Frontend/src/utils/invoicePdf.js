@@ -1,4 +1,4 @@
-import { requestPrintTemplateSelection } from '../services/printTemplateService';
+import { requestPrintTemplateSelection } from '../services/printtemplateservice';
 
 /**
  * Invoice PDF fetch and save utilities.

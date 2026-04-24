@@ -1,7 +1,7 @@
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
-import { AppError } from "../../utils/AppError.js";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
+import { AppError } from "../../utils/apperror.js";
 import { taxesModel } from "./taxes.model.js";
-import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
+import { resolveCompanyIdForWrite } from "../../middleware/applycompanyfilter.js";
 import { companyModel } from "../companies/company.model.js";
 import mongoose from "mongoose";
 

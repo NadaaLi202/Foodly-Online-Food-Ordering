@@ -5,12 +5,12 @@ import {
     getAllBankAccounts,
     getBankAccountById,
     updateBankAccount
-} from "./bankAccount.controller.js";
+} from "./bankaccount.controller.js";
 import { validation } from "../../middleware/validation.js";
-import { addBankAccountSchema, updateBankAccountSchema } from "./bankAccount.validation.js";
+import { addBankAccountSchema, updateBankAccountSchema } from "./bankaccount.validation.js";
 
 import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
 
 const bankAccountRouter = express.Router();
 

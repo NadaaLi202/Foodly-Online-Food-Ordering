@@ -1,6 +1,6 @@
 import { getSettings, updateSettings, getCodingSettings, updateCodingSettings, updateCodingSequence } from "./settings.service.js";
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
-import { AppError } from "../../utils/AppError.js";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
+import { AppError } from "../../utils/apperror.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
 
 /**

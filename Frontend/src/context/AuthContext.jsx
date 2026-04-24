@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import logError from "../utils/logError";
+import logError from "../utils/logerror";
 import api from "../services/api";
 
 const AuthContext = createContext();

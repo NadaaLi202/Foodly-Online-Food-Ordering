@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import api from '../../../services/api';
-import PrintHeader from '../../../components/common/PrintHeader';
-import { useAuth } from '../../../context/AuthContext';
-import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
+import PrintHeader from '../../../components/common/printheader';
+import { useAuth } from '../../../context/authcontext';
+import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyformatter';
 
 const getMonthRange = (date = new Date()) => {
     const start = new Date(date.getFullYear(), date.getMonth(), 1);

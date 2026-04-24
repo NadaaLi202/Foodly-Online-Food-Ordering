@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { costCenterModel } from './src/modules/costCenters/costCenter.model.js';
+import { costCenterModel } from './src/modules/costcenters/costcenter.model.js';
 
 mongoose.connect('mongodb://localhost:27017/dafater').then(async () => {
     console.log('Connected to DB');

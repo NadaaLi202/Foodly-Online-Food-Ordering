@@ -1,8 +1,8 @@
-import { inventoryOperationModel } from "./inventoryOperation.model.js";
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
-import { AppError } from "../../utils/AppError.js";
+import { inventoryOperationModel } from "./inventoryoperation.model.js";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
+import { AppError } from "../../utils/apperror.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
-import logError from "../../utils/logError.js";
+import logError from "../../utils/logerror.js";
 
 // ================= Add =================
 export const addInventoryOperation = catchAsyncError(async (req, res) => {

@@ -2,9 +2,9 @@ import express from "express";
 import { addProduct, deleteProduct, getAllProducts, getProductById, updateProduct } from "./product.controller.js";
 import { validation } from "../../middleware/validation.js";
 import { addProductSchema, updateProductSchema } from "./product.validation.js";
-import { uploadSingleFile } from "../../middleware/uploadFiles.js";
+import { uploadSingleFile } from "../../middleware/uploadfiles.js";
 import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
 
 const productRouter = express.Router();
 

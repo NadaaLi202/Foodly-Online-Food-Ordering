@@ -1,4 +1,4 @@
-import { buildReportHtml, fetchCompanyProfile, generatePDF } from './generatePDF';
+import { buildReportHtml, fetchCompanyProfile, generatePDF } from './generatepdf';
 
 const downloadBlob = (blob, filename) => {
     const url = URL.createObjectURL(blob);

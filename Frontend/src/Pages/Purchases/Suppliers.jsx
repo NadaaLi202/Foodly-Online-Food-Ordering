@@ -3,10 +3,10 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Plus, RefreshCw, X, Search, MoreVertical, Pencil, Minus, Eye, Check, Trash2, Home } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
-import { formatCurrency } from '../../utils/currencyFormatter';
-import AddSupplierModal from '../../components/AddSupplierModal';
-import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
-import logError from '../../utils/logError';
+import { formatCurrency } from '../../utils/currencyformatter';
+import AddSupplierModal from '../../components/addsuppliermodal';
+import ConfirmDeleteModal from '../../components/confirmdeletemodal';
+import logError from '../../utils/logerror';
 
 export default function Suppliers() {
     const { t, i18n } = useTranslation();

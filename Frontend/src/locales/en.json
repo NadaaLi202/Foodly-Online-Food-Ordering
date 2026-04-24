@@ -750,7 +750,8 @@
         "amount": "Amount",
         "taxes": "Taxes",
         "description": "Description",
-        "attachments": "Attachments"
+        "attachments": "Attachments",
+        "bank_account": "Bank Account"
     },
     "finance_page": {
         "tile_desc": "Record and manage company expenses",

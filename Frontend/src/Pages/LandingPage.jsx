@@ -26,7 +26,7 @@ import {
     Wallet
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import AnimatedDemo from '../components/AnimatedDemo';
+import AnimatedDemo from '../components/animateddemo';
 
 
 const LandingPage = () => {

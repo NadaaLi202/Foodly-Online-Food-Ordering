@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { paths } from '../../utils/navigationHelpers';
+import { paths } from '../../utils/navigationhelpers';
 
 /**
  * Clickable client name that navigates to Client Details (Customers page with id).

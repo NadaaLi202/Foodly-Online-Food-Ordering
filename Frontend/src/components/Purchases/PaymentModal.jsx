@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, User, DollarSign, FileText, CheckCircle, Clock } from 'lucide-react';
+import { X, Calendar, User, DollarSign, FileText, CheckCircle, Clock, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
-import logError from '../../utils/logError';
+import logError from '../../utils/logerror';
 
 const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
     const { t, i18n } = useTranslation();
@@ -19,6 +19,7 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
         date: new Date().toISOString().split('T')[0],
         operationType: 'spend',
         treasury: '',
+        treasuryType: 'safe',
         amount: '',
         notes: ''
     });
@@ -36,16 +37,18 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
     // Initialize Form Data when Payment changes
     useEffect(() => {
         if (payment) {
+            const type = payment.treasuryType || (payment.treasury === 'main' ? 'safe' : 'bank');
             setFormData({
                 contact: payment.contact?._id || payment.contact || '',
                 date: payment.date ? new Date(payment.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                 operationType: payment.operationType || 'spend',
-                treasury: payment.treasury || '',
+                // Force reset legacy string values to empty so user must select a valid account
+                treasury: (payment.treasury && /^[0-9a-fA-F]{24}$/.test(payment.treasury)) ? payment.treasury : '',
+                treasuryType: type,
                 amount: payment.amount || '',
                 notes: payment.notes || ''
             });
-            // Try to guess payment method
-            // If editing and accounts are fetched, we could do it. For now, it might be out of sync initially if it was bank.
+            setPaymentMethod(type === 'bank' ? 'bank' : 'cash');
         } else {
             // Reset for Add Mode
             setFormData({
@@ -53,6 +56,7 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
                 date: new Date().toISOString().split('T')[0],
                 operationType: 'spend',
                 treasury: '',
+                treasuryType: 'safe',
                 amount: '',
                 notes: ''
             });
@@ -286,7 +290,6 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
                                             </div>
                                         </div>
 
-                                        {/* Treasury/Wallet */}
                                         <div className="space-y-4">
                                             <div className="space-y-2">
                                                 <label className="text-sm font-bold text-slate-700 flex items-center gap-2 px-1">
@@ -296,8 +299,13 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
                                                 <select
                                                     value={paymentMethod}
                                                     onChange={(e) => {
-                                                        setPaymentMethod(e.target.value);
-                                                        setFormData(prev => ({ ...prev, treasury: '' }));
+                                                        const method = e.target.value;
+                                                        setPaymentMethod(method);
+                                                        setFormData(prev => ({ 
+                                                            ...prev, 
+                                                            treasury: '', 
+                                                            treasuryType: method === 'cash' ? 'safe' : 'bank' 
+                                                        }));
                                                     }}
                                                     className="w-full h-12 bg-slate-50/50 border border-slate-200 rounded-2xl px-4 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all appearance-none cursor-pointer"
                                                 >
@@ -311,16 +319,28 @@ const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
                                                     <DollarSign size={16} className="text-slate-400" />
                                                     {paymentMethod === 'cash' ? t('finance.safe') : t('finance.bank_account')}
                                                 </label>
-                                                <select
-                                                    name="treasury"
-                                                    value={formData.treasury || ''}
-                                                    onChange={handleInputChange}
-                                                    className={`w-full h-12 bg-slate-50/50 border ${errors.treasury ? 'border-red-400' : 'border-slate-200'} rounded-2xl px-4 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all appearance-none cursor-pointer`}
-                                                >
-                                                    <option value="">{t('sales.payments.select_treasury') || 'Select...'}</option>
-                                                    <option value="main">{t('sales.payments.main_treasury')}</option>
-                                                    <option value="bank">{t('sales.payments.main_bank_account')}</option>
-                                                </select>
+                                                <div className="relative group">
+                                                    <select
+                                                        name="treasury"
+                                                        value={formData.treasury || ''}
+                                                        onChange={handleInputChange}
+                                                        className={`w-full h-12 bg-slate-50/50 border ${errors.treasury ? 'border-red-400' : 'border-slate-200'} rounded-2xl px-4 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all appearance-none cursor-pointer`}
+                                                    >
+                                                        <option value="">{t('sales.payments.select_treasury') || 'Select...'}</option>
+                                                        {paymentMethod === 'cash' ? (
+                                                            safes.map(s => (
+                                                                <option key={s._id} value={s._id}>{s.name}</option>
+                                                            ))
+                                                        ) : (
+                                                            bankAccounts.map(b => (
+                                                                <option key={b._id} value={b._id}>{b.name}</option>
+                                                            ))
+                                                        )}
+                                                    </select>
+                                                    <div className={`absolute top-1/2 -translate-y-1/2 ${isRtl ? 'left-4' : 'right-4'} pointer-events-none text-slate-400`}>
+                                                        <ChevronDown size={16} />
+                                                    </div>
+                                                </div>
                                                 {errors.treasury && <p className="text-red-500 text-[10px] font-bold uppercase tracking-wider mt-1 px-1">{errors.treasury}</p>}
                                             </div>
                                         </div>

@@ -11,8 +11,8 @@ import Payment from "./payments.model.js";
 import { validation } from "../../middleware/validation.js";
 import { paymentSchema } from "./payments.validation.js";
 import { protectedRoutes, requirePermission, requireResolvedPermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
-import { AppError } from "../../utils/AppError.js";
+import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
+import { AppError } from "../../utils/apperror.js";
 
 const router = express.Router();
 

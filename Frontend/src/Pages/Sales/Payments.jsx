@@ -5,13 +5,13 @@ import { useTranslation } from 'react-i18next';
 import { QRCodeCanvas } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import { formatCurrency } from '../../utils/currencyFormatter';
-import ClientLink from '../../components/navigation/ClientLink';
-import TreasuryLink from '../../components/navigation/TreasuryLink';
-import OperationTypeLink from '../../components/navigation/OperationTypeLink';
-import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
-import { paths } from '../../utils/navigationHelpers';
-import logError from '../../utils/logError';
+import { formatCurrency } from '../../utils/currencyformatter';
+import ClientLink from '../../components/navigation/clientlink';
+import TreasuryLink from '../../components/navigation/treasurylink';
+import OperationTypeLink from '../../components/navigation/operationtypelink';
+import ConfirmDeleteModal from '../../components/confirmdeletemodal';
+import { paths } from '../../utils/navigationhelpers';
+import logError from '../../utils/logerror';
 
 export default function Payments() {
     const { t, i18n } = useTranslation();
@@ -45,6 +45,7 @@ export default function Payments() {
         contact: '',
         operationType: 'receive',
         treasury: '',
+        treasuryType: 'safe',
         amount: '',
         notes: ''
     });
@@ -148,6 +149,7 @@ export default function Payments() {
                 contact: formData.contact || undefined,
                 operationType: formData.operationType || 'receive',
                 treasury: formData.treasury,
+                treasuryType: formData.treasuryType,
                 amount: parseFloat(formData.amount),
                 notes: formData.notes || ''
             };
@@ -172,6 +174,7 @@ export default function Payments() {
             contact: '',
             operationType: 'receive',
             treasury: '',
+            treasuryType: 'safe',
             amount: '',
             notes: ''
         });
@@ -201,14 +204,18 @@ export default function Payments() {
             const res = await api.get(`/payments/${payment._id}`);
             const p = res.data.payment;
             if (p) {
+                const type = p.treasuryType || (p.treasury === 'main' ? 'safe' : 'bank');
                 setFormData({
                     date: p.date ? new Date(p.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                     contact: p.contact?._id || p.contact || '',
                     operationType: p.operationType || 'receive',
-                    treasury: p.treasury || '',
+                    // Force reset legacy string values to empty so user must select a valid account
+                    treasury: (p.treasury && /^[0-9a-fA-F]{24}$/.test(p.treasury)) ? p.treasury : '',
+                    treasuryType: type,
                     amount: p.amount ?? '',
                     notes: p.notes || ''
                 });
+                setPaymentMethod(type === 'bank' ? 'bank' : 'cash');
                 setEditingPayment(payment);
                 setViewingPayment(null);
                 setIsModalOpen(true);
@@ -502,8 +509,9 @@ export default function Payments() {
                                         <select
                                             value={paymentMethod}
                                             onChange={(e) => {
-                                                setPaymentMethod(e.target.value);
-                                                setFormData(f => ({ ...f, treasury: '' }));
+                                                const method = e.target.value;
+                                                setPaymentMethod(method);
+                                                setFormData(f => ({ ...f, treasury: '', treasuryType: method === 'cash' ? 'safe' : 'bank' }));
                                             }}
                                             className="w-full border-2 border-gray-100 rounded-lg px-3 py-2.5 text-sm font-bold bg-white focus:border-indigo-500"
                                         >
@@ -517,8 +525,11 @@ export default function Payments() {
                                         </label>
                                         <select name="treasury" value={formData.treasury || ''} onChange={handleInputChange} className={`w-full border-2 rounded-lg px-3 py-2.5 text-sm font-bold bg-white ${errors.treasury ? 'border-red-500' : 'border-gray-100 focus:border-indigo-500'}`}>
                                             <option value="">{t('sales.payments.select_treasury') || 'Select...'}</option>
-                                            <option value="main">{t('sales.payments.main_treasury')}</option>
-                                            <option value="bank">{t('sales.payments.main_bank_account')}</option>
+                                            {paymentMethod === 'cash' ? (
+                                                safes.map(s => <option key={s._id} value={s._id}>{s.name}</option>)
+                                            ) : (
+                                                bankAccounts.map(b => <option key={b._id} value={b._id}>{b.name}</option>)
+                                            )}
                                         </select>
                                         {errors.treasury && <p className="text-red-500 text-xs mt-1">{errors.treasury}</p>}
                                     </div>

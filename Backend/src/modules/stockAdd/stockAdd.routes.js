@@ -10,19 +10,19 @@ import {
     getStockAddItemById,
     updateStockAddItem,
     deleteStockAddItem
-} from "./stockAdd.controller.js";
+} from "./stockadd.controller.js";
 
 import {
     addStockAddSchema,
     updateStockAddSchema,
     addStockAddItemSchema,
     updateStockAddItemSchema
-} from "./stockAdd.validation.js";
+} from "./stockadd.validation.js";
 
 import { validation } from "../../middleware/validation.js";
-import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadFiles.js";
+import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadfiles.js";
 import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
 
 const router = express.Router();
 

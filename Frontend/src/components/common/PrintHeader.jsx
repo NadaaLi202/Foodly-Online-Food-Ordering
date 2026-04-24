@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/authcontext';
 import { BASE_URL } from '../../services/api';
 
 const normalizeParts = (parts) => parts
@@ -76,7 +76,7 @@ const PrintHeader = ({ title, rightContent, isRTL, showLogo = true, companyInfo 
 
                 {!showLogo ? (
                     <div className="company-info space-y-1 text-xs font-medium text-gray-700 print:text-black leading-6 break-words">
-                        <p className="text-sm font-black text-gray-900 print:text-black">
+                        <p className="text-sm font-black text-gray-900 print:text-black whitespace-pre-line">
                             <strong>{'\u0627\u0633\u0645 \u0627\u0644\u0634\u0631\u0643\u0629:'}</strong> {resolvedCompany.name}
                         </p>
                         <p>
@@ -90,7 +90,7 @@ const PrintHeader = ({ title, rightContent, isRTL, showLogo = true, companyInfo 
                         </p>
                     </div>
                 ) : (
-                    <h1 className="text-xl font-black text-gray-900 tracking-tight print:text-black">
+                    <h1 className="text-xl font-black text-gray-900 tracking-tight print:text-black whitespace-pre-line">
                         {resolvedCompany.name}
                     </h1>
                 )}

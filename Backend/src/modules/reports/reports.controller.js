@@ -1,6 +1,7 @@
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import mongoose from "mongoose";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
 import * as reportsService from "./reports.service.js";
-import { generatePDF } from "../../utils/generatePDF.js";
+import { generatePDF } from "../../utils/generatepdf.js";
 
 const buildPrintHtml = ({ title, tableHeaders = [], tableRows = [], companyInfo = {}, footer = true }) => {
     const companyName = companyInfo.name || "";
@@ -349,9 +350,56 @@ export const getIncomeStatement = catchAsyncError(async (req, res) => {
 });
 
 export const getGeneralLedger = catchAsyncError(async (req, res) => {
-    const { startDate, endDate, branch, accountId, accountCode } = req.query;
+    const { startDate, endDate, branch, accountId, accountCode, journal_account_id } = req.query;
     const companyFilter = req.companyFilter || {};
-    const filters = { branch, accountId, accountCode };
+    
+    let targetAccountId = accountId || journal_account_id;
+
+    // Normalize companyFilter
+    const mc = { ...companyFilter };
+    if (mc.companyId && typeof mc.companyId === 'string') {
+        try { mc.companyId = new mongoose.Types.ObjectId(mc.companyId); } catch(e){}
+    }
+
+    // STEP 2 — Fix GL query resolution for Bank Accounts
+    if (targetAccountId && mongoose.Types.ObjectId.isValid(targetAccountId)) {
+        const { bankAccountModel } = await import("../bankaccounts/bankaccount.model.js");
+        const bankAccount = await bankAccountModel.findOne({ _id: targetAccountId, companyId: mc.companyId }).lean();
+        
+        if (bankAccount) {
+            console.log(`[GL DEBUG] Resolving BankAccount "${bankAccount.name}" for report`);
+            if (bankAccount.journalAccount) {
+                const journalAccId = (bankAccount.journalAccount._id || bankAccount.journalAccount).toString();
+                
+                // User requested log
+                console.log(`[GL DEBUG] Using journal account ID: ${journalAccId} for bank account ${bankAccount.name}`);
+                
+                targetAccountId = journalAccId;
+            } else {
+                console.warn(`[GL] Bank account "${bankAccount.name}" has no journalAccount linked. Falling back to default code 1221.`);
+                const { chartOfAccountsModel } = await import("../chartofaccounts/chartofaccounts.model.js");
+                const defaultBankAcc = await chartOfAccountsModel.findOne({ companyId: mc.companyId, code: "1221" }).lean();
+                if (defaultBankAcc) {
+                    targetAccountId = defaultBankAcc._id.toString();
+                    console.log(`[GL DEBUG] Resolved to default chart account ID: ${targetAccountId}`);
+                }
+            }
+        }
+    }
+
+    const filters = { branch, accountId: targetAccountId, accountCode };
+
+    try {
+        const { dailyRestrictionModel } = await import("../dailyrestrictions/dailyrestrictions.model.js");
+        const count = await dailyRestrictionModel.countDocuments({
+            ...mc,
+            "entries.account": targetAccountId
+        });
+        console.log(`[GL DEBUG] Daily restriction entries found for this account: ${count}`);
+    } catch (err) {
+        console.error(`[GL DEBUG] Error fetching entry count:`, err.message);
+    }
+
     const result = await reportsService.getGeneralLedger(startDate, endDate, companyFilter, filters);
     res.status(200).json(result);
 });

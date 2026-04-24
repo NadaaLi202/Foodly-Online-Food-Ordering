@@ -2,16 +2,16 @@ import Payment from "./payments.model.js";
 import Transaction from "../transaction/transaction.model.js";
 import Contact from "../contacts/contacts.model.js";
 import { companyModel } from "../companies/company.model.js";
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
-import { AppError } from "../../utils/AppError.js";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
+import { AppError } from "../../utils/apperror.js";
 import QRCode from "qrcode";
 import PDFDocument from "pdfkit";
 import path from "path";
 import { fileURLToPath } from "url";
 import { processArabic } from "../../utils/arabic.js";
 import { createPaymentJournalEntry } from "../transaction/transaction.accounting.js";
-import FinancialReceipt from "../FinancialTransactions/models/financialReceipt.model.js";
-import { safeModel } from "../Safes/safe.model.js";
+import { createTransactionFromPayment, deleteTransactionFromPayment } from "../financialtransactions/services/accountingtransaction.service.js";
+import { safeModel } from "../safes/safe.model.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,6 +46,23 @@ const addPayment = (module) =>
             }
         }
 
+        const { treasury: treasuryId, treasuryType } = req.body;
+        if (!treasuryId || !mongoose.Types.ObjectId.isValid(treasuryId)) {
+            return next(new AppError(`Invalid treasury ID: ${treasuryId}. It must be a valid ObjectId, not a string like 'main' or 'bank'.`, 400));
+        }
+
+        if (treasuryType === 'bank') {
+            const BankAccount = (await import("../bankaccounts/bankaccount.model.js")).bankAccountModel;
+            const bankExists = await BankAccount.exists({ _id: treasuryId, ...req.companyFilter });
+            if (!bankExists) return next(new AppError("Bank account not found", 404));
+        } else if (treasuryType === 'safe') {
+            const Safe = (await import("../safes/safe.model.js")).safeModel;
+            const safeExists = await Safe.exists({ _id: treasuryId, ...req.companyFilter });
+            if (!safeExists) return next(new AppError("Safe not found", 404));
+        } else {
+            return next(new AppError("Invalid treasuryType. Must be 'bank' or 'safe'", 400));
+        }
+
         const paymentData = {
             ...req.body,
             module,
@@ -70,48 +87,8 @@ const addPayment = (module) =>
                 const companyId = transaction.companyId?.toString() || req.user?.companyId?.toString();
                 createPaymentJournalEntry(payment, transaction, companyId).catch(() => { });
 
-                // ============= NEW TRANSACTION CREATION LOGIC =============
-                if (transaction.status === 'paid') {
-                    const existingReceipt = await FinancialReceipt.findOne({
-                        companyId: transaction.companyId,
-                        description: { $regex: new RegExp(transaction.transactionNumber, 'i') }
-                    });
-
-                    if (!existingReceipt) {
-                        let mainSafe = await safeModel.findOne({ companyId: transaction.companyId, isDefault: true });
-                        if (!mainSafe) {
-                            mainSafe = await safeModel.findOne({ companyId: transaction.companyId }).sort({ createdAt: 1 });
-                        }
-
-                        if (mainSafe) {
-                            const count = await FinancialReceipt.countDocuments({ companyId: transaction.companyId });
-                            const now = new Date();
-                            const code = `${String(now.getFullYear()).slice(-2)}-${String(now.getMonth() + 1)}-${String(count + 1).padStart(6, '0')}`;
-
-                            let clientName = '';
-                            if (payment.contact) {
-                                const contactDoc = await Contact.findById(payment.contact).select('name').lean();
-                                clientName = contactDoc?.name || '';
-                            }
-
-                            await FinancialReceipt.create({
-                                code: code,
-                                date: new Date(),
-                                account: mainSafe._id,
-                                accountModel: 'Safe',
-                                externalAccount: `عملية دفع عميل #${clientName}`,
-                                amount: transaction.totalAmount,
-                                description: `سداد فاتورة ${transaction.transactionNumber}`,
-                                companyId: transaction.companyId,
-                                createdBy: req.user?._id
-                            });
-
-                            mainSafe.balance += transaction.totalAmount;
-                            await mainSafe.save();
-                        }
-                    }
-                }
-                // ========================================================
+                // Auto-sync to Finance Transactions
+                createTransactionFromPayment(payment, transaction).catch(() => { });
             }
         }
 
@@ -216,8 +193,22 @@ const getPaymentById = catchAsyncError(async (req, res, next) => {
 const updatePayment = catchAsyncError(async (req, res, next) => {
     const payment = await Payment.findOne({ _id: req.params.id, ...req.companyFilter });
 
-    if (!payment || payment.deletedAt) {
-        return next(new AppError("غير موجود", 404));
+    if (req.body.treasury) {
+        const { treasury: treasuryId, treasuryType } = req.body;
+        if (!mongoose.Types.ObjectId.isValid(treasuryId)) {
+            return next(new AppError(`Invalid treasury ID: ${treasuryId}. Must be a valid ObjectId.`, 400));
+        }
+
+        const type = treasuryType || payment.treasuryType;
+        if (type === 'bank') {
+            const BankAccount = (await import("../bankaccounts/bankaccount.model.js")).bankAccountModel;
+            const bankExists = await BankAccount.exists({ _id: treasuryId, ...req.companyFilter });
+            if (!bankExists) return next(new AppError("Bank account not found", 404));
+        } else if (type === 'safe') {
+            const Safe = (await import("../safes/safe.model.js")).safeModel;
+            const safeExists = await Safe.exists({ _id: treasuryId, ...req.companyFilter });
+            if (!safeExists) return next(new AppError("Safe not found", 404));
+        }
     }
 
     Object.assign(payment, req.body);
@@ -231,6 +222,12 @@ const updatePayment = catchAsyncError(async (req, res, next) => {
     payment.lastModifiedBy = req.user?._id;
 
     await payment.save();
+
+    if (payment.invoice) {
+        const transaction = await Transaction.findById(payment.invoice).lean();
+        if (transaction) createTransactionFromPayment(payment, transaction).catch(() => { });
+    }
+
     await payment.populate('contact', 'name email phone');
     await payment.populate('invoice', 'transactionNumber totalAmount issueDate');
 
@@ -257,6 +254,7 @@ const deletePayment = catchAsyncError(async (req, res, next) => {
     }
 
     await Payment.findByIdAndDelete(payment._id);
+    deleteTransactionFromPayment(payment._id).catch(() => { });
 
     res.json({
         message: "تم الحذف بنجاح",
@@ -350,10 +348,23 @@ const downloadPaymentPDF = catchAsyncError(async (req, res, next) => {
     doc.text(`${(payment.amount ?? 0).toFixed(2)} ${processArabic(currencySymbol)}`, rightCol, y);
     y += 18;
     doc.text(processArabic("نوع العملية"), 40, y, { width: pageWidth - 100, align: "right" });
+    const treasuryName = await (async () => {
+        if (!payment.treasury) return "—";
+        if (payment.treasuryType === 'bank') {
+            const BankAccount = (await import("../bankaccounts/bankaccount.model.js")).bankAccountModel;
+            const bank = await BankAccount.findById(payment.treasury).select('name').lean();
+            return bank?.name || "حساب بنكي";
+        } else {
+            const Safe = (await import("../safes/safe.model.js")).safeModel;
+            const safe = await Safe.findById(payment.treasury).select('name').lean();
+            return safe?.name || "خزينة";
+        }
+    })();
+
     doc.text(processArabic(payment.operationType === 'receive' ? "استلام" : "صرف"), rightCol, y);
     y += 18;
-    doc.text(processArabic("الخزينة"), 40, y, { width: pageWidth - 100, align: "right" });
-    doc.text(processArabic(payment.treasury === 'main' ? "الخزنة الرئيسية" : "الحساب البنكي"), rightCol, y);
+    doc.text(processArabic("المصدر"), 40, y, { width: pageWidth - 100, align: "right" });
+    doc.text(processArabic(treasuryName), rightCol, y);
     y += 18;
     if (payment.invoice?.transactionNumber) {
         doc.text(processArabic("الفاتورة المرتبطة"), 40, y, { width: pageWidth - 100, align: "right" });

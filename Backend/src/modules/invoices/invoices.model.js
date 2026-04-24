@@ -80,6 +80,16 @@ const invoiceSchema = new mongoose.Schema({
         trim: true
     },
 
+    companySnapshot: {
+        type: Object,
+        default: {}
+    },
+
+    contactSnapshot: {
+        type: Object,
+        default: {}
+    },
+
     warehouse: {
         type: String,
         trim: true,

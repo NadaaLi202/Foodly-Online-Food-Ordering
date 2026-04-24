@@ -1,6 +1,6 @@
-import { partnerListModel } from "./listOfPartners.model.js";
-import { AppError } from "../../utils/AppError.js";
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { partnerListModel } from "./listofpartners.model.js";
+import { AppError } from "../../utils/apperror.js";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
 
 const addPartnerList = catchAsyncError(async (req, res, next) => {
     const partnerList = new partnerListModel({

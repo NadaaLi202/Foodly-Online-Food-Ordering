@@ -4,6 +4,7 @@ import path from "path";
 import readline from "readline";
 import archiver from "archiver";
 import unzipper from "unzipper";
+import { Readable } from "stream";
 import { systemBackupModel } from "./backup.model.js";
 import { userModel } from "../modules/user/user.model.js";
 import { roleModel } from "../modules/role/role.model.js";
@@ -18,32 +19,32 @@ import { returnModel } from "../modules/returns/returns.model.js";
 import { quoteModel } from "../modules/quotes/quotes.model.js";
 import { warehouseModel } from "../modules/warehouse/warehouse.model.js";
 import { categoryModel } from "../modules/category/category.model.js";
-import { safeModel } from "../modules/Safes/safe.model.js";
+import { safeModel } from "../modules/safes/safe.model.js";
 import Transaction from "../modules/transaction/transaction.model.js";
 import { operationModel } from "../modules/operations/operations.model.js";
-import { inventoryOperationModel } from "../modules/inventoryOperation/inventoryOperation.model.js";
-import { inventoryExchangeModel } from "../modules/inventoryExchange/inventoryExchange.model.js";
-import { transferProcessModel } from "../modules/transferProcess/transferProcess.model.js";
-import { stockAddModel } from "../modules/stockAdd/stockAdd.model.js";
-import { stockAddItemModel } from "../modules/stockAdd/stockAddItem.model.js";
-import { stockLogModel } from "../modules/stockLogs/stockLog.model.js";
+import { inventoryOperationModel } from "../modules/inventoryoperation/inventoryoperation.model.js";
+import { inventoryExchangeModel } from "../modules/inventoryexchange/inventoryexchange.model.js";
+import { transferProcessModel } from "../modules/transferprocess/transferprocess.model.js";
+import { stockAddModel } from "../modules/stockadd/stockadd.model.js";
+import { stockAddItemModel } from "../modules/stockadd/stockadditem.model.js";
+import { stockLogModel } from "../modules/stocklogs/stocklog.model.js";
 import { requisitionModel } from "../modules/permissions/requisition.model.js";
 import { branchModel } from "../modules/branch/branch.model.js";
-import { chartOfAccountsModel } from "../modules/chartOfAccounts/chartOfAccounts.model.js";
-import { costCenterModel } from "../modules/costCenters/costCenter.model.js";
-import { expenseModel } from "../modules/Expenses/expense.model.js";
-import { bankAccountModel } from "../modules/BankAccounts/bankAccount.model.js";
+import { chartOfAccountsModel } from "../modules/chartofaccounts/chartofaccounts.model.js";
+import { costCenterModel } from "../modules/costcenters/costcenter.model.js";
+import { expenseModel } from "../modules/expenses/expense.model.js";
+import { bankAccountModel } from "../modules/bankaccounts/bankaccount.model.js";
 import { taxesModel } from "../modules/taxes/taxes.model.js";
-import FinancialReceipt from "../modules/FinancialTransactions/models/financialReceipt.model.js";
-import FinancialDisbursement from "../modules/FinancialTransactions/models/financialDisbursement.model.js";
-import FinancialTransfer from "../modules/FinancialTransactions/models/financialTransfer.model.js";
-import { apiClientModel } from "../modules/apiClient/apiClient.model.js";
+import FinancialReceipt from "../modules/financialtransactions/models/financialreceipt.model.js";
+import FinancialDisbursement from "../modules/financialtransactions/models/financialdisbursement.model.js";
+import FinancialTransfer from "../modules/financialtransactions/models/financialtransfer.model.js";
+import { apiClientModel } from "../modules/apiclient/apiclient.model.js";
 import { activityModel } from "../modules/activity/activity.model.js";
 import { codingModel } from "../modules/coding/coding.model.js";
-import { partnerListModel } from "../modules/listOfPartners/listOfPartners.model.js";
-import { dailyRestrictionModel } from "../modules/dailyRestrictions/dailyRestrictions.model.js";
+import { partnerListModel } from "../modules/listofpartners/listofpartners.model.js";
+import { dailyRestrictionModel } from "../modules/dailyrestrictions/dailyrestrictions.model.js";
 import { zatcaModel } from "../modules/zatca/zatca.model.js";
-import logErrorGlobal from "../utils/logError.js";
+import logErrorGlobal from "../utils/logerror.js";
 
 // Dynamic registry: add new models here to include in backups
 const COLLECTION_REGISTRY = {
@@ -113,6 +114,49 @@ const log = (message, meta = {}) => {
 const logError = (message, err) => {
     const timestamp = new Date().toISOString();
     logErrorGlobal(`[Backup ERROR] ${timestamp} - ${message}`, err?.message || err);
+};
+
+/**
+ * Wipe all company data before a restore.
+ * Skips superAdmin users to prevent locking out the system admin.
+ * @param {string|null} wipeCompanyId  - scope wipe to this company; null = wipe everything
+ * @param {string}      context        - label for log messages
+ */
+const wipeCompanyData = async (wipeCompanyId, context = "Restore") => {
+    const PROTECTED_ROLES = ["superAdmin", "super_admin", "company"];
+    console.log(`[Backup Wipe] wipe requested for companyId: ${wipeCompanyId} (Context: ${context})`);
+
+    // Strict check: Wipe must be scoped to a specific company
+    if (!wipeCompanyId) {
+        logError(`${context} wipe aborted: wipeCompanyId is missing. Global wipe is prohibited.`);
+        return;
+    }
+
+    log(`${context} wipe started`, { wipeCompanyId });
+    for (const [key, Model] of Object.entries(COLLECTION_REGISTRY)) {
+        try {
+            // Protect core structural collections (Tenants and Users)
+            // We never wipe these; we only merge/upsert data into them during restore.
+            if (Model.modelName === "Company" || Model.modelName === "User") {
+                log(`Skipping wipe for collection ${key} (protected)`);
+                continue;
+            }
+
+            let wipeQuery = {};
+
+            if (Model?.schema?.path?.("companyId")) {
+                wipeQuery = { companyId: wipeCompanyId };
+            } else {
+                // Skip collections with no company scope (like system settings or global roles)
+                continue;
+            }
+
+            await Model.deleteMany(wipeQuery);
+            log(`Wiped collection ${key} (company: ${wipeCompanyId})`);
+        } catch (err) {
+            logError(`Failed to wipe collection: ${key}`, err);
+        }
+    }
 };
 
 const formatTimestampForFilename = (date) => {
@@ -273,7 +317,13 @@ export const runSystemBackup = async (options = {}) => {
             storage: uploadResult.uploaded ? uploadResult.storage : STORAGE_TARGET,
             status: "success",
         });
-        await backup.save();
+        try {
+            await backup.save();
+            log("Backup record saved successfully to database", { backupId: backup._id });
+        } catch (err) {
+            logError("Failed to save backup record to database", err);
+            // We don't throw here - the file is already created, but we want to know it failed.
+        }
 
         const duration = ((Date.now() - startTime) / 1000).toFixed(2);
         log("Backup completed", {
@@ -371,22 +421,15 @@ export const restoreFromBackup = async (backupId, options = {}) => {
             throw new Error("Backup file not found for restore");
         }
         if (options.wipe === true) {
-            log("Restore wipe requested", { backupId });
-            for (const [key, Model] of Object.entries(COLLECTION_REGISTRY)) {
-                try {
-                    await Model.deleteMany({});
-                    log(`Wiped collection ${key}`);
-                } catch (err) {
-                    logError(`Failed to wipe collection: ${key}`, err);
-                }
-            }
+            const wipeCompanyId = options.companyId || backup.backupForCompanyId || null;
+            await wipeCompanyData(wipeCompanyId, "restoreFromBackup");
         }
 
         // Rebuild path from filename only — the stored absolute path may be from a different machine.
         let resolvedFilePath = backup.filePath || null;
         if (resolvedFilePath && backup.storage?.type !== "s3") {
             const filename = path.basename(resolvedFilePath);
-            resolvedFilePath = path.join(process.cwd(), "backups", "system", filename);
+            resolvedFilePath = path.join(BACKUP_DIR, filename);
         }
 
         // Check the file actually exists before attempting to open it.
@@ -404,10 +447,25 @@ export const restoreFromBackup = async (backupId, options = {}) => {
         const buffers = new Map();
         let totalRestored = 0;
 
+        // Pre-clean: delete all company-scoped data before inserting from backup
+        // This prevents duplicate key errors. Skip User and Company collections.
+        const targetCompanyId = options.companyId || backup.backupForCompanyId || null;
+        if (targetCompanyId) {
+            log("Pre-clean: deleting company data before restore", { targetCompanyId });
+            for (const [key, Model] of Object.entries(COLLECTION_REGISTRY)) {
+                if (Model.modelName === "Company" || Model.modelName === "User") continue;
+                if (Model?.schema?.path?.("companyId")) {
+                    await Model.collection.deleteMany({ companyId: new mongoose.Types.ObjectId(targetCompanyId) });
+                    log(`Pre-clean: cleared ${key}`);
+                }
+            }
+        }
+
         const flushBuffer = async (collection, Model) => {
             const ops = buffers.get(collection);
             if (!ops || ops.length === 0) return;
-            await Model.bulkWrite(ops);
+            // Use raw driver to bypass Mongoose validation (Bug 2 fixed)
+            await Model.collection.bulkWrite(ops);
             totalRestored += ops.length;
             log(`Restored ${collection}: ${ops.length} documents`);
             buffers.set(collection, []);
@@ -421,6 +479,19 @@ export const restoreFromBackup = async (backupId, options = {}) => {
             const doc = payload.doc;
             const Model = COLLECTION_REGISTRY[collection];
             if (!Model || !doc) continue;
+
+            // Scoped Restore: only filter by company if the backup itself was company-scoped.
+            // System backups (backupForCompanyId=null) restore ALL documents with no filter.
+            const backupIsCompanyScoped = !!backup.backupForCompanyId;
+            if (backupIsCompanyScoped) {
+                const targetCompanyId = backup.backupForCompanyId;
+                if (doc.companyId && String(doc.companyId) !== String(targetCompanyId)) {
+                    continue; // Skip data from other companies
+                }
+                if (Model.modelName === "Company" && String(doc._id) !== String(targetCompanyId)) {
+                    continue; // Skip other tenants
+                }
+            }
             const id = doc._id ? new mongoose.Types.ObjectId(doc._id) : new mongoose.Types.ObjectId();
             const { _id, __v, ...rest } = doc;
             const op = {
@@ -442,7 +513,8 @@ export const restoreFromBackup = async (backupId, options = {}) => {
             if (ops.length === 0) continue;
             const Model = COLLECTION_REGISTRY[collection];
             if (!Model) continue;
-            await Model.bulkWrite(ops);
+            // Use raw driver to bypass Mongoose validation (Bug 2 fixed)
+            await Model.collection.bulkWrite(ops);
             totalRestored += ops.length;
             log(`Restored ${collection}: ${ops.length} documents`);
         }
@@ -453,6 +525,137 @@ export const restoreFromBackup = async (backupId, options = {}) => {
         return { totalRestored, duration: parseFloat(duration) };
     } catch (err) {
         logError("Restore failed", err);
+        throw err;
+    }
+};
+
+
+/**
+ * Peek into a JSONL stream to find the first document with a companyId.
+ */
+const findCompanyIdInStream = async (inputStream) => {
+    const rl = readline.createInterface({ input: inputStream, crlfDelay: Infinity });
+    for await (const line of rl) {
+        if (!line || !line.trim()) continue;
+        try {
+            const payload = JSON.parse(line);
+            if (payload._type === "doc" && payload.doc?.companyId) {
+                return String(payload.doc.companyId);
+            }
+            if (payload._type === "doc" && payload.collection === "companies" && payload.doc?._id) {
+                return String(payload.doc._id);
+            }
+        } catch { continue; }
+    }
+    return null;
+};
+
+/**
+ * Restore from an uploaded JSONL buffer (no DB record required).
+ * Used by the file-upload restore endpoint.
+ * @param {Buffer} inputBuffer - JSONL file buffer
+ * @param {Object} options - { wipe, companyId }
+ */
+export const restoreFromStream = async (inputBuffer, options = {}) => {
+    const startTime = Date.now();
+    log("Restore-from-stream started", { wipe: options.wipe });
+
+    try {
+        let wipeCompanyId = options.companyId || null;
+
+        // If companyId is missing (e.g. superAdmin upload without param), detect it from file
+        if (options.wipe === true && !wipeCompanyId && inputBuffer) {
+            log("Auto-detecting companyId from upload...");
+            const tempStream = Readable.from(inputBuffer);
+            wipeCompanyId = await findCompanyIdInStream(tempStream);
+            log("Auto-detected companyId", { wipeCompanyId });
+        }
+
+        if (options.wipe === true) {
+            await wipeCompanyData(wipeCompanyId, "restoreFromStream");
+        }
+
+        const inputStream = Readable.from(inputBuffer);
+        const rl = readline.createInterface({ input: inputStream, crlfDelay: Infinity });
+        const batchSize = 500;
+        const buffers = new Map();
+        let totalRestored = 0;
+
+        // Pre-clean: delete all company-scoped data before inserting from backup
+        // This prevents duplicate key errors. Skip User and Company collections.
+        const targetCompanyId = options.companyId || null;
+        if (targetCompanyId) {
+            log("Pre-clean: deleting company data before restore", { targetCompanyId });
+            for (const [key, Model] of Object.entries(COLLECTION_REGISTRY)) {
+                if (Model.modelName === "Company" || Model.modelName === "User") continue;
+                if (Model?.schema?.path?.("companyId")) {
+                    await Model.collection.deleteMany({ companyId: new mongoose.Types.ObjectId(targetCompanyId) });
+                    log(`Pre-clean: cleared ${key}`);
+                }
+            }
+        }
+
+        const flushBuffer = async (collection, Model) => {
+            const ops = buffers.get(collection);
+            if (!ops || ops.length === 0) return;
+            // Use raw driver to bypass Mongoose validation (Bug 2 fixed)
+            await Model.collection.bulkWrite(ops);
+            totalRestored += ops.length;
+            log(`Restored ${collection}: ${ops.length} documents`);
+            buffers.set(collection, []);
+        };
+
+        for await (const line of rl) {
+            if (!line || !line.trim()) continue;
+            let payload;
+            try { payload = JSON.parse(line); } catch { continue; }
+            if (payload._type !== "doc") continue;
+            const { collection, doc } = payload;
+            const Model = COLLECTION_REGISTRY[collection];
+            if (!Model || !doc) continue;
+
+            // Scoped Restore: Only insert records for the target company (from uploaded file)
+            const targetCompanyId = options.companyId || null;
+            if (targetCompanyId) {
+                if (doc.companyId && String(doc.companyId) !== String(targetCompanyId)) {
+                    continue; // Skip data from other companies
+                }
+                if (Model.modelName === "Company" && String(doc._id) !== String(targetCompanyId)) {
+                    continue; // Skip other tenants
+                }
+            }
+            const id = doc._id ? new mongoose.Types.ObjectId(doc._id) : new mongoose.Types.ObjectId();
+            const { _id, __v, ...rest } = doc;
+            const op = {
+                replaceOne: {
+                    filter: { _id: id },
+                    replacement: { _id: id, ...rest },
+                    upsert: true,
+                },
+            };
+            if (!buffers.has(collection)) buffers.set(collection, []);
+            const arr = buffers.get(collection);
+            arr.push(op);
+            if (arr.length >= batchSize) {
+                await flushBuffer(collection, Model);
+            }
+        }
+
+        for (const [collection, ops] of buffers.entries()) {
+            if (ops.length === 0) continue;
+            const Model = COLLECTION_REGISTRY[collection];
+            if (!Model) continue;
+            // Use raw driver to bypass Mongoose validation (Bug 2 fixed)
+            await Model.collection.bulkWrite(ops);
+            totalRestored += ops.length;
+            log(`Restored ${collection}: ${ops.length} documents`);
+        }
+
+        const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+        log("Restore-from-stream completed", { totalRestored, durationSeconds: duration });
+        return { totalRestored, duration: parseFloat(duration) };
+    } catch (err) {
+        logError("Restore-from-stream failed", err);
         throw err;
     }
 };
@@ -468,6 +671,8 @@ export const listBackups = async (limit = 20, companyId = null) => {
         .limit(limit)
         .select("backupDate totalRecords createdAt filePath fileSizeBytes storage format status backupName backupNameJsonl backupNameZip jsonlPath zipPath jsonlSizeBytes zipSizeBytes backupForCompanyId")
         .lean();
+
+    log(`Found ${backups.length} backups in database`, { companyId });
     // Enrich each record with a fileExists flag based on the resolved local path.
     return backups.map(b => {
         let fileExists = false;
@@ -475,7 +680,7 @@ export const listBackups = async (limit = 20, companyId = null) => {
             fileExists = true; // S3 files are assumed available
         } else if (b.filePath) {
             const filename = path.basename(b.filePath);
-            const localPath = path.join(process.cwd(), "backups", "system", filename);
+            const localPath = path.join(BACKUP_DIR, filename);
             fileExists = fs.existsSync(localPath);
         }
         return { ...b, fileExists };

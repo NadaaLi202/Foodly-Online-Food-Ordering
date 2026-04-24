@@ -7,8 +7,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '.env') });
 
-import { dailyRestrictionModel } from './src/modules/dailyRestrictions/dailyRestrictions.model.js';
-import { chartOfAccountsModel } from './src/modules/chartOfAccounts/chartOfAccounts.model.js';
+import { dailyRestrictionModel } from './src/modules/dailyrestrictions/dailyrestrictions.model.js';
+import { chartOfAccountsModel } from './src/modules/chartofaccounts/chartofaccounts.model.js';
 
 async function migrate() {
     try {

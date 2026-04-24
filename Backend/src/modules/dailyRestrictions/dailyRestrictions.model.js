@@ -114,4 +114,4 @@ dailyRestrictionSchema.pre('save', async function (next) {
 
 dailyRestrictionSchema.index({ number: 1, companyId: 1 }, { unique: true });
 
-export const dailyRestrictionModel = mongoose.model('DailyRestriction', dailyRestrictionSchema);
+export const dailyRestrictionModel = mongoose.models.DailyRestriction || mongoose.model('DailyRestriction', dailyRestrictionSchema);

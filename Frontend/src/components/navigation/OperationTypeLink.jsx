@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { paths } from '../../utils/navigationHelpers';
+import { paths } from '../../utils/navigationhelpers';
 
 /**
  * Clickable Operation Type badge that navigates to filtered payments for that client.

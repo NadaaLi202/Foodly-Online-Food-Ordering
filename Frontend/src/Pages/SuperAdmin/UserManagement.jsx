@@ -14,10 +14,10 @@ import {
     UserCircle,
     ArrowLeft
 } from 'lucide-react';
-import userService from '../../services/userService';
-import companyService from '../../services/companyService';
-import { confirmDelete } from '../../utils/confirmDelete';
-import logError from '../../utils/logError';
+import userService from '../../services/userservice';
+import companyService from '../../services/companyservice';
+import { confirmDelete } from '../../utils/confirmdelete';
+import logError from '../../utils/logerror';
 
 const UserManagement = () => {
     const { companyId } = useParams();

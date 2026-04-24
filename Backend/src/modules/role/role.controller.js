@@ -1,7 +1,7 @@
 import { roleModel } from "./role.model.js";
-import { AppError } from "../../utils/AppError.js";
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
-import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
+import { AppError } from "../../utils/apperror.js";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
+import { resolveCompanyIdForWrite } from "../../middleware/applycompanyfilter.js";
 
 const addRole = catchAsyncError(async (req, res, next) => {
     const { name, permissions, status } = req.body;

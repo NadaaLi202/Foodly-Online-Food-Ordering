@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import api from '../../services/api';
-import logError from '../../utils/logError';
+import logError from '../../utils/logerror';
 import { useTranslation } from 'react-i18next';
-import { fetchPdfBlob, downloadBlob } from '../../utils/invoicePdf';
+import { fetchPdfBlob, downloadBlob } from '../../utils/invoicepdf';
 
 /**
  * Triggers server-side PDF download for a transaction (invoice/return/quote).

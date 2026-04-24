@@ -3,11 +3,11 @@ import { Plus, Trash2, X, DollarSign } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import logError from '../../utils/logError';
-import { formatCurrency } from '../../utils/currencyFormatter';
-import ClientLink from '../navigation/ClientLink';
-import { confirmDelete } from '../../utils/confirmDelete';
-import { usePermissions } from '../../hooks/usePermissions';
+import logError from '../../utils/logerror';
+import { formatCurrency } from '../../utils/currencyformatter';
+import ClientLink from '../navigation/clientlink';
+import { confirmDelete } from '../../utils/confirmdelete';
+import { usePermissions } from '../../hooks/usepermissions';
 
 const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
     const { t, i18n } = useTranslation();
@@ -20,6 +20,7 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
         date: new Date().toISOString().split('T')[0],
         amount: '',
         treasury: '',
+        treasuryType: 'safe',
         operationType: defaultOpType,
         referenceNumber: '',
         notes: ''
@@ -122,6 +123,7 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
                 date: formData.date,
                 amount,
                 treasury: formData.treasury,
+                treasuryType: formData.treasuryType,
                 operationType: formData.operationType || 'receive',
                 referenceNumber: formData.referenceNumber || undefined,
                 notes: formData.notes || ''
@@ -319,8 +321,13 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
                                 <select
                                     value={paymentMethod}
                                     onChange={(e) => {
-                                        setPaymentMethod(e.target.value);
-                                        setFormData(f => ({ ...f, treasury: '' }));
+                                        const method = e.target.value;
+                                        setPaymentMethod(method);
+                                        setFormData(f => ({ 
+                                            ...f, 
+                                            treasury: '', 
+                                            treasuryType: method === 'cash' ? 'safe' : 'bank' 
+                                        }));
                                     }}
                                     className="w-full border-2 border-gray-100 rounded-lg px-3 py-2.5 text-sm focus:border-indigo-500"
                                 >
@@ -338,8 +345,15 @@ const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
                                     className={`w-full border-2 rounded-lg px-3 py-2.5 text-sm ${errors.treasury ? 'border-red-500' : 'border-gray-100 focus:border-indigo-500'}`}
                                 >
                                     <option value="">{t('sales.payments.select_treasury') || 'Select...'}</option>
-                                    <option value="main">{t('sales.payments.main_treasury')}</option>
-                                    <option value="bank">{t('sales.payments.main_bank_account')}</option>
+                                    {paymentMethod === 'cash' ? (
+                                        safes.map(s => (
+                                            <option key={s._id} value={s._id}>{s.name}</option>
+                                        ))
+                                    ) : (
+                                        bankAccounts.map(b => (
+                                            <option key={b._id} value={b._id}>{b.name}</option>
+                                        ))
+                                    )}
                                 </select>
                             </div>
                             <div>

@@ -3,7 +3,7 @@ import { addQuote, deleteQuote, getAllQuotes, getQuoteById, updateQuote } from "
 import { validation } from "../../middleware/validation.js";
 import { addQuoteSchema, updateQuoteSchema } from "./quotes.validation.js";
 import { protectedRoutes, requirePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
 
 const quoteRouter = express.Router();
 

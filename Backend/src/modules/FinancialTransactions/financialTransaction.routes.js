@@ -5,12 +5,12 @@ import {
     getOneTransaction,
     updateFinancialTransaction,
     deleteFinancialTransaction
-} from "./financialTransaction.controller.js";
-import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadFiles.js";
+} from "./financialtransaction.controller.js";
+import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadfiles.js";
 import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
 import { validation } from "../../middleware/validation.js";
-import { receiptSchema, disbursementSchema, transferSchema } from "./financialTransaction.validation.js";
+import { receiptSchema, disbursementSchema, transferSchema } from "./financialtransaction.validation.js";
 
 const router = express.Router();
 

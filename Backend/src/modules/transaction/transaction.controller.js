@@ -4,24 +4,25 @@ import mongoose from "mongoose";
 import Contact from "../contacts/contacts.model.js";
 import { companyModel } from "../companies/company.model.js";
 import { SUPPORTED_CURRENCIES } from "../../constants/currencies.js";
-import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
-import { AppError } from "../../utils/AppError.js";
+import { resolveCompanyIdForWrite } from "../../middleware/applycompanyfilter.js";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
+import { AppError } from "../../utils/apperror.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
 import QRCode from "qrcode";
 import PDFDocument from "pdfkit";
 import path from "path";
 import { fileURLToPath } from "url";
 import { processArabic } from "../../utils/arabic.js";
-import { generatePDF } from "../../utils/generatePDF.js";
+import { generatePDF } from "../../utils/generatepdf.js";
+import { getSettings } from "../settings/settings.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 import * as inventoryService from "../product/inventory.service.js";
-import logError from "../../utils/logError.js";
+import logError from "../../utils/logerror.js";
 import { createInvoiceJournalEntry, createPaymentJournalEntry, deleteInvoiceJournalEntry } from "./transaction.accounting.js";
-import { createTransactionFromInvoice, deleteTransactionFromInvoice } from "../FinancialTransactions/services/accountingTransaction.service.js";
+import { createTransactionFromInvoice, createTransactionFromPayment, deleteTransactionFromInvoice } from "../financialtransactions/services/accountingtransaction.service.js";
 
 const docTypeLabel = (module, type) => {
     if (module === 'Purchases') return type === 'return' ? 'مرتجع مشتريات' : 'فاتورة مشتريات';
@@ -53,6 +54,7 @@ const syncTransactionPayment = async (transaction, user, session = null) => {
                 payment.deletedAt = new Date();
                 payment.deletedBy = user?._id;
                 await payment.save({ session });
+                deleteTransactionFromPayment(payment._id).catch(() => { });
             }
             return null;
         }
@@ -65,7 +67,8 @@ const syncTransactionPayment = async (transaction, user, session = null) => {
             contact: transaction.contact,
             invoice: transaction._id,
             amount: paidAmount,
-            treasury: transaction.payment?.treasury || 'main',
+            treasury: transaction.payment?.treasury,
+            treasuryType: transaction.payment?.treasuryType || 'safe',
             referenceNumber: transaction.transactionNumber,
             invoiceType: 'automatic',
             status: 'completed',
@@ -87,6 +90,9 @@ const syncTransactionPayment = async (transaction, user, session = null) => {
         if (companyIdStr) {
             createPaymentJournalEntry(payment, transaction, companyIdStr).catch(() => { });
         }
+
+        // Auto-sync to Finance Transactions
+        createTransactionFromPayment(payment, transaction).catch(() => { });
 
         return payment;
     } catch (err) {
@@ -152,6 +158,38 @@ const createTransaction = (module, documentType) =>
             }
         }
 
+        // Populate Snapshots
+        const generalSettings = await getSettings(companyId, 'general');
+        const companyData = generalSettings.settings || {};
+
+        opData.companySnapshot = {
+            name: companyData.company_name,
+            taxNumber: companyData.tax_number,
+            commercialRegister: companyData.commercial_register,
+            city: companyData.city || companyData.region || '',
+            country: companyData.country,
+            address: companyData.address || companyData.region || '',
+            logo: companyData.logo_path
+        };
+
+        if (opData.contact) {
+            const contactDoc = await Contact.findById(opData.contact).lean();
+            if (contactDoc) {
+                opData.contactSnapshot = {
+                    name: contactDoc.name,
+                    email: contactDoc.email,
+                    phone: contactDoc.phone,
+                    type: contactDoc.type,
+                    taxNumber: contactDoc.taxNumber || contactDoc.tax_number,
+                    address: {
+                        city: contactDoc.address?.city,
+                        address1: contactDoc.address?.address1,
+                        country: contactDoc.address?.country
+                    }
+                };
+            }
+        }
+
         const session = await mongoose.startSession();
         let txn;
         try {
@@ -193,11 +231,31 @@ const createTransaction = (module, documentType) =>
 
             // Accounting: Generate/Sync journal entry for all invoices/returns (non-draft)
             if (txn.documentType === 'invoice' || txn.documentType === 'return') {
-                createInvoiceJournalEntry(txn, companyId).catch(() => { });
+                console.log('[INVOICE CREATE] Starting journal entry creation for invoice:', txn.transactionNumber);
+
+                let invoiceJournalId = null;
+                let paymentJournalId = null;
+
+                try {
+                    invoiceJournalId = await createInvoiceJournalEntry(txn, companyId);
+                } catch (err) {
+                    console.error('[JOURNAL ERROR] createInvoiceJournalEntry failed:', err.message);
+                }
+
                 if (txn.documentType === 'invoice' && txn.status !== 'draft') {
                     const treasuryId = opData.payment?.treasury;
-                    createTransactionFromInvoice(txn, treasuryId ? { safeId: treasuryId, safeModel: 'Safe' } : null).catch(() => { });
+                    const treasuryType = opData.payment?.treasuryType;
+                    try {
+                        paymentJournalId = await createTransactionFromInvoice(txn, treasuryId ? { treasuryId, treasuryType } : null);
+                    } catch (err) {
+                        console.error('[JOURNAL ERROR] createTransactionFromInvoice failed:', err.message);
+                    }
                 }
+
+                console.log('[INVOICE CREATE] Journal entries created:', {
+                    invoiceEntry: invoiceJournalId,
+                    paymentEntry: paymentJournalId
+                });
             }
 
             res.status(201).json({
@@ -358,7 +416,8 @@ const updateOne = catchAsyncError(async (req, res, next) => {
         createInvoiceJournalEntry(doc, doc.companyId).catch(() => { });
         if (doc.documentType === 'invoice' && doc.status !== 'draft') {
             const treasuryId = opData.payment?.treasury || doc.payment?.treasury;
-            createTransactionFromInvoice(doc, treasuryId ? { safeId: treasuryId, safeModel: 'Safe' } : null).catch(() => { });
+            const treasuryType = opData.payment?.treasuryType || doc.payment?.treasuryType;
+            createTransactionFromInvoice(doc, treasuryId ? { treasuryId, treasuryType } : null).catch(() => { });
         }
     }
 
@@ -426,24 +485,31 @@ const deleteOne = catchAsyncError(async (req, res, next) => {
 const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
     const { id } = req.params;
     const baseQuery = { _id: id, deletedAt: { $in: [null, undefined] } };
-    
+
     let transaction = await Transaction.findOne({ ...baseQuery, ...req.companyFilter })
         .populate("contact", "name email phone type address")
         .populate("items.product", "name sellingPrice")
         .lean();
-    
+
     if (!transaction && req.user?.role === "superAdmin") {
         transaction = await Transaction.findOne(baseQuery)
             .populate("contact", "name email phone type address")
             .populate("items.product", "name sellingPrice")
             .lean();
     }
-    
+
     if (!transaction) return next(new AppError("Document not found", 404));
 
     const company = await companyModel.findById(transaction.companyId).select("name logo defaultCurrency commercial_register tax_number address").lean();
-    const companyName = company?.name || "Company";
-    const companyLogoUrl = company?.logo?.url;
+
+    // Resolve Company Data (Priority: Snapshot > Database Model)
+    const companySnap = transaction.companySnapshot || {};
+    const companyName = companySnap.name || company?.name || "Company";
+    const companyLogoUrl = companySnap.logo || company?.logo?.url;
+    const companyTax = companySnap.taxNumber || company?.tax_number || '—';
+    const companyCR = companySnap.commercialRegister || company?.commercial_register || '—';
+    const companyAddress = companySnap.address || company?.address || '—';
+
     const currency = transaction.currency || company?.defaultCurrency || "EGP";
     const CURRENCY_SYMBOLS = { EGP: "ج.م", USD: "$", EUR: "€", SAR: "﷼", AED: "د.إ", GBP: "£" };
     const currencySymbol = CURRENCY_SYMBOLS[currency] || currency;
@@ -451,7 +517,7 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
     // Build QR Payload
     const qrPayload = {
         invoiceNumber: transaction.transactionNumber,
-        companyName,
+        companyName: companyName.replace(/\n/g, ' '), // Clean for QR
         totalAmount: transaction.totalAmount,
         date: transaction.issueDate,
         invoiceId: transaction._id.toString()
@@ -468,135 +534,140 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
     const fmt = (n) => Number(n ?? 0).toFixed(2);
     const contact = transaction.contactSnapshot || transaction.contact;
     const contactName = (contact?.name || transaction.contact?.name) || "—";
-    
+    const contactTax = contact?.taxNumber || contact?.tax_number || '—';
+    const contactAddress = contact?.address?.address1 || contact?.address?.city || '—';
+
     const templateStyle = req.query.templateStyle || 'normal';
 
     let htmlContent = '';
 
     if (templateStyle === 'tax-bilingual') {
+        const companyLogoHtml = companyLogoUrl ? `<img src="${companyLogoUrl}" style="max-height:80px; object-fit: contain;" />` : '';
+
         htmlContent = `
 <!DOCTYPE html>
-<html lang="ar" dir="rtl" class="bilingual-template">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <title>${esc(transaction.transactionNumber)}</title>
     <style>
         @page { size: A4; margin: 0; }
-        body { font-family: 'Arial', sans-serif; margin: 0; padding: 40px; color: #333; line-height: 1.6; direction: rtl; font-size: 11px; }
-        .header { display: flex; justify-content: space-between; border-bottom: 1px dashed #ccc; padding-bottom: 20px; font-size: 12px; margin-bottom: 20px;}
-        .col { width: 33%; }
-        .center-text { text-align: center; }
-        .left-text { text-align: left; }
-        .right-text { text-align: right; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; text-align: center; }
-        th { background: #f9fafb; border: 1px solid #ccc; padding: 10px; font-size: 11px; }
-        td { border: 1px solid #ccc; padding: 10px; font-size: 11px; }
-        .summary-container { display: flex; justify-content: space-between; margin-top: 20px; }
-        .summary-box { width: 55%; font-size: 12px; }
-        .notes-box { width: 35%; text-align: right; padding-right: 20px; }
-        .row { display: flex; justify-content: space-between; border-bottom: 1px solid #ccc; padding: 6px 0; }
-        .logo-placeholder { border: 1px dashed #999; padding: 15px; color: #999; display: inline-block; }
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            margin: 0; 
+            padding: 40px; 
+            color: #000; 
+            background-color: #FFFFEE;
+            line-height: 1.4; 
+            direction: rtl; 
+            font-size: 11px;
+        }
+        .container { border: 1px solid #000; padding: 20px; min-height: 100vh; }
+        
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #000; padding-bottom: 15px; margin-bottom: 20px;}
+        .header-logo { width: 50%; text-align: right; }
+        .header-info { width: 50%; text-align: left; }
+        .header-title { font-size: 18px; font-weight: bold; }
+
+        .info-grid { display: flex; border-top: 1px solid #000; border-right: 1px solid #000; border-left: 1px solid #000; margin-bottom: 20px; }
+        .info-col { width: 50%; padding: 10px; border-bottom: 1px solid #000; }
+        .company-col { border-left: 1px solid #000; }
+        .client-col { text-align: left; }
+        .bold { font-weight: bold; }
+        .label { font-size: 13px; margin-bottom: 5px; display: block; border-bottom: 1px solid #eee; }
+
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #000; }
+        th { background: #f0f0f0; border: 1px solid #000; padding: 8px; font-weight: bold; font-size: 13px; }
+        td { border: 1px solid #000; padding: 8px; text-align: center; }
+        .td-right { text-align: right; }
+        
+        .totals-section { display: flex; justify-content: flex-end; margin-bottom: 20px; }
+        .totals-table { width: 45%; border-collapse: collapse; border: 1px solid #000; background: #fff; }
+        .totals-table td { padding: 8px; border: 1px solid #000; }
+        .grand-total { background-color: #f0f0f0; font-size: 13px; font-weight: bold; }
+
+        .qr-section { display: flex; justify-content: flex-end; }
+        .qr-box { border: 1px solid #000; padding: 5px; background: #fff; }
+        .qr-img { width: 100px; height: 100px; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="col left-text" style="direction: ltr;">
-            <b>${esc(companyName)}</b><br>
-            Register Number : ${esc(company.commercial_register || '—')}<br>
-            Tax Number : ${esc(company.tax_number || '—')}<br>
-            City : ${esc(company.address || '—')}<br>
+    <div class="container">
+        <div class="header">
+            <div class="header-logo">
+                ${companyLogoHtml}
+            </div>
+            <div class="header-info">
+                <div class="header-title">فاتورة ضريبية</div>
+                <p><span class="bold">رقم:</span> ${esc(transaction.transactionNumber || '—')}</p>
+                <p><span class="bold">التاريخ:</span> ${new Date(transaction.issueDate).toLocaleDateString('ar-SA')}</p>
+            </div>
         </div>
-        <div class="col center-text">
-            ${companyLogoUrl ? `<img src="${companyLogoUrl}" style="max-height:80px; max-width:150px; border:1px dashed #ccc; padding:4px;" />` : `<div class="logo-placeholder">ضع شعارك هنا</div>`}
-            <h2 style="margin:8px 0 0 0; font-size:16px;">فاتورة ضريبية</h2>
-            <h2 style="margin:2px 0 0 0; font-size:14px;">TAX INVOICE</h2>
-        </div>
-        <div class="col right-text" style="direction: rtl;">
-            <b>${esc(companyName)}</b><br>
-            السجل التجاري : ${esc(company.commercial_register || '—')}<br>
-            الرقم الضريبي : ${esc(company.tax_number || '—')}<br>
-            المدينة : ${esc(company.address || '—')}<br>
-        </div>
-    </div>
 
-    <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-weight:bold; font-size:12px;">
-        <div class="left-text" style="direction: ltr;">
-            ${esc(transaction.transactionNumber || '—')} : الرقم - Number<br>
-            ${new Date(transaction.issueDate).toISOString().split('T')[0]} : التاريخ - Date
+        <div class="info-grid">
+            <div class="info-col company-col">
+                <span class="bold label">بيانات الشركة</span>
+                <p class="bold" style="font-size: 12px;">${esc(companyName)}</p>
+                <p><span class="bold">السجل التجاري:</span> ${esc(companyCR)}</p>
+                <p><span class="bold">الرقم الضريبي:</span> ${esc(companyTax)}</p>
+                <p><span class="bold">العنوان:</span> ${esc(companyAddress)}</p>
+            </div>
+            <div class="info-col client-col">
+                <span class="bold label" style="text-align: right;">بيانات العميل</span>
+                <p class="bold" style="font-size: 12px;">${esc(contactName)}</p>
+                <p><span class="bold">العنوان:</span> ${esc(contactAddress)}</p>
+                <p><span class="bold">الرقم الضريبي:</span> ${esc(contactTax)}</p>
+            </div>
         </div>
-        <div class="right-text" style="text-align: right;">
-            العميل - Client : ${esc(contactName)}<br>
-            الرقم الضريبي - Tax Number : ${esc(contact?.taxNumber || contact?.tax_number || '—')}
-        </div>
-    </div>
 
-    <table dir="rtl">
-        <thead>
-            <tr>
-                <th>المجموع<br>Total</th>
-                <th>نسبة الضريبة<br>Tax Percentage</th>
-                <th>المجموع بدون<br>الضريبة<br>Pre-Tax Total</th>
-                <th>الكمية<br>Quantity</th>
-                <th>السعر<br>Price</th>
-                <th style="width: 25%;">الوصف<br>Description</th>
-                <th>البند<br>Item</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${(transaction.items || []).map((item, idx) => {
-                const preTax = item.quantity * item.unitPrice - (item.discountAmount || 0);
-                const total = item.total ?? (preTax + (item.taxAmount || 0));
-                const taxP = item.taxPercent || item.tax || (item.taxAmount > 0 ? ((item.taxAmount / preTax) * 100).toFixed(0) : '0');
-                return `
-                    <tr>
-                        <td dir="ltr">${fmt(total)} ${esc(currencySymbol)}</td>
-                        <td dir="ltr">${taxP}%</td>
-                        <td dir="ltr">${fmt(preTax)} ${esc(currencySymbol)}</td>
-                        <td>${item.quantity}</td>
-                        <td dir="ltr">${fmt(item.unitPrice)} ${esc(currencySymbol)}</td>
-                        <td style="text-align: right;">${esc(item.productName || item.product?.name)}</td>
-                        <td>${idx + 1}</td>
-                    </tr>
-                `;
-            }).join('')}
-        </tbody>
-    </table>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 40%;" class="td-right">الوصف</th>
+                    <th>الكمية</th>
+                    <th>السعر</th>
+                    <th>الضريبة</th>
+                    <th>الإجمالي</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${(transaction.items || []).map((item) => {
+            const preTax = item.quantity * item.unitPrice - (item.discountAmount || 0);
+            const total = item.total ?? (preTax + (item.taxAmount || 0));
+            return `
+                        <tr>
+                            <td class="td-right">${esc(item.productName || item.product?.name || item.description || '—')}</td>
+                            <td>${item.quantity}</td>
+                            <td dir="ltr">${fmt(item.unitPrice)} ${esc(currencySymbol)}</td>
+                            <td dir="ltr">${fmt(item.taxAmount || 0)} ${esc(currencySymbol)}</td>
+                            <td dir="ltr">${fmt(total)} ${esc(currencySymbol)}</td>
+                        </tr>
+                    `;
+        }).join('')}
+            </tbody>
+        </table>
 
-    <div class="summary-container">
-        <div class="summary-box">
-            <div class="row">
-                <span style="width:33%; text-align:left;">Pre-Tax Total</span>
-                <span style="width:33%; text-align:center;">${fmt(transaction.subtotal)} ${esc(currencySymbol)}</span>
-                <span style="width:33%; text-align:right;">الإجمالي قبل الضريبة</span>
-            </div>
-            <div class="row">
-                <span style="width:33%; text-align:left;">VAT</span>
-                <span style="width:33%; text-align:center;">${fmt(transaction.totalTax)} ${esc(currencySymbol)}</span>
-                <span style="width:33%; text-align:right;">يشمل القيمة المضافة</span>
-            </div>
-            <div class="row" style="font-weight:bold;">
-                <span style="width:33%; text-align:left;">Total (${esc(currencySymbol)})</span>
-                <span style="width:33%; text-align:center;">${fmt(transaction.totalAmount)}</span>
-                <span style="width:33%; text-align:right;">الإجمالي (${esc(currencySymbol)})</span>
-            </div>
-            <div class="row">
-                <span style="width:33%; text-align:left;">Paid</span>
-                <span style="width:33%; text-align:center;">${fmt(transaction.paidAmount || 0)} ${esc(currencySymbol)}</span>
-                <span style="width:33%; text-align:right;">المدفوع</span>
-            </div>
-            <div class="row" style="font-weight:bold;">
-                <span style="width:33%; text-align:left;">Due (${esc(currencySymbol)})</span>
-                <span style="width:33%; text-align:center;">${fmt(Math.max(0, transaction.totalAmount - (transaction.paidAmount || 0)))}</span>
-                <span style="width:33%; text-align:right;">المستحق (${esc(currencySymbol)})</span>
-            </div>
-            <div style="margin-top: 40px; text-align:left;">
-                التوقيع - Signature __________________
-            </div>
+        <div class="totals-section">
+            <table class="totals-table">
+                <tr>
+                    <td style="text-align: right; font-weight: bold; width: 60%;">الإجمالي قبل الضريبة</td>
+                    <td style="text-align: center;">${fmt(transaction.subtotal)} ${esc(currencySymbol)}</td>
+                </tr>
+                <tr>
+                    <td style="text-align: right; font-weight: bold;">قيمة الضريبة 15%</td>
+                    <td style="text-align: center;">${fmt(transaction.totalTax)} ${esc(currencySymbol)}</td>
+                </tr>
+                <tr class="grand-total">
+                    <td style="text-align: right;">الإجمالي النهائي</td>
+                    <td style="text-align: center;">${fmt(transaction.totalAmount)} ${esc(currencySymbol)}</td>
+                </tr>
+            </table>
         </div>
-        <div class="notes-box">
-            <b>ملاحظات - Notes</b><br>
-            <div style="font-size: 10px; margin: 10px 0;">${esc(transaction.notes || '')}</div>
-            <img src="${qrDataURL}" style="width: 120px; height: 120px; display:block; margin-left:auto; margin-top:10px;" />
+
+        <div class="qr-section">
+            <div class="qr-box">
+                <img src="${qrDataURL}" class="qr-img" />
+            </div>
         </div>
     </div>
 </body>
@@ -686,7 +757,6 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
             color: #1a56db;
             border-top: 2px solid #e5e7eb;
             padding-top: 10px;
-        }
         .footer {
             margin-top: 60px;
             text-align: center;
@@ -701,14 +771,13 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
 </head>
 <body>
     <div class="header">
-        <div class="company-brand">
-            ${companyLogoUrl ? `<img src="${companyLogoUrl}" class="logo" />` : `<h1 style="margin:0">${esc(companyName)}</h1>`}
+            ${companyLogoUrl ? `<img src="${companyLogoUrl}" class="logo" />` : `<h1 style="margin:0; white-space: pre-line;">${esc(companyName)}</h1>`}
         </div>
         <div class="company-info" style="text-align: right;">
-            <p style="margin:0; font-weight:bold;">${esc(companyName)}</p>
-            ${company.commercial_register ? `<p style="margin:2px 0; font-size:11px;">\u0633\u062c\u0644 \u062a\u062c\u0627\u0631\u064a: ${esc(company.commercial_register)}</p>` : ''}
-            ${company.tax_number ? `<p style="margin:2px 0; font-size:11px;">\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0636\u0631\u064a\u0628\u064a: ${esc(company.tax_number)}</p>` : ''}
-            ${company.address ? `<p style="margin:2px 0; font-size:11px;">${esc(company.address)}</p>` : ''}
+            <p style="margin:0; font-weight:bold; white-space: pre-line;">${esc(companyName)}</p>
+            ${companyCR !== '—' ? `<p style="margin:2px 0; font-size:11px;">\u0633\u062c\u0644 \u062a\u062c\u0627\u0631\u064a: ${esc(companyCR)}</p>` : ''}
+            ${companyTax !== '—' ? `<p style="margin:2px 0; font-size:11px;">\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0636\u0631\u064a\u0628\u064a: ${esc(companyTax)}</p>` : ''}
+            ${companyAddress !== '—' ? `<p style="margin:2px 0; font-size:11px;">${esc(companyAddress)}</p>` : ''}
         </div>
     </div>
 
@@ -725,9 +794,10 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
 
     <div class="billing-info">
         <div class="billing-box">
-            <div class="label">\u0641\u0627\u062a\u0648\u0631\u0629 \u0625\u0644\u0649</div>
+            <div class="label">فاتورة إلى</div>
             <p style="margin:0; font-weight:bold;">${esc(contactName)}</p>
-            <p style="margin:2px 0; font-size:11px;">${esc(contact?.address?.address1 || contact?.address?.city || "")}</p>
+            ${contactTax !== '—' ? `<p style="margin:2px 0; font-size:11px;">الرقم الضريبي: ${esc(contactTax)}</p>` : ''}
+            <p style="margin:2px 0; font-size:11px;">${esc(contactAddress)}</p>
             ${contact?.phone ? `<p style="margin:2px 0; font-size:11px;">${esc(contact.phone)}</p>` : ''}
         </div>
     </div>
@@ -735,17 +805,17 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
     <table class="items-table">
         <thead>
             <tr>
-                <th style="width: 50%;">\u0627\u0644\u0648\u0635\u0641</th>
-                <th style="text-align: center;">\u0627\u0644\u0643\u0645\u064a\u0629</th>
-                <th style="text-align: center;">\u0627\u0644\u0633\u0639\u0631</th>
-                <th style="text-align: left;">\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a</th>
+                <th style="width: 50%;">الوصف</th>
+                <th style="text-align: center;">الكمية</th>
+                <th style="text-align: center;">السعر</th>
+                <th style="text-align: left;">الإجمالي</th>
             </tr>
         </thead>
         <tbody>
             ${(transaction.items || []).map(item => {
-                const name = item.productName || item.product?.name || "—";
-                const total = item.total ?? (item.quantity * item.unitPrice - (item.discountAmount || 0) + (item.taxAmount || 0));
-                return `
+            const name = item.productName || item.product?.name || "—";
+            const total = item.total ?? (item.quantity * item.unitPrice - (item.discountAmount || 0) + (item.taxAmount || 0));
+            return `
                     <tr>
                         <td>${esc(name)}</td>
                         <td style="text-align: center;" class="number">${fmt(item.quantity)}</td>
@@ -753,7 +823,7 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
                         <td style="text-align: left;" class="number">${fmt(total)} ${esc(currencySymbol)}</td>
                     </tr>
                 `;
-            }).join('')}
+        }).join('')}
         </tbody>
     </table>
 
@@ -764,21 +834,21 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
         </div>
         <table class="totals-table">
             <tr>
-                <td>\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0641\u0631\u0631\u0639\u064a:</td>
+                <td>الإجمالي الفرعي:</td>
                 <td class="number">${fmt(transaction.subtotal)} ${esc(currencySymbol)}</td>
             </tr>
             ${transaction.totalDiscount > 0 ? `
             <tr>
-                <td>\u0627\u0644\u062e\u0635\u0645:</td>
+                <td>الخصم:</td>
                 <td class="number">-${fmt(transaction.totalDiscount)} ${esc(currencySymbol)}</td>
             </tr>
             ` : ''}
             <tr>
-                <td>\u0627\u0644\u0636\u0631\u064a\u0628\u0629:</td>
+                <td>الضريبة:</td>
                 <td class="number">${fmt(transaction.totalTax)} ${esc(currencySymbol)}</td>
             </tr>
             <tr class="grand-total">
-                <td>\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0646\u0647\u0627\u0626\u064a:</td>
+                <td>الإجمالي النهائي:</td>
                 <td class="number">${fmt(transaction.totalAmount)} ${esc(currencySymbol)}</td>
             </tr>
         </table>

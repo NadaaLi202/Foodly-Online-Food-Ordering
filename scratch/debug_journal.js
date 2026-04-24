@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { dailyRestrictionModel } from '../backend/src/modules/dailyRestrictions/dailyRestrictions.model.js';
-import { chartOfAccountsModel } from '../backend/src/modules/chartOfAccounts/chartOfAccounts.model.js';
+import { dailyRestrictionModel } from '../backend/src/modules/dailyrestrictions/dailyrestrictions.model.js';
+import { chartOfAccountsModel } from '../backend/src/modules/chartofaccounts/chartofaccounts.model.js';
 
 dotenv.config({ path: '../backend/.env' });
 

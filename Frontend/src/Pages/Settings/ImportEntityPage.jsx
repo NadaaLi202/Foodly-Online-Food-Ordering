@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FileUp, Home, RefreshCw, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import importService from '../../services/importService';
+import importService from '../../services/importservice';
 
 const ImportEntityPage = () => {
     const { entity } = useParams();

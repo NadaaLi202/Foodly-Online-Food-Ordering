@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import companyService from '../../services/companyService';
+import companyService from '../../services/companyservice';
 import { ArrowLeft, Upload, X } from 'lucide-react';
-import logError from '../../utils/logError';
+import logError from '../../utils/logerror';
 
 const CompanyForm = () => {
     const { t, i18n } = useTranslation();

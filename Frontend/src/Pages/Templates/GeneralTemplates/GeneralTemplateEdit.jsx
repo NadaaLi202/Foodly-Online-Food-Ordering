@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../../../services/api.js';
 import toast from 'react-hot-toast';
-import TemplateEditor from '../components/TemplateEditor.jsx';
-import { TextBlockList } from '../components/TextBlock.jsx';
-import MarginsPopover from '../components/MarginsPopover.jsx';
-import { GeneralPreview } from '../components/DocumentPreview.jsx';
-import { useAuth } from '../../../context/AuthContext.jsx';
-import branchService from '../../../services/branchService.js';
+import TemplateEditor from '../components/templateeditor.jsx';
+import { TextBlockList } from '../components/textblock.jsx';
+import MarginsPopover from '../components/marginspopover.jsx';
+import { GeneralPreview } from '../components/documentpreview.jsx';
+import { useAuth } from '../../../context/authcontext.jsx';
+import branchService from '../../../services/branchservice.js';
 import { useTranslation } from 'react-i18next';
 import { Upload, X } from 'lucide-react';
 

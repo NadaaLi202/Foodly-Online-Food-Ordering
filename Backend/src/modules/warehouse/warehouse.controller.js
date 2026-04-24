@@ -1,6 +1,6 @@
 import { warehouseModel } from "./warehouse.model.js";
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
-import { AppError } from "../../utils/AppError.js";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
+import { AppError } from "../../utils/apperror.js";
 
 // ================= Add =================
 export const addWarehouse = catchAsyncError(async (req, res, next) => {

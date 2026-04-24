@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Home, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
-import exportService from '../../services/exportService';
+import exportService from '../../services/exportservice';
 
 const ExportingSettings = () => {
     const { t, i18n } = useTranslation();

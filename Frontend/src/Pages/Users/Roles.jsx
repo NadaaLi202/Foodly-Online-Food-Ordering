@@ -12,11 +12,11 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
-import rolesService from '../../services/rolesService';
-import { confirmDelete } from '../../utils/confirmDelete';
-import companyService from '../../services/companyService';
-import logError from '../../utils/logError';
-import { useAuth } from '../../context/AuthContext';
+import rolesService from '../../services/rolesservice';
+import { confirmDelete } from '../../utils/confirmdelete';
+import companyService from '../../services/companyservice';
+import logError from '../../utils/logerror';
+import { useAuth } from '../../context/authcontext';
 
 const getStoredUser = () => {
     try {

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, RefreshCw, X, ChevronLeft, Printer, FileText, ChevronDown, Home } from 'lucide-react';
+import { Plus, Search, RefreshCw, X, ChevronLeft, ChevronRight, Printer, FileText, ChevronDown, Home } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import chartOfAccountsService from '../../services/chartOfAccountsService';
-import { confirmDelete } from '../../utils/confirmDelete';
+import chartOfAccountsService from '../../services/chartofaccountsservice';
+import { confirmDelete } from '../../utils/confirmdelete';
 
 /**
  * Build a tree from flat list of accounts (backend returns flat with parentAccount populated).
@@ -244,7 +244,7 @@ export default function ChartOfAccounts() {
                                 onClick={() => hasChildren && toggleExpand(account._id)}
                                 className={`shrink-0 transform transition-transform duration-200 cursor-pointer ${hasChildren ? 'text-blue-500' : 'text-transparent pointer-events-none'}`}
                             >
-                                {isExpanded ? <ChevronDown size={14} /> : <ChevronLeft size={14} />}
+                                {isExpanded ? <ChevronDown size={14} /> : (i18n.language === 'ar' ? <ChevronLeft size={14} /> : <ChevronRight size={14} />)}
                             </button>
                         </div>
                     </div>

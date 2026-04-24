@@ -16,7 +16,7 @@ import {
     updateStatusSchema
 } from "./invoices.validation.js";
 import { protectedRoutes, requirePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
 
 const invoiceRouter = express.Router();
 

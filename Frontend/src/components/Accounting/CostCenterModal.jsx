@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import costCenterService from '../../services/costCenterService';
+import costCenterService from '../../services/costcenterservice';
 
 const CostCenterModal = ({ isOpen, onClose, onSuccess, editingItem, mainCenters }) => {
     const { t, i18n } = useTranslation();

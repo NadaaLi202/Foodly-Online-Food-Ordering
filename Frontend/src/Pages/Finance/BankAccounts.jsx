@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { Edit, Trash2, FileText, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import logError from '../../utils/logError';
-import { confirmDelete } from '../../utils/confirmDelete';
-import BankAccountModal from './BankAccountModal';
+import logError from '../../utils/logerror';
+import { confirmDelete } from '../../utils/confirmdelete';
+import BankAccountModal from './bankaccountmodal';
 
 const BankAccounts = () => {
     const { t, i18n } = useTranslation();
@@ -119,7 +119,7 @@ const BankAccounts = () => {
                                                     {account.accountNumber || '-'}
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700 font-semibold">
-                                                    {account.balance?.toLocaleString()} {t('currency_label')}
+                                                    {(account.balance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('currency_label')}
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700">
                                                     <button

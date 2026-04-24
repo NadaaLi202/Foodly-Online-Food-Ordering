@@ -1,9 +1,9 @@
 import express from "express";
 import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
 import { validation } from "../../middleware/validation.js";
-import { createCostCenter, deleteCostCenter, getAllCostCenters, getParentCostCenters, updateCostCenter } from "./costCenter.controller.js";
-import { createCostCenterSchema, idParamSchema, listCostCentersSchema, updateCostCenterSchema } from "./costCenter.validation.js";
+import { createCostCenter, deleteCostCenter, getAllCostCenters, getParentCostCenters, updateCostCenter } from "./costcenter.controller.js";
+import { createCostCenterSchema, idParamSchema, listCostCentersSchema, updateCostCenterSchema } from "./costcenter.validation.js";
 
 const costCenterRouter = express.Router();
 

@@ -12,11 +12,11 @@ import {
     Info
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { confirmDelete } from '../../utils/confirmDelete';
+import { confirmDelete } from '../../utils/confirmdelete';
 import api from '../../services/api';
-import logError from '../../utils/logError';
-import { useAuth } from '../../context/AuthContext';
-import { SUPPORTED_CURRENCIES } from '../../utils/currencyFormatter';
+import logError from '../../utils/logerror';
+import { useAuth } from '../../context/authcontext';
+import { SUPPORTED_CURRENCIES } from '../../utils/currencyformatter';
 
 const GeneralSettings = () => {
     const { t, i18n } = useTranslation();
@@ -282,13 +282,13 @@ const GeneralSettings = () => {
                                     <label className="block text-sm font-bold text-gray-700">
                                         {t('general_settings.company_name')} <span className="text-red-500">*</span>
                                     </label>
-                                    <input
-                                        type="text"
+                                    <textarea
                                         name="company_name"
                                         value={settings.company_name}
                                         onChange={handleInputChange}
                                         placeholder={t('general_settings.enter_company_name')}
-                                        className={`w-full h-11 px-4 rounded-lg border focus:ring-2 transition-all outline-none ${errors.company_name
+                                        rows={3}
+                                        className={`w-full px-4 py-2 rounded-lg border focus:ring-2 transition-all outline-none resize-none ${errors.company_name
                                             ? 'border-red-500 focus:ring-red-500/20'
                                             : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
                                             }`}
