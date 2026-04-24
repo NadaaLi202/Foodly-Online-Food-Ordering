@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams, useNavigate 
 import api from './services/api';
 import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout';
-import PrintTemplateProvider from './components/common/printtemplateprovider';
+import PrintTemplateProvider from './components/common/PrintTemplateProvider';
 import { AuthProvider, useAuth } from './context/authcontext';
 import ProtectedRoute from './components/protectedroute';
 import DashboardPage from './pages/dashboardpage';
