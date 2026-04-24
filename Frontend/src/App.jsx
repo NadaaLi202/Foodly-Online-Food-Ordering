@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useParams, useNavigate } from 'react-router-dom';
 import api from './services/api';
 import { Toaster } from 'react-hot-toast';
-import Layout from './components/layout';
+import Layout from './components/Layout';
 import PrintTemplateProvider from './components/common/printtemplateprovider';
 import { AuthProvider, useAuth } from './context/authcontext';
 import ProtectedRoute from './components/protectedroute';
