@@ -3,8 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, FileText, UserPlus, Package, ShoppingCart, Truck, CreditCard, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { usePermissions } from '../../hooks/usePermissions';
-import { addMenuConfig } from '../../config/addMenuConfig';
+import { usePermissions } from '../../hooks/usepermissions';
+import { addMenuConfig } from '../../config/addmenuconfig';
 
 const iconMap = {
     FileText,

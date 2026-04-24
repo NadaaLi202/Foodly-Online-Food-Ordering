@@ -5,13 +5,13 @@ import Payment from "../payments/payments.model.js";
 import Contact from "../contacts/contacts.model.js";
 import { taxesModel } from "../taxes/taxes.model.js";
 import { productModel } from "../product/product.model.js";
-import { chartOfAccountsModel } from "../chartOfAccounts/chartOfAccounts.model.js";
-import { dailyRestrictionModel } from "../dailyRestrictions/dailyRestrictions.model.js";
-import { costCenterModel } from "../costCenters/costCenter.model.js";
-import FinancialReceipt from "../FinancialTransactions/models/financialReceipt.model.js";
-import FinancialDisbursement from "../FinancialTransactions/models/financialDisbursement.model.js";
-import FinancialTransfer from "../FinancialTransactions/models/financialTransfer.model.js";
-import { stockLogModel } from "../stockLogs/stockLog.model.js";
+import { chartOfAccountsModel } from "../chartofaccounts/chartofaccounts.model.js";
+import { dailyRestrictionModel } from "../dailyrestrictions/dailyrestrictions.model.js";
+import { costCenterModel } from "../costcenters/costcenter.model.js";
+import FinancialReceipt from "../financialtransactions/models/financialreceipt.model.js";
+import FinancialDisbursement from "../financialtransactions/models/financialdisbursement.model.js";
+import FinancialTransfer from "../financialtransactions/models/financialtransfer.model.js";
+import { stockLogModel } from "../stocklogs/stocklog.model.js";
 import mongoose from "mongoose";
 
 /**
@@ -930,135 +930,248 @@ export async function getCustomersDetailed(startDate, endDate, companyFilter) {
  */
 export async function getClientGeneralLedger(filters, companyFilter) {
     const { startDate, endDate, clientId, branch, accountId, accountCode, journalAccount } = filters || {};
-    const effectiveAccountId = accountId || journalAccount;
     const { start, end } = getDateRange(startDate, endDate);
 
-    // 1. Identify Target Accounts
-    let targetAccounts = [];
-    if (effectiveAccountId && effectiveAccountId !== 'all' && mongoose.Types.ObjectId.isValid(effectiveAccountId)) {
-        const acc = await chartOfAccountsModel.findOne({ _id: effectiveAccountId, ...companyFilter }).select("name code").lean();
-        if (acc) targetAccounts.push(acc);
-    } else if (accountCode) {
-        const acc = await chartOfAccountsModel.findOne({ code: accountCode, ...companyFilter }).select("name code").lean();
-        if (acc) targetAccounts.push(acc);
-    } else if (clientId && clientId !== 'all' && mongoose.Types.ObjectId.isValid(clientId)) {
-        const contact = await Contact.findOne({ _id: clientId, ...companyFilter }).select("name").lean();
-        if (contact) {
-            const accs = await chartOfAccountsModel.find({
-                ...companyFilter,
-                name: { $regex: contact.name, $options: 'i' }
-            }).select("name code").lean();
-            targetAccounts = accs;
-        }
-    } else {
-        const accs = await chartOfAccountsModel.find({
-            ...companyFilter,
-            $or: [
-                { code: { $regex: '^12' } },
-                { name: { $regex: 'عميل|عملاء|Clients|Customers', $options: 'i' } }
-            ],
-            type: 'sub'
-        }).select("name code").lean();
-        targetAccounts = accs;
+    console.log('[reports] getClientGeneralLedger Inputs:', { startDate, endDate, clientId, branch });
+
+    // Normalize companyFilter
+    const mc = { ...companyFilter };
+    if (mc.companyId && typeof mc.companyId === 'string') {
+        mc.companyId = new mongoose.Types.ObjectId(mc.companyId);
     }
+
+    // 1. Identify Target Clients
+    let targetContacts = [];
+    if (clientId && clientId !== 'all' && mongoose.Types.ObjectId.isValid(clientId)) {
+        const contact = await Contact.findOne({ _id: clientId, ...mc }).lean();
+        if (contact) targetContacts.push(contact);
+    } else {
+        // Fetch all customers for this company
+        targetContacts = await Contact.find({ ...mc, module: 'customer' }).lean();
+    }
+
+    console.log('[reports] getClientGeneralLedger Processing contacts:', targetContacts.length);
 
     const results = [];
     let globalTotalDebit = 0;
     let globalTotalCredit = 0;
 
-    for (const acc of targetAccounts) {
-        const accIdStr = acc._id.toString();
+    for (const contact of targetContacts) {
+        const cid = contact._id;
+        const cidStr = cid.toString();
 
-        // A. Opening Balance
+        // A. Find all Invoices and Payments for this contact (to link journal entries)
+        const contactDocQuery = { ...mc, contact: cid };
+        const allInvoices = await Transaction.find({ ...contactDocQuery, module: 'sales', status: { $ne: 'draft' } }).select('_id transactionNumber').lean();
+        const allPayments = await Payment.find({ ...contactDocQuery, module: 'sales', status: { $ne: 'cancelled' } }).select('_id referenceNumber invoiceId').lean();
+
+        const contactInvoiceIds = allInvoices.map(i => i._id);
+        const contactInvoiceIdStrs = contactInvoiceIds.map(id => id.toString());
+
+        // Also include payments that link to these invoices (though contact query above covers most)
+        const paymentIds = allPayments.map(p => p._id);
+        const paymentIdStrs = paymentIds.map(id => id.toString());
+
+        // B. Opening Balance
         let openingBalance = 0;
-        const openingQuery = {
-            ...companyFilter,
-            date: { $lt: start }
+
+        // From Ledger (Restrictions)
+        const ledgerOpeningQuery = {
+            ...mc,
+            date: { $lt: start },
+            $or: [
+                { invoiceId: { $in: contactInvoiceIds } },
+                { "entries.description": { $regex: contact.name, $options: 'i' } }
+            ]
         };
-        const pastRestrictions = await dailyRestrictionModel.find(openingQuery).select("entries").lean();
+        const pastRestrictions = await dailyRestrictionModel.find(ledgerOpeningQuery).select("entries invoiceId sourceType").lean();
+
+        const processedOpeningInvoices = new Set();
+        const processedOpeningPayments = new Set();
+
         for (const res of pastRestrictions) {
+            if (res.invoiceId) {
+                if (res.sourceType === 'payment') processedOpeningPayments.add(res.invoiceId.toString());
+                else processedOpeningInvoices.add(res.invoiceId.toString());
+            }
+            // Add up entries belonging to AR accounts for this contact
             for (const entry of res.entries || []) {
-                const entryAccId = entry.account?._id ? String(entry.account._id) : String(entry.account);
-                if (entryAccId === accIdStr) {
+                const acc = entry.account;
+                // If it's a sub-account matching name OR a generic AR account with an invoiceId link
+                const isClientEntry = (res.invoiceId && contactInvoiceIdStrs.includes(res.invoiceId.toString())) ||
+                    (entry.description && entry.description.includes(contact.name));
+
+                if (isClientEntry) {
                     openingBalance += (Number(entry.debit || 0) - Number(entry.credit || 0));
                 }
             }
         }
 
-        // B. Period Transactions
-        const query = {
-            ...companyFilter,
-            date: { $gte: start, $lte: end }
-        };
-        if (branch && branch !== 'all') query.branch = branch;
+        // From Invoices/Payments NOT in ledger (Opening)
+        const missingOpeningInvoices = await Transaction.find({
+            ...contactDocQuery,
+            module: 'sales',
+            issueDate: { $lt: start },
+            status: { $ne: 'draft' },
+            _id: { $nin: Array.from(processedOpeningInvoices).map(id => new mongoose.Types.ObjectId(id)) }
+        }).select('totalAmount').lean();
+        for (const inv of missingOpeningInvoices) openingBalance += Number(inv.totalAmount || 0);
 
-        const restrictions = await dailyRestrictionModel.find(query)
-            .sort({ date: 1, createdAt: 1 })
-            .lean();
+        const missingOpeningPayments = await Payment.find({
+            ...contactDocQuery,
+            module: 'sales',
+            date: { $lt: start },
+            status: { $ne: 'cancelled' },
+            _id: { $nin: Array.from(processedOpeningPayments).map(id => new mongoose.Types.ObjectId(id)) }
+        }).select('amount').lean();
+        for (const pay of missingOpeningPayments) openingBalance -= Number(pay.amount || 0);
 
+
+        // C. Period Transactions
         const entries = [];
-        let runningBalance = openingBalance;
         let accTotalDebit = 0;
         let accTotalCredit = 0;
+        const processedPeriodInvoices = new Set();
+        const processedPeriodPayments = new Set();
 
-        for (const restriction of restrictions) {
-            for (const entry of restriction.entries || []) {
-                const entryAccId = entry.account?._id ? String(entry.account._id) : String(entry.account);
-                if (entryAccId !== accIdStr) continue;
+        // 1. From Ledger
+        const restrictionQuery = {
+            ...mc,
+            date: { $gte: start, $lte: end },
+            $or: [
+                { invoiceId: { $in: contactInvoiceIds } },
+                { "entries.description": { $regex: contact.name, $options: 'i' } }
+            ]
+        };
+        if (branch && branch !== 'all') restrictionQuery.branch = branch;
+
+        const restrictions = await dailyRestrictionModel.find(restrictionQuery).sort({ date: 1, createdAt: 1 }).lean();
+
+        for (const res of restrictions) {
+            const isContactJournal = res.invoiceId && contactInvoiceIdStrs.includes(res.invoiceId.toString());
+
+            for (const entry of res.entries || []) {
+                const entryDesc = entry.description || "";
+                if (!isContactJournal && !entryDesc.includes(contact.name)) continue;
+
+                if (res.invoiceId) {
+                    if (res.sourceType === 'payment') processedPeriodPayments.add(res.invoiceId.toString());
+                    else processedPeriodInvoices.add(res.invoiceId.toString());
+                }
 
                 const debit = Number(entry.debit || 0);
                 const credit = Number(entry.credit || 0);
-                runningBalance += debit - credit;
                 accTotalDebit += debit;
                 accTotalCredit += credit;
 
-                let displaySource = restriction.source || "";
-                if (restriction.sourceType === 'invoice') {
-                    displaySource = `${restriction.source}`;
-                } else if (restriction.sourceType === 'payment') {
-                    displaySource = `سداد ${restriction.source || ''}`;
-                } else if (restriction.sourceType === 'return') {
-                    displaySource = `مرتجع ${restriction.source || ''}`;
-                }
-
                 entries.push({
-                    date: restriction.date,
-                    journalNumber: restriction.number,
-                    description: entry.description || restriction.description || "",
+                    date: res.date,
+                    journalNumber: res.number,
+                    description: entry.description || res.description || "",
                     debit,
                     credit,
-                    balance: runningBalance,
-                    source: displaySource,
-                    sourceType: restriction.sourceType || "manual"
+                    source: res.source || "",
+                    sourceType: res.sourceType || "manual"
                 });
             }
         }
 
-        globalTotalDebit += accTotalDebit;
-        globalTotalCredit += accTotalCredit;
+        // 2. Fallback (Virtual)
+        const fallbackQuery = {
+            ...contactDocQuery,
+            module: 'sales',
+            issueDate: { $gte: start, $lte: end },
+            status: { $ne: 'draft' }
+        };
+        if (branch && branch !== 'all') fallbackQuery.warehouse = branch;
 
-        results.push({
-            accountId: accIdStr,
-            accountName: acc.name,
-            accountCode: acc.code,
-            openingBalance,
-            entries,
-            netMovement: accTotalDebit - accTotalCredit,
-            closingBalance: runningBalance,
-            totalDebit: accTotalDebit,
-            totalCredit: accTotalCredit
-        });
+        const missingInvoices = await Transaction.find({
+            ...fallbackQuery,
+            _id: { $nin: Array.from(processedPeriodInvoices).map(id => new mongoose.Types.ObjectId(id)) }
+        }).lean();
+
+        const missingPayments = await Payment.find({
+            ...contactDocQuery,
+            module: 'sales',
+            date: { $gte: start, $lte: end },
+            status: { $ne: 'cancelled' },
+            _id: { $nin: Array.from(processedPeriodPayments).map(id => new mongoose.Types.ObjectId(id)) }
+        }).lean();
+
+        // Get journal numbers for missing ones if any (e.g. if they exist but weren't caught in main query)
+        const missingDocIds = [...missingInvoices.map(i => i._id), ...missingPayments.map(p => p._id)];
+        const fallbackJournals = await dailyRestrictionModel.find({
+            companyId: mc.companyId,
+            invoiceId: { $in: missingDocIds }
+        }).select('number invoiceId').lean();
+        const jMap = new Map();
+        fallbackJournals.forEach(j => jMap.set(j.invoiceId.toString(), j.number));
+
+        for (const inv of missingInvoices) {
+            const debit = Number(inv.totalAmount || 0);
+            accTotalDebit += debit;
+            entries.push({
+                date: inv.issueDate,
+                journalNumber: jMap.get(inv._id.toString()) || "—",
+                description: `فاتورة مبيعات ${inv.transactionNumber}${jMap.has(inv._id.toString()) ? '' : ' (بدون قيد)'}`,
+                debit,
+                credit: 0,
+                source: inv.transactionNumber,
+                sourceType: "invoice"
+            });
+        }
+        for (const pay of missingPayments) {
+            const credit = Number(pay.amount || 0);
+            accTotalCredit += credit;
+            entries.push({
+                date: pay.date,
+                journalNumber: jMap.get(pay._id.toString()) || "—",
+                description: `دفعة محصلة ${pay.referenceNumber || ''}${jMap.has(pay._id.toString()) ? '' : ' (بدون قيد)'}`,
+                debit: 0,
+                credit,
+                source: pay.referenceNumber || 'سداد',
+                sourceType: "payment"
+            });
+        }
+
+        // Only include in results if active or has balance
+        if (entries.length > 0 || openingBalance !== 0) {
+            entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+            let runningBalance = openingBalance;
+            for (const e of entries) {
+                runningBalance += (e.debit - e.credit);
+                e.balance = runningBalance;
+            }
+
+            globalTotalDebit += accTotalDebit;
+            globalTotalCredit += accTotalCredit;
+
+            results.push({
+                accountId: cidStr,
+                accountName: contact.name,
+                accountCode: contact.code || cidStr.slice(-4),
+                openingBalance,
+                entries,
+                netMovement: accTotalDebit - accTotalCredit,
+                closingBalance: runningBalance,
+                totalDebit: accTotalDebit,
+                totalCredit: accTotalCredit
+            });
+        }
     }
 
-    return {
+    const reportResult = {
         success: true,
-        data: results,
+        data: results.sort((a, b) => a.accountName.localeCompare(b.accountName)),
         totals: {
             totalDebit: globalTotalDebit,
             totalCredit: globalTotalCredit,
             finalBalance: results.reduce((sum, r) => sum + r.closingBalance, 0)
         }
     };
+
+    console.log('[reports] getClientGeneralLedger Overhauled Done, results:', results.length);
+    return reportResult;
 }
 
 /**
@@ -1209,169 +1322,255 @@ export async function getAgedReceivable(filters, companyFilter) {
 // ========== SUPPLIERS REPORTS ==========
 
 /**
- * Supplier General Ledger (Account Statement): All journal entries for accounts starting with 211 (Suppliers)
+ * Supplier General Ledger (Account Statement): Overhauled to be supplier-centric.
  */
 export async function getSupplierGeneralLedger(filters, companyFilter) {
     const { startDate, endDate, supplierId, branch, accountId, accountCode, journalAccount } = filters || {};
-    const effectiveAccountId = accountId || journalAccount;
     const { start, end } = getDateRange(startDate, endDate);
 
-    console.log('[DEBUG-SUPPLIER-LEDGER] Inputs:', { companyFilter, startDate, endDate, supplierId, branch, effectiveAccountId });
+    console.log('[reports] getSupplierGeneralLedger Overhaul Inputs:', { startDate, endDate, supplierId, branch });
 
-    // 1. Identify Target Accounts
-    let targetAccounts = [];
-    if (effectiveAccountId && effectiveAccountId !== 'all' && mongoose.Types.ObjectId.isValid(effectiveAccountId)) {
-        const acc = await chartOfAccountsModel.findOne({ _id: effectiveAccountId, ...companyFilter }).select("name code").lean();
-        if (acc) targetAccounts.push(acc);
-    } else if (accountCode) {
-        const acc = await chartOfAccountsModel.findOne({ code: accountCode, ...companyFilter }).select("name code").lean();
-        if (acc) targetAccounts.push(acc);
-    } else if (supplierId && supplierId !== 'all' && mongoose.Types.ObjectId.isValid(supplierId)) {
-        const contact = await Contact.findOne({ _id: supplierId, ...companyFilter }).select("name").lean();
-        if (contact) {
-            // Find accounts that match the supplier name
-            const accs = await chartOfAccountsModel.find({
-                ...companyFilter,
-                name: { $regex: contact.name, $options: 'i' }
-            }).select("name code").lean();
-            targetAccounts = accs;
-        }
-    } else {
-        // Default: All accounts starting with 212 (standard for AP) or 211
-        const accs = await chartOfAccountsModel.find({
-            ...companyFilter,
-            $or: [
-                { code: { $regex: '^(212|211|21)' } },
-                { name: { $regex: 'مورد|موردين|دائنون|Suppliers|Vendors', $options: 'i' } }
-            ],
-            type: 'sub'
-        }).select("name code").lean();
-        targetAccounts = accs;
+    // Normalize companyFilter
+    const mc = { ...companyFilter };
+    if (mc.companyId && typeof mc.companyId === 'string') {
+        mc.companyId = new mongoose.Types.ObjectId(mc.companyId);
     }
 
-    console.log('[DEBUG-SUPPLIER-LEDGER] Target Accounts Found:', targetAccounts.map(a => `${a.name} (${a.code})`));
+    // 1. Identify Target Suppliers
+    let targetContacts = [];
+    if (supplierId && supplierId !== 'all' && mongoose.Types.ObjectId.isValid(supplierId)) {
+        const contact = await Contact.findOne({ _id: supplierId, ...mc }).lean();
+        if (contact) targetContacts.push(contact);
+    } else {
+        // Fetch all suppliers for this company
+        targetContacts = await Contact.find({ ...mc, module: 'supplier' }).lean();
+    }
+
+    console.log('[reports] getSupplierGeneralLedger Processing contacts:', targetContacts.length);
 
     const results = [];
     let globalTotalDebit = 0;
     let globalTotalCredit = 0;
 
-    for (const acc of targetAccounts) {
-        const accIdStr = acc._id.toString();
+    for (const contact of targetContacts) {
+        const cid = contact._id;
+        const cidStr = cid.toString();
 
-        // A. Opening Balance (from beginning of time until 'start')
+        // A. Find all Purchase Invoices and Payments for this contact
+        const contactDocQuery = { ...mc, contact: cid };
+
+        console.log(`[DEBUG] supplier contactId: ${cidStr} (${contact.name})`);
+
+        const invQuery = { ...contactDocQuery, module: 'purchases', status: { $ne: 'draft' } };
+        console.log(`[DEBUG] invoice query:`, JSON.stringify(invQuery));
+        const allInvoices = await Transaction.find(invQuery).select('_id transactionNumber').lean();
+        console.log(`[DEBUG] invoices found: ${allInvoices.length}`);
+
+        const payQuery = { ...contactDocQuery, module: 'purchases', status: { $ne: 'cancelled' } };
+        console.log(`[DEBUG] payment query:`, JSON.stringify(payQuery));
+        const allPayments = await Payment.find(payQuery).select('_id referenceNumber invoiceId').lean();
+        console.log(`[DEBUG] payments found: ${allPayments.length}`);
+
+        const contactInvoiceIds = allInvoices.map(i => i._id);
+        const contactInvoiceIdStrs = contactInvoiceIds.map(id => id.toString());
+
+        // B. Opening Balance
         let openingBalance = 0;
-        const openingQuery = {
-            ...companyFilter,
+
+        // From Ledger (Restrictions)
+        const ledgerOpeningQuery = {
+            ...mc,
             date: { $lt: start },
-            "entries.account": { $in: [acc._id, accIdStr] }
+            $or: [
+                { invoiceId: { $in: contactInvoiceIds } },
+                { "entries.description": { $regex: contact.name, $options: 'i' } }
+            ]
         };
-        const pastRestrictions = await dailyRestrictionModel.find(openingQuery).select("entries").lean();
+        const pastRestrictions = await dailyRestrictionModel.find(ledgerOpeningQuery).select("entries invoiceId sourceType").lean();
+
+        const processedOpeningInvoices = new Set();
+        const processedOpeningPayments = new Set();
+
         for (const res of pastRestrictions) {
+            if (res.invoiceId) {
+                if (res.sourceType === 'payment' || res.sourceType === 'purchases_payment') processedOpeningPayments.add(res.invoiceId.toString());
+                else processedOpeningInvoices.add(res.invoiceId.toString());
+            }
             for (const entry of res.entries || []) {
-                const entryAccId = entry.account?._id ? String(entry.account._id) : String(entry.account);
-                if (entryAccId === accIdStr) {
+                const isSupplierEntry = (res.invoiceId && contactInvoiceIdStrs.includes(res.invoiceId.toString())) ||
+                    (entry.description && entry.description.includes(contact.name));
+
+                if (isSupplierEntry) {
                     openingBalance += (Number(entry.debit || 0) - Number(entry.credit || 0));
                 }
             }
         }
 
-        // B. Period Transactions
-        const query = {
-            ...companyFilter,
-            date: { $gte: start, $lte: end },
-            "entries.account": { $in: [acc._id, accIdStr] }
-        };
-        if (branch && branch !== 'all') query.branch = branch;
+        // From Invoices/Payments NOT in ledger (Opening)
+        const missingOpeningInvoices = await Transaction.find({
+            ...contactDocQuery,
+            module: 'purchases',
+            issueDate: { $lt: start },
+            status: { $ne: 'draft' },
+            _id: { $nin: Array.from(processedOpeningInvoices).map(id => new mongoose.Types.ObjectId(id)) }
+        }).select('totalAmount').lean();
+        for (const inv of missingOpeningInvoices) openingBalance += Number(inv.totalAmount || 0);
 
-        const rawRestrictions = await dailyRestrictionModel.find(query)
-            .sort({ date: 1, createdAt: 1 })
-            .lean();
+        const missingOpeningPayments = await Payment.find({
+            ...contactDocQuery,
+            module: 'purchases',
+            date: { $lt: start },
+            status: { $ne: 'cancelled' },
+            _id: { $nin: Array.from(processedOpeningPayments).map(id => new mongoose.Types.ObjectId(id)) }
+        }).select('amount').lean();
+        for (const pay of missingOpeningPayments) openingBalance -= Number(pay.amount || 0);
 
-        // Post-fetch: trim each restriction's entries to only the lines for this account,
-        // then discard any restriction where no lines match.
-        const restrictions = rawRestrictions
-            .map(r => ({
-                ...r,
-                entries: (r.entries || []).filter(e => {
-                    const id = e.account?._id ? String(e.account._id) : String(e.account);
-                    return id === accIdStr;
-                })
-            }))
-            .filter(r => r.entries.length > 0);
-
-        console.log(`[DEBUG-SUPPLIER-LEDGER] Account ${acc.name} (${acc.code}) - Raw: ${rawRestrictions.length}, After filter: ${restrictions.length}`);
-        if (restrictions.length > 0) {
-            console.log(`[DEBUG-SUPPLIER-LEDGER] First restriction matched entries: ${restrictions[0].entries.length}`);
-        }
-
+        // C. Period Transactions
         const entries = [];
-        let runningBalance = openingBalance;
         let accTotalDebit = 0;
         let accTotalCredit = 0;
+        const processedPeriodInvoices = new Set();
+        const processedPeriodPayments = new Set();
 
-        for (const restriction of restrictions) {
-            for (const entry of restriction.entries || []) {
-                const entryAccId = entry.account?._id ? String(entry.account._id) : String(entry.account);
-                if (entryAccId !== accIdStr) continue;
+        // 1. From Ledger
+        const restrictionQuery = {
+            ...mc,
+            date: { $gte: start, $lte: end },
+            $or: [
+                { invoiceId: { $in: contactInvoiceIds } },
+                { "entries.description": { $regex: contact.name, $options: 'i' } }
+            ]
+        };
+        if (branch && branch !== 'all') restrictionQuery.branch = branch;
+
+        const restrictions = await dailyRestrictionModel.find(restrictionQuery).sort({ date: 1, createdAt: 1 }).lean();
+
+        for (const res of restrictions) {
+            const isContactJournal = res.invoiceId && contactInvoiceIdStrs.includes(res.invoiceId.toString());
+
+            for (const entry of res.entries || []) {
+                const entryDesc = entry.description || "";
+                if (!isContactJournal && !entryDesc.includes(contact.name)) continue;
+
+                if (res.invoiceId) {
+                    if (res.sourceType === 'payment' || res.sourceType === 'purchases_payment') processedPeriodPayments.add(res.invoiceId.toString());
+                    else processedPeriodInvoices.add(res.invoiceId.toString());
+                }
 
                 const debit = Number(entry.debit || 0);
                 const credit = Number(entry.credit || 0);
-                runningBalance += debit - credit;
                 accTotalDebit += debit;
                 accTotalCredit += credit;
 
-                let displaySource = restriction.source || "";
-                if (restriction.sourceType === 'purchases_invoice' || restriction.sourceType === 'invoice') {
-                    displaySource = `${restriction.source}`;
-                } else if (restriction.sourceType === 'payment' || restriction.sourceType === 'purchases_payment') {
-                    displaySource = `سداد ${restriction.source || ''}`;
-                } else if (restriction.sourceType === 'return' || restriction.sourceType === 'purchases_return') {
-                    displaySource = `مرتجع ${restriction.source || ''}`;
-                }
-
                 entries.push({
-                    date: restriction.date,
-                    journalNumber: restriction.number,
-                    description: entry.description || restriction.description || "",
+                    date: res.date,
+                    journalNumber: res.number,
+                    description: entry.description || res.description || "",
                     debit,
                     credit,
-                    balance: runningBalance,
-                    source: displaySource,
-                    sourceType: restriction.sourceType || "manual"
+                    source: res.source || "",
+                    sourceType: res.sourceType || "manual"
                 });
             }
         }
 
-        globalTotalDebit += accTotalDebit;
-        globalTotalCredit += accTotalCredit;
+        // 2. Fallback (Virtual)
+        const fallbackQuery = {
+            ...contactDocQuery,
+            module: 'purchases',
+            issueDate: { $gte: start, $lte: end },
+            status: { $ne: 'draft' }
+        };
+        if (branch && branch !== 'all') fallbackQuery.warehouse = branch;
 
-        results.push({
-            accountId: accIdStr,
-            accountName: acc.name,
-            accountCode: acc.code,
-            openingBalance,
-            entries,
-            netMovement: accTotalDebit - accTotalCredit,
-            closingBalance: runningBalance,
-            totalDebit: accTotalDebit,
-            totalCredit: accTotalCredit
-        });
+        const missingInvoices = await Transaction.find({
+            ...fallbackQuery,
+            _id: { $nin: Array.from(processedPeriodInvoices).map(id => new mongoose.Types.ObjectId(id)) }
+        }).lean();
+
+        const missingPayments = await Payment.find({
+            ...contactDocQuery,
+            module: 'purchases',
+            date: { $gte: start, $lte: end },
+            status: { $ne: 'cancelled' },
+            _id: { $nin: Array.from(processedPeriodPayments).map(id => new mongoose.Types.ObjectId(id)) }
+        }).lean();
+
+        // Get journal numbers for missing ones
+        const missingDocIds = [...missingInvoices.map(i => i._id), ...missingPayments.map(p => p._id)];
+        const fallbackJournals = await dailyRestrictionModel.find({
+            companyId: mc.companyId,
+            invoiceId: { $in: missingDocIds }
+        }).select('number invoiceId').lean();
+        const jMap = new Map();
+        fallbackJournals.forEach(j => jMap.set(j.invoiceId.toString(), j.number));
+
+        for (const inv of missingInvoices) {
+            const debit = Number(inv.totalAmount || 0);
+            accTotalDebit += debit;
+            entries.push({
+                date: inv.issueDate,
+                journalNumber: jMap.get(inv._id.toString()) || "—",
+                description: `فاتورة مشتريات ${inv.transactionNumber}${jMap.has(inv._id.toString()) ? '' : ' (بدون قيد)'}`,
+                debit,
+                credit: 0,
+                source: inv.transactionNumber,
+                sourceType: "purchase_invoice"
+            });
+        }
+        for (const pay of missingPayments) {
+            const credit = Number(pay.amount || 0);
+            accTotalCredit += credit;
+            entries.push({
+                date: pay.date,
+                journalNumber: jMap.get(pay._id.toString()) || "—",
+                description: `دفعة مصروفة ${pay.referenceNumber || ''}${jMap.has(pay._id.toString()) ? '' : ' (بدون قيد)'}`,
+                debit: 0,
+                credit,
+                source: pay.referenceNumber || 'سداد',
+                sourceType: "purchase_payment"
+            });
+        }
+
+        // Only include in results if active or has balance
+        if (entries.length > 0 || openingBalance !== 0) {
+            entries.sort((a, b) => new Date(a.date) - new Date(b.date));
+            let runningBalance = openingBalance;
+            for (const e of entries) {
+                runningBalance += (e.debit - e.credit);
+                e.balance = runningBalance;
+            }
+
+            globalTotalDebit += accTotalDebit;
+            globalTotalCredit += accTotalCredit;
+
+            results.push({
+                accountId: cidStr,
+                accountName: contact.name,
+                accountCode: contact.code || cidStr.slice(-4),
+                openingBalance,
+                entries,
+                netMovement: accTotalDebit - accTotalCredit,
+                closingBalance: runningBalance,
+                totalDebit: accTotalDebit,
+                totalCredit: accTotalCredit
+            });
+        }
     }
 
-    return {
+    const reportResult = {
         success: true,
-        data: results,
+        data: results.sort((a, b) => a.accountName.localeCompare(b.accountName)),
         totals: {
             totalDebit: globalTotalDebit,
             totalCredit: globalTotalCredit,
             finalBalance: results.reduce((sum, r) => sum + r.closingBalance, 0)
         }
     };
-}
 
-/**
- * Suppliers summary: total purchases, total returns, total payments spent, total outstanding
- */
+    console.log('[reports] getSupplierGeneralLedger Overhauled Done, results:', results.length);
+    return reportResult;
+}
 export async function getSuppliersSummary(startDate, endDate, companyFilter) {
     const { start, end } = getDateRange(startDate, endDate);
 
@@ -1884,17 +2083,23 @@ export async function getGeneralLedger(startDate, endDate, companyFilter, filter
     const { branch, accountId, accountCode } = filters;
     const { start, end } = getDateRange(startDate, endDate);
 
+    // Normalize companyFilter
+    const mc = { ...companyFilter };
+    if (mc.companyId && typeof mc.companyId === 'string') {
+        try { mc.companyId = new mongoose.Types.ObjectId(mc.companyId); } catch (e) { /* ignore */ }
+    }
+
     // Resolve accounting IDs for the requested target
     let targetAccountIds = null;
     let selectedAccountDoc = null;
 
     if (accountId && accountId !== 'all') {
-        selectedAccountDoc = await chartOfAccountsModel.findOne({ _id: accountId, ...companyFilter }).select("name code").lean();
+        selectedAccountDoc = await chartOfAccountsModel.findOne({ _id: accountId, ...mc }).select("name code").lean();
         if (selectedAccountDoc) {
             targetAccountIds = [selectedAccountDoc._id.toString()];
         }
     } else if (accountCode) {
-        selectedAccountDoc = await chartOfAccountsModel.findOne({ code: accountCode, ...companyFilter }).select("name code").lean();
+        selectedAccountDoc = await chartOfAccountsModel.findOne({ code: accountCode, ...mc }).select("name code").lean();
         if (selectedAccountDoc) {
             targetAccountIds = [selectedAccountDoc._id.toString()];
         }
@@ -1904,7 +2109,7 @@ export async function getGeneralLedger(startDate, endDate, companyFilter, filter
     let openingBalance = 0;
     if (targetAccountIds) {
         const openingQuery = {
-            ...companyFilter,
+            ...mc,
             date: { $lt: start }
         };
         const pastRestrictions = await dailyRestrictionModel.find(openingQuery).select("entries").lean();
@@ -1918,7 +2123,7 @@ export async function getGeneralLedger(startDate, endDate, companyFilter, filter
     }
 
     // 2. Fetch Transactions in Period
-    const query = { ...companyFilter, date: { $gte: start, $lte: end } };
+    const query = { ...mc, date: { $gte: start, $lte: end } };
     const restrictions = await dailyRestrictionModel.find(query)
         .sort({ date: 1, createdAt: 1 })
         .populate("entries.account", "name code")

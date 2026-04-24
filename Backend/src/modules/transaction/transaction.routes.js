@@ -8,12 +8,12 @@ import {
     downloadInvoicePDF
 } from "./transaction.controller.js";
 import Transaction from "./transaction.model.js";
-import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadFiles.js";
+import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadfiles.js";
 import { protectedRoutes, requireResolvedPermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
 import { validation } from "../../middleware/validation.js";
 import { transactionSchema } from "./transaction.validation.js";
-import { AppError } from "../../utils/AppError.js";
+import { AppError } from "../../utils/apperror.js";
 
 const router = express.Router();
 const RBAC_DEBUG_ENABLED = String(process.env.RBAC_DEBUG || "").toLowerCase() === "true";

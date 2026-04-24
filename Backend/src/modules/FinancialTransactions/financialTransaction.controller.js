@@ -1,13 +1,13 @@
-import FinancialReceipt from "./models/financialReceipt.model.js";
-import FinancialDisbursement from "./models/financialDisbursement.model.js";
-import FinancialTransfer from "./models/financialTransfer.model.js";
-import AccountingTransaction from "./models/accountingTransaction.model.js";
-import { safeModel } from "../Safes/safe.model.js";
-import { bankAccountModel } from "../BankAccounts/bankAccount.model.js";
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
-import { AppError } from "../../utils/AppError.js";
+import FinancialReceipt from "./models/financialreceipt.model.js";
+import FinancialDisbursement from "./models/financialdisbursement.model.js";
+import FinancialTransfer from "./models/financialtransfer.model.js";
+import AccountingTransaction from "./models/accountingtransaction.model.js";
+import { safeModel } from "../safes/safe.model.js";
+import { bankAccountModel } from "../bankaccounts/bankaccount.model.js";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
+import { AppError } from "../../utils/apperror.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
-import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
+import { resolveCompanyIdForWrite } from "../../middleware/applycompanyfilter.js";
 
 const round2 = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 const normalizeTaxesPercent = (value) => {
@@ -156,6 +156,7 @@ const getAllFinancialTransactions = catchAsyncError(async (req, res) => {
             source: t.invoiceId?.transactionNumber || t.referenceCode || '-',
             date: t.date,
             amount: t.amount,
+            currency: t.invoiceId?.currency || 'SAR',
             account: {
                 name: (t.account && t.account !== 'Unknown')
                     ? t.account
@@ -170,6 +171,7 @@ const getAllFinancialTransactions = catchAsyncError(async (req, res) => {
         const receiptMapped = receipts.map(t => ({
             ...t,
             type: 'receipt',
+            currency: t.currency || 'SAR',
             source: t.externalAccount || 'Manual',
             safe: t.account || { name: '-' }
         }));
@@ -177,6 +179,7 @@ const getAllFinancialTransactions = catchAsyncError(async (req, res) => {
         const disbursementMapped = disbursements.map(t => ({
             ...t,
             type: 'disbursement',
+            currency: t.currency || 'SAR',
             source: t.externalAccount || 'Manual',
             safe: t.account || { name: '-' }
         }));
@@ -184,6 +187,7 @@ const getAllFinancialTransactions = catchAsyncError(async (req, res) => {
         const transferMapped = transfers.map(t => ({
             ...t,
             type: 'transfer',
+            currency: t.currency || 'SAR',
             source: 'Transfer',
             safe: { name: `${t.fromAccount?.name || '-'} \u2192 ${t.toAccount?.name || '-'}` },
             account: { name: '-' }

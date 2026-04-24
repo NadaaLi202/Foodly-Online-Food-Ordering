@@ -1,8 +1,8 @@
 ﻿import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown } from 'lucide-react';
-import reportsService from '../../../services/reportsService';
-import PrintHeader from '../../../components/common/PrintHeader';
+import reportsService from '../../../services/reportsservice';
+import PrintHeader from '../../../components/common/printheader';
 
 const SummaryPurchasesReport = () => {
     const { t } = useTranslation();

@@ -2,11 +2,11 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer, BarChart3, List } from 'lucide-react';
-import reportsService from '../../../services/reportsService';
-import { exportDetailedSalesReportToExcel } from '../../../utils/detailedSalesReportExport';
-import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
+import reportsService from '../../../services/reportsservice';
+import { exportDetailedSalesReportToExcel } from '../../../utils/detailedsalesreportexport';
+import { downloadTablePdf } from '../../../utils/reportpdfbuilder';
 import * as XLSX from 'xlsx';
-import PrintHeader from '../../../components/common/PrintHeader';
+import PrintHeader from '../../../components/common/printheader';
 
 const SalesReport = () => {
     const { t, i18n } = useTranslation();

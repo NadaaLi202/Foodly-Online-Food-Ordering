@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucide-react';
-import reportsService from '../../../services/reportsService';
-import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
+import reportsService from '../../../services/reportsservice';
+import { downloadTablePdf } from '../../../utils/reportpdfbuilder';
 import * as XLSX from 'xlsx';
-import PrintHeader from '../../../components/common/PrintHeader';
+import PrintHeader from '../../../components/common/printheader';
 
 const SummarySupplierPaymentsReport = () => {
     const { t, i18n } = useTranslation();

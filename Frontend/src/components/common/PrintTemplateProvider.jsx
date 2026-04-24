@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { QRCodeCanvas } from 'qrcode.react';
 import api, { BASE_URL } from '../../services/api';
-import { formatCurrency } from '../../utils/currencyFormatter';
-import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils/currencyformatter';
+import { useAuth } from '../../context/authcontext';
 import {
     setPrintTemplateRequestHandler,
     getSavedPrintTemplate,
@@ -12,7 +13,8 @@ import {
     PRINT_TEMPLATE_OPTIONS,
     normalizePrintTemplate,
     requestPrintTemplateSelection
-} from '../../services/printTemplateService';
+} from '../../services/printtemplateservice';
+import InvoiceTaxBilingual from '../invoice/invoicetaxbilingual';
 
 const toNumber = (value) => {
     const parsed = Number(value);
@@ -36,14 +38,17 @@ const getCompanyLogoUrl = (logoPath) => {
 
 const resolveEntityAddress = (entity) => {
     if (!entity || typeof entity !== 'object') return '—';
-    const address = entity.address || {};
+    const address = entity.address;
+    if (typeof address === 'string' && address.trim()) return address;
+    if (address && typeof address === 'object') {
+        const parts = [address.address1, address.city, address.state, address.country].filter(Boolean);
+        if (parts.length > 0) return parts.join(', ');
+    }
     return (
-        address.address1 ||
-        address.city ||
         entity.location ||
         entity.city ||
         entity.address1 ||
-        entity.address ||
+        (typeof entity.address === 'string' ? entity.address : null) ||
         '—'
     );
 };
@@ -69,6 +74,22 @@ const SAMPLE_DATA = {
 
 const resolveCompanyInfo = ({ companySettings, user, requestMeta }) => {
     const fromMeta = requestMeta?.companyInfo || {};
+    const rawAddress =
+        fromMeta.address ||
+        companySettings?.address ||
+        companySettings?.location ||
+        companySettings?.city ||
+        user?.address ||
+        '—';
+
+    let address = '—';
+    if (typeof rawAddress === 'string') {
+        address = rawAddress;
+    } else if (rawAddress && typeof rawAddress === 'object') {
+        const parts = [rawAddress.address1, rawAddress.city, rawAddress.state, rawAddress.country].filter(Boolean);
+        address = parts.length > 0 ? parts.join(', ') : '—';
+    }
+
     return {
         name:
             fromMeta.company_name ||
@@ -89,13 +110,7 @@ const resolveCompanyInfo = ({ companySettings, user, requestMeta }) => {
             companySettings?.commercial_register ||
             user?.commercialRegister ||
             '—',
-        address:
-            fromMeta.address ||
-            companySettings?.address ||
-            companySettings?.location ||
-            companySettings?.city ||
-            user?.address ||
-            '—',
+        address,
         currency: companySettings?.currency || 'SAR',
     };
 };
@@ -194,6 +209,20 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t }) => {
                         <QRCodeCanvas value={qrValue} size={90} level="M" includeMargin />
                     </div>
                 </div>
+            </div>
+        );
+    }
+
+    if (template === 'tax-bilingual') {
+        return (
+            <div className="h-full max-h-[68vh] overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <InvoiceTaxBilingual
+                    invoice={activeInvoice}
+                    company={company}
+                    isRTL={isRTL}
+                    t={t}
+                    isPreview={true}
+                />
             </div>
         );
     }
@@ -367,6 +396,7 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t }) => {
 
 const PrintTemplateProvider = ({ children }) => {
     const { t, i18n } = useTranslation();
+    const navigate = useNavigate();
     const { companySettings, user } = useAuth();
     const defaultTemplate = getSavedPrintTemplate();
     const [isReady, setIsReady] = useState(false);
@@ -417,15 +447,24 @@ const PrintTemplateProvider = ({ children }) => {
 
         originalPrintRef.current = window.print.bind(window);
         window.print = async (...args) => {
+            // Bypass template selection modal if we are already in the QA tool
+            if (window.location.pathname.includes('/templates/invoice-qa')) {
+                return originalPrintRef.current(...args);
+            }
+
             try {
                 const resolved = await requestPrintTemplateSelection({ actionType: 'print', source: 'window.print' });
-                setSavedPrintTemplate(selectedTemplateRef.current || resolved || getSavedPrintTemplate());
-                document.documentElement.dataset.printTemplate = resolved;
+                const finalTemplate = selectedTemplateRef.current || resolved || getSavedPrintTemplate();
+                setSavedPrintTemplate(finalTemplate);
+                document.documentElement.dataset.printTemplate = finalTemplate;
                 return originalPrintRef.current(...args);
             } catch {
                 return undefined;
             }
         };
+
+        // Expose original print for specialized direct calls
+        window._originalPrint = originalPrintRef.current;
 
         return () => {
             if (originalPrintRef.current) {
@@ -493,6 +532,15 @@ const PrintTemplateProvider = ({ children }) => {
     const handleConfirm = () => {
         const current = requestRef.current;
         if (!current?.resolve) return;
+
+        if (selectedTemplate === 'invoice-qa') {
+            const invoiceId = request?.meta?.transactionId || previewInvoice?._id;
+            if (invoiceId) {
+                navigate(`/dashboard/templates/invoice-qa?invoiceId=${invoiceId}`);
+                closeRequest();
+                return;
+            }
+        }
 
         const normalized = setSavedPrintTemplate(selectedTemplate);
         document.documentElement.dataset.printTemplate = normalized;

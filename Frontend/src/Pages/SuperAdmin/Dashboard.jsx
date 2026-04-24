@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import companyService from '../../services/companyService';
-import logError from '../../utils/logError';
+import companyService from '../../services/companyservice';
+import logError from '../../utils/logerror';
 import { Plus, Building, Users, LogIn } from 'lucide-react';
 
 const SuperAdminDashboard = () => {

@@ -97,15 +97,14 @@ const transactionSchema = new mongoose.Schema({
         required: true
     },
 
+    companySnapshot: {
+        type: Object,
+        default: {}
+    },
+
     contactSnapshot: {
-        name: String,
-        email: String,
-        phone: String,
-        type: String,
-        address: {
-            city: String,
-            address1: String
-        }
+        type: Object,
+        default: {}
     },
 
     issueDate: {
@@ -347,5 +346,5 @@ transactionSchema.methods.restore = function () {
     return this.save();
 };
 
-const Transaction = mongoose.model('Transaction', transactionSchema);
+const Transaction = mongoose.models.Transaction || mongoose.model('Transaction', transactionSchema);
 export default Transaction;

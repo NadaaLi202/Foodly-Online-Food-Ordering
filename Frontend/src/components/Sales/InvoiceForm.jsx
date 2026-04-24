@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import AddContactModal from './AddContactModal';
-import AddSupplierModal from '../AddSupplierModal';
-import AttachmentsSection from '../AttachmentsSection';
+import AddContactModal from './addcontactmodal';
+import AddSupplierModal from '../addsuppliermodal';
+import AttachmentsSection from '../attachmentssection';
 import api from '../../services/api';
-import logError from '../../utils/logError';
-import { SUPPORTED_CURRENCIES } from '../../utils/currencyFormatter';
-import { currencySymbols } from '../../utils/currencySymbols';
-import { useAuth } from '../../context/AuthContext';
+import logError from '../../utils/logerror';
+import { SUPPORTED_CURRENCIES } from '../../utils/currencyformatter';
+import { currencySymbols } from '../../utils/currencysymbols';
+import { useAuth } from '../../context/authcontext';
 
 const TAX_PRESET_VALUES = ['0', '10', '15'];
 const round2 = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
@@ -61,6 +61,7 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
         paidAmount: 0,
         paymentMethod: 'cash',
         treasury: '',
+        treasuryType: 'safe',
         activeTab: hidePaymentDetails ? 'discount' : 'payment',
         invoiceDiscount: 0,
         invoiceDiscountType: '%',
@@ -100,6 +101,7 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
                 paidAmount: (isDuplicate || isReturn) ? 0 : (invoice.paidAmount || 0),
                 paymentMethod: (invoice.paymentMethod === 'credit' ? 'card' : invoice.paymentMethod === 'bank_transfer' ? 'bank' : invoice.paymentMethod) || 'cash',
                 treasury: invoice.payment?.treasury || '',
+                treasuryType: invoice.payment?.treasuryType || (invoice.paymentMethod === 'bank' || invoice.paymentMethod === 'bank_transfer' ? 'bank' : 'safe'),
                 activeTab: hidePaymentDetails ? 'discount' : 'payment',
                 invoiceDiscount: invoice.generalDiscountPercent || invoice.generalDiscount || invoice.invoiceDiscount || 0,
                 invoiceDiscountType: (invoice.generalDiscountPercent || invoice.invoiceDiscountType === '%') ? '%' : 'fixed',
@@ -125,12 +127,25 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
                 api.get('/safes'),
                 api.get('/bank-accounts')
             ]);
-            setSafes(safesRes.data?.safes || safesRes.data?.data || []);
-            setBankAccounts(banksRes.data?.data || []);
+
+            // Handle safes response
+            const safeData = safesRes.data?.safes || safesRes.data?.data || [];
+            setSafes(Array.isArray(safeData) ? safeData : []);
+
+            // Handle bank accounts response (using user suggested paths)
+            const bankData = banksRes.data?.bankAccounts || banksRes.data?.data || [];
+            setBankAccounts(Array.isArray(bankData) ? bankData : []);
         } catch (error) {
-            logError('Error fetching accounts:', error);
+            console.error('Error fetching accounts:', error);
         }
     };
+
+    // Re-fetch accounts when payment method changes as requested
+    useEffect(() => {
+        if (formData.paymentMethod === 'bank') {
+            fetchAccounts();
+        }
+    }, [formData.paymentMethod]);
 
     const fetchClients = async () => {
         try {
@@ -152,9 +167,33 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
+
+        if (name === 'paymentMethod') {
+            setFormData({
+                ...formData,
+                [name]: value,
+                treasury: '', // Reset treasury when switching method
+                treasuryType: value === 'bank' ? 'bank' : 'safe'
+            });
+        } else {
+            setFormData({ ...formData, [name]: value });
+        }
+
         if (errors[name]) {
             setErrors({ ...errors, [name]: '' });
+        }
+    };
+
+    const handleTreasuryChange = (e) => {
+        const { value } = e.target;
+        const type = formData.paymentMethod === 'bank' ? 'bank' : 'safe';
+        setFormData(prev => ({
+            ...prev,
+            treasury: value,
+            treasuryType: type
+        }));
+        if (errors.treasury) {
+            setErrors(prev => ({ ...prev, treasury: '' }));
         }
     };
 
@@ -284,6 +323,14 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
         const newErrors = {};
         if (!formData.invoiceNumber) newErrors.invoiceNumber = t('sales.common.required');
         if (!formData.clientId) newErrors.clientId = t('sales.common.required');
+
+        // Treasury validation for bank/cash when paidAmount > 0
+        if (Number(formData.paidAmount) > 0) {
+            if (!formData.treasury) {
+                newErrors.treasury = formData.paymentMethod === 'bank' ? "يرجى اختيار الحساب البنكي" : "يرجى اختيار الخزينة";
+            }
+        }
+
         if (formData.items.length === 0) newErrors.items = t('sales.invoices.at_least_one_item');
 
         formData.items.forEach((item, index) => {
@@ -316,8 +363,17 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
             paidAmount: Number(formData.paidAmount) || 0,
             paymentMethod: paymentMethodMap[formData.paymentMethod] || formData.paymentMethod,
             currency: normalizedCurrency,
-            treasury: formData.treasury
+            treasury: formData.treasury,
+            treasuryType: formData.treasuryType
         };
+
+        // Debug log requested by user
+        console.log('[INVOICE SUBMIT] payment data:', {
+            paymentMethod: paymentPayload.paymentMethod,
+            treasuryType: formData.treasuryType,
+            treasury: formData.treasury,
+            bankAccount: formData.treasuryType === 'bank' ? formData.treasury : null
+        });
 
         formDataToSend.append('paymentMethod', paymentMethodMap[formData.paymentMethod] || formData.paymentMethod);
         formDataToSend.append('paidAmount', formData.paidAmount);
@@ -682,13 +738,21 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
                                                     <select
                                                         name="treasury"
                                                         value={formData.treasury || ''}
-                                                        onChange={handleInputChange}
-                                                        className="w-full bg-white border border-gray-200 rounded-lg p-2 text-sm text-gray-700 focus:outline-none focus:border-indigo-500"
+                                                        onChange={handleTreasuryChange}
+                                                        className={`w-full bg-white border ${errors.treasury ? 'border-red-500' : 'border-gray-200'} rounded-lg p-2 text-sm text-gray-700 focus:outline-none focus:border-indigo-500`}
                                                     >
                                                         <option value="">{t('sales.payments.select_treasury')}</option>
-                                                        <option value="main">{t('sales.payments.main_treasury')}</option>
-                                                        <option value="bank">{t('sales.payments.main_bank_account')}</option>
+                                                        {formData.paymentMethod === 'bank' ? (
+                                                            bankAccounts.map(account => (
+                                                                <option key={account._id} value={account._id}>{account.name}</option>
+                                                            ))
+                                                        ) : (
+                                                            safes.map(safe => (
+                                                                <option key={safe._id} value={safe._id}>{safe.name}</option>
+                                                            ))
+                                                        )}
                                                     </select>
+                                                    {errors.treasury && <p className="text-red-500 text-[10px] font-bold mt-1 tracking-tight">{errors.treasury}</p>}
                                                 </div>
                                             </div>
                                         </div>

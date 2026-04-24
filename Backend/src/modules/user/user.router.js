@@ -1,8 +1,8 @@
 import express from "express"
 import { addUser, deleteUser, getAllUsers, getUserById, updateUser } from "./user.controller.js";
 import { allowedTo, protectedRoutes, requirePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
-import { uploadSingleFile } from "../../middleware/uploadFiles.js";
+import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
+import { uploadSingleFile } from "../../middleware/uploadfiles.js";
 import { validation } from "../../middleware/validation.js";
 import { addUserVal, deleteUserVal, getUserByIdVal, updateUserVal } from "./user.validation.js";
 

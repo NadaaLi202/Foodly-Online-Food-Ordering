@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import companyService from '../../services/companyService';
-import { useAuth } from '../../context/AuthContext';
+import companyService from '../../services/companyservice';
+import { useAuth } from '../../context/authcontext';
 import { Plus, Edit, Trash2, LogIn, Search, Building, Users, Mail, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
-import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
+import ConfirmDeleteModal from '../../components/confirmdeletemodal';
 import toast from 'react-hot-toast';
-import logError from '../../utils/logError';
+import logError from '../../utils/logerror';
 
 const CompanyList = () => {
     const { t, i18n } = useTranslation();

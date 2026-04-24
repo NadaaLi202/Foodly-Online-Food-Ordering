@@ -3,12 +3,12 @@ import { useParams } from 'react-router-dom';
 import api from '../../../services/api.js';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import TemplateEditor from '../components/TemplateEditor.jsx';
-import TextBlock, { TextBlockList } from '../components/TextBlock.jsx';
-import MarginsPopover from '../components/MarginsPopover.jsx';
-import InvoicePreview from '../components/DocumentPreview.jsx';
-import { useAuth } from '../../../context/AuthContext.jsx';
-import branchService from '../../../services/branchService.js';
+import TemplateEditor from '../components/templateeditor.jsx';
+import TextBlock, { TextBlockList } from '../components/textblock.jsx';
+import MarginsPopover from '../components/marginspopover.jsx';
+import InvoicePreview from '../components/documentpreview.jsx';
+import { useAuth } from '../../../context/authcontext.jsx';
+import branchService from '../../../services/branchservice.js';
 import { X } from 'lucide-react';
 
 /** Maps branch DB record to template placeholder keys */

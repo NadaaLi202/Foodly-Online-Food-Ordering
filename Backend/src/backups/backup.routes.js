@@ -1,12 +1,26 @@
 import express from "express";
 import fs from "fs";
+import multer from "multer";
+import { Readable } from "stream";
 import { allowedTo, protectedRoutes } from "../modules/auth/auth.controller.js";
-import { catchAsyncError } from "../middleware/catchAsyncError.js";
-import { runSystemBackup, restoreFromBackup, listBackups } from "./backup.service.js";
+import { catchAsyncError } from "../middleware/catchasyncerror.js";
+import { runSystemBackup, restoreFromBackup, restoreFromStream, listBackups } from "./backup.service.js";
 import { systemBackupModel } from "./backup.model.js";
 import { getBackupReadStream, getSignedBackupUrl } from "./backup.storage.js";
 import path from "path";
-import { AppError } from "../utils/AppError.js";
+import { AppError } from "../utils/apperror.js";
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 500 * 1024 * 1024 }, // 500MB max
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (ext === ".jsonl" || ext === ".json" || file.mimetype === "application/json" || file.mimetype === "application/octet-stream") {
+            return cb(null, true);
+        }
+        cb(new Error("Only JSONL backup files are accepted"));
+    }
+});
 
 const router = express.Router();
 
@@ -64,25 +78,48 @@ router.get(
 router.post(
     "/restore/:backupId",
     catchAsyncError(async (req, res) => {
+        console.log("[Restore] handler called", req.params, req.query);
         if (String(req.query.confirm || "").toLowerCase() !== "true") {
             return res.status(400).json({
                 message: "Restore requires confirm=true query param",
             });
         }
+        console.log("[Restore] confirm=true OK");
+
         const { backupId } = req.params;
+        console.log("[Restore] backupId:", backupId);
+
         const companyId = getScopedCompanyId(req);
+        console.log("[Restore] companyId:", companyId);
+
         if (companyId) {
+            // Allow restore if the backup belongs to this company OR is a system backup (no company scope)
             const exists = await systemBackupModel
-                .findOne({ _id: backupId, backupForCompanyId: companyId })
-                .select("_id")
+                .findOne({
+                    _id: backupId,
+                    $or: [
+                        { backupForCompanyId: companyId },
+                        { backupForCompanyId: null },
+                        { backupForCompanyId: { $exists: false } },
+                    ],
+                })
+                .select("_id backupForCompanyId")
                 .lean();
+            console.log("[Restore] DB lookup result:", exists);
             if (!exists) {
+                console.log("[Restore] Backup not found or access denied");
                 return res.status(404).json({ message: "Backup not found" });
             }
         }
+
         const wipe = String(req.query.wipe || "").toLowerCase() === "true";
-        const result = await restoreFromBackup(backupId, { wipe });
+        console.log("[Restore] wipe:", wipe);
+
+        console.log("[Restore] calling restoreFromBackup...");
+        const result = await restoreFromBackup(backupId, { wipe, companyId });
+        console.log("[Restore] restoreFromBackup done", result);
         res.status(200).json({
+            success: true,
             message: "Restore completed successfully",
             totalRestored: result.totalRestored,
             durationSeconds: result.duration,
@@ -134,6 +171,34 @@ router.get(
             res.status(404).json({ message: "Backup file not found" });
         });
         stream.pipe(res);
+    })
+);
+
+
+
+router.post(
+    "/restore-from-file",
+    upload.single("backupFile"),
+    catchAsyncError(async (req, res) => {
+        if (!req.file) {
+            return res.status(400).json({ message: "No backup file uploaded" });
+        }
+        if (String(req.query.confirm || "").toLowerCase() !== "true") {
+            return res.status(400).json({ message: "Restore requires confirm=true query param" });
+        }
+        const wipe = String(req.query.wipe || "").toLowerCase() === "true";
+        const companyId = getScopedCompanyId(req);
+        
+        console.log("[Restore-from-file] handler called", { wipe, companyId });
+
+        console.log("[Restore-from-file] calling restoreFromStream...");
+        const result = await restoreFromStream(req.file.buffer, { wipe, companyId });
+        console.log("[Restore-from-file] restoreFromStream done", result);
+        res.status(200).json({
+            message: "Restore from file completed successfully",
+            totalRestored: result.totalRestored,
+            durationSeconds: result.duration,
+        });
     })
 );
 

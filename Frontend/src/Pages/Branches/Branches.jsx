@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Search, RefreshCw, X, Home, Eye, Pencil, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import branchService from '../../services/branchService';
-import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
+import branchService from '../../services/branchservice';
+import ConfirmDeleteModal from '../../components/confirmdeletemodal';
 
 const countries = [
     { code: 'EG', name_ar: 'جمهورية مصر العربية', name_en: 'Egypt' },

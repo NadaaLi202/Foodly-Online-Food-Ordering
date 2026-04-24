@@ -1,6 +1,6 @@
 import { returnModel } from "./returns.model.js";
-import { AppError } from "../../utils/AppError.js";
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { AppError } from "../../utils/apperror.js";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
 
 const addReturn = catchAsyncError(async (req, res, next) => {
     // req.body.companyId comes from middleware (or superAdmin)

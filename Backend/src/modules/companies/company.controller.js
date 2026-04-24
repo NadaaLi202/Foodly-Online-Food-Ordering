@@ -1,12 +1,12 @@
 import { companyModel } from "./company.model.js";
-import { AppError } from "../../utils/AppError.js";
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { AppError } from "../../utils/apperror.js";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
-import { seedDefaultChartOfAccounts } from "../chartOfAccounts/chartOfAccounts.service.js";
+import { seedDefaultChartOfAccounts } from "../chartofaccounts/chartofaccounts.service.js";
 import { seedDefaultBranch } from "../branch/branch.service.js";
-import { seedDefaultSafe } from "../Safes/safe.service.js";
-import { seedDefaultBankAccount } from "../BankAccounts/bankAccount.service.js";
-import { safeModel } from "../Safes/safe.model.js";
+import { seedDefaultSafe } from "../safes/safe.service.js";
+import { seedDefaultBankAccount } from "../bankaccounts/bankaccount.service.js";
+import { safeModel } from "../safes/safe.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 

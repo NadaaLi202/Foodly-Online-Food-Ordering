@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../services/api";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/authcontext";
 
 const BYPASS_ROLES = new Set(["superAdmin", "company"]);
 const BYPASS_SYSTEM_ROLES = new Set(["superAdmin"]);

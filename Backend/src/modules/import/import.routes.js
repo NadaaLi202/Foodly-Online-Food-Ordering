@@ -1,7 +1,7 @@
 import express from "express";
 import * as importController from "./import.controller.js";
 import { protectedRoutes, allowedTo } from "../auth/auth.controller.js";
-import { uploadSingleFile } from "../../middleware/uploadFiles.js";
+import { uploadSingleFile } from "../../middleware/uploadfiles.js";
 
 const importRouter = express.Router();
 

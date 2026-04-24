@@ -4,9 +4,9 @@ import { ArrowLeftRight, ChevronLeft, ChevronRight, Info, Loader2, Plus, Refresh
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
-import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
-import costCentersService from '../../services/costCentersService';
-import settingsService from '../../services/settingsService';
+import ConfirmDeleteModal from '../../components/confirmdeletemodal';
+import costCentersService from '../../services/costcentersservice';
+import settingsService from '../../services/settingsservice';
 
 const INITIAL_FORM = {
     type: 'main',

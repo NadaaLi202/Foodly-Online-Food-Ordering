@@ -1,8 +1,8 @@
 import { userModel } from "./user.model.js";
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
-import { AppError } from "../../utils/AppError.js";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
+import { AppError } from "../../utils/apperror.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
-import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
+import { resolveCompanyIdForWrite } from "../../middleware/applycompanyfilter.js";
 
 const addUser = catchAsyncError(async (req, res, next) => {
     // Remove confirmPassword before processing (should not be stored)

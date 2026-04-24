@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Search, RefreshCw, X, Home, Pencil, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import activitiesService from '../../services/activitiesService';
-import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
+import activitiesService from '../../services/activitiesservice';
+import ConfirmDeleteModal from '../../components/confirmdeletemodal';
 
 const Activities = () => {
     const { t, i18n } = useTranslation();

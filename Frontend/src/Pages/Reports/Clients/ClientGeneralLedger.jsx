@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, FileSpreadsheet, FileText, Printer, Search, Settings2 } from 'lucide-react';
-import reportsService from '../../../services/reportsService';
-import chartOfAccountsService from '../../../services/chartOfAccountsService';
-import branchService from '../../../services/branchService';
-import { exportClientStatementToExcel, exportClientStatementToPdf } from '../../../utils/customerSupplierInventoryExport';
-import PrintHeader from '../../../components/common/PrintHeader';
-import { useAuth } from '../../../context/AuthContext';
-import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
+import reportsService from '../../../services/reportsservice';
+import chartOfAccountsService from '../../../services/chartofaccountsservice';
+import branchService from '../../../services/branchservice';
+import { exportClientStatementToExcel, exportClientStatementToPdf } from '../../../utils/customersupplierinventoryexport';
+import PrintHeader from '../../../components/common/printheader';
+import { useAuth } from '../../../context/authcontext';
+import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyformatter';
 
 const ClientGeneralLedger = () => {
     const { t } = useTranslation();
@@ -21,6 +21,7 @@ const ClientGeneralLedger = () => {
     // Filter Options Lists
     const [branches, setBranches] = useState([]);
     const [accounts, setAccounts] = useState([]);
+    const [clients, setClients] = useState([]);
 
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -39,8 +40,31 @@ const ClientGeneralLedger = () => {
         toDate: formatDate(lastDay),
         branch: 'all',
         accountId: 'all',
+        clientId: 'all',
         showAccounts: 'with_activity',
     });
+
+    const [clientSearch, setClientSearch] = useState('');
+    const [isClientOpen, setIsClientOpen] = useState(false);
+    const clientRef = useRef(null);
+
+    // Filtered clients list
+    const filteredClients = clients.filter(c =>
+        c.name?.toLowerCase().includes(clientSearch.toLowerCase()) ||
+        c.code?.toLowerCase().includes(clientSearch.toLowerCase())
+    );
+
+    const selectedClient = clients.find(c => c._id === filters.clientId);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (clientRef.current && !clientRef.current.contains(event.target)) {
+                setIsClientOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const handleFilterChange = (field, value) => {
         setFilters(prev => {
@@ -66,12 +90,14 @@ const ClientGeneralLedger = () => {
     useEffect(() => {
         const loadInitialData = async () => {
             try {
-                const [branchesList, accountsList] = await Promise.all([
+                const [branchesList, accountsList, clientsList] = await Promise.all([
                     branchService.getAllBranches(),
-                    chartOfAccountsService.getAllAccounts({ type: 'sub' })
+                    chartOfAccountsService.getAllAccounts({ type: 'sub' }),
+                    reportsService.getCustomersList()
                 ]);
                 setBranches(Array.isArray(branchesList) ? branchesList : (branchesList?.data || []));
                 setAccounts(Array.isArray(accountsList) ? accountsList : (accountsList?.accounts || []));
+                setClients(clientsList);
             } catch (err) {
                 console.error("Error loading filter options:", err);
             }
@@ -88,6 +114,7 @@ const ClientGeneralLedger = () => {
                 toDate: filters.toDate,
                 branch: filters.branch,
                 accountId: filters.accountId,
+                clientId: filters.clientId,
             });
 
             let data = res?.data ?? [];
@@ -193,6 +220,70 @@ const ClientGeneralLedger = () => {
                                     {branches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
                                 </select>
                                 <ChevronDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            </div>
+                        </div>
+
+                        {/* Clients Filter */}
+                        <div className="flex flex-col gap-1" ref={clientRef}>
+                            <label className="text-sm font-bold text-gray-700">العميل</label>
+                            <div className="relative">
+                                <div
+                                    className="w-full h-[42px] px-3 bg-white border border-gray-300 rounded text-sm flex items-center justify-between cursor-pointer hover:border-blue-500"
+                                    onClick={() => setIsClientOpen(!isClientOpen)}
+                                >
+                                    <span className="truncate">
+                                        {filters.clientId === 'all' ? "كل العملاء" : (selectedClient?.name || filters.clientId)}
+                                    </span>
+                                    <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isClientOpen ? 'rotate-180' : ''}`} />
+                                </div>
+
+                                {isClientOpen && (
+                                    <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-gray-200 rounded-md shadow-xl overflow-hidden min-w-[200px]">
+                                        <div className="p-2 border-b border-gray-100 bg-gray-50">
+                                            <div className="relative">
+                                                <input
+                                                    autoFocus
+                                                    type="text"
+                                                    placeholder="بحث عن عميل..."
+                                                    className="w-full h-8 pl-8 pr-3 text-sm bg-white border border-gray-200 rounded focus:outline-none focus:border-blue-400"
+                                                    value={clientSearch}
+                                                    onChange={(e) => setClientSearch(e.target.value)}
+                                                />
+                                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                                            </div>
+                                        </div>
+                                        <div className="max-h-[250px] overflow-y-auto">
+                                            <div
+                                                className={`px-3 py-2 text-sm cursor-pointer hover:bg-blue-50 ${filters.clientId === 'all' ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700'}`}
+                                                onClick={() => {
+                                                    handleFilterChange('clientId', 'all');
+                                                    setIsClientOpen(false);
+                                                }}
+                                            >
+                                                كل العملاء
+                                            </div>
+                                            {filteredClients.length > 0 ? (
+                                                filteredClients.map(c => (
+                                                    <div
+                                                        key={c._id}
+                                                        className={`px-3 py-2 text-sm cursor-pointer border-t border-gray-50 hover:bg-blue-50 ${filters.clientId === c._id ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-700'}`}
+                                                        onClick={() => {
+                                                            handleFilterChange('clientId', c._id);
+                                                            setIsClientOpen(false);
+                                                        }}
+                                                    >
+                                                        <div className="flex justify-between gap-2">
+                                                            <span className="truncate">{c.name}</span>
+                                                            <span className="text-[10px] text-gray-400 font-mono self-center shrink-0">#{c.code || c._id.slice(-4)}</span>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="px-3 py-4 text-xs text-center text-gray-500 italic">لا توجد نتائج مطابقة</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -358,6 +449,21 @@ const ClientGeneralLedger = () => {
                                         ))
                                     )}
                                 </tbody>
+                                {reportData.length > 0 && totals && (
+                                    <tfoot className="bg-[#f0f9ff] border-t-2 border-blue-200 no-print">
+                                        <tr className="font-bold text-gray-900 border-b border-gray-300">
+                                            <td colSpan="4" className="px-4 py-4 text-[14px]">إجمالي الـعــملاء</td>
+                                            <td className="px-3 py-4 text-[14px] text-left border-l border-gray-200 text-blue-800">{formatCurrency(totals.totalDebit)}</td>
+                                            <td className="px-3 py-4 text-[14px] text-left border-l border-gray-200 text-red-800">{formatCurrency(totals.totalCredit)}</td>
+                                            <td className="px-3 py-4 text-[14px] text-left border-l border-gray-200 font-black">
+                                                {totals.finalBalance > 0 ? formatCurrency(totals.finalBalance) : '0.00'}
+                                            </td>
+                                            <td className="px-3 py-4 text-[14px] text-left font-black">
+                                                {totals.finalBalance < 0 ? formatCurrency(Math.abs(totals.finalBalance)) : '0.00'}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                )}
                             </table>
                         </div>
                     )}

@@ -814,7 +814,8 @@
         "amount": "المبلغ",
         "taxes": "الضرائب",
         "description": "الوصف",
-        "attachments": "المرفقات"
+        "attachments": "المرفقات",
+        "bank_account": "الحساب البنكي"
     },
     "finance_page": {
         "tile_desc": "تسجيل وإدارة مصروفات الشركة",
@@ -1304,6 +1305,11 @@
             "tile_desc": "إدارة قاعدة بيانات الموردين وجهات الاتصال",
             "add_title": "إضافة مورد",
             "edit_title": "تعديل المورد",
+            "name_placeholder": "أدخل اسم المورد هنا...",
+            "notes_placeholder": "أدخل ملاحظات المورد هنا...",
+            "tax_number": "الرقم الضريبي",
+            "commercial_register": "السجل التجاري",
+            "contact_name": "اسم جهة الاتصال",
             "code_auto_placeholder": "يتم التوليد تلقائياً",
             "type": "نوع المورد",
             "type_individual": "فردي",

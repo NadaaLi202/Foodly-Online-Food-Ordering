@@ -5,18 +5,18 @@ import {
     getInventoryExchangeById,
     updateInventoryExchange,
     deleteInventoryExchange
-} from "./inventoryExchange.controller.js";
+} from "./inventoryexchange.controller.js";
 
 import {
     addInventoryExchangeSchema,
     updateInventoryExchangeSchema
-} from "./inventoryExchange.validation.js";
+} from "./inventoryexchange.validation.js";
 
 import { validation } from "../../middleware/validation.js";
 
-import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadFiles.js";
+import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadfiles.js";
 import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
 
 const router = express.Router();
 

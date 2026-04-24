@@ -1,16 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/authcontext';
 import { useTranslation } from 'react-i18next';
-import { formatCurrency } from '../../utils/currencyFormatter';
+import { formatCurrency } from '../../utils/currencyformatter';
 import { Plus, Search, RefreshCw, X, Upload, Calendar, Edit3, Home, MoreVertical, ChevronsUpDown, Minus, ArrowRightLeft, Share2, Printer, Download, Info, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
-import journalEntryService from '../../services/journalEntryService';
-import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
-import { buildJournalEntryPdf, downloadJournalEntryPdf, openJournalEntryPdfInNewTab } from '../../utils/journalEntryPdf';
-import costCentersService from '../../services/costCentersService';
-import settingsService from '../../services/settingsService';
-import { handleUniversalShare } from '../../utils/shareUtils';
-import chartOfAccountsService from '../../services/chartOfAccountsService';
+import journalEntryService from '../../services/journalentryservice';
+import ConfirmDeleteModal from '../../components/confirmdeletemodal';
+import { buildJournalEntryPdf, downloadJournalEntryPdf, openJournalEntryPdfInNewTab } from '../../utils/journalentrypdf';
+import costCentersService from '../../services/costcentersservice';
+import settingsService from '../../services/settingsservice';
+import { handleUniversalShare } from '../../utils/shareutils';
+import chartOfAccountsService from '../../services/chartofaccountsservice';
 
 const JournalEntries = () => {
     const { t, i18n } = useTranslation();

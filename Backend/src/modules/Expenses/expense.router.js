@@ -2,10 +2,10 @@ import express from "express";
 import { addExpense, deleteExpense, getAllExpenses, getExpenseById, updateExpense } from "./expense.controller.js";
 import { validation } from "../../middleware/validation.js";
 import { addExpenseSchema, updateExpenseSchema } from "./expense.validation.js";
-import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadFiles.js";
+import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadfiles.js";
 
 import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
 
 const expenseRouter = express.Router();
 

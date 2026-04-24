@@ -1,6 +1,6 @@
 import { activityModel } from "./activity.model.js";
-import { AppError } from "../../utils/AppError.js";
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { AppError } from "../../utils/apperror.js";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
 
 const addActivity = catchAsyncError(async (req, res, next) => {
     const activity = new activityModel({ ...req.body, companyId: req.user.companyId });

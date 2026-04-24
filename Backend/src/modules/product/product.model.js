@@ -226,7 +226,7 @@ productSchema.statics.searchProducts = function (searchTerm) {
 // Method لتحديث المخزون
 productSchema.methods.updateStock = function (quantity, operation = 'add', purchasePrice = null) {
     if (this.type !== 'tracked') {
-        throw new Error('لا يمكن تحديث مخزون الخدمات');
+        return Promise.resolve(this);
     }
 
     const currentStock = this.stockQuantity || 0;

@@ -1,9 +1,10 @@
+import mongoose from "mongoose";
 import { safeModel } from "./safe.model.js";
 import { branchModel } from "../branch/branch.model.js";
-import FinancialReceipt from "../FinancialTransactions/models/financialReceipt.model.js";
-import FinancialDisbursement from "../FinancialTransactions/models/financialDisbursement.model.js";
-import FinancialTransfer from "../FinancialTransactions/models/financialTransfer.model.js";
-import AccountingTransaction from "../FinancialTransactions/models/accountingTransaction.model.js";
+import FinancialReceipt from "../financialtransactions/models/financialreceipt.model.js";
+import FinancialDisbursement from "../financialtransactions/models/financialdisbursement.model.js";
+import FinancialTransfer from "../financialtransactions/models/financialtransfer.model.js";
+import AccountingTransaction from "../financialtransactions/models/accountingtransaction.model.js";
 
 export const seedDefaultSafe = async (companyId) => {
     try {
@@ -15,7 +16,7 @@ export const seedDefaultSafe = async (companyId) => {
         const mainBranch = await branchModel.findOne({ companyId, is_main: true });
 
         // Find the linked accounting account (code 1211 - الخزنة الرئيسية)
-        const { chartOfAccountsModel } = await import("../chartOfAccounts/chartOfAccounts.model.js");
+        const { chartOfAccountsModel } = await import("../chartofaccounts/chartofaccounts.model.js");
         const journalAccount = await chartOfAccountsModel.findOne({ companyId, code: "1211" });
 
         await safeModel.create({
@@ -51,7 +52,6 @@ export const calculateSafeBalance = async (safeId, companyFilter) => {
         const match = { ...companyFilter };
         if (match.companyId && typeof match.companyId === 'string') {
             try {
-                const mongoose = (await import("mongoose")).default;
                 match.companyId = new mongoose.Types.ObjectId(match.companyId);
             } catch (e) { }
         } else if (!match.companyId) {
@@ -60,7 +60,7 @@ export const calculateSafeBalance = async (safeId, companyFilter) => {
 
         // If safe is linked to an accounting account, use the ledger balance (Source of truth)
         if (safe.journalAccount) {
-            const { dailyRestrictionModel } = await import("../dailyRestrictions/dailyRestrictions.model.js");
+            const { dailyRestrictionModel } = await import("../dailyrestrictions/dailyrestrictions.model.js");
             const targetAccountId = new mongoose.Types.ObjectId(safe.journalAccount._id?.toString() || safe.journalAccount.toString());
             const category = (safe.journalAccount.accountCategory || 'asset').toLowerCase();
 
@@ -79,14 +79,8 @@ export const calculateSafeBalance = async (safeId, companyFilter) => {
 
             const { totalDebit = 0, totalCredit = 0 } = result[0] || {};
 
-            // Asset/Expense/Income Net Balance logic:
-            // Safes are Assets -> Balance = Debit - Credit
-            if (['asset', 'income', 'expense'].includes(category)) {
-                return totalDebit - totalCredit;
-            } else {
-                // Liability/Equity -> Balance = Credit - Debit
-                return totalCredit - totalDebit;
-            }
+            // Balance = Total Debit - Total Credit
+            return totalDebit - totalCredit;
         }
 
         // Fallback to model-based calculation (Legacy / Unlinked)
@@ -120,7 +114,7 @@ export const calculateSafeBalance = async (safeId, companyFilter) => {
  */
 export const fixUnlinkedSafes = async () => {
     try {
-        const { chartOfAccountsModel } = await import("../chartOfAccounts/chartOfAccounts.model.js");
+        const { chartOfAccountsModel } = await import("../chartofaccounts/chartofaccounts.model.js");
 
         // Find all safes with missing journalAccount
         const unlinkedSafes = await safeModel.find({
@@ -132,12 +126,30 @@ export const fixUnlinkedSafes = async () => {
 
         if (unlinkedSafes.length === 0) return true;
 
-        console.log(`[Migration] Checking ${unlinkedSafes.length} unlinked safes for automatic mapping...`);
+        const { companyModel } = await import("../companies/company.model.js");
+        const existingCompanies = await companyModel.find({}, '_id').lean();
+        const companyIdSet = new Set(existingCompanies.map(c => c._id.toString()));
 
         for (const safe of unlinkedSafes) {
+            const companyId = safe.companyId;
+            if (!companyId || !companyIdSet.has(companyId.toString())) {
+                continue; // Skip safes from non-existent companies
+            }
+            const companyOid = new mongoose.Types.ObjectId(companyId.toString());
+
+            // Debug log requested by user
+            try {
+                const allAccounts = await chartOfAccountsModel.find({ companyId: companyOid }).lean();
+                console.log('[Migration Debug] Total chart accounts found for safe migration:', allAccounts.length);
+                console.log(`[Migration Debug] Looking for code 1211, companyId: ${companyOid}`);
+                const found = allAccounts.filter(a => String(a.code) === '1211');
+                console.log('[Migration Debug] Accounts with code 1211:', found);
+            } catch (e) {
+                console.error('[Migration Debug] Error running debug query:', e.message);
+            }
             // Find journal account code 1211 (الخزنة الرئيسية)
             const journalAccount = await chartOfAccountsModel.findOne({
-                companyId: safe.companyId,
+                companyId: companyOid,
                 code: "1211"
             });
 

@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, Search, RefreshCw, X, Upload, FileText, Trash2, Printer, Download, Share2, Edit2, Link, MoreVertical, Copy, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../context/AuthContext';
-import { formatCurrency } from '../../utils/currencyFormatter';
-import { generatePDF } from '../../utils/generatePDF';
-import { requestPrintTemplateSelection } from '../../services/printTemplateService';
+import { useAuth } from '../../context/authcontext';
+import { formatCurrency } from '../../utils/currencyformatter';
+import { generatePDF } from '../../utils/generatepdf';
+import { requestPrintTemplateSelection } from '../../services/printtemplateservice';
 import api from '../../services/api';
-import logError from '../../utils/logError';
-import { confirmDelete } from '../../utils/confirmDelete';
+import logError from '../../utils/logerror';
+import { confirmDelete } from '../../utils/confirmdelete';
 import toast from 'react-hot-toast';
-import { handleUniversalShare } from '../../utils/shareUtils';
+import { handleUniversalShare } from '../../utils/shareutils';
 
 const getInitialExpenseFormData = () => ({
     code: '',

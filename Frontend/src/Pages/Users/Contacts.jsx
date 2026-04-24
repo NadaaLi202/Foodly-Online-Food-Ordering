@@ -2,10 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, RefreshCw, X, Phone, MapPin, Mail, User, Building, FileText, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
-import { confirmDelete } from '../../utils/confirmDelete';
-import { formatCurrency } from '../../utils/currencyFormatter';
-import { prepareContactPayload } from '../../utils/contactUtils';
-import logError from '../../utils/logError';
+import { confirmDelete } from '../../utils/confirmdelete';
+import { formatCurrency } from '../../utils/currencyformatter';
+import { prepareContactPayload } from '../../utils/contactutils';
+import logError from '../../utils/logerror';
 
 const Contacts = () => {
     const { t, i18n } = useTranslation();

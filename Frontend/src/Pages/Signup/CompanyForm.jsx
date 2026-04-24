@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSignup } from './SignupLayout';
-import companyService from '../../services/companyService';
+import { useSignup } from './signuplayout';
+import companyService from '../../services/companyservice';
 import { Loader2 } from 'lucide-react';
 
 const CompanyForm = () => {

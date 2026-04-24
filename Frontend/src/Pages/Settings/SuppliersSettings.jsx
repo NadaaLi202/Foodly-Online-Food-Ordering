@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import logError from '../../utils/logError';
+import logError from '../../utils/logerror';
 
 const SuppliersSettings = () => {
     const { t, i18n } = useTranslation();

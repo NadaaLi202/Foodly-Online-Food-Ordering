@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Plus, Search, RefreshCw, Landmark, ArrowLeftRight, Edit, Trash2, ChevronDown, Wallet, FileText, MoreVertical, Copy, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import logError from '../../utils/logError';
-import { confirmDelete } from '../../utils/confirmDelete';
-import FinancialTransactionModal from './FinancialTransactionModal';
+import logError from '../../utils/logerror';
+import { confirmDelete } from '../../utils/confirmdelete';
+import FinancialTransactionModal from './financialtransactionmodal';
+import { currencySymbols } from '../../utils/currencysymbols';
 
 const Transactions = () => {
     const { t, i18n } = useTranslation();
@@ -83,26 +84,45 @@ const Transactions = () => {
         setOpenActionMenu(null);
     };
 
-    const getTypeLabel = (type) => {
-        switch (type) {
-            case 'receipt': return t('finance.receipt');
-            case 'disbursement': return t('finance.disbursement');
-            case 'transfer': return t('finance.transfer');
-            case 'income': return t('finance.income');
-            case 'receivable': return t('finance.receivable');
-            default: return type;
-        }
-    };
+    const getTransactionTypeInfo = (type) => {
+        const t_type = type?.toLowerCase();
 
-    const getTypeStyle = (type) => {
-        switch (type) {
-            case 'receipt':
-            case 'income': return 'bg-emerald-50 text-emerald-700 border-emerald-100';
-            case 'disbursement': return 'bg-red-50 text-red-700 border-red-100';
-            case 'transfer': return 'bg-indigo-50 text-indigo-700 border-indigo-100';
-            case 'receivable': return 'bg-blue-50 text-blue-700 border-blue-100';
-            default: return 'bg-gray-50 text-gray-700 border-gray-100';
+        const receiptTypes = ['receipt', 'income', 'receivable', 'collection', 'in'];
+        const paymentTypes = ['disbursement', 'expense', 'payable', 'payment', 'out'];
+
+        if (receiptTypes.includes(t_type)) {
+            return {
+                label: isRtl ? 'قبض' : 'Receipt',
+                colorClass: 'text-emerald-600 bg-emerald-50',
+                iconBgClass: 'bg-emerald-100',
+                icon: <ChevronDown size={14} className="rotate-0" />
+            };
         }
+
+        if (paymentTypes.includes(t_type)) {
+            return {
+                label: isRtl ? 'صرف' : 'Payment',
+                colorClass: 'text-red-600 bg-red-50',
+                iconBgClass: 'bg-red-100',
+                icon: <ChevronDown size={14} className="rotate-180" />
+            };
+        }
+
+        if (t_type === 'transfer') {
+            return {
+                label: isRtl ? 'تحويل' : 'Transfer',
+                colorClass: 'text-indigo-600 bg-indigo-50',
+                iconBgClass: 'bg-indigo-100',
+                icon: <ArrowLeftRight size={14} />
+            };
+        }
+
+        return {
+            label: isRtl && type === 'receivable' ? 'قبض' : (isRtl && type === 'payable' ? 'صرف' : type),
+            colorClass: 'text-gray-600 bg-gray-50',
+            iconBgClass: 'bg-gray-100',
+            icon: null
+        };
     };
 
     const filteredTransactions = transactions.filter(tx =>
@@ -298,31 +318,20 @@ const Transactions = () => {
                                                     </div>
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-900 font-black">
-                                                    {Number(tx.amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {t('currency_label')}
+                                                    {Number(tx.amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {currencySymbols[tx.currency] || tx.currency || currencySymbols['SAR']}
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4">
-                                                    {(tx.type === 'receipt' || tx.type === 'income') ? (
-                                                        <div className="flex items-center gap-1 text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded-lg w-fit">
-                                                            <div className="p-1 bg-emerald-100 rounded-md">
-                                                                <ChevronDown size={14} className="rotate-0" />
+                                                    {(() => {
+                                                        const typeInfo = getTransactionTypeInfo(tx.type);
+                                                        return (
+                                                            <div className={`flex items-center gap-1 font-bold px-2 py-1 rounded-lg w-fit ${typeInfo.colorClass}`}>
+                                                                <div className={`p-1 rounded-md ${typeInfo.iconBgClass}`}>
+                                                                    {typeInfo.icon}
+                                                                </div>
+                                                                <span className="text-xs">{typeInfo.label}</span>
                                                             </div>
-                                                            <span className="text-xs">{isRtl ? 'إيرادات' : 'Income'}</span>
-                                                        </div>
-                                                    ) : (tx.type === 'disbursement' || tx.type === 'expense') ? (
-                                                        <div className="flex items-center gap-1 text-red-600 font-bold bg-red-50 px-2 py-1 rounded-lg w-fit">
-                                                            <div className="p-1 bg-red-100 rounded-md">
-                                                                <ChevronDown size={14} className="rotate-180" />
-                                                            </div>
-                                                            <span className="text-xs">{isRtl ? 'مصروف' : 'Expense'}</span>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="flex items-center gap-1 text-indigo-600 font-bold bg-indigo-50 px-2 py-1 rounded-lg w-fit">
-                                                            <div className="p-1 bg-indigo-100 rounded-md">
-                                                                <ArrowLeftRight size={14} />
-                                                            </div>
-                                                            <span className="text-xs">{getTypeLabel(tx.type)}</span>
-                                                        </div>
-                                                    )}
+                                                        );
+                                                    })()}
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4">
                                                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700`}>
@@ -331,7 +340,11 @@ const Transactions = () => {
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-700">
                                                     <span className="font-medium text-gray-900 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
-                                                        {tx.safe?.name !== '-' ? tx.safe?.name : (tx.account?.name !== 'Unknown' && tx.account?.name) || '-'}
+                                                        {(() => {
+                                                            let name = tx.safe?.name && tx.safe?.name !== '-' ? tx.safe?.name : (tx.account?.name !== 'Unknown' && tx.account?.name) || '-';
+                                                            if (isRtl && name?.toLowerCase() === 'cash') return t('finance.safe');
+                                                            return name;
+                                                        })()}
                                                     </span>
                                                 </td>
                                                 <td className="align-middle text-sm whitespace-nowrap px-3 py-4 text-gray-600 font-medium">

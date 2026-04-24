@@ -1,12 +1,14 @@
-import { AppError } from "../../utils/AppError.js";
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { AppError } from "../../utils/apperror.js";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
 import Invoice from "./invoices.model.js";
 import { SUPPORTED_CURRENCIES } from "../../constants/currencies.js";
-import { dailyRestrictionModel } from "../dailyRestrictions/dailyRestrictions.model.js";
-import { chartOfAccountsModel } from "../chartOfAccounts/chartOfAccounts.model.js";
-import FinancialReceipt from "../FinancialTransactions/models/financialReceipt.model.js";
-import { safeModel } from "../Safes/safe.model.js";
+import { dailyRestrictionModel } from "../dailyrestrictions/dailyrestrictions.model.js";
+import { chartOfAccountsModel } from "../chartofaccounts/chartofaccounts.model.js";
+import FinancialReceipt from "../financialtransactions/models/financialreceipt.model.js";
+import { safeModel } from "../safes/safe.model.js";
 import mongoose from "mongoose";
+import Contact from "../contacts/contacts.model.js";
+import { getSettings } from "../settings/settings.service.js";
 
 // Helper function to create or update journal entry for an invoice
 const createOrUpdateJournalEntryForInvoice = async (invoice) => {
@@ -119,10 +121,45 @@ const createInvoice = catchAsyncError(async (req, res, next) => {
     // Always enforce tenant companyId from authenticated user/filter.
     // Keep DB schema-compatible top-level currency while accepting payment.currency payload.
     const companyId = req.user?.companyId || req.companyFilter?.companyId || req.body.companyId;
+    // Populate Snapshots
+    const generalSettings = await getSettings(companyId, 'general');
+    const companyData = generalSettings.settings || {};
+
+    const companySnapshot = {
+        name: companyData.company_name,
+        taxNumber: companyData.tax_number,
+        commercialRegister: companyData.commercial_register,
+        city: companyData.city || companyData.region || '',
+        country: companyData.country,
+        address: companyData.address || companyData.region || '',
+        logo: companyData.logo_path
+    };
+
+    let contactSnapshot = {};
+    if (req.body.clientId) {
+        const contactDoc = await Contact.findById(req.body.clientId).lean();
+        if (contactDoc) {
+            contactSnapshot = {
+                name: contactDoc.name,
+                email: contactDoc.email,
+                phone: contactDoc.phone,
+                type: contactDoc.type,
+                taxNumber: contactDoc.taxNumber || contactDoc.tax_number,
+                address: {
+                    city: contactDoc.address?.city,
+                    address1: contactDoc.address?.address1,
+                    country: contactDoc.address?.country
+                }
+            };
+        }
+    }
+
     const invoice = await Invoice.create({
         ...req.body,
         currency: SUPPORTED_CURRENCIES.includes(normalizedCurrency) ? normalizedCurrency : (req.body.currency || "EGP"),
-        companyId
+        companyId,
+        companySnapshot,
+        contactSnapshot
     });
 
     // إنشاء قيد يومية إذا لم تكن مسودة

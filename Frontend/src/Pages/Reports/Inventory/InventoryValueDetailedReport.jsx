@@ -1,13 +1,13 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer, Filter } from 'lucide-react';
-import { exportInventoryMovementsToExcel } from '../../../utils/customerSupplierInventoryExport';
-import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
-import reportsService from '../../../services/reportsService';
+import { exportInventoryMovementsToExcel } from '../../../utils/customersupplierinventoryexport';
+import { downloadTablePdf } from '../../../utils/reportpdfbuilder';
+import reportsService from '../../../services/reportsservice';
 import api from '../../../services/api';
-import logError from '../../../utils/logError';
-import { useAuth } from '../../../context/AuthContext';
-import PrintHeader from '../../../components/common/PrintHeader';
+import logError from '../../../utils/logerror';
+import { useAuth } from '../../../context/authcontext';
+import PrintHeader from '../../../components/common/printheader';
 
 const InventoryValueDetailedReport = () => {
     const { t, i18n } = useTranslation();

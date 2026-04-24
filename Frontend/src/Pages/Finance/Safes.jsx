@@ -4,11 +4,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Edit, Trash2, FileText, Plus, Landmark } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import logError from '../../utils/logError';
-import { confirmDelete } from '../../utils/confirmDelete';
-import { useAuth } from '../../context/AuthContext';
-import { formatCurrency } from '../../utils/currencyFormatter';
-import SafeModal from './SafeModal';
+import logError from '../../utils/logerror';
+import { confirmDelete } from '../../utils/confirmdelete';
+import { useAuth } from '../../context/authcontext';
+import { formatCurrency } from '../../utils/currencyformatter';
+import SafeModal from './safemodal';
 
 const Safes = () => {
     const { t, i18n } = useTranslation();

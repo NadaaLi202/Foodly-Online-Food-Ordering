@@ -14,8 +14,14 @@ const paymentSchema = new mongoose.Schema({
     },
 
     treasury: {
-        type: String, // Kept as String to avoid migration issues with existing 'main'/'bank' data, but we will store ObjectIds as strings
+        type: String, // Can store ObjectId as string or legacy 'main'
         required: true
+    },
+
+    treasuryType: {
+        type: String,
+        enum: ['bank', 'safe'],
+        default: 'safe'
     },
 
     operationType: {

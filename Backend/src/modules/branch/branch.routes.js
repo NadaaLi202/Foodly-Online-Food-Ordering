@@ -3,7 +3,7 @@ import { addBranch, deleteBranch, getAllBranches, getBranchById, updateBranch } 
 import { validation } from "../../middleware/validation.js";
 import { addBranchSchema, updateBranchSchema } from "./branch.validation.js";
 import { protectedRoutes } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
 const branchRouter = express.Router();
 
 branchRouter.use(protectedRoutes);

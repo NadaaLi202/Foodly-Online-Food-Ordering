@@ -2,8 +2,8 @@ import React from 'react';
 import { Building2, MapPin, Phone, Mail } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useTranslation } from 'react-i18next';
-import { formatCurrency } from '../../utils/currencyFormatter';
-import PrintHeader from '../common/PrintHeader';
+import { formatCurrency } from '../../utils/currencyformatter';
+import PrintHeader from '../common/printheader';
 
 /**
  * Reusable invoice layout: company header, client card, items table, summary box, QR bottom-right.
@@ -13,25 +13,33 @@ const InvoiceLayout = ({
     invoice,
     type = 'sales',
     title,
-    companyName = 'Dafater',
-    companyLogoUrl,
+    companyName: propCompanyName,
+    companyLogoUrl: propCompanyLogoUrl,
     dir = 'ltr'
 }) => {
     const { t, i18n } = useTranslation();
     const isRTL = dir === 'rtl' || i18n.language === 'ar';
     const currency = invoice?.currency || 'EGP';
+
+    // Priority: Invoice Snapshot > Props > Default
+    const compSnapshot = invoice?.companySnapshot || {};
+    const companyDisplayName = compSnapshot.name || propCompanyName || 'Dafater';
+    const companyDisplayLogo = compSnapshot.logo || propCompanyLogoUrl;
+
     const contact = invoice?.contactSnapshot || invoice?.contact;
-    const contactName = contact?.name || invoice?.contact?.name || t('sales.common.unknown_client');
-    const contactEmail = contact?.email || invoice?.contact?.email || 'N/A';
-    const contactPhone = contact?.phone || invoice?.contact?.phone || 'N/A';
+    const contactName = contact?.name || t('sales.common.unknown_client');
+    const contactEmail = contact?.email || 'N/A';
+    const contactPhone = contact?.phone || 'N/A';
+    const contactTaxNumber = contact?.taxNumber || contact?.tax_number;
+
     const contactAddress = contact?.address
         ? (contact.address.address1 || contact.address.city || '')
-        : (invoice?.contact?.address?.address1 || invoice?.contact?.address?.city || 'N/A');
+        : 'N/A';
 
     const qrValue = JSON.stringify({
         invoiceNumber: invoice?.transactionNumber,
         total: invoice?.totalAmount,
-        company: companyName,
+        company: companyDisplayName,
         date: invoice?.issueDate
     });
     const fmt2 = (v) => Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -42,6 +50,7 @@ const InvoiceLayout = ({
             <PrintHeader
                 title={title}
                 isRTL={isRTL}
+                companyInfo={compSnapshot}
                 rightContent={
                     <div className="mt-4 space-y-1">
                         <p className="text-lg font-bold text-gray-800 text-start">#{invoice?.transactionNumber}</p>
@@ -70,8 +79,13 @@ const InvoiceLayout = ({
                             </div>
                             <div className={isRTL ? 'text-right' : ''}>
                                 <p className="text-sm font-black text-gray-800">{contactName}</p>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
-                                    {invoice?.contact?._id?.toString().slice(-6) || '---'}
+                                {contactTaxNumber && (
+                                    <p className="text-[10px] text-indigo-500 font-black tracking-wider bg-indigo-50 px-1 py-0.5 rounded-sm inline-block">
+                                        VAT: {contactTaxNumber}
+                                    </p>
+                                )}
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
+                                    ID: {invoice?.contact?._id?.toString().slice(-6) || '---'}
                                 </p>
                             </div>
                         </div>

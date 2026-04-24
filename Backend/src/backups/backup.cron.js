@@ -1,6 +1,6 @@
 import cron from "node-cron";
 import { runSystemBackup, cleanupOldBackups } from "./backup.service.js";
-import logError from "../utils/logError.js";
+import logError from "../utils/logerror.js";
 
 const CRON_SCHEDULE = "0 2 * * *"; // 2:00 AM every day
 const CLEANUP_SCHEDULE = "0 3 * * *"; // 3:00 AM every day (after backup)

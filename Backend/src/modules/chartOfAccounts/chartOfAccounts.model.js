@@ -50,4 +50,4 @@ const chartOfAccountsSchema = new mongoose.Schema({
 
 chartOfAccountsSchema.index({ code: 1, companyId: 1 }, { unique: true });
 
-export const chartOfAccountsModel = mongoose.model('ChartOfAccounts', chartOfAccountsSchema);
+export const chartOfAccountsModel = mongoose.models.ChartOfAccounts || mongoose.model('ChartOfAccounts', chartOfAccountsSchema);

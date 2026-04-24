@@ -1,11 +1,11 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer, BarChart3, List } from 'lucide-react';
-import reportsService from '../../../services/reportsService';
-import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
+import reportsService from '../../../services/reportsservice';
+import { downloadTablePdf } from '../../../utils/reportpdfbuilder';
 import * as XLSX from 'xlsx';
-import PrintHeader from '../../../components/common/PrintHeader';
+import PrintHeader from '../../../components/common/printheader';
 
 const PurchasesReport = () => {
     const { t, i18n } = useTranslation();
@@ -355,32 +355,47 @@ const PurchasesReport = () => {
                                 <tbody className="divide-y divide-gray-100">
                                     {activeTab === 'detailed' ? (
                                         detailedData.length > 0 ? (
-                                            detailedData.map((row, idx) => (
-                                                <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                                            <>
+                                                {detailedData.map((row, idx) => (
+                                                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                                                        {availableDetailedColumns.filter(c => selectedDetailedColumns.includes(c.key)).map(col => {
+                                                            let val = '—';
+                                                            if (col.key === 'code') val = row.invoiceNumber ?? '—';
+                                                            else if (col.key === 'type') {
+                                                                if (row.documentType === 'return') val = t('reports.purchases.type_return');
+                                                                else if (row.documentType === 'purchaseOrder') val = t('reports.purchases.type_order');
+                                                                else val = t('reports.detailed_columns.type_invoice');
+                                                            }
+                                                            else if (col.key === 'issue_date') val = row.date ? new Date(row.date).toLocaleDateString() : '—';
+                                                            else if (col.key === 'supplier') val = row.supplier ?? row.client ?? '—';
+                                                            else if (['discounts', 'total_without_taxes', 'total'].includes(col.key)) {
+                                                                const keys = { 'discounts': 'discounts', 'total_without_taxes': 'totalWithoutTax', 'total': 'amount' };
+                                                                val = formatAmount(row[keys[col.key]]);
+                                                            }
+                                                            if (col.key === 'code') {
+                                                                let url = `/dashboard/purchases/invoices?openId=${row._id}`;
+                                                                if (row.documentType === 'return') url = `/dashboard/purchases/returns?openId=${row._id}`;
+                                                                if (row.documentType === 'purchaseOrder') url = `/dashboard/purchases/purchase-orders?openId=${row._id}`;
+                                                                return <td key={col.key} className="px-4 py-3 text-sm font-medium"><Link to={url} className="text-indigo-600 hover:underline">{val}</Link></td>;
+                                                            }
+                                                            return <td key={col.key} className="px-4 py-3 text-sm text-gray-600">{val}</td>;
+                                                        })}
+                                                    </tr>
+                                                ))}
+                                                <tr className="bg-[#EEF2FF] font-black border-t-2 border-indigo-200 text-indigo-900">
                                                     {availableDetailedColumns.filter(c => selectedDetailedColumns.includes(c.key)).map(col => {
-                                                        let val = 'â€”';
-                                                        if (col.key === 'code') val = row.invoiceNumber ?? 'â€”';
-                                                        else if (col.key === 'type') {
-                                                            if (row.documentType === 'return') val = t('reports.purchases.type_return');
-                                                            else if (row.documentType === 'purchaseOrder') val = t('reports.purchases.type_order');
-                                                            else val = t('reports.detailed_columns.type_invoice');
-                                                        }
-                                                        else if (col.key === 'issue_date') val = row.date ? new Date(row.date).toLocaleDateString() : 'â€”';
-                                                        else if (col.key === 'supplier') val = row.supplier ?? row.client ?? 'â€”';
-                                                        else if (['discounts', 'total_without_taxes', 'total'].includes(col.key)) {
-                                                            const keys = { 'discounts': 'discounts', 'total_without_taxes': 'totalWithoutTax', 'total': 'amount' };
-                                                            val = formatAmount(row[keys[col.key]]);
-                                                        }
                                                         if (col.key === 'code') {
-                                                            let url = `/dashboard/purchases/invoices?openId=${row._id}`;
-                                                            if (row.documentType === 'return') url = `/dashboard/purchases/returns?openId=${row._id}`;
-                                                            if (row.documentType === 'purchaseOrder') url = `/dashboard/purchases/purchase-orders?openId=${row._id}`;
-                                                            return <td key={col.key} className="px-4 py-3 text-sm font-medium"><Link to={url} className="text-indigo-600 hover:underline">{val}</Link></td>;
+                                                            return <td key={col.key} className="px-4 py-4 text-sm">{isRTL ? 'الإجمالي' : 'Total'}</td>;
                                                         }
-                                                        return <td key={col.key} className="px-4 py-3 text-sm text-gray-600">{val}</td>;
+                                                        if (['discounts', 'total_without_taxes', 'total'].includes(col.key)) {
+                                                            const keys = { 'discounts': 'discounts', 'total_without_taxes': 'totalWithoutTax', 'total': 'amount' };
+                                                            const sum = detailedData.reduce((acc, row) => acc + (Number(row[keys[col.key]]) || 0), 0);
+                                                            return <td key={col.key} className="px-4 py-4 text-sm">{formatAmount(sum)}</td>;
+                                                        }
+                                                        return <td key={col.key} className="px-4 py-4 text-sm"></td>;
                                                     })}
                                                 </tr>
-                                            ))
+                                            </>
                                         ) : (
                                             <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400 text-sm italic">{loading ? '...' : t('reports.no_data')}</td></tr>
                                         )

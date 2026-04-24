@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { buildReportHtml, fetchCompanyProfile, generatePDF } from './generatePDF';
+import { buildReportHtml, fetchCompanyProfile, generatePDF } from './generatepdf';
 
 const fmtNum = (n) => (n == null || n === '' || n === undefined) ? '' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString() : '—';

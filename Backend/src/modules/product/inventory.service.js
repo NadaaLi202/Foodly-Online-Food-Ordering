@@ -1,5 +1,5 @@
 import { productModel } from "../product/product.model.js";
-import { stockLogModel } from "../stockLogs/stockLog.model.js";
+import { stockLogModel } from "../stocklogs/stocklog.model.js";
 
 /**
  * Update product stock and record movement in StockLog.

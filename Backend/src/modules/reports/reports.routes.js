@@ -2,7 +2,7 @@ import express from "express";
 import { validation } from "../../middleware/validation.js";
 import { reportQuerySchema, salesInvoicesDetailedQuerySchema, purchasesInvoicesDetailedQuerySchema, inventorySummaryQuerySchema, inventoryMovementsQuerySchema, accountingReportQuerySchema, balanceSheetQuerySchema, generalLedgerQuerySchema, safeAccountStatementQuerySchema, costCentersQuerySchema } from "./reports.validation.js";
 import { protectedRoutes, requirePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
 import {
     getSalesSummary,
     getSalesDetailed,

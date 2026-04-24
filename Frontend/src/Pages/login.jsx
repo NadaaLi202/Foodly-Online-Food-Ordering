@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/authcontext";
 import api from "../services/api";
-import companyService from "../services/companyService";
+import companyService from "../services/companyservice";
 import { useTranslation } from "react-i18next";
 import logo from '../assets/logo.jpg';
-import logError from "../utils/logError";
+import logError from "../utils/logerror";
 
 export default function Login() {
     const { t, i18n } = useTranslation();

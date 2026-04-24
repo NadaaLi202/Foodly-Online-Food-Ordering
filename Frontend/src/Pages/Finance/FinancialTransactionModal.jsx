@@ -3,8 +3,8 @@ import { X, Save, Landmark, Calendar, DollarSign, FileText, ChevronDown, Check, 
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
-import logError from '../../utils/logError';
-import costCentersService from '../../services/costCentersService';
+import logError from '../../utils/logerror';
+import costCentersService from '../../services/costcentersservice';
 
 const ACCOUNT_TYPE_LABELS = {
     asset: 'أصول',
@@ -426,7 +426,7 @@ const FinancialTransactionModal = ({ isOpen, onClose, onSave, transactionId = nu
                                     >
                                         <ChevronDown size={18} className="text-gray-400" />
                                         <span className="text-sm text-gray-800 truncate w-full text-right">
-                                            {PREDEFINED_ACCOUNTS.find(a => a.name === formData.externalAccount)?.name || formData.externalAccount || (isRtl ? 'اختر حساب' : 'Select Account')}
+                                            {formData.externalAccount || (isRtl ? 'اختر حساب' : 'Select Account')}
                                         </span>
                                     </div>
                                     {activeDropdown === 'externalAccount' && (

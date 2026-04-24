@@ -1,8 +1,8 @@
 import { expenseModel } from "./expense.model.js"
-import { AppError } from "../../utils/AppError.js"
-import { catchAsyncError } from "../../middleware/catchAsyncError.js"
+import { AppError } from "../../utils/apperror.js"
+import { catchAsyncError } from "../../middleware/catchasyncerror.js"
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js"
-import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js"
+import { resolveCompanyIdForWrite } from "../../middleware/applycompanyfilter.js"
 
 
 const addExpense = catchAsyncError(async (req, res, next) => {

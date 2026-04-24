@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
-import { AppError } from "../../utils/AppError.js";
-import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { AppError } from "../../utils/apperror.js";
+import { catchAsyncError } from "../../middleware/catchasyncerror.js";
 import { requisitionModel } from "./requisition.model.js";
 import { productModel } from "../product/product.model.js";
-import { stockLogModel } from "../stockLogs/stockLog.model.js";
+import { stockLogModel } from "../stocklogs/stocklog.model.js";
 import * as inventoryService from "../product/inventory.service.js";
 
 // Add Requisition (Permission) with optional stock movement and logs

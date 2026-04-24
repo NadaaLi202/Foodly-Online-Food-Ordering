@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { paths } from '../../utils/navigationHelpers';
+import { paths } from '../../utils/navigationhelpers';
 
 /**
  * Clickable Safe/Bank label that navigates to Safe or Bank Details.

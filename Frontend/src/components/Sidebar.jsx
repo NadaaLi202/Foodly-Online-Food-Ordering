@@ -17,9 +17,9 @@ import {
     Settings,
     LayoutTemplate
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/authcontext';
 
-import logo from '../assets/SidebarLogo.jpg';
+import logo from '../assets/sidebarlogo.jpg';
 
 
 const Sidebar = ({ isMobile, isOpen }) => {

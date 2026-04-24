@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FileText, RefreshCw, X, Circle } from 'lucide-react';
-import { formatCurrency } from '../utils/currencyFormatter';
+import { formatCurrency } from '../utils/currencyformatter';
 import api from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/authcontext';
 
 /* ─── helpers ──────────────────────────────────────────────── */
 

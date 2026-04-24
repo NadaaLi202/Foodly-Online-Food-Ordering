@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import { Search, Building, Menu, LogOut } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import AddMenu from './navigation/AddMenu';
+import { useAuth } from '../context/authcontext';
+import AddMenu from './navigation/addmenu';
 
 const TopBar = ({ onToggleSidebar, isMobile }) => {
     const { t, i18n } = useTranslation();

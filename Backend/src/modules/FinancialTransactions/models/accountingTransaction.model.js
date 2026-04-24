@@ -9,7 +9,9 @@ const schema = new mongoose.Schema({
     description: { type: String },
     status: { type: String, default: 'completed' },
     invoiceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Transaction' },
-    safe: { type: mongoose.Schema.Types.ObjectId, refPath: 'safeModel' },
+    paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' },
+    safe: { type: mongoose.Schema.Types.ObjectId, ref: 'Safe' },
+    bankAccount: { type: mongoose.Schema.Types.ObjectId, ref: 'BankAccount' },
     safeModel: { type: String, enum: ['Safe', 'BankAccount'] },
     companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company' },
     deletedAt: { type: Date, default: null }
