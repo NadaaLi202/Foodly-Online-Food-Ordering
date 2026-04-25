@@ -7,7 +7,7 @@ import TemplateEditor from '../components/templateeditor.jsx';
 import { TextBlockList } from '../components/textblock.jsx';
 import MarginsPopover from '../components/marginspopover.jsx';
 import { LabelPreview } from '../components/documentpreview.jsx';
-import { useAuth } from '../../../context/authcontext.jsx';
+import { useAuth } from '../../../context/AuthContext.jsx';
 import branchService from '../../../services/branchservice.js';
 
 const getTabs = (t) => [

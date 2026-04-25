@@ -4,8 +4,8 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { QRCodeCanvas } from 'qrcode.react';
 import api, { BASE_URL } from '../../services/api';
-import { formatCurrency } from '../../utils/currencyformatter';
-import { useAuth } from '../../context/authcontext';
+import { formatCurrency } from '../../utils/currencyFormatter';
+import { useAuth } from '../../context/AuthContext';
 import {
     setPrintTemplateRequestHandler,
     getSavedPrintTemplate,
@@ -13,8 +13,8 @@ import {
     PRINT_TEMPLATE_OPTIONS,
     normalizePrintTemplate,
     requestPrintTemplateSelection
-} from '../../services/printtemplateservice';
-import InvoiceTaxBilingual from '../invoice/invoicetaxbilingual';
+} from '../../services/printTemplateService';
+import InvoiceTaxBilingual from '../invoice/InvoiceTaxBilingual';
 
 const toNumber = (value) => {
     const parsed = Number(value);

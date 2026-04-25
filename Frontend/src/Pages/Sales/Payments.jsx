@@ -5,13 +5,13 @@ import { useTranslation } from 'react-i18next';
 import { QRCodeCanvas } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import { formatCurrency } from '../../utils/currencyformatter';
+import { formatCurrency } from '../../utils/currencyFormatter';
 import ClientLink from '../../components/navigation/clientlink';
 import TreasuryLink from '../../components/navigation/treasurylink';
 import OperationTypeLink from '../../components/navigation/operationtypelink';
 import ConfirmDeleteModal from '../../components/confirmdeletemodal';
 import { paths } from '../../utils/navigationhelpers';
-import logError from '../../utils/logerror';
+import logError from '../../utils/logError';
 
 export default function Payments() {
     const { t, i18n } = useTranslation();

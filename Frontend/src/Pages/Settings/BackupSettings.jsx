@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Download, RefreshCw, ShieldAlert, Plus, RotateCcw, Upload, X, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../services/api";
-import { useAuth } from "../../context/authcontext";
+import { useAuth } from "../../context/AuthContext";
 
 const formatBytes = (bytes) => {
     if (!bytes || Number.isNaN(Number(bytes))) return "—";

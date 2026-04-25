@@ -17,7 +17,7 @@ import {
     Settings,
     LayoutTemplate
 } from 'lucide-react';
-import { useAuth } from '../context/authcontext';
+import { useAuth } from '../context/AuthContext';
 
 import logo from '../assets/sidebarlogo.jpg';
 

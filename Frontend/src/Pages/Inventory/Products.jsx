@@ -3,9 +3,9 @@ import { useLocation } from 'react-router-dom';
 import { Plus, Search, RefreshCw, X, ChevronDown, Upload, Package } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api, { BASE_URL } from '../../services/api';
-import { formatCurrency } from '../../utils/currencyformatter';
+import { formatCurrency } from '../../utils/currencyFormatter';
 import { confirmDelete } from '../../utils/confirmdelete';
-import logError from '../../utils/logerror';
+import logError from '../../utils/logError';
 
 const Products = () => {
     const { t, i18n } = useTranslation();

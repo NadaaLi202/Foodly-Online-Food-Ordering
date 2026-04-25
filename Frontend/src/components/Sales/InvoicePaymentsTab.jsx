@@ -3,11 +3,11 @@ import { Plus, Trash2, X, DollarSign } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import logError from '../../utils/logerror';
-import { formatCurrency } from '../../utils/currencyformatter';
+import logError from '../../utils/logError';
+import { formatCurrency } from '../../utils/currencyFormatter';
 import ClientLink from '../navigation/clientlink';
 import { confirmDelete } from '../../utils/confirmdelete';
-import { usePermissions } from '../../hooks/usepermissions';
+import { usePermissions } from '../../hooks/usePermissions';
 
 const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {
     const { t, i18n } = useTranslation();

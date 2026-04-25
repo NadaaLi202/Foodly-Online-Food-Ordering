@@ -5,10 +5,10 @@ import AddContactModal from './addcontactmodal';
 import AddSupplierModal from '../addsuppliermodal';
 import AttachmentsSection from '../attachmentssection';
 import api from '../../services/api';
-import logError from '../../utils/logerror';
-import { SUPPORTED_CURRENCIES } from '../../utils/currencyformatter';
+import logError from '../../utils/logError';
+import { SUPPORTED_CURRENCIES } from '../../utils/currencyFormatter';
 import { currencySymbols } from '../../utils/currencysymbols';
-import { useAuth } from '../../context/authcontext';
+import { useAuth } from '../../context/AuthContext';
 
 const TAX_PRESET_VALUES = ['0', '10', '15'];
 const round2 = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;

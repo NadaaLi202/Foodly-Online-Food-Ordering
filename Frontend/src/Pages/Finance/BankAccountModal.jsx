@@ -3,7 +3,7 @@ import { X, Save, Building, Landmark, ChevronDown, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
-import logError from '../../utils/logerror';
+import logError from '../../utils/logError';
 
 const BankAccountModal = ({ isOpen, onClose, onSave, accountId = null }) => {
     const { t, i18n } = useTranslation();

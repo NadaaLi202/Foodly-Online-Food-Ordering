@@ -17,7 +17,7 @@ import {
 import userService from '../../services/userservice';
 import companyService from '../../services/companyservice';
 import { confirmDelete } from '../../utils/confirmdelete';
-import logError from '../../utils/logerror';
+import logError from '../../utils/logError';
 
 const UserManagement = () => {
     const { companyId } = useParams();

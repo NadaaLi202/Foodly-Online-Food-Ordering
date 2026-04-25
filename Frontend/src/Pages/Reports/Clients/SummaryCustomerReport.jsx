@@ -4,7 +4,7 @@ import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucid
 import reportsService from '../../../services/reportsservice';
 import { exportCustomerSummaryToExcel } from '../../../utils/customersupplierinventoryexport';
 import { downloadTablePdf } from '../../../utils/reportpdfbuilder';
-import logError from '../../../utils/logerror';
+import logError from '../../../utils/logError';
 import PrintHeader from '../../../components/common/printheader';
 
 const SummaryCustomerReport = () => {

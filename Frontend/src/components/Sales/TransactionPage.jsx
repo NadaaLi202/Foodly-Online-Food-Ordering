@@ -7,9 +7,9 @@ import InvoiceList from './invoicelist';
 import InvoiceForm from './invoiceform';
 import InvoiceDetails from './invoicedetails';
 import api from '../../services/api';
-import logError from '../../utils/logerror';
-import { usePermissions } from '../../hooks/usepermissions';
-import { useAuth } from '../../context/authcontext';
+import logError from '../../utils/logError';
+import { usePermissions } from '../../hooks/usePermissions';
+import { useAuth } from '../../context/AuthContext';
 
 const TransactionPage = ({ configKey }) => {
     const { t, i18n } = useTranslation();

@@ -3,9 +3,9 @@ import { Plus, Search, RefreshCw, X, Phone, MapPin, Mail, User, Building, FileTe
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { confirmDelete } from '../../utils/confirmdelete';
-import { formatCurrency } from '../../utils/currencyformatter';
+import { formatCurrency } from '../../utils/currencyFormatter';
 import { prepareContactPayload } from '../../utils/contactutils';
-import logError from '../../utils/logerror';
+import logError from '../../utils/logError';
 
 const Contacts = () => {
     const { t, i18n } = useTranslation();

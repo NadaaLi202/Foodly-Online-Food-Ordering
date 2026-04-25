@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, FileSpreadsheet, Printer } from 'lucide-react';
 import reportsService from '../../../services/reportsservice';
@@ -104,13 +104,13 @@ const DetailedSuppliersReport = () => {
 
     const handleExportExcel = () => {
         const worksheet = XLSX.utils.json_to_sheet(reportData.map(row => ({
-            [t('reports.detailed_columns.code')]: row.code ?? 'â€”',
-            [t('reports.detailed_columns.type')]: row.type ?? 'â€”',
-            [t('reports.detailed_columns.issue_date')]: row.date ? new Date(row.date).toLocaleDateString() : 'â€”',
+            [t('reports.detailed_columns.code')]: row.code ?? '—',
+            [t('reports.detailed_columns.type')]: row.type ?? '—',
+            [t('reports.detailed_columns.issue_date')]: row.date ? new Date(row.date).toLocaleDateString() : '—',
             [t('reports.columns.debit')]: row.debit ?? 0,
             [t('reports.columns.credit')]: row.credit ?? 0,
             [t('reports.columns.balance')]: row.balance ?? 0,
-            [t('reports.columns.description')]: row.description ?? 'â€”'
+            [t('reports.columns.description')]: row.description ?? '—'
         })));
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Supplier Account Statement");
@@ -249,10 +249,10 @@ const DetailedSuppliersReport = () => {
                                     ) : (
                                         reportData.map((row, idx) => (
                                             <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                                                <td className="px-4 py-3">{row.date ? new Date(row.date).toLocaleDateString() : 'â€”'}</td>
-                                                <td className="px-4 py-3 text-gray-500">{row.type || 'â€”'}</td>
-                                                <td className="px-4 py-3 font-medium text-indigo-600">{row.code || 'â€”'}</td>
-                                                <td className="px-4 py-3 text-gray-500 max-w-xs truncate">{row.description || 'â€”'}</td>
+                                                <td className="px-4 py-3">{row.date ? new Date(row.date).toLocaleDateString() : '—'}</td>
+                                                <td className="px-4 py-3 text-gray-500">{row.type || '—'}</td>
+                                                <td className="px-4 py-3 font-medium text-indigo-600">{row.code || '—'}</td>
+                                                <td className="px-4 py-3 text-gray-500 max-w-xs truncate">{row.description || '—'}</td>
                                                 <td className="px-4 py-3 text-rose-600 font-medium">{formatAmount(row.debit)}</td>
                                                 <td className="px-4 py-3 text-emerald-600 font-medium">{formatAmount(row.credit)}</td>
                                                 <td className="px-4 py-3 font-semibold text-gray-900">{formatAmount(row.balance)}</td>

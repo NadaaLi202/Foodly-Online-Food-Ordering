@@ -3,7 +3,7 @@ import { X, Plus, Minus, Pencil } from 'lucide-react';
 import api from '../../services/api';
 import { useTranslation } from 'react-i18next';
 import { prepareContactPayload } from '../../utils/contactutils';
-import logError from '../../utils/logerror';
+import logError from '../../utils/logError';
 
 const AddContactModal = ({ isOpen, onClose, onSave, i18n }) => {
     const { t } = useTranslation();

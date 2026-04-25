@@ -6,8 +6,8 @@ import { buildAccountingReportPdf, exportGeneralLedgerToExcel } from '../../../u
 import api from '../../../services/api';
 import chartOfAccountsService from '../../../services/chartofaccountsservice';
 import PrintHeader from '../../../components/common/printheader';
-import { useAuth } from '../../../context/authcontext';
-import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyformatter';
+import { useAuth } from '../../../context/AuthContext';
+import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
 
 const getMonthRange = (date = new Date()) => {
     const start = new Date(date.getFullYear(), date.getMonth(), 1);

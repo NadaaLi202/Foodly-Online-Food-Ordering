@@ -1,12 +1,12 @@
-ï»¿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, FileSpreadsheet, FileText, Printer, Filter } from 'lucide-react';
 import { exportInventoryValueToExcel } from '../../../utils/customersupplierinventoryexport';
 import { downloadTablePdf } from '../../../utils/reportpdfbuilder';
 import reportsService from '../../../services/reportsservice';
 import api from '../../../services/api';
-import logError from '../../../utils/logerror';
-import { useAuth } from '../../../context/authcontext';
+import logError from '../../../utils/logError';
+import { useAuth } from '../../../context/AuthContext';
 import PrintHeader from '../../../components/common/printheader';
 
 const InventoryValueReport = () => {
@@ -293,8 +293,8 @@ const InventoryValueReport = () => {
                                     t('reports.inventory.inventory_value_report.sale_profit'),
                                 ];
                                 const rows = reportData.map((item) => [
-                                    item.productName || 'â€”',
-                                    item.code || 'â€”',
+                                    item.productName || '—',
+                                    item.code || '—',
                                     item.quantity || 0,
                                     item.unitCost?.toFixed(2) || '0.00',
                                     item.inventoryValue?.toFixed(2) || '0.00',

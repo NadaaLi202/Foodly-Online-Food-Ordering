@@ -4,10 +4,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Edit, Trash2, FileText, Plus, Landmark } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import logError from '../../utils/logerror';
+import logError from '../../utils/logError';
 import { confirmDelete } from '../../utils/confirmdelete';
-import { useAuth } from '../../context/authcontext';
-import { formatCurrency } from '../../utils/currencyformatter';
+import { useAuth } from '../../context/AuthContext';
+import { formatCurrency } from '../../utils/currencyFormatter';
 import SafeModal from './safemodal';
 
 const Safes = () => {

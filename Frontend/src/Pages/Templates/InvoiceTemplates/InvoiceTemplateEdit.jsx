@@ -7,7 +7,7 @@ import TemplateEditor from '../components/templateeditor.jsx';
 import TextBlock, { TextBlockList } from '../components/textblock.jsx';
 import MarginsPopover from '../components/marginspopover.jsx';
 import InvoicePreview from '../components/documentpreview.jsx';
-import { useAuth } from '../../../context/authcontext.jsx';
+import { useAuth } from '../../../context/AuthContext.jsx';
 import branchService from '../../../services/branchservice.js';
 import { X } from 'lucide-react';
 

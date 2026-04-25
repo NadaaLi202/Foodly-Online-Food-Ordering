@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
-import logError from '../../utils/logerror';
+import logError from '../../utils/logError';
 import { confirmDelete } from '../../utils/confirmdelete';
 
 const Inventories = () => {

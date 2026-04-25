@@ -1,10 +1,10 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Plus, FileText, UserPlus, Package, ShoppingCart, Truck, CreditCard, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { usePermissions } from '../../hooks/usepermissions';
-import { addMenuConfig } from '../../config/addmenuconfig';
+import { usePermissions } from '../../hooks/usePermissions';
+import { addMenuConfig } from '../../config/addMenuConfig';
 
 const iconMap = {
     FileText,

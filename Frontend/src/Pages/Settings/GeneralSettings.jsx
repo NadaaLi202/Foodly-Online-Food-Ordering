@@ -14,9 +14,9 @@ import {
 import toast from 'react-hot-toast';
 import { confirmDelete } from '../../utils/confirmdelete';
 import api from '../../services/api';
-import logError from '../../utils/logerror';
-import { useAuth } from '../../context/authcontext';
-import { SUPPORTED_CURRENCIES } from '../../utils/currencyformatter';
+import logError from '../../utils/logError';
+import { useAuth } from '../../context/AuthContext';
+import { SUPPORTED_CURRENCIES } from '../../utils/currencyFormatter';
 
 const GeneralSettings = () => {
     const { t, i18n } = useTranslation();

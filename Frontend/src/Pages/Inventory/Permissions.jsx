@@ -17,7 +17,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import logError from '../../utils/logerror';
+import logError from '../../utils/logError';
 import { confirmDelete } from '../../utils/confirmdelete';
 
 const PERMISSION_TYPES = [

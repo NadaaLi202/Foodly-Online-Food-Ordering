@@ -23,8 +23,8 @@ import userService from '../../services/userservice';
 import rolesService from '../../services/rolesservice';
 import branchService from '../../services/branchservice';
 import Forbidden from '../../components/forbidden';
-import logError from '../../utils/logerror';
-import { useAuth } from '../../context/authcontext';
+import logError from '../../utils/logError';
+import { useAuth } from '../../context/AuthContext';
 
 const Users = () => {
     const { t, i18n } = useTranslation();

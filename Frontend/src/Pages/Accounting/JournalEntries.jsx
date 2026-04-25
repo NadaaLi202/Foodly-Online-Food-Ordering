@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../../context/authcontext';
+import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-import { formatCurrency } from '../../utils/currencyformatter';
+import { formatCurrency } from '../../utils/currencyFormatter';
 import { Plus, Search, RefreshCw, X, Upload, Calendar, Edit3, Home, MoreVertical, ChevronsUpDown, Minus, ArrowRightLeft, Share2, Printer, Download, Info, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import journalEntryService from '../../services/journalentryservice';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '../../context/authcontext';
+import { useAuth } from '../../context/AuthContext';
 import { BASE_URL } from '../../services/api';
 
 const normalizeParts = (parts) => parts

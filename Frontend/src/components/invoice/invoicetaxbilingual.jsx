@@ -1,6 +1,6 @@
 import React from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
-import { formatCurrency } from '../../utils/currencyformatter';
+import { formatCurrency } from '../../utils/currencyFormatter';
 
 const InvoiceTaxBilingual = ({ invoice, company, isRTL, t, isPreview = false }) => {
     const currency = invoice?.currency || company?.currency || 'SAR';

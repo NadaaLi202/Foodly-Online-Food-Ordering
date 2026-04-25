@@ -4,7 +4,7 @@ import { ChevronDown, ChevronLeft, FileSpreadsheet, FileText, Printer, Calendar 
 import { exportTrialBalanceToExcel, buildTrialBalancePdf } from '../../../utils/accountingreportsexport';
 import api from '../../../services/api';
 import PrintHeader from '../../../components/common/printheader';
-import { useAuth } from '../../../context/authcontext';
+import { useAuth } from '../../../context/AuthContext';
 
 const getMonthRange = (date = new Date()) => {
     const start = new Date(date.getFullYear(), date.getMonth(), 1);

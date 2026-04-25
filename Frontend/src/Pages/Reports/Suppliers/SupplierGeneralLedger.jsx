@@ -6,8 +6,8 @@ import chartOfAccountsService from '../../../services/chartofaccountsservice';
 import branchService from '../../../services/branchservice';
 import { exportSupplierStatementToExcel, exportSupplierStatementToPdf } from '../../../utils/customersupplierinventoryexport';
 import PrintHeader from '../../../components/common/printheader';
-import { useAuth } from '../../../context/authcontext';
-import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyformatter';
+import { useAuth } from '../../../context/AuthContext';
+import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
 
 const SupplierGeneralLedger = () => {
     const { t } = useTranslation();

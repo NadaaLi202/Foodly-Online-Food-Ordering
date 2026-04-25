@@ -5,8 +5,8 @@ import reportsService from '../../../services/reportsservice';
 import { downloadTablePdf } from '../../../utils/reportpdfbuilder';
 import * as XLSX from 'xlsx';
 import PrintHeader from '../../../components/common/printheader';
-import { useAuth } from '../../../context/authcontext';
-import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyformatter';
+import { useAuth } from '../../../context/AuthContext';
+import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
 
 const SummaryPaymentsReport = () => {
     const { t, i18n } = useTranslation();

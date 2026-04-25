@@ -15,8 +15,8 @@ import api from '../../services/api';
 import rolesService from '../../services/rolesservice';
 import { confirmDelete } from '../../utils/confirmdelete';
 import companyService from '../../services/companyservice';
-import logError from '../../utils/logerror';
-import { useAuth } from '../../context/authcontext';
+import logError from '../../utils/logError';
+import { useAuth } from '../../context/AuthContext';
 
 const getStoredUser = () => {
     try {

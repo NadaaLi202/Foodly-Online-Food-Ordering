@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown } from 'lucide-react';
 import reportsService from '../../../services/reportsservice';
@@ -311,8 +311,8 @@ const SummaryPurchasesReport = () => {
                                     summaryData.map((row, idx) => (
                                         <tr key={row.month ?? idx} className="border-b border-gray-100">
                                             {tableColumns.map((col) => {
-                                                let val = 'â€”';
-                                                if (col.key === 'month') val = row.month ?? 'â€”';
+                                                let val = '—';
+                                                if (col.key === 'month') val = row.month ?? '—';
                                                 else if (col.key === 'invoices') val = row.invoices ?? 0;
                                                 else if (col.key === 'returns') val = row.returns ?? 0;
                                                 else if (col.key === 'orders') val = row.orders ?? 0;

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Plus, Search, RefreshCw, Landmark, ArrowLeftRight, Edit, Trash2, ChevronDown, Wallet, FileText, MoreVertical, Copy, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import logError from '../../utils/logerror';
+import logError from '../../utils/logError';
 import { confirmDelete } from '../../utils/confirmdelete';
 import FinancialTransactionModal from './financialtransactionmodal';
 import { currencySymbols } from '../../utils/currencysymbols';

@@ -2,7 +2,7 @@ import React from 'react';
 import { Building2, MapPin, Phone, Mail } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useTranslation } from 'react-i18next';
-import { formatCurrency } from '../../utils/currencyformatter';
+import { formatCurrency } from '../../utils/currencyFormatter';
 import PrintHeader from '../common/printheader';
 
 /**

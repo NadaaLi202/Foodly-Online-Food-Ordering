@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import companyService from '../../services/companyservice';
 import { ArrowLeft, Upload, X } from 'lucide-react';
-import logError from '../../utils/logerror';
+import logError from '../../utils/logError';
 
 const CompanyForm = () => {
     const { t, i18n } = useTranslation();

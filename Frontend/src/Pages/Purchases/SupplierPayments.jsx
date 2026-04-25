@@ -3,14 +3,14 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { Plus, RefreshCw, X, MoreVertical, Eye, FileDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
-import { formatCurrency } from '../../utils/currencyformatter';
+import { formatCurrency } from '../../utils/currencyFormatter';
 import ClientLink from '../../components/navigation/clientlink';
 import TreasuryLink from '../../components/navigation/treasurylink';
 import OperationTypeLink from '../../components/navigation/operationtypelink';
 import ConfirmDeleteModal from '../../components/confirmdeletemodal';
 import PaymentModal from '../../components/purchases/paymentmodal';
 import { paths } from '../../utils/navigationhelpers';
-import logError from '../../utils/logerror';
+import logError from '../../utils/logError';
 
 export default function SupplierPayments() {
     const { t, i18n } = useTranslation();

@@ -15,7 +15,7 @@ import {
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import OtpHelpModal from './components/otphelpmodal';
-import logError from '../../utils/logerror';
+import logError from '../../utils/logError';
 
 const ZatcaSettings = () => {
     const { t, i18n } = useTranslation();

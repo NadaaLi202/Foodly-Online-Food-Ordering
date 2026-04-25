@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
-import logError from '../../utils/logerror';
+import logError from '../../utils/logError';
 
 const SalesSettings = () => {
     const { t, i18n } = useTranslation();

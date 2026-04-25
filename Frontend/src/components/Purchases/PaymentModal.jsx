@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Calendar, User, DollarSign, FileText, CheckCircle, Clock, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
-import logError from '../../utils/logerror';
+import logError from '../../utils/logError';
 
 const PaymentModal = ({ isOpen, onClose, payment, onSave }) => {
     const { t, i18n } = useTranslation();

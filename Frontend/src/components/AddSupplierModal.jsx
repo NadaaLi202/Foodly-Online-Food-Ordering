@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import contactsService from '../services/contactsservice';
-import logError from '../utils/logerror';
+import logError from '../utils/logError';
 
 const AddSupplierModal = ({ isOpen, onClose, editSupplier = null, onSave }) => {
     const { t, i18n } = useTranslation();

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { QRCodeCanvas } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import logError from '../../utils/logerror';
+import logError from '../../utils/logError';
 import DocumentActions from '../common/documentactions';
 import InvoiceLayout from '../invoice/invoicelayout';
 import InvoicePaymentsTab from './invoicepaymentstab';

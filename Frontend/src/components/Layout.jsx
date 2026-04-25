@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import Sidebar from './sidebar';
-import TopBar from './topbar';
-import Breadcrumbs from './breadcrumbs';
+import Sidebar from './Sidebar';
+import TopBar from './TopBar';
+import Breadcrumbs from './Breadcrumbs';
 import { useTranslation } from 'react-i18next';
 
 const Layout = () => {
