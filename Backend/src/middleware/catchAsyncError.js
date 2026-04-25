@@ -1,4 +1,4 @@
-import logError from "../utils/logerror.js";
+import logError from "../utils/logError.js";
 
 export const catchAsyncError = (fn) => {
     return async (req, res, next) => {

@@ -1,6 +1,6 @@
 import { branchModel } from "./branch.model.js";
 import { activityModel } from "../activity/activity.model.js";
-import { partnerListModel } from "../listofpartners/listofpartners.model.js";
+import { partnerListModel } from "../listOfPartners/listOfPartners.model.js";
 
 export const seedDefaultBranch = async (companyId) => {
     try {

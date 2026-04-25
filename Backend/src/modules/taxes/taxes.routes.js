@@ -1,6 +1,6 @@
 import express from "express";
 import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 import { addTax, deleteTax, getAllTaxes, updateTax } from "./taxes.controller.js";
 
 const taxesRouter = express.Router();

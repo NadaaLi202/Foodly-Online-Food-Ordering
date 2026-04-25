@@ -3,12 +3,12 @@ import fs from "fs";
 import multer from "multer";
 import { Readable } from "stream";
 import { allowedTo, protectedRoutes } from "../modules/auth/auth.controller.js";
-import { catchAsyncError } from "../middleware/catchasyncerror.js";
+import { catchAsyncError } from "../middleware/catchAsyncError.js";
 import { runSystemBackup, restoreFromBackup, restoreFromStream, listBackups } from "./backup.service.js";
 import { systemBackupModel } from "./backup.model.js";
 import { getBackupReadStream, getSignedBackupUrl } from "./backup.storage.js";
 import path from "path";
-import { AppError } from "../utils/apperror.js";
+import { AppError } from "../utils/AppError.js";
 
 const upload = multer({
     storage: multer.memoryStorage(),

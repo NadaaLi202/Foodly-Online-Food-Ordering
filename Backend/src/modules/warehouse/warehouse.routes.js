@@ -13,7 +13,7 @@ import {
     updateWarehouseSchema
 } from "./warehouse.validation.js";
 import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const router = express.Router();
 

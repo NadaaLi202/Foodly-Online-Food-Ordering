@@ -1,7 +1,7 @@
-import { stockAddItemModel } from "./stockadditem.model.js";
-import { stockAddModel } from "./stockadd.model.js";
-import { catchAsyncError } from "../../middleware/catchasyncerror.js";
-import { AppError } from "../../utils/apperror.js";
+import { stockAddItemModel } from "./stockAddItem.model.js";
+import { stockAddModel } from "./stockAdd.model.js";
+import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { AppError } from "../../utils/AppError.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
 
 // ====== StockAdd ======

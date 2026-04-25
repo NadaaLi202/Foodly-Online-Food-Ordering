@@ -4,25 +4,25 @@ import mongoose from "mongoose";
 import Contact from "../contacts/contacts.model.js";
 import { companyModel } from "../companies/company.model.js";
 import { SUPPORTED_CURRENCIES } from "../../constants/currencies.js";
-import { resolveCompanyIdForWrite } from "../../middleware/applycompanyfilter.js";
-import { catchAsyncError } from "../../middleware/catchasyncerror.js";
-import { AppError } from "../../utils/apperror.js";
+import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
+import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { AppError } from "../../utils/AppError.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
 import QRCode from "qrcode";
 import PDFDocument from "pdfkit";
 import path from "path";
 import { fileURLToPath } from "url";
 import { processArabic } from "../../utils/arabic.js";
-import { generatePDF } from "../../utils/generatepdf.js";
+import { generatePDF } from "../../utils/generatePDF.js";
 import { getSettings } from "../settings/settings.service.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 import * as inventoryService from "../product/inventory.service.js";
-import logError from "../../utils/logerror.js";
+import logError from "../../utils/logError.js";
 import { createInvoiceJournalEntry, createPaymentJournalEntry, deleteInvoiceJournalEntry } from "./transaction.accounting.js";
-import { createTransactionFromInvoice, createTransactionFromPayment, deleteTransactionFromInvoice } from "../financialtransactions/services/accountingtransaction.service.js";
+import { createTransactionFromInvoice, createTransactionFromPayment, deleteTransactionFromInvoice } from "../FinancialTransactions/services/accountingTransaction.service.js";
 
 const docTypeLabel = (module, type) => {
     if (module === 'Purchases') return type === 'return' ? 'مرتجع مشتريات' : 'فاتورة مشتريات';

@@ -1,8 +1,8 @@
-import { AppError } from "../../utils/apperror.js";
-import { bankAccountModel } from "./bankaccount.model.js";
-import { catchAsyncError } from "../../middleware/catchasyncerror.js";
-import { resolveCompanyIdForWrite } from "../../middleware/applycompanyfilter.js";
-import { calculateBankAccountBalance } from "./bankaccount.service.js";
+import { AppError } from "../../utils/AppError.js";
+import { bankAccountModel } from "./bankAccount.model.js";
+import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
+import { calculateBankAccountBalance } from "./bankAccount.service.js";
 
 
 // @desc    Add a new bank account

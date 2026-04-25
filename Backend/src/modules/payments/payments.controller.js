@@ -2,16 +2,16 @@ import Payment from "./payments.model.js";
 import Transaction from "../transaction/transaction.model.js";
 import Contact from "../contacts/contacts.model.js";
 import { companyModel } from "../companies/company.model.js";
-import { catchAsyncError } from "../../middleware/catchasyncerror.js";
-import { AppError } from "../../utils/apperror.js";
+import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { AppError } from "../../utils/AppError.js";
 import QRCode from "qrcode";
 import PDFDocument from "pdfkit";
 import path from "path";
 import { fileURLToPath } from "url";
 import { processArabic } from "../../utils/arabic.js";
 import { createPaymentJournalEntry } from "../transaction/transaction.accounting.js";
-import { createTransactionFromPayment, deleteTransactionFromPayment } from "../financialtransactions/services/accountingtransaction.service.js";
-import { safeModel } from "../safes/safe.model.js";
+import { createTransactionFromPayment, deleteTransactionFromPayment } from "../FinancialTransactions/services/accountingTransaction.service.js";
+import { safeModel } from "../Safes/safe.model.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,11 +52,11 @@ const addPayment = (module) =>
         }
 
         if (treasuryType === 'bank') {
-            const BankAccount = (await import("../bankaccounts/bankaccount.model.js")).bankAccountModel;
+            const BankAccount = (await import("../BankAccounts/bankAccount.model.js")).bankAccountModel;
             const bankExists = await BankAccount.exists({ _id: treasuryId, ...req.companyFilter });
             if (!bankExists) return next(new AppError("Bank account not found", 404));
         } else if (treasuryType === 'safe') {
-            const Safe = (await import("../safes/safe.model.js")).safeModel;
+            const Safe = (await import("../Safes/safe.model.js")).safeModel;
             const safeExists = await Safe.exists({ _id: treasuryId, ...req.companyFilter });
             if (!safeExists) return next(new AppError("Safe not found", 404));
         } else {
@@ -201,11 +201,11 @@ const updatePayment = catchAsyncError(async (req, res, next) => {
 
         const type = treasuryType || payment.treasuryType;
         if (type === 'bank') {
-            const BankAccount = (await import("../bankaccounts/bankaccount.model.js")).bankAccountModel;
+            const BankAccount = (await import("../BankAccounts/bankAccount.model.js")).bankAccountModel;
             const bankExists = await BankAccount.exists({ _id: treasuryId, ...req.companyFilter });
             if (!bankExists) return next(new AppError("Bank account not found", 404));
         } else if (type === 'safe') {
-            const Safe = (await import("../safes/safe.model.js")).safeModel;
+            const Safe = (await import("../Safes/safe.model.js")).safeModel;
             const safeExists = await Safe.exists({ _id: treasuryId, ...req.companyFilter });
             if (!safeExists) return next(new AppError("Safe not found", 404));
         }
@@ -351,11 +351,11 @@ const downloadPaymentPDF = catchAsyncError(async (req, res, next) => {
     const treasuryName = await (async () => {
         if (!payment.treasury) return "—";
         if (payment.treasuryType === 'bank') {
-            const BankAccount = (await import("../bankaccounts/bankaccount.model.js")).bankAccountModel;
+            const BankAccount = (await import("../BankAccounts/bankAccount.model.js")).bankAccountModel;
             const bank = await BankAccount.findById(payment.treasury).select('name').lean();
             return bank?.name || "حساب بنكي";
         } else {
-            const Safe = (await import("../safes/safe.model.js")).safeModel;
+            const Safe = (await import("../Safes/safe.model.js")).safeModel;
             const safe = await Safe.findById(payment.treasury).select('name').lean();
             return safe?.name || "خزينة";
         }

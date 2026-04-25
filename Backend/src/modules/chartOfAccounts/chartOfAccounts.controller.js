@@ -1,7 +1,7 @@
-import { chartOfAccountsModel } from "./chartofaccounts.model.js";
-import { AppError } from "../../utils/apperror.js";
-import { catchAsyncError } from "../../middleware/catchasyncerror.js";
-import { seedDefaultChartOfAccounts } from "./chartofaccounts.service.js";
+import { chartOfAccountsModel } from "./chartOfAccounts.model.js";
+import { AppError } from "../../utils/AppError.js";
+import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { seedDefaultChartOfAccounts } from "./chartOfAccounts.service.js";
 
 const addAccount = catchAsyncError(async (req, res, next) => {
     const { code } = req.body;

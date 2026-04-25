@@ -10,8 +10,8 @@ import Contact from "./contacts.model.js";
 import { validation } from "../../middleware/validation.js";
 import { contactSchema } from "./contacts.validation.js";
 import { protectedRoutes, requirePermission, requireResolvedPermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
-import { AppError } from "../../utils/apperror.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+import { AppError } from "../../utils/AppError.js";
 
 const router = express.Router();
 

@@ -7,13 +7,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Import models
-import FinancialReceipt from '../src/modules/financialtransactions/models/financialreceipt.model.js';
-import FinancialDisbursement from '../src/modules/financialtransactions/models/financialdisbursement.model.js';
-import FinancialTransfer from '../src/modules/financialtransactions/models/financialtransfer.model.js';
-import AccountingTransaction from '../src/modules/financialtransactions/models/accountingtransaction.model.js';
+import FinancialReceipt from '../src/modules/FinancialTransactions/models/financialReceipt.model.js';
+import FinancialDisbursement from '../src/modules/FinancialTransactions/models/financialDisbursement.model.js';
+import FinancialTransfer from '../src/modules/FinancialTransactions/models/financialTransfer.model.js';
+import AccountingTransaction from '../src/modules/FinancialTransactions/models/accountingTransaction.model.js';
 import Transaction from '../src/modules/transaction/transaction.model.js';
-import { safeModel } from '../src/modules/safes/safe.model.js';
-import { bankAccountModel } from '../src/modules/bankaccounts/bankaccount.model.js';
+import { safeModel } from '../src/modules/Safes/safe.model.js';
+import { bankAccountModel } from '../src/modules/BankAccounts/bankAccount.model.js';
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 

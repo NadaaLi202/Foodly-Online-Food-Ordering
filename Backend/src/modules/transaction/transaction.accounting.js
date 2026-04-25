@@ -5,10 +5,10 @@
  * Accounts are resolved dynamically from the company's chart of accounts.
  */
 
-import { dailyRestrictionModel } from '../dailyrestrictions/dailyrestrictions.model.js';
-import { chartOfAccountsModel } from '../chartofaccounts/chartofaccounts.model.js';
+import { dailyRestrictionModel } from '../dailyRestrictions/dailyRestrictions.model.js';
+import { chartOfAccountsModel } from '../chartOfAccounts/chartOfAccounts.model.js';
 import mongoose from 'mongoose';
-import logError from '../../utils/logerror.js';
+import logError from '../../utils/logError.js';
 
 /**
  * Generate the next journal entry number for a given company.
@@ -234,8 +234,8 @@ export const createPaymentJournalEntry = async (payment, transaction, companyId)
         // Try to fetch bank/safe account directly if treasury is provided
         let treasuryAccount = null;
         if (payment.treasury && mongoose.Types.ObjectId.isValid(payment.treasury)) {
-            const { bankAccountModel } = await import('../bankaccounts/bankaccount.model.js');
-            const { safeModel } = await import('../safes/safe.model.js');
+            const { bankAccountModel } = await import('../BankAccounts/bankAccount.model.js');
+            const { safeModel } = await import('../Safes/safe.model.js');
             
             if (payment.treasuryType === 'bank') {
                 const bankAcc = await bankAccountModel.findById(payment.treasury).lean();

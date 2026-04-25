@@ -3,7 +3,7 @@ import { addCustomer, deleteCustomer, getAllCustomers, getCustomerById, updateCu
 import { validation } from "../../middleware/validation.js";
 import { addCustomerSchema, updateCustomerSchema } from "./customers.validation.js";
 import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const customerRouter = express.Router();
 

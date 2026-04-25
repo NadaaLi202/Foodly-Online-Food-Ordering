@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import { migrateLegacyPayments } from './src/modules/bankaccounts/bankaccount.service.js';
+import { migrateLegacyPayments } from './src/modules/BankAccounts/bankAccount.service.js';
 
 dotenv.config();
 

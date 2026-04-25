@@ -1,13 +1,13 @@
-import FinancialReceipt from "./models/financialreceipt.model.js";
-import FinancialDisbursement from "./models/financialdisbursement.model.js";
-import FinancialTransfer from "./models/financialtransfer.model.js";
-import AccountingTransaction from "./models/accountingtransaction.model.js";
-import { safeModel } from "../safes/safe.model.js";
-import { bankAccountModel } from "../bankaccounts/bankaccount.model.js";
-import { catchAsyncError } from "../../middleware/catchasyncerror.js";
-import { AppError } from "../../utils/apperror.js";
+import FinancialReceipt from "./models/financialReceipt.model.js";
+import FinancialDisbursement from "./models/financialDisbursement.model.js";
+import FinancialTransfer from "./models/financialTransfer.model.js";
+import AccountingTransaction from "./models/accountingTransaction.model.js";
+import { safeModel } from "../Safes/safe.model.js";
+import { bankAccountModel } from "../BankAccounts/bankAccount.model.js";
+import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { AppError } from "../../utils/AppError.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
-import { resolveCompanyIdForWrite } from "../../middleware/applycompanyfilter.js";
+import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js";
 
 const round2 = (value) => Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 const normalizeTaxesPercent = (value) => {

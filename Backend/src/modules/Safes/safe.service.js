@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 import { safeModel } from "./safe.model.js";
 import { branchModel } from "../branch/branch.model.js";
-import FinancialReceipt from "../financialtransactions/models/financialreceipt.model.js";
-import FinancialDisbursement from "../financialtransactions/models/financialdisbursement.model.js";
-import FinancialTransfer from "../financialtransactions/models/financialtransfer.model.js";
-import AccountingTransaction from "../financialtransactions/models/accountingtransaction.model.js";
+import FinancialReceipt from "../FinancialTransactions/models/financialReceipt.model.js";
+import FinancialDisbursement from "../FinancialTransactions/models/financialDisbursement.model.js";
+import FinancialTransfer from "../FinancialTransactions/models/financialTransfer.model.js";
+import AccountingTransaction from "../FinancialTransactions/models/accountingTransaction.model.js";
 
 export const seedDefaultSafe = async (companyId) => {
     try {
@@ -16,7 +16,7 @@ export const seedDefaultSafe = async (companyId) => {
         const mainBranch = await branchModel.findOne({ companyId, is_main: true });
 
         // Find the linked accounting account (code 1211 - الخزنة الرئيسية)
-        const { chartOfAccountsModel } = await import("../chartofaccounts/chartofaccounts.model.js");
+        const { chartOfAccountsModel } = await import("../chartOfAccounts/chartOfAccounts.model.js");
         const journalAccount = await chartOfAccountsModel.findOne({ companyId, code: "1211" });
 
         await safeModel.create({
@@ -60,7 +60,7 @@ export const calculateSafeBalance = async (safeId, companyFilter) => {
 
         // If safe is linked to an accounting account, use the ledger balance (Source of truth)
         if (safe.journalAccount) {
-            const { dailyRestrictionModel } = await import("../dailyrestrictions/dailyrestrictions.model.js");
+            const { dailyRestrictionModel } = await import("../dailyRestrictions/dailyRestrictions.model.js");
             const targetAccountId = new mongoose.Types.ObjectId(safe.journalAccount._id?.toString() || safe.journalAccount.toString());
             const category = (safe.journalAccount.accountCategory || 'asset').toLowerCase();
 
@@ -114,7 +114,7 @@ export const calculateSafeBalance = async (safeId, companyFilter) => {
  */
 export const fixUnlinkedSafes = async () => {
     try {
-        const { chartOfAccountsModel } = await import("../chartofaccounts/chartofaccounts.model.js");
+        const { chartOfAccountsModel } = await import("../chartOfAccounts/chartOfAccounts.model.js");
 
         // Find all safes with missing journalAccount
         const unlinkedSafes = await safeModel.find({

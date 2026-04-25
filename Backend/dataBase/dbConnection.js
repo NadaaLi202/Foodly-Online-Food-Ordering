@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import logError from "../src/utils/logerror.js";
+import logError from "../src/utils/logError.js";
 
 export const dbConnection = async () => {
     try {

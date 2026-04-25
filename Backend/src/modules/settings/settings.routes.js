@@ -3,7 +3,7 @@ import { protectedRoutes } from "../auth/auth.controller.js";
 import { getSettingsController, updateSettingsController, uploadLogoController, deleteLogoController, getCodingSettingsController, updateCodingSettingsController, updateCodingSequenceController } from "./settings.controller.js";
 import { updateSettingsSchema, getSettingsSchema, codingSettingsSchema, codingSequenceSchema, getCodingSettingsSchema } from "./settings.validation.js";
 import { validation } from "../../middleware/validation.js";
-import { uploadSingleFile } from "../../middleware/uploadfiles.js";
+import { uploadSingleFile } from "../../middleware/uploadFiles.js";
 
 const router = express.Router();
 

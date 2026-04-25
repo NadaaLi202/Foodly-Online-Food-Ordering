@@ -1,6 +1,6 @@
 import multer from "multer";
 import mongoose from "mongoose";
-import logError from "../utils/logerror.js";
+import logError from "../utils/logError.js";
 
 export const globalErrorMiddleware = (err, req, res, next) => {
     const statusCode = err.statusCode || err.status || 500;

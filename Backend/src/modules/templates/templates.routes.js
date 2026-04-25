@@ -11,8 +11,8 @@ import {
 import { validation } from "../../middleware/validation.js";
 import { createTemplateSchema, updateTemplateSchema } from "./templates.validation.js";
 import { allowedTo, protectedRoutes } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
-import { uploadSingleFile } from "../../middleware/uploadfiles.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+import { uploadSingleFile } from "../../middleware/uploadFiles.js";
 
 const templateRouter = express.Router();
 

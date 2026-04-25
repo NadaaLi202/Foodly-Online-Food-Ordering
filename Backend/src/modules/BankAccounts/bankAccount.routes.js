@@ -7,10 +7,10 @@ import {
     updateBankAccount
 } from "./bankaccount.controller.js";
 import { validation } from "../../middleware/validation.js";
-import { addBankAccountSchema, updateBankAccountSchema } from "./bankaccount.validation.js";
+import { addBankAccountSchema, updateBankAccountSchema } from "./bankAccount.validation.js";
 
 import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const bankAccountRouter = express.Router();
 

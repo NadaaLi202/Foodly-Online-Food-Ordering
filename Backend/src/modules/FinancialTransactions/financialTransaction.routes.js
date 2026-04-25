@@ -6,11 +6,11 @@ import {
     updateFinancialTransaction,
     deleteFinancialTransaction
 } from "./financialtransaction.controller.js";
-import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadfiles.js";
+import { uploadMultiFiles, ATTACHMENT_MIMETYPES } from "../../middleware/uploadFiles.js";
 import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 import { validation } from "../../middleware/validation.js";
-import { receiptSchema, disbursementSchema, transferSchema } from "./financialtransaction.validation.js";
+import { receiptSchema, disbursementSchema, transferSchema } from "./financialTransaction.validation.js";
 
 const router = express.Router();
 

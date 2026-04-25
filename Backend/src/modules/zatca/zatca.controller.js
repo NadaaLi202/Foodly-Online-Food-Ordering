@@ -1,5 +1,5 @@
-import { catchAsyncError } from "../../middleware/catchasyncerror.js";
-import { AppError } from "../../utils/apperror.js";
+import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { AppError } from "../../utils/AppError.js";
 import { zatcaModel } from "./zatca.model.js";
 
 // Get ZATCA settings for a company

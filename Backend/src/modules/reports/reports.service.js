@@ -5,13 +5,13 @@ import Payment from "../payments/payments.model.js";
 import Contact from "../contacts/contacts.model.js";
 import { taxesModel } from "../taxes/taxes.model.js";
 import { productModel } from "../product/product.model.js";
-import { chartOfAccountsModel } from "../chartofaccounts/chartofaccounts.model.js";
-import { dailyRestrictionModel } from "../dailyrestrictions/dailyrestrictions.model.js";
-import { costCenterModel } from "../costcenters/costcenter.model.js";
-import FinancialReceipt from "../financialtransactions/models/financialreceipt.model.js";
-import FinancialDisbursement from "../financialtransactions/models/financialdisbursement.model.js";
-import FinancialTransfer from "../financialtransactions/models/financialtransfer.model.js";
-import { stockLogModel } from "../stocklogs/stocklog.model.js";
+import { chartOfAccountsModel } from "../chartOfAccounts/chartOfAccounts.model.js";
+import { dailyRestrictionModel } from "../dailyRestrictions/dailyRestrictions.model.js";
+import { costCenterModel } from "../costCenters/costCenter.model.js";
+import FinancialReceipt from "../FinancialTransactions/models/financialReceipt.model.js";
+import FinancialDisbursement from "../FinancialTransactions/models/financialDisbursement.model.js";
+import FinancialTransfer from "../FinancialTransactions/models/financialTransfer.model.js";
+import { stockLogModel } from "../stockLogs/stockLog.model.js";
 import mongoose from "mongoose";
 
 /**

@@ -1,8 +1,8 @@
 import { branchModel } from "./branch.model.js";
-import { partnerListModel } from "../listofpartners/listofpartners.model.js";
+import { partnerListModel } from "../listOfPartners/listOfPartners.model.js";
 import { activityModel } from "../activity/activity.model.js";
-import { AppError } from "../../utils/apperror.js";
-import { catchAsyncError } from "../../middleware/catchasyncerror.js";
+import { AppError } from "../../utils/AppError.js";
+import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 
 const getDefaultPartnerListId = async (companyFilter) => {
     const defaultList = await partnerListModel

@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
-import { catchAsyncError } from "../../middleware/catchasyncerror.js";
+import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import * as reportsService from "./reports.service.js";
-import { generatePDF } from "../../utils/generatepdf.js";
+import { generatePDF } from "../../utils/generatePDF.js";
 
 const buildPrintHtml = ({ title, tableHeaders = [], tableRows = [], companyInfo = {}, footer = true }) => {
     const companyName = companyInfo.name || "";
@@ -363,7 +363,7 @@ export const getGeneralLedger = catchAsyncError(async (req, res) => {
 
     // STEP 2 — Fix GL query resolution for Bank Accounts
     if (targetAccountId && mongoose.Types.ObjectId.isValid(targetAccountId)) {
-        const { bankAccountModel } = await import("../bankaccounts/bankaccount.model.js");
+        const { bankAccountModel } = await import("../BankAccounts/bankAccount.model.js");
         const bankAccount = await bankAccountModel.findOne({ _id: targetAccountId, companyId: mc.companyId }).lean();
         
         if (bankAccount) {
@@ -377,7 +377,7 @@ export const getGeneralLedger = catchAsyncError(async (req, res) => {
                 targetAccountId = journalAccId;
             } else {
                 console.warn(`[GL] Bank account "${bankAccount.name}" has no journalAccount linked. Falling back to default code 1221.`);
-                const { chartOfAccountsModel } = await import("../chartofaccounts/chartofaccounts.model.js");
+                const { chartOfAccountsModel } = await import("../chartOfAccounts/chartOfAccounts.model.js");
                 const defaultBankAcc = await chartOfAccountsModel.findOne({ companyId: mc.companyId, code: "1221" }).lean();
                 if (defaultBankAcc) {
                     targetAccountId = defaultBankAcc._id.toString();
@@ -390,7 +390,7 @@ export const getGeneralLedger = catchAsyncError(async (req, res) => {
     const filters = { branch, accountId: targetAccountId, accountCode };
 
     try {
-        const { dailyRestrictionModel } = await import("../dailyrestrictions/dailyrestrictions.model.js");
+        const { dailyRestrictionModel } = await import("../dailyRestrictions/dailyRestrictions.model.js");
         const count = await dailyRestrictionModel.countDocuments({
             ...mc,
             "entries.account": targetAccountId

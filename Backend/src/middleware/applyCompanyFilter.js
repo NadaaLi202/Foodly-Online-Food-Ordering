@@ -1,4 +1,4 @@
-import { AppError } from "../utils/apperror.js";
+import { AppError } from "../utils/AppError.js";
 
 const isSuperAdminUser = (user) =>
     user?.role === "superAdmin" || user?.systemRole === "superAdmin";

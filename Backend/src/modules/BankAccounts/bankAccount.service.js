@@ -1,4 +1,4 @@
-import { bankAccountModel } from "./bankaccount.model.js";
+import { bankAccountModel } from "./bankAccount.model.js";
 import mongoose from "mongoose";
 
 export const seedDefaultBankAccount = async (companyId) => {
@@ -8,7 +8,7 @@ export const seedDefaultBankAccount = async (companyId) => {
         if (existingBankAccount) return true;
 
         // Find the linked accounting account (code 1221 - الحساب البنكي الرئيسي)
-        const { chartOfAccountsModel } = await import("../chartofaccounts/chartofaccounts.model.js");
+        const { chartOfAccountsModel } = await import("../chartOfAccounts/chartOfAccounts.model.js");
         const companyOid = new mongoose.Types.ObjectId(companyId.toString());
         const journalAccount = await chartOfAccountsModel.findOne({ companyId: companyOid, code: "1221" });
 
@@ -62,7 +62,7 @@ export const calculateBankAccountBalance = async (bankAccountId, companyFilter) 
 
         // ─── Source 1: Journal Entries (DailyRestrictions) ───
         try {
-            const { dailyRestrictionModel } = await import("../dailyrestrictions/dailyrestrictions.model.js");
+            const { dailyRestrictionModel } = await import("../dailyRestrictions/dailyRestrictions.model.js");
 
             if (bankAccount.journalAccount) {
                 let targetAccountId;
@@ -101,7 +101,7 @@ export const calculateBankAccountBalance = async (bankAccountId, companyFilter) 
 
         // ─── Source 2: FinancialReceipts (money IN) ───
         try {
-            const FinancialReceipt = (await import("../financialtransactions/models/financialreceipt.model.js")).default;
+            const FinancialReceipt = (await import("../FinancialTransactions/models/financialReceipt.model.js")).default;
             const receipts = await FinancialReceipt.aggregate([
                 {
                     $match: {
@@ -122,7 +122,7 @@ export const calculateBankAccountBalance = async (bankAccountId, companyFilter) 
 
         // ─── Source 3: FinancialDisbursements (money OUT) ───
         try {
-            const FinancialDisbursement = (await import("../financialtransactions/models/financialdisbursement.model.js")).default;
+            const FinancialDisbursement = (await import("../FinancialTransactions/models/financialDisbursement.model.js")).default;
             const disbursements = await FinancialDisbursement.aggregate([
                 {
                     $match: {
@@ -143,7 +143,7 @@ export const calculateBankAccountBalance = async (bankAccountId, companyFilter) 
 
         // ─── Source 4: FinancialTransfers ───
         try {
-            const FinancialTransfer = (await import("../financialtransactions/models/financialtransfer.model.js")).default;
+            const FinancialTransfer = (await import("../FinancialTransactions/models/financialTransfer.model.js")).default;
             const transfersIn = await FinancialTransfer.aggregate([
                 {
                     $match: {
@@ -175,7 +175,7 @@ export const calculateBankAccountBalance = async (bankAccountId, companyFilter) 
 
         // ─── Source 5: AccountingTransactions ───
         try {
-            const AccountingTransaction = (await import("../financialtransactions/models/accountingtransaction.model.js")).default;
+            const AccountingTransaction = (await import("../FinancialTransactions/models/accountingTransaction.model.js")).default;
             const acctMatch = {
                 companyId: companyOid,
                 $or: [
@@ -244,7 +244,7 @@ export const calculateBankAccountBalance = async (bankAccountId, companyFilter) 
 export const migrateLegacyPayments = async () => {
     try {
         const Payment = (await import("../payments/payments.model.js")).default;
-        const { safeModel } = await import("../safes/safe.model.js");
+        const { safeModel } = await import("../Safes/safe.model.js");
 
         console.log("[Migration] Starting legacy payments migration...");
         const companies = await Payment.distinct('companyId');
@@ -283,7 +283,7 @@ export const migrateLegacyPayments = async () => {
  */
 export const fixPrimaryBankAccounts = async () => {
     try {
-        const { chartOfAccountsModel } = await import("../chartofaccounts/chartofaccounts.model.js");
+        const { chartOfAccountsModel } = await import("../chartOfAccounts/chartOfAccounts.model.js");
         const { companyModel } = await import("../companies/company.model.js");
 
         const unlinkedAccounts = await bankAccountModel.find({

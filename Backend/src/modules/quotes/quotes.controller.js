@@ -1,6 +1,6 @@
 import { quoteModel } from "./quotes.model.js";
-import { AppError } from "../../utils/apperror.js";
-import { catchAsyncError } from "../../middleware/catchasyncerror.js";
+import { AppError } from "../../utils/AppError.js";
+import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 
 const addQuote = catchAsyncError(async (req, res, next) => {
     // req.body.companyId comes from middleware

@@ -1,10 +1,10 @@
 import { productModel } from "./product.model.js"
-import { AppError } from "../../utils/apperror.js"
-import { catchAsyncError } from "../../middleware/catchasyncerror.js"
+import { AppError } from "../../utils/AppError.js"
+import { catchAsyncError } from "../../middleware/catchAsyncError.js"
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js"
 import { companyModel } from "../companies/company.model.js"
 import mongoose from "mongoose"
-import { resolveCompanyIdForWrite } from "../../middleware/applycompanyfilter.js"
+import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js"
 
 const normalizeExistingCompanyId = async (candidateId) => {
     if (!candidateId) {

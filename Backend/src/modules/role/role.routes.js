@@ -9,7 +9,7 @@ import {
 import { validation } from "../../middleware/validation.js";
 import { addRoleSchema, updateRoleSchema } from "./role.validation.js";
 import { allowedTo, protectedRoutes } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const roleRouter = express.Router();
 

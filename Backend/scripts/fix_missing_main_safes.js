@@ -1,9 +1,9 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
-import { dbConnection } from '../database/dbconnection.js';
+import { dbConnection } from '../dataBase/dbConnection.js';
 import { companyModel } from '../src/modules/companies/company.model.js';
-import { safeModel } from '../src/modules/safes/safe.model.js';
-import { seedDefaultSafe } from '../src/modules/safes/safe.service.js';
+import { safeModel } from '../src/modules/Safes/safe.model.js';
+import { seedDefaultSafe } from '../src/modules/Safes/safe.service.js';
 
 async function migrate() {
     console.log("🔄 Connecting to DB...");

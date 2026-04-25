@@ -1,6 +1,6 @@
 import * as dotenv from 'dotenv';
 dotenv.config();
-import { dbConnection } from '../database/dbconnection.js';
+import { dbConnection } from '../dataBase/dbConnection.js';
 import { companyModel } from '../src/modules/companies/company.model.js';
 import { branchModel } from '../src/modules/branch/branch.model.js';
 import { seedDefaultBranch } from '../src/modules/branch/branch.service.js';

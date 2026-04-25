@@ -1,9 +1,9 @@
 import express from "express";
-import { addAccount, deleteAccount, getAccountById, getAllAccounts, updateAccount, seedDefaultAccounts } from "./chartofaccounts.controller.js";
+import { addAccount, deleteAccount, getAccountById, getAllAccounts, updateAccount, seedDefaultAccounts } from "./chartOfAccounts.controller.js";
 import { validation } from "../../middleware/validation.js";
-import { addAccountSchema, updateAccountSchema } from "./chartofaccounts.validation.js";
+import { addAccountSchema, updateAccountSchema } from "./chartOfAccounts.validation.js";
 import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const chartOfAccountsRouter = express.Router();
 

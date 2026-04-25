@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { v2 as cloudinary } from "cloudinary";
-import logError from "./logerror.js";
+import logError from "./logError.js";
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,

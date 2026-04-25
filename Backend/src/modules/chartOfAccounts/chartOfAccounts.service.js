@@ -1,4 +1,4 @@
-import { chartOfAccountsModel } from "./chartofaccounts.model.js";
+import { chartOfAccountsModel } from "./chartOfAccounts.model.js";
 
 const ACCOUNTS_HIERARCHY = [
     { code: '1', name: 'الأصول', type: 'main', accountCategory: 'asset' },

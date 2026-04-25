@@ -1,8 +1,8 @@
 import { userModel } from "../user/user.model.js"
 import { companyModel } from "../companies/company.model.js"
 import { roleModel } from "../role/role.model.js"
-import { catchAsyncError } from "../../middleware/catchasyncerror.js"
-import { AppError } from "../../utils/apperror.js"
+import { catchAsyncError } from "../../middleware/catchAsyncError.js"
+import { AppError } from "../../utils/AppError.js"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 

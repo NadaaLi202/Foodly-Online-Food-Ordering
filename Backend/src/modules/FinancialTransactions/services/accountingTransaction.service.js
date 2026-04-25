@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
-import AccountingTransaction from "../models/accountingtransaction.model.js";
-import { safeModel } from "../../safes/safe.model.js";
-import { bankAccountModel } from "../../bankaccounts/bankaccount.model.js";
-import { dailyRestrictionModel } from "../../dailyrestrictions/dailyrestrictions.model.js";
+import AccountingTransaction from "../models/accountingTransaction.model.js";
+import { safeModel } from "../../Safes/safe.model.js";
+import { bankAccountModel } from "../../BankAccounts/bankAccount.model.js";
+import { dailyRestrictionModel } from "../../dailyRestrictions/dailyRestrictions.model.js";
 import { generateJournalEntryNumber, findAccount } from "../../transaction/transaction.accounting.js";
 
 export const createTransactionFromInvoice = async (invoice, treasuryData = null) => {

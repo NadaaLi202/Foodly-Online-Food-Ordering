@@ -1,7 +1,7 @@
 import { productModel } from "../product/product.model.js";
 import { salesCustomerModel } from "../customers/customers.model.js";
 import Contact from "../contacts/contacts.model.js";
-import { catchAsyncError } from "../../middleware/catchasyncerror.js";
+import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import * as xlsx from 'xlsx';
 
 /**

@@ -4,7 +4,7 @@ import { validation } from "../../middleware/validation.js";
 import { addActivitySchema, updateActivitySchema } from "./activity.validation.js";
 
 import { allowedTo, protectedRoutes } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const activityRouter = express.Router();
 

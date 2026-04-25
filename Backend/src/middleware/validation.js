@@ -1,5 +1,5 @@
 // export const validation = (schema) => {
-import logError from "../utils/logerror.js";
+import logError from "../utils/logError.js";
 
 //     return (req, res, next) => {
 //         let inputs = { ...req.body, ...req.params, ...req.query }

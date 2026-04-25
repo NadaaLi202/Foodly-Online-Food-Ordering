@@ -1,11 +1,11 @@
-import { AppError } from "../../utils/apperror.js";
-import { catchAsyncError } from "../../middleware/catchasyncerror.js";
+import { AppError } from "../../utils/AppError.js";
+import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import Invoice from "./invoices.model.js";
 import { SUPPORTED_CURRENCIES } from "../../constants/currencies.js";
-import { dailyRestrictionModel } from "../dailyrestrictions/dailyrestrictions.model.js";
-import { chartOfAccountsModel } from "../chartofaccounts/chartofaccounts.model.js";
-import FinancialReceipt from "../financialtransactions/models/financialreceipt.model.js";
-import { safeModel } from "../safes/safe.model.js";
+import { dailyRestrictionModel } from "../dailyRestrictions/dailyRestrictions.model.js";
+import { chartOfAccountsModel } from "../chartOfAccounts/chartOfAccounts.model.js";
+import FinancialReceipt from "../FinancialTransactions/models/financialReceipt.model.js";
+import { safeModel } from "../Safes/safe.model.js";
 import mongoose from "mongoose";
 import Contact from "../contacts/contacts.model.js";
 import { getSettings } from "../settings/settings.service.js";

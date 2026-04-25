@@ -1,6 +1,6 @@
-import { transferProcessModel } from "./transferprocess.model.js";
-import { catchAsyncError } from "../../middleware/catchasyncerror.js";
-import { AppError } from "../../utils/apperror.js";
+import { transferProcessModel } from "./transferProcess.model.js";
+import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { AppError } from "../../utils/AppError.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js";
 
 // ================== Add Transfer Process ==================

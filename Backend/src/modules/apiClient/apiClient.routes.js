@@ -1,7 +1,7 @@
 import express from "express";
-import * as apiClientController from "./apiclient.controller.js";
+import * as apiClientController from "./apiClient.controller.js";
 import { protectedRoutes, allowedTo } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const apiClientRouter = express.Router();
 

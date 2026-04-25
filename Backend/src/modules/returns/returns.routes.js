@@ -3,7 +3,7 @@ import { addReturn, deleteReturn, getAllReturns, getReturnById, updateReturn } f
 import { validation } from "../../middleware/validation.js";
 import { addReturnSchema, updateReturnSchema } from "./returns.validation.js";
 import { protectedRoutes, requirePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const returnsRouter = express.Router();
 

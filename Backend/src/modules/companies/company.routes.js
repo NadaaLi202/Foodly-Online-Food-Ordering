@@ -2,7 +2,7 @@ import express from "express";
 import { addCompany, deleteCompany, getAllCompanies, getCompany, getCompanyBySlug, updateCompany, loginAsCompany, impersonateCompany, sendCredentials, checkSlug, signupCompany, approveCompany, rejectCompany, seedMainSafesAdmin } from "./company.controller.js";
 import { validation } from "../../middleware/validation.js";
 import { addCompanySchema, updateCompanySchema, companySignupSchema } from "./company.validation.js";
-import { uploadSingleFile } from "../../middleware/uploadfiles.js";
+import { uploadSingleFile } from "../../middleware/uploadFiles.js";
 import { allowedTo, protectedRoutes } from "../auth/auth.controller.js";
 
 const companyRouter = express.Router();

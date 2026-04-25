@@ -1,11 +1,11 @@
 import express from "express";
-import { addRestriction, deleteRestriction, getAllRestrictions, getNextNumber, getRestrictionById, updateRestriction } from "./dailyrestrictions.controller.js";
+import { addRestriction, deleteRestriction, getAllRestrictions, getNextNumber, getRestrictionById, updateRestriction } from "./dailyRestrictions.controller.js";
 import { validation } from "../../middleware/validation.js";
-import { addRestrictionSchema, updateRestrictionSchema } from "./dailyrestrictions.validation.js";
-import { uploadSingleFile } from "../../middleware/uploadfiles.js";
+import { addRestrictionSchema, updateRestrictionSchema } from "./dailyRestrictions.validation.js";
+import { uploadSingleFile } from "../../middleware/uploadFiles.js";
 import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
-import { parseJournalEntries } from "./parsejournalentries.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
+import { parseJournalEntries } from "./parseJournalEntries.js";
 const dailyRestrictionRouter = express.Router();
 
 dailyRestrictionRouter.use(protectedRoutes, applyCompanyFilter);

@@ -1,9 +1,9 @@
 import express from "express";
-import { addPartnerList, deletePartnerList, getAllPartnerLists, getPartnerListById, updatePartnerList } from "./listofpartners.controller.js";
+import { addPartnerList, deletePartnerList, getAllPartnerLists, getPartnerListById, updatePartnerList } from "./listOfPartners.controller.js";
 import { validation } from "../../middleware/validation.js";
-import { addPartnerListSchema, updatePartnerListSchema } from "./listofpartners.validation.js";
+import { addPartnerListSchema, updatePartnerListSchema } from "./listOfPartners.validation.js";
 import { protectedRoutes } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 const partnerListRouter = express.Router();
 
 partnerListRouter.use(protectedRoutes, applyCompanyFilter);

@@ -3,7 +3,7 @@ import { addCategory, deleteCategory, getAllCategories, getCategoryById, updateC
 import { validation } from "../../middleware/validation.js";
 import { addCategorySchema, updateCategorySchema } from "./category.validation.js";
 import { protectedRoutes, requireResourcePermission } from "../auth/auth.controller.js";
-import { applyCompanyFilter } from "../../middleware/applycompanyfilter.js";
+import { applyCompanyFilter } from "../../middleware/applyCompanyFilter.js";
 
 const categoryRouter = express.Router();
 

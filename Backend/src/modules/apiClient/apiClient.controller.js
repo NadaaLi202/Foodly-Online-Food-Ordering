@@ -1,6 +1,6 @@
-import { apiClientModel } from "./apiclient.model.js";
-import { catchAsyncError } from "../../middleware/catchasyncerror.js";
-import { AppError } from "../../utils/apperror.js";
+import { apiClientModel } from "./apiClient.model.js";
+import { catchAsyncError } from "../../middleware/catchAsyncError.js";
+import { AppError } from "../../utils/AppError.js";
 
 // ========== GET ALL CLIENTS ==========
 export const getAllClients = catchAsyncError(async (req, res, next) => {

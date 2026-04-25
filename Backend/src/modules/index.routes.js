@@ -1,5 +1,5 @@
-import { globalErrorMiddleware } from "../middleware/globalerrormiddleware.js"
-import { AppError } from "../utils/apperror.js"
+import { globalErrorMiddleware } from "../middleware/globalErrorMiddleware.js"
+import { AppError } from "../utils/AppError.js"
 import authRouter from "./auth/auth.router.js"
 import invoiceRouter from "./invoices/invoices.routes.js"
 import productRouter from "./product/product.router.js"
@@ -10,34 +10,34 @@ import paymentRouter from "./payments/payments.routes.js"
 import customerRouter from "./customers/customers.routes.js"
 import contactRouter from "./contacts/contacts.routes.js"
 import categoryRouter from "./category/category.route.js"
-import stockAddRouter from "./stockadd/stockadd.routes.js"
-import inventoryExchangeRouter from "./inventoryexchange/inventoryexchange.routes.js";
+import stockAddRouter from "./stockAdd/stockAdd.routes.js"
+import inventoryExchangeRouter from "./inventoryExchange/inventoryExchange.routes.js";
 import operationRouter from "./operations/operations.routes.js"
-import transferProcessRouter from "./transferprocess/transferprocess.routes.js"
+import transferProcessRouter from "./transferProcess/transferProcess.routes.js"
 import warehouseRouter from "./warehouse/warehouse.routes.js"
-import inventoryOperationRouter from "./inventoryoperation/inventoryoperation.routes.js"
+import inventoryOperationRouter from "./inventoryOperation/inventoryOperation.routes.js"
 import requisitionRouter from "./permissions/requisition.routes.js"
 import transactionRouter from "./transaction/transaction.routes.js"
-import dailyRestrictionRouter from "./dailyrestrictions/dailyrestrictions.routes.js"
-import chartOfAccountsRouter from "./chartofaccounts/chartofaccounts.routes.js"
+import dailyRestrictionRouter from "./dailyRestrictions/dailyRestrictions.routes.js"
+import chartOfAccountsRouter from "./chartOfAccounts/chartOfAccounts.routes.js"
 import branchRouter from "./branch/branch.routes.js"
-import partnerListRouter from "./listofpartners/listofpartners.routes.js"
+import partnerListRouter from "./listOfPartners/listOfPartners.routes.js"
 import activityRouter from "./activity/activity.routes.js"
-import expenseRouter from "./expenses/expense.router.js"
-import bankAccountRouter from "./bankaccounts/bankaccount.routes.js"
-import safeRouter from "./safes/safe.routes.js"
+import expenseRouter from "./Expenses/expense.router.js"
+import bankAccountRouter from "./BankAccounts/bankAccount.routes.js"
+import safeRouter from "./Safes/safe.routes.js"
 import companyRouter from "./companies/company.routes.js"
 import roleRouter from "./role/role.routes.js"
 import reportsRouter from "./reports/reports.routes.js"
-import financialTransactionRouter from "./financialtransactions/financialtransaction.routes.js"
+import financialTransactionRouter from "./FinancialTransactions/financialTransaction.routes.js"
 import { settingsRouter } from "./settings/settings.routes.js"
 import { zatcaRouter } from "./zatca/zatca.routes.js"
 import taxesRouter from "./taxes/taxes.routes.js";
 import importRouter from "./import/import.routes.js";
 import exportRouter from "./export/export.routes.js";
 import codingRouter from "./coding/coding.routes.js";
-import apiClientRouter from "./apiclient/apiclient.routes.js";
-import costCenterRouter from "./costcenters/costcenter.routes.js";
+import apiClientRouter from "./apiClient/apiClient.routes.js";
+import costCenterRouter from "./costCenters/costCenter.routes.js";
 import { backupRouter } from "../backups/backup.routes.js"
 import templateRouter from "./templates/templates.routes.js"
 
