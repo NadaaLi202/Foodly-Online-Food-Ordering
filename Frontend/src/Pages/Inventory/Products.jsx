@@ -4,7 +4,7 @@ import { Plus, Search, RefreshCw, X, ChevronDown, Upload, Package } from 'lucide
 import { useTranslation } from 'react-i18next';
 import api, { BASE_URL } from '../../services/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
-import { confirmDelete } from '../../utils/confirmdelete';
+import { confirmDelete } from '../../utils/confirmDelete';
 import logError from '../../utils/logError';
 
 const Products = () => {

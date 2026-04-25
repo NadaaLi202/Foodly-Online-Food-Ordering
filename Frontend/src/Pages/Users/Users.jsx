@@ -18,11 +18,11 @@ import {
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import { confirmDelete } from '../../utils/confirmdelete';
-import userService from '../../services/userservice';
-import rolesService from '../../services/rolesservice';
-import branchService from '../../services/branchservice';
-import Forbidden from '../../components/forbidden';
+import { confirmDelete } from '../../utils/confirmDelete';
+import userService from '../../services/userService';
+import rolesService from '../../services/rolesService';
+import branchService from '../../services/branchService';
+import Forbidden from '../../components/Forbidden';
 import logError from '../../utils/logError';
 import { useAuth } from '../../context/AuthContext';
 

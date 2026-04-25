@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import logError from '../../utils/logError';
-import costCentersService from '../../services/costcentersservice';
+import costCentersService from '../../services/costCentersService';
 
 const ACCOUNT_TYPE_LABELS = {
     asset: 'أصول',

@@ -1,4 +1,4 @@
-import { buildReportHtml, generatePDF, fetchCompanyProfile } from './generatepdf';
+import { buildReportHtml, generatePDF, fetchCompanyProfile } from './generatePDF';
 
 const formatNumber = (value) => Number(value || 0).toLocaleString(undefined, {
     minimumFractionDigits: 2,

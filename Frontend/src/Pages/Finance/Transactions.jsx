@@ -4,9 +4,9 @@ import { Plus, Search, RefreshCw, Landmark, ArrowLeftRight, Edit, Trash2, Chevro
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import logError from '../../utils/logError';
-import { confirmDelete } from '../../utils/confirmdelete';
-import FinancialTransactionModal from './financialtransactionmodal';
-import { currencySymbols } from '../../utils/currencysymbols';
+import { confirmDelete } from '../../utils/confirmDelete';
+import FinancialTransactionModal from './FinancialTransactionModal';
+import { currencySymbols } from '../../utils/currencySymbols';
 
 const Transactions = () => {
     const { t, i18n } = useTranslation();

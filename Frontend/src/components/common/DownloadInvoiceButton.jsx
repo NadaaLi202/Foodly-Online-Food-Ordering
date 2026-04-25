@@ -3,7 +3,7 @@ import { Download, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 import logError from '../../utils/logError';
 import { useTranslation } from 'react-i18next';
-import { fetchPdfBlob, downloadBlob } from '../../utils/invoicepdf';
+import { fetchPdfBlob, downloadBlob } from '../../utils/invoicePdf';
 
 /**
  * Triggers server-side PDF download for a transaction (invoice/return/quote).

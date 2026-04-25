@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
-import OtpHelpModal from './components/otphelpmodal';
+import OtpHelpModal from './components/OtpHelpModal';
 import logError from '../../utils/logError';
 
 const ZatcaSettings = () => {

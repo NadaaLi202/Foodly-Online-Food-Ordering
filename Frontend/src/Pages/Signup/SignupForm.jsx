@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff, ChevronDown, Check } from 'lucide-react';
-import { useSignup } from './signuplayout';
+import { useSignup } from './SignupLayout';
 
 const countries = [
     { code: '+966', name: 'Saudi Arabia / السعودية', flag: '🇸🇦' },

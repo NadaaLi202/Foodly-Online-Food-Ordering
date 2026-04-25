@@ -14,7 +14,7 @@ import {
     normalizePrintTemplate,
     requestPrintTemplateSelection
 } from '../../services/printTemplateService';
-import InvoiceTaxBilingual from '../invoice/InvoiceTaxBilingual';
+import InvoiceTaxBilingual from '../invoice/invoicetaxbilingual';
 
 const toNumber = (value) => {
     const parsed = Number(value);

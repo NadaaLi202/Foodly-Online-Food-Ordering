@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-import logo from '../assets/sidebarlogo.jpg';
+import logo from '../assets/SidebarLogo.jpg';
 
 
 const Sidebar = ({ isMobile, isOpen }) => {

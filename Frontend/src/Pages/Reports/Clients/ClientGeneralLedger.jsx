@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, FileSpreadsheet, FileText, Printer, Search, Settings2 } from 'lucide-react';
-import reportsService from '../../../services/reportsservice';
-import chartOfAccountsService from '../../../services/chartofaccountsservice';
-import branchService from '../../../services/branchservice';
-import { exportClientStatementToExcel, exportClientStatementToPdf } from '../../../utils/customersupplierinventoryexport';
-import PrintHeader from '../../../components/common/printheader';
+import reportsService from '../../../services/reportsService';
+import chartOfAccountsService from '../../../services/chartOfAccountsService';
+import branchService from '../../../services/branchService';
+import { exportClientStatementToExcel, exportClientStatementToPdf } from '../../../utils/customerSupplierInventoryExport';
+import PrintHeader from '../../../components/common/PrintHeader';
 import { useAuth } from '../../../context/AuthContext';
 import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
 

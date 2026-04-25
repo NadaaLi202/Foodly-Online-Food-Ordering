@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, FileSpreadsheet, Printer } from 'lucide-react';
-import reportsService from '../../../services/reportsservice';
+import reportsService from '../../../services/reportsService';
 import * as XLSX from 'xlsx';
-import PrintHeader from '../../../components/common/printheader';
+import PrintHeader from '../../../components/common/PrintHeader';
 
 const DetailedSuppliersReport = () => {
     const { t, i18n } = useTranslation();

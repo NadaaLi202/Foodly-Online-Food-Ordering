@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucide-react';
-import reportsService from '../../../services/reportsservice';
-import { exportCustomerSummaryToExcel } from '../../../utils/customersupplierinventoryexport';
-import { downloadTablePdf } from '../../../utils/reportpdfbuilder';
+import reportsService from '../../../services/reportsService';
+import { exportCustomerSummaryToExcel } from '../../../utils/customerSupplierInventoryExport';
+import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import logError from '../../../utils/logError';
-import PrintHeader from '../../../components/common/printheader';
+import PrintHeader from '../../../components/common/PrintHeader';
 
 const SummaryCustomerReport = () => {
     const { t } = useTranslation();

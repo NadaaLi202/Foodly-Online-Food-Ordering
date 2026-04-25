@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FileText, PieChart } from 'lucide-react';
-import SummaryCustomerReport from './summarycustomerreport';
-import ClientGeneralLedger from './clientgeneralledger';
+import SummaryCustomerReport from './SummaryCustomerReport';
+import ClientGeneralLedger from './ClientGeneralLedger';
 
 const ClientsLedgerTabs = () => {
     const { t } = useTranslation();

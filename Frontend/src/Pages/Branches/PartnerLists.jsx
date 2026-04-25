@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, RefreshCw, X, Home } from 'lucide-react';
 import toast from 'react-hot-toast';
-import partnerListsService from '../../services/partnerlistsservice';
-import ConfirmDeleteModal from '../../components/confirmdeletemodal';
+import partnerListsService from '../../services/partnerListsService';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 
 const PartnerLists = () => {
     const { t, i18n } = useTranslation();

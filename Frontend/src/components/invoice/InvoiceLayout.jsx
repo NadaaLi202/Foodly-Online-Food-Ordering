@@ -3,7 +3,7 @@ import { Building2, MapPin, Phone, Mail } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../../utils/currencyFormatter';
-import PrintHeader from '../common/printheader';
+import PrintHeader from '../common/PrintHeader';
 
 /**
  * Reusable invoice layout: company header, client card, items table, summary box, QR bottom-right.

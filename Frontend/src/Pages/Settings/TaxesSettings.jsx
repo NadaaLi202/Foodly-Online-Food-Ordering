@@ -2,10 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, Search, RefreshCw, Pencil, Trash2, Home } from 'lucide-react';
 import toast from 'react-hot-toast';
-import taxesService from '../../services/taxesservice';
-import chartOfAccountsService from '../../services/chartofaccountsservice';
-import ConfirmDeleteModal from '../../components/confirmdeletemodal';
-import TaxModal from './taxmodal';
+import taxesService from '../../services/taxesService';
+import chartOfAccountsService from '../../services/chartOfAccountsService';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
+import TaxModal from './TaxModal';
 
 const TaxesSettings = () => {
     const { t, i18n } = useTranslation();

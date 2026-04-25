@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../services/api";
-import companyService from "../services/companyservice";
+import companyService from "../services/companyService";
 import { useTranslation } from "react-i18next";
 import logo from '../assets/logo.jpg';
 import logError from "../utils/logError";

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import PlaceholderModal from './placeholdermodal.jsx';
+import PlaceholderModal from './PlaceholderModal.jsx';
 
 /* ─────────────────────── TextBlock ─────────────────────── */
 const TextBlock = ({ row, onChange, onDelete, dir = 'rtl', canDelete = true }) => {

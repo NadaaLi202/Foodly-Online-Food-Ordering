@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer, Filter } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
-import { buildAccountingReportPdf, exportGeneralLedgerToExcel } from '../../../utils/accountingreportsexport';
+import { buildAccountingReportPdf, exportGeneralLedgerToExcel } from '../../../utils/accountingReportsExport';
 import api from '../../../services/api';
-import { getCostCenters } from '../../../services/reportsservice';
-import PrintHeader from '../../../components/common/printheader';
+import { getCostCenters } from '../../../services/reportsService';
+import PrintHeader from '../../../components/common/PrintHeader';
 import toast from 'react-hot-toast';
 
 const getMonthRange = (date = new Date()) => {

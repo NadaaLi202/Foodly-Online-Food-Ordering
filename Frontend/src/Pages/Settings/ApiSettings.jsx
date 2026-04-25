@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Home, RefreshCw, Info, Plus, X, LayoutGrid } from 'lucide-react';
 import toast from 'react-hot-toast';
-import apiClientService from '../../services/apiclientservice';
+import apiClientService from '../../services/apiClientService';
 import api from '../../services/api';
-import { confirmDelete } from '../../utils/confirmdelete';
+import { confirmDelete } from '../../utils/confirmDelete';
 
 const ApiSettings = () => {
     const { t, i18n } = useTranslation();

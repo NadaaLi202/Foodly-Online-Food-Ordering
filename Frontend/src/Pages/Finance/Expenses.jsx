@@ -4,13 +4,13 @@ import { Plus, Search, RefreshCw, X, Upload, FileText, Trash2, Printer, Download
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../utils/currencyFormatter';
-import { generatePDF } from '../../utils/generatepdf';
-import { requestPrintTemplateSelection } from '../../services/printtemplateservice';
+import { generatePDF } from '../../utils/generatePDF';
+import { requestPrintTemplateSelection } from '../../services/printTemplateService';
 import api from '../../services/api';
 import logError from '../../utils/logError';
-import { confirmDelete } from '../../utils/confirmdelete';
+import { confirmDelete } from '../../utils/confirmDelete';
 import toast from 'react-hot-toast';
-import { handleUniversalShare } from '../../utils/shareutils';
+import { handleUniversalShare } from '../../utils/shareUtils';
 
 const getInitialExpenseFormData = () => ({
     code: '',

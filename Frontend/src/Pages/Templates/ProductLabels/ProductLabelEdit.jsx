@@ -3,12 +3,12 @@ import { useParams } from 'react-router-dom';
 import api from '../../../services/api.js';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import TemplateEditor from '../components/templateeditor.jsx';
-import { TextBlockList } from '../components/textblock.jsx';
-import MarginsPopover from '../components/marginspopover.jsx';
-import { LabelPreview } from '../components/documentpreview.jsx';
+import TemplateEditor from '../components/TemplateEditor.jsx';
+import { TextBlockList } from '../components/TextBlock.jsx';
+import MarginsPopover from '../components/MarginsPopover.jsx';
+import { LabelPreview } from '../components/DocumentPreview.jsx';
 import { useAuth } from '../../../context/AuthContext.jsx';
-import branchService from '../../../services/branchservice.js';
+import branchService from '../../../services/branchService.js';
 
 const getTabs = (t) => [
     { id: 'design', label: t('Design', 'التصميم') },

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Home, ChevronLeft } from 'lucide-react';
 import api from '../../../services/api.js';
-import branchService from '../../../services/branchservice.js';
+import branchService from '../../../services/branchService.js';
 import toast from 'react-hot-toast';
 
 const ProductLabelAdd = () => {

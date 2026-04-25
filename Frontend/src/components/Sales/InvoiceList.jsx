@@ -3,7 +3,7 @@ import { RefreshCw, Plus, MoreVertical, Eye, Undo2, Copy, Trash2 } from 'lucide-
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../utils/currencyFormatter';
-import ClientLink from '../navigation/clientlink';
+import ClientLink from '../navigation/ClientLink';
 
 const InvoiceList = ({ invoices, loading, onAddClick, onRefresh, onInvoiceClick, onDuplicate, onDelete, i18n, noItemsKey, startKey, clientLabelKey, isSupplier = false, canAdd = true }) => {
     const { t } = useTranslation();

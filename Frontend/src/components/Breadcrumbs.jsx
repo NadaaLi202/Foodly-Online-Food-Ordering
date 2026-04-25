@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useLocation, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { RefreshCw, Home } from 'lucide-react';
-import SearchFilterPopup from './searchfilterpopup';
+import SearchFilterPopup from './SearchFilterPopup';
 
 const Breadcrumbs = () => {
     const { t } = useTranslation();

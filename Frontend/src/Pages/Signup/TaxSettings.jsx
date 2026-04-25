@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSignup } from './signuplayout';
-import companyService from '../../services/companyservice';
+import { useSignup } from './SignupLayout';
+import companyService from '../../services/companyService';
 import toast from 'react-hot-toast';
 import { Loader2, Check } from 'lucide-react';
 

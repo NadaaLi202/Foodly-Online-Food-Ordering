@@ -4,7 +4,7 @@ import { Plus, RefreshCw, X, Search, MoreVertical, Pencil, Minus, Eye, Check, Tr
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
-import ConfirmDeleteModal from '../../components/confirmdeletemodal';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
 import logError from '../../utils/logError';
 
 export default function Customers() {

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, Loader2, MinusCircle, PlusCircle, GripVertical, Home } from 'lucide-react';
 import toast from 'react-hot-toast';
-import codingService from '../../services/codingservice';
+import codingService from '../../services/codingService';
 
 const DEFAULT_FORM = {
     entity: 'invoices',

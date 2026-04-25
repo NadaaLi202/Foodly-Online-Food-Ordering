@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Calendar, ChevronDown, Upload, Trash2, Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import AddSupplierModal from './addsuppliermodal';
+import AddSupplierModal from './AddSupplierModal';
 
 const AddPurchaseInvoiceModal = ({ isOpen, onClose }) => {
     const { t } = useTranslation();

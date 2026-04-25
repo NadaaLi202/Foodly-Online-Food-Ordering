@@ -1,4 +1,4 @@
-import { currencySymbols } from "./currencysymbols.js";
+import { currencySymbols } from "./currencySymbols.js";
 
 export const SUPPORTED_CURRENCIES = ["EGP", "USD", "EUR", "SAR", "AED", "GBP"];
 export { currencySymbols };

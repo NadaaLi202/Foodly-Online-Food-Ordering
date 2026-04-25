@@ -3,8 +3,8 @@ import { Plus, Search, RefreshCw, X, ChevronLeft, ChevronRight, Printer, FileTex
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import chartOfAccountsService from '../../services/chartofaccountsservice';
-import { confirmDelete } from '../../utils/confirmdelete';
+import chartOfAccountsService from '../../services/chartOfAccountsService';
+import { confirmDelete } from '../../utils/confirmDelete';
 
 /**
  * Build a tree from flat list of accounts (backend returns flat with parentAccount populated).

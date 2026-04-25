@@ -5,10 +5,10 @@ import { Edit, Trash2, FileText, Plus, Landmark } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import logError from '../../utils/logError';
-import { confirmDelete } from '../../utils/confirmdelete';
+import { confirmDelete } from '../../utils/confirmDelete';
 import { useAuth } from '../../context/AuthContext';
 import { formatCurrency } from '../../utils/currencyFormatter';
-import SafeModal from './safemodal';
+import SafeModal from './SafeModal';
 
 const Safes = () => {
     const { t, i18n } = useTranslation();

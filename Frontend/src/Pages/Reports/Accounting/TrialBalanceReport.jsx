@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronLeft, FileSpreadsheet, FileText, Printer, Calendar } from 'lucide-react';
-import { exportTrialBalanceToExcel, buildTrialBalancePdf } from '../../../utils/accountingreportsexport';
+import { exportTrialBalanceToExcel, buildTrialBalancePdf } from '../../../utils/accountingReportsExport';
 import api from '../../../services/api';
-import PrintHeader from '../../../components/common/printheader';
+import PrintHeader from '../../../components/common/PrintHeader';
 import { useAuth } from '../../../context/AuthContext';
 
 const getMonthRange = (date = new Date()) => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Minus, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import contactsService from '../services/contactsservice';
+import contactsService from '../services/contactsService';
 import logError from '../utils/logError';
 
 const AddSupplierModal = ({ isOpen, onClose, editSupplier = null, onSave }) => {

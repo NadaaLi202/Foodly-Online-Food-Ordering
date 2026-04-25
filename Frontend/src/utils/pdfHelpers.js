@@ -1,6 +1,6 @@
 import { processArabic } from './arabic';
 import { jsPDF } from 'jspdf';
-import { TajawalRegular, TajawalBold } from './tajawalfonts';
+import { TajawalRegular, TajawalBold } from './tajawalFonts';
 
 const ARABIC_RANGE = /[\u0600-\u06FF]/;
 const PRESENTATION_FORMS = /[\uFB50-\uFDFF\uFE70-\uFEFF]/;

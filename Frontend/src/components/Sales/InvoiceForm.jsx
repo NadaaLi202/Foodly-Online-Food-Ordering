@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import AddContactModal from './addcontactmodal';
-import AddSupplierModal from '../addsuppliermodal';
-import AttachmentsSection from '../attachmentssection';
+import AddContactModal from './AddContactModal';
+import AddSupplierModal from '../AddSupplierModal';
+import AttachmentsSection from '../AttachmentsSection';
 import api from '../../services/api';
 import logError from '../../utils/logError';
 import { SUPPORTED_CURRENCIES } from '../../utils/currencyFormatter';
-import { currencySymbols } from '../../utils/currencysymbols';
+import { currencySymbols } from '../../utils/currencySymbols';
 import { useAuth } from '../../context/AuthContext';
 
 const TAX_PRESET_VALUES = ['0', '10', '15'];

@@ -3,7 +3,7 @@ import { Plus, Search, RefreshCw, X, FolderTree } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import logError from '../../utils/logError';
-import { confirmDelete } from '../../utils/confirmdelete';
+import { confirmDelete } from '../../utils/confirmDelete';
 
 const Categories = () => {
     const { t, i18n } = useTranslation();

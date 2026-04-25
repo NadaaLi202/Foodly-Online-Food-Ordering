@@ -4,12 +4,12 @@ import { Plus, RefreshCw, X, MoreVertical, Eye, FileDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
-import ClientLink from '../../components/navigation/clientlink';
-import TreasuryLink from '../../components/navigation/treasurylink';
-import OperationTypeLink from '../../components/navigation/operationtypelink';
-import ConfirmDeleteModal from '../../components/confirmdeletemodal';
-import PaymentModal from '../../components/purchases/paymentmodal';
-import { paths } from '../../utils/navigationhelpers';
+import ClientLink from '../../components/navigation/ClientLink';
+import TreasuryLink from '../../components/navigation/TreasuryLink';
+import OperationTypeLink from '../../components/navigation/OperationTypeLink';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
+import PaymentModal from '../../components/Purchases/PaymentModal';
+import { paths } from '../../utils/navigationHelpers';
 import logError from '../../utils/logError';
 
 export default function SupplierPayments() {

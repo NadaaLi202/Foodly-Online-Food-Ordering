@@ -6,11 +6,11 @@ import { QRCodeCanvas } from 'qrcode.react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
-import ClientLink from '../../components/navigation/clientlink';
-import TreasuryLink from '../../components/navigation/treasurylink';
-import OperationTypeLink from '../../components/navigation/operationtypelink';
-import ConfirmDeleteModal from '../../components/confirmdeletemodal';
-import { paths } from '../../utils/navigationhelpers';
+import ClientLink from '../../components/navigation/ClientLink';
+import TreasuryLink from '../../components/navigation/TreasuryLink';
+import OperationTypeLink from '../../components/navigation/OperationTypeLink';
+import ConfirmDeleteModal from '../../components/ConfirmDeleteModal';
+import { paths } from '../../utils/navigationHelpers';
 import logError from '../../utils/logError';
 
 export default function Payments() {

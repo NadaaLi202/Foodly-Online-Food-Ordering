@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, FileSpreadsheet, FileText, Printer, Filter } from 'lucide-react';
-import { exportInventoryValueToExcel } from '../../../utils/customersupplierinventoryexport';
-import { downloadTablePdf } from '../../../utils/reportpdfbuilder';
-import reportsService from '../../../services/reportsservice';
+import { exportInventoryValueToExcel } from '../../../utils/customerSupplierInventoryExport';
+import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
+import reportsService from '../../../services/reportsService';
 import api from '../../../services/api';
 import logError from '../../../utils/logError';
 import { useAuth } from '../../../context/AuthContext';
-import PrintHeader from '../../../components/common/printheader';
+import PrintHeader from '../../../components/common/PrintHeader';
 
 const InventoryValueReport = () => {
     const { t, i18n } = useTranslation();
@@ -293,8 +293,8 @@ const InventoryValueReport = () => {
                                     t('reports.inventory.inventory_value_report.sale_profit'),
                                 ];
                                 const rows = reportData.map((item) => [
-                                    item.productName || '—',
-                                    item.code || '—',
+                                    item.productName || 'ï¿½',
+                                    item.code || 'ï¿½',
                                     item.quantity || 0,
                                     item.unitCost?.toFixed(2) || '0.00',
                                     item.inventoryValue?.toFixed(2) || '0.00',

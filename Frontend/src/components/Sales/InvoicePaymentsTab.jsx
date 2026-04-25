@@ -5,8 +5,8 @@ import toast from 'react-hot-toast';
 import api from '../../services/api';
 import logError from '../../utils/logError';
 import { formatCurrency } from '../../utils/currencyFormatter';
-import ClientLink from '../navigation/clientlink';
-import { confirmDelete } from '../../utils/confirmdelete';
+import ClientLink from '../navigation/ClientLink';
+import { confirmDelete } from '../../utils/confirmDelete';
 import { usePermissions } from '../../hooks/usePermissions';
 
 const InvoicePaymentsTab = ({ invoice, paymentsModule, onRefreshInvoice }) => {

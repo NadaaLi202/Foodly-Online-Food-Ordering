@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { FileSpreadsheet, FileText, Printer } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import api from '../../../services/api';
-import PrintHeader from '../../../components/common/printheader';
+import PrintHeader from '../../../components/common/PrintHeader';
 import { useAuth } from '../../../context/AuthContext';
 import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
 
