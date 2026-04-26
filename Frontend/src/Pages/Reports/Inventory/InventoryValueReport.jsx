@@ -177,7 +177,7 @@ const InventoryValueReport = () => {
 
                 <div className="hidden print:block mb-6">
                     <PrintHeader
-                        title={t('reports.inventory.inventory_value_report.report_title_dynamic', { date: new Date().toLocaleDateString() })}
+                        title={`تقرير قيمة المخزون - تاریخ ${arabicDate}`}
                         isRTL={true}
                         showLogo={false}
                         companyInfo={fullCompanyInfo}
@@ -267,7 +267,7 @@ const InventoryValueReport = () => {
 
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100 no-print">
                     <div className="text-sm text-gray-700 font-medium">
-                        {t('reports.inventory.inventory_value_report.report_title_dynamic', { date: new Date().toLocaleDateString() })}
+                        {`تقرير قيمة المخزون - تاریخ ` + arabicDate}
                     </div>
                     <div className="flex items-center gap-2">
                         <button onClick={() => {
@@ -281,20 +281,20 @@ const InventoryValueReport = () => {
                         <button onClick={async () => {
                             if (reportData.length > 0) {
                                 const headers = [
-                                    t('reports.inventory.inventory_value_report.name'),
-                                    t('reports.inventory.inventory_value_report.code'),
-                                    t('reports.inventory.inventory_value_report.quantity'),
+                                    'اسم المنتج',
+                                    'الكود',
+                                    'الكمية',
                                     filters.method === 'average_cost'
-                                        ? t('reports.inventory.inventory_value_report.average_cost')
-                                        : t('reports.inventory.inventory_value_report.purchase_price'),
-                                    t('reports.inventory.inventory_value_report.value'),
-                                    t('reports.inventory.inventory_value_report.sale_price_without_taxes'),
-                                    t('reports.inventory.inventory_value_report.sale_value'),
-                                    t('reports.inventory.inventory_value_report.sale_profit'),
+                                        ? 'متوسط التكلفة'
+                                        : 'سعر الشراء',
+                                    'القيمة',
+                                    'سعر البيع بدون ضرائب',
+                                    'قيمة البيع',
+                                    'ربح البيع',
                                 ];
                                 const rows = reportData.map((item) => [
-                                    item.productName || '�',
-                                    item.code || '�',
+                                    item.productName || '-',
+                                    item.code || '-',
                                     item.quantity || 0,
                                     item.unitCost?.toFixed(2) || '0.00',
                                     item.inventoryValue?.toFixed(2) || '0.00',
@@ -303,7 +303,7 @@ const InventoryValueReport = () => {
                                     item.potentialProfit?.toFixed(2) || '0.00',
                                 ]);
                                 rows.push([
-                                    t('reports.total'),
+                                    'الإجمالي',
                                     '',
                                     '',
                                     '',
@@ -313,7 +313,7 @@ const InventoryValueReport = () => {
                                     totalProfit.toFixed(2),
                                 ]);
                                 await downloadTablePdf({
-                                    title: t('reports.inventory.inventory_value_report.report_title_dynamic', { date: new Date().toLocaleDateString() }),
+                                    title: 'تقرير قيمة المخزون',
                                     headers,
                                     rows,
                                     filename: `Inventory_Value_${new Date().toISOString().split('T')[0]}.pdf`,
@@ -400,8 +400,8 @@ const InventoryValueReport = () => {
 
                 {/* === PRINT FOOTER === */}
                 <div className="print-only" dir="rtl" style={{ justifyContent: 'space-between', marginTop: '40px', paddingTop: '8px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{'\u0627\u0644\u0645\u062f\u064a\u0631'}</span>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{'\u0627\u0644\u0645\u062d\u0627\u0633\u0628'}</span>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>المدير</span>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold' }}>المحاسب</span>
                 </div>
 
             </div>

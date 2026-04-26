@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronLeft, FileSpreadsheet, FileText, Printer, Calendar } from 'lucide-react';
 import { exportTrialBalanceToExcel, buildTrialBalancePdf } from '../../../utils/accountingReportsExport';
 import api from '../../../services/api';
-import PrintHeader from '../../../components/common/PrintHeader';
+import PrintHeader, { PrintFooter } from '../../../components/common/PrintHeader';
 import { useAuth } from '../../../context/AuthContext';
 
 const getMonthRange = (date = new Date()) => {
@@ -130,10 +130,18 @@ const TrialBalanceReport = () => {
 
     /* Export helpers */
     const exportTotals = useMemo(() => ({ ...totals }), [totals]);
-    const handleExportExcel = () => exportTrialBalanceToExcel(reportData, exportTotals, t);
+    const handleExportExcel = () => exportTrialBalanceToExcel(reportData, exportTotals, t, {
+        startDate: filters.fromDate,
+        endDate: filters.toDate,
+        branch: filters.branch !== 'all' ? filters.branch : undefined
+    });
     const handleExportPdf = async () => {
         const dateRange = `${t('reports.filters.from_date')} ${filters.fromDate} ${t('reports.filters.to_date')} ${filters.toDate}`;
-        const blob = await buildTrialBalancePdf(reportData, exportTotals, t, t('reports.accounting.trial_balance') || 'Trial Balance', dateRange);
+        const blob = await buildTrialBalancePdf(reportData, exportTotals, t, t('reports.accounting.trial_balance') || 'Trial Balance', dateRange, {
+            startDate: filters.fromDate,
+            endDate: filters.toDate,
+            branch: filters.branch !== 'all' ? filters.branch : undefined
+        });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -402,6 +410,9 @@ const TrialBalanceReport = () => {
                                 </tfoot>
                             )}
                         </table>
+                    </div>
+                    <div className="hidden print:block mt-20">
+                        <PrintFooter t={t} isRTL={true} />
                     </div>
                 </div>
             )}

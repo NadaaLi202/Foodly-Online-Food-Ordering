@@ -363,24 +363,44 @@ const SalesReport = () => {
                                 <tbody className="divide-y divide-gray-100">
                                     {activeTab === 'detailed' ? (
                                         detailedData.length > 0 ? (
-                                            detailedData.map((row, idx) => (
-                                                <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                                                    {availableDetailedColumns.filter(c => selectedDetailedColumns.includes(c.key)).map(col => {
-                                                        let val = '—';
-                                                        if (col.key === 'code') val = row.invoiceNumber ?? '—';
-                                                        else if (col.key === 'month') val = row.month ?? '—';
-                                                        else if (col.key === 'type') val = t('reports.detailed_columns.type_invoice');
-                                                        else if (col.key === 'issue_date') val = row.date ? new Date(row.date).toLocaleDateString() : '—';
-                                                        else if (col.key === 'client') val = row.client ?? '—';
-                                                        else if (['paid_amount', 'remaining_amount', 'discounts', 'total_without_taxes', 'total'].includes(col.key)) {
-                                                            const keys = { 'paid_amount': 'paidAmount', 'remaining_amount': 'remainingAmount', 'discounts': 'discounts', 'total_without_taxes': 'totalWithoutTax', 'total': 'amount' };
-                                                            val = formatAmount(row[keys[col.key]]);
-                                                        }
-                                                        if (col.key === 'code') return <td key={col.key} className="px-4 py-3 text-sm font-medium"><Link to={`/dashboard/sales/invoices?openId=${row._id}`} className="text-indigo-600 hover:underline">{val}</Link></td>;
-                                                        return <td key={col.key} className="px-4 py-3 text-sm text-gray-600">{val}</td>;
-                                                    })}
-                                                </tr>
-                                            ))
+                                            <>
+                                                {detailedData.map((row, idx) => (
+                                                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                                                        {availableDetailedColumns.filter(c => selectedDetailedColumns.includes(c.key)).map(col => {
+                                                            let val = '—';
+                                                            if (col.key === 'code') val = row.invoiceNumber ?? '—';
+                                                            else if (col.key === 'month') val = row.month ?? '—';
+                                                            else if (col.key === 'type') val = t('reports.detailed_columns.type_invoice');
+                                                            else if (col.key === 'issue_date') val = row.date ? new Date(row.date).toLocaleDateString() : '—';
+                                                            else if (col.key === 'client') val = row.client ?? '—';
+                                                            else if (['paid_amount', 'remaining_amount', 'discounts', 'total_without_taxes', 'total'].includes(col.key)) {
+                                                                const keys = { 'paid_amount': 'paidAmount', 'remaining_amount': 'remainingAmount', 'discounts': 'discounts', 'total_without_taxes': 'totalWithoutTax', 'total': 'amount' };
+                                                                val = formatAmount(row[keys[col.key]]);
+                                                            }
+                                                            if (col.key === 'code') return <td key={col.key} className="px-4 py-3 text-sm font-medium"><Link to={`/dashboard/sales/invoices?openId=${row._id}`} className="text-indigo-600 hover:underline">{val}</Link></td>;
+                                                            return <td key={col.key} className="px-4 py-3 text-sm text-gray-600">{val}</td>;
+                                                        })}
+                                                    </tr>
+                                                ))}
+                                                {(() => {
+                                                    const numericKeys = { 'paid_amount': 'paidAmount', 'remaining_amount': 'remainingAmount', 'discounts': 'discounts', 'total_without_taxes': 'totalWithoutTax', 'total': 'amount' };
+                                                    const visibleCols = availableDetailedColumns.filter(c => selectedDetailedColumns.includes(c.key));
+                                                    return (
+                                                        <tr className="bg-gray-100 border-t-2 border-gray-300 font-bold">
+                                                            {visibleCols.map((col, colIdx) => {
+                                                                if (colIdx === 0) {
+                                                                    return <td key={col.key} className="px-4 py-3 text-sm font-extrabold text-gray-900">الإجمالي</td>;
+                                                                }
+                                                                if (numericKeys[col.key]) {
+                                                                    const sum = detailedData.reduce((acc, row) => acc + (Number(row[numericKeys[col.key]]) || 0), 0);
+                                                                    return <td key={col.key} className="px-4 py-3 text-sm font-extrabold text-gray-900">{formatAmount(sum)}</td>;
+                                                                }
+                                                                return <td key={col.key} className="px-4 py-3 text-sm text-gray-600"></td>;
+                                                            })}
+                                                        </tr>
+                                                    );
+                                                })()}
+                                            </>
                                         ) : (
                                             <tr><td colSpan={10} className="px-4 py-12 text-center text-gray-400 text-sm italic">{loading ? t('reports.loading') : t('reports.no_data')}</td></tr>
                                         )

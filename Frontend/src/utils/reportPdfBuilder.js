@@ -23,6 +23,9 @@ export async function downloadTablePdf({
     subtitle = '',
     landscape = true,
     footer = true,
+    startDate = '',
+    endDate = '',
+    branch = '',
 }) {
     try {
         const company = await fetchCompanyProfile();
@@ -34,6 +37,9 @@ export async function downloadTablePdf({
             footer,
             landscape,
             subtitle,
+            startDate,
+            endDate,
+            branch,
         });
         const blob = await generatePDF(html, filename, { landscape });
         downloadBlob(blob, filename);

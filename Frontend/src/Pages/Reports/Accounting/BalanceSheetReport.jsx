@@ -6,6 +6,7 @@ import api from '../../../services/api';
 import PrintHeader from '../../../components/common/PrintHeader';
 import { useAuth } from '../../../context/AuthContext';
 import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
+import { PrintFooter } from '../../../components/common/PrintHeader';
 
 const fmt = (n) => {
     const v = Number(n || 0);
@@ -92,7 +93,33 @@ const BalanceSheetReport = () => {
 
     const toggleRow = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
 
-    const handleExportExcel = () => exportBalanceSheetToExcel(reportData, t);
+    const handleExportExcel = () => exportBalanceSheetToExcel(reportData, t, {
+        endDate: filters.toDate,
+        branch: filters.branch !== 'all' ? filters.branch : undefined
+    });
+
+    const handleExportPdf = async () => {
+        const rows = [];
+        rows.push([t('reports.accounting.assets') || 'Assets', reportData.assets.total]);
+        reportData.assets.items.forEach(item => rows.push([item.name, item.netBalance]));
+        rows.push([t('reports.accounting.liabilities') || 'Liabilities', reportData.liabilities.total]);
+        reportData.liabilities.items.forEach(item => rows.push([item.name, item.netBalance]));
+        rows.push([t('reports.accounting.equity') || 'Equity', reportData.equity.total]);
+        reportData.equity.items.forEach(item => rows.push([item.name, item.netBalance]));
+        rows.push([t('reports.accounting.total_liabilities_and_equity') || 'Total Liabilities and Equity', reportData.totalLiabilitiesAndEquity]);
+
+        const blob = await buildAccountingReportPdf(t('reports.accounting.balance_sheet') || 'Balance Sheet', rows, t, {
+            endDate: filters.toDate,
+            branch: filters.branch !== 'all' ? filters.branch : undefined
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Balance_Sheet_${new Date().toISOString().slice(0, 10)}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     const handlePrint = () => window.print();
 
     const formatCurrency = (amount) => utilFormatCurrency(amount, currency);
@@ -148,10 +175,30 @@ const BalanceSheetReport = () => {
         <div className="p-4" dir="rtl">
             <style dangerouslySetInnerHTML={{ __html: `
                 @media print {
-                    @page { size: A4 portrait; margin: 1cm; }
+                    @page { size: A4 portrait; margin: 5mm; }
                     .print\\:hidden { display: none !important; }
-                    tr, div { page-break-inside: avoid !important; }
-                    table { font-size: 10pt !important; width: 100% !important; }
+                    
+                    /* Reset container spacing */
+                    .p-4, .p-6, .mb-6, .mb-4 { padding: 0 !important; margin: 0 !important; margin-bottom: 2mm !important; }
+                    
+                    /* Fix page breaking - avoid pushing whole containers to next page */
+                    div, table { page-break-inside: auto !important; }
+                    tr { page-break-inside: avoid !important; }
+                    
+                    /* Typography and Spacing */
+                    table { font-size: 8.5pt !important; width: 100% !important; border-collapse: collapse !important; }
+                    th, td { padding: 2px 6px !important; line-height: 1.3 !important; }
+                    
+                    /* Specific overrides for balance sheet rows */
+                    .text-base { font-size: 9pt !important; }
+                    .text-sm { font-size: 8pt !important; }
+                    .px-4 { padding-left: 4px !important; padding-right: 4px !important; }
+                    .py-3 { padding-top: 3px !important; padding-bottom: 3px !important; }
+                    .py-2 { padding-top: 2px !important; padding-bottom: 2px !important; }
+                    
+                    /* Header styling */
+                    .print-header { margin-bottom: 4mm !important; padding-bottom: 2mm !important; }
+                    
                     body { margin: 0 !important; padding: 0 !important; }
                 }
             `}} />
@@ -187,19 +234,20 @@ const BalanceSheetReport = () => {
                     <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-600 border-t-transparent" />
                 </div>
             ) : (
-                <div className="bg-white rounded-lg border border-gray-300 overflow-hidden shadow-sm">
+                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm print:border-none print:shadow-none print:bg-transparent">
                     <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 print:hidden bg-gray-50">
                         <div className="flex gap-2">
-                            <button onClick={handlePrint} className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-100"><Printer className="w-3" /> طباعة</button>
+                            <button onClick={handlePrint} className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-100"><Printer className="w-3" /> {t('reports.print')}</button>
                             <button onClick={handleExportExcel} className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-green-700 bg-white border border-green-300 rounded hover:bg-green-50"><FileSpreadsheet className="w-3" /> Excel</button>
+                            <button onClick={handleExportPdf} className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-red-700 bg-white border border-red-300 rounded hover:bg-red-50"><FileText className="w-3" /> PDF</button>
                         </div>
                     </div>
 
-                    <div className="px-4 py-2 text-center font-bold border-b border-gray-200 text-gray-800">
+                    <div className="px-4 py-2 text-center font-bold border-b border-gray-200 text-gray-800 print:border-none print:py-1">
                         قائمة المركز المالي في {filters.toDate}
                     </div>
 
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto print:overflow-visible">
                         <table className="w-full border-collapse">
                             <thead>
                                 <tr className="bg-gray-200 text-gray-800 font-bold text-sm">
@@ -224,6 +272,9 @@ const BalanceSheetReport = () => {
                                 </tr>
                             </tfoot>
                         </table>
+                    </div>
+                    <div className="hidden print:block print:mt-4">
+                        <PrintFooter t={t} isRTL={true} />
                     </div>
                 </div>
             )}

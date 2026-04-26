@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { BASE_URL } from '../../services/api';
 
@@ -9,6 +10,7 @@ const normalizeParts = (parts) => parts
 const pickFirst = (...values) => values.find((value) => typeof value === 'string' && value.trim())?.trim() || '';
 
 const PrintHeader = ({ title, rightContent, isRTL, showLogo = true, companyInfo = {} }) => {
+    const { t } = useTranslation();
     const { user, companySettings } = useAuth();
 
     const resolvedCompany = {
@@ -60,49 +62,67 @@ const PrintHeader = ({ title, rightContent, isRTL, showLogo = true, companyInfo 
 
     return (
         <div
-            className={`print-company-header print-header flex justify-between items-start gap-6 mb-6 border-b border-gray-200 pb-5 print:mb-8 print:pb-6 ${isRTL ? 'flex-row-reverse' : ''}`}
+            className={`print-company-header print-header flex justify-between items-start gap-6 mb-6 border-b-2 border-black pb-5 print:mb-8 print:pb-6 ${isRTL ? 'flex-row-reverse' : ''}`}
             dir={isRTL ? 'rtl' : 'ltr'}
         >
+            <style>{`
+                @media print {
+                    .print-signature-footer {
+                        position: fixed;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        width: 100%;
+                        display: flex !important;
+                        justify-content: space-between;
+                        padding: 10px 40px;
+                        background: white;
+                        border-top: 1px solid #eee;
+                        z-index: 1000;
+                    }
+                    body {
+                        padding-bottom: 60px;
+                    }
+                }
+            `}</style>
             <div className={`min-w-0 flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {fullLogoUrl ? (
-                    <div className="print-logo-wrapper inline-flex max-w-[200px]">
-                        <img
-                            src={fullLogoUrl}
-                            alt={resolvedCompany.name || 'Company'}
-                            className="logo header-logo h-16 w-auto object-contain max-w-[200px] rounded-sm"
-                        />
-                    </div>
-                ) : null}
-
-                {!showLogo ? (
-                    <div className="company-info space-y-1 text-xs font-medium text-gray-700 print:text-black leading-6 break-words">
-                        <p className="text-sm font-black text-gray-900 print:text-black whitespace-pre-line">
-                            <strong>{'\u0627\u0633\u0645 \u0627\u0644\u0634\u0631\u0643\u0629:'}</strong> {resolvedCompany.name}
-                        </p>
+                <div className="company-info space-y-1 text-xs font-bold text-gray-900 print:text-black leading-6 break-words">
+                    <p className="text-sm font-black whitespace-pre-line">
+                        <strong>{t('general_settings.company_name')}:</strong> {resolvedCompany.name}
+                    </p>
+                    <p>
+                        <strong>{t('general_settings.commercial_register')}:</strong> {resolvedCompany.commercial_register}
+                    </p>
+                    {resolvedCompany.tax_number && (
                         <p>
-                            <strong>{'\u0627\u0644\u0633\u062c\u0644 \u0627\u0644\u062a\u062c\u0627\u0631\u064a:'}</strong> {resolvedCompany.commercial_register}
+                            <strong>{t('general_settings.tax_number')}:</strong> {resolvedCompany.tax_number}
                         </p>
-                        <p>
-                            <strong>{'\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0636\u0631\u064a\u0628\u064a:'}</strong> {resolvedCompany.tax_number}
-                        </p>
-                        <p>
-                            <strong>{'\u0627\u0644\u0639\u0646\u0648\u0627\u0646:'}</strong> {locationText}
-                        </p>
-                    </div>
-                ) : (
-                    <h1 className="text-xl font-black text-gray-900 tracking-tight print:text-black whitespace-pre-line">
-                        {resolvedCompany.name}
-                    </h1>
-                )}
+                    )}
+                </div>
             </div>
 
             <div className={`min-w-0 flex-1 ${isRTL ? 'text-left' : 'text-right'}`}>
                 {title ? (
-                    <h2 className="text-3xl font-black text-gray-500 uppercase tracking-widest mb-2 print:text-black">
+                    <h2 className="text-2xl font-black text-gray-900 uppercase mb-2 print:text-black">
                         {title}
                     </h2>
                 ) : null}
                 {rightContent}
+            </div>
+        </div>
+    );
+};
+
+export const PrintFooter = ({ isRTL }) => {
+    return (
+        <div className={`hidden print:flex print-signature-footer justify-between items-end w-full mt-12 pb-4 ${isRTL ? 'flex-row-reverse' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
+            <div className="text-center" style={{ width: '200px' }}>
+                <div className="font-bold text-sm mb-12">{isRTL ? 'المحاسب' : 'Accountant'}</div>
+                <div style={{ borderTop: '1px solid black', width: '100%' }}></div>
+            </div>
+            <div className="text-center" style={{ width: '200px' }}>
+                <div className="font-bold text-sm mb-12">{isRTL ? 'المدير' : 'Manager'}</div>
+                <div style={{ borderTop: '1px solid black', width: '100%' }}></div>
             </div>
         </div>
     );

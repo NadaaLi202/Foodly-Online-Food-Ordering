@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Calendar, ChevronDown } from 'lucide-react';
-import reportsService from '../../../services/reportsService';
-import PrintHeader from '../../../components/common/PrintHeader';
+import { FileSpreadsheet, FileText, Printer, FileDown } from 'lucide-react';
+import PrintHeader, { PrintFooter } from '../../../components/common/PrintHeader';
+import { exportToExcel } from '../../../utils/excelHelpers';
+import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
+import { fetchCompanyProfile } from '../../../utils/generatePDF';
 
 const SummaryPurchasesReport = () => {
     const { t } = useTranslation();
@@ -125,13 +127,56 @@ const SummaryPurchasesReport = () => {
         ...availableColumns.filter(col => selectedColumns.includes(col.key)).map(col => ({ key: col.key, label: col.label }))
     ];
 
-    const formatAmount = (n) => (n == null || Number.isNaN(Number(n))) ? '0.00' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const handleExportExcel = async () => {
+        const company = await fetchCompanyProfile();
+        const exportData = summaryData.map(row => {
+            const r = { [t('reports.table.month')]: row.month ?? '—' };
+            tableColumns.slice(1).forEach(col => {
+                r[col.label] = row[col.key];
+            });
+            return r;
+        });
+        
+        exportToExcel({
+            data: exportData,
+            filename: `Summary_Purchases_Report_${filters.fromDate}_to_${filters.toDate}.xlsx`,
+            title: t('reports.summary_purchases_report') || 'Summary Purchases Report',
+            company,
+            startDate: filters.fromDate,
+            endDate: filters.toDate,
+            branch: filters.branch,
+            t
+        });
+    };
+
+    const handleExportPdf = async () => {
+        const headers = tableColumns.map(col => col.label);
+        const rows = summaryData.map(row => tableColumns.map(col => {
+            if (col.key === 'month') return row.month ?? '—';
+            if (['invoices', 'returns', 'orders', 'suppliers', 'products'].includes(col.key)) return row[col.key] ?? 0;
+            return formatAmount(row[col.key]);
+        }));
+        await downloadTablePdf({
+            title: t('reports.summary_purchases_report') || 'Summary Purchases Report',
+            headers,
+            rows,
+            filename: `Summary_Purchases_Report_${filters.fromDate}_to_${filters.toDate}.pdf`,
+            landscape: true,
+            startDate: filters.fromDate,
+            endDate: filters.toDate,
+            branch: filters.branch
+        });
+    };
+
+    const handlePrint = () => {
+        window.print();
+    };
 
     return (
-        <div className="p-6">
+        <div className="p-6" id="summary-purchases-report-root">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="hidden print:block mb-6">
-                        <PrintHeader title={''} isRTL={true} showLogo={false} />
+                        <PrintHeader title={t('reports.summary_purchases_report')} isRTL={true} showLogo={false} />
                     </div>
                 {/* Filters Section */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -277,17 +322,16 @@ const SummaryPurchasesReport = () => {
                     {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
                 </div>
 
-                {/* Chart Section (placeholder) */}
-                <div className="mb-8">
-                    <div className="h-72 border border-gray-200 rounded-lg bg-gray-50 flex items-end justify-center p-4">
-                        <div className="w-full flex items-end justify-around h-full">
-                            <div className="flex flex-col justify-between h-full text-xs text-gray-500 pr-2">
-                                {[...Array(11)].map((_, i) => (<span key={i}>{(10 - i) / 10}</span>))}
-                            </div>
-                            <div className="flex-1 h-full border-l border-b border-gray-300 relative">
-                                {[...Array(10)].map((_, i) => (<div key={i} className="absolute w-full border-t border-gray-200" style={{ bottom: `${(i + 1) * 10}%` }} />))}
-                            </div>
-                        </div>
+                {/* Report Info and Export Section */}
+                <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="text-sm text-gray-700">
+                        <span className="font-bold text-indigo-700">{t('reports.summary_purchases_report')}</span>
+                        <div className="text-xs text-gray-500 mt-1">{t('reports.filters.from_date')} {filters.fromDate} {t('reports.filters.to_date')} {filters.toDate}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button onClick={handleExportExcel} disabled={!summaryData?.length} className="inline-flex items-center gap-1.5 px-3 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors border border-green-200 disabled:opacity-50"><FileSpreadsheet className="w-4 h-4" />{t('reports.export.excel')}</button>
+                        <button onClick={handleExportPdf} disabled={!summaryData?.length} className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors border border-red-200 disabled:opacity-50"><FileText className="w-4 h-4" />{t('reports.export.pdf')}</button>
+                        <button onClick={handlePrint} disabled={!summaryData?.length} className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors border border-blue-200 disabled:opacity-50"><Printer className="w-4 h-4" />{t('reports.print')}</button>
                     </div>
                 </div>
 
@@ -331,6 +375,9 @@ const SummaryPurchasesReport = () => {
                             </tbody>
                         </table>
                     </div>
+                </div>
+                <div className="hidden print:block mt-20">
+                    <PrintFooter t={t} isRTL={true} />
                 </div>
             </div>
         </div>

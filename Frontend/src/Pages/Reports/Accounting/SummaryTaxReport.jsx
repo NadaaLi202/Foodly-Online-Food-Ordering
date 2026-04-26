@@ -156,14 +156,14 @@ const SummaryTaxReport = () => {
 
     const handleExportPdf = async () => {
         const contentRows = [];
-        contentRows.push([t('reports.tax_summary') || 'Tax Summary Report']);
+        contentRows.push(['ملخص التقرير الضريبي']);
         contentRows.push([t('reports.filters.from_date') || 'From Date', filters.fromDate]);
         contentRows.push([t('reports.filters.to_date') || 'To Date', filters.toDate]);
         contentRows.push([]);
         tableRows.forEach(row => {
             contentRows.push([row.item, row.taxable, row.tax]);
         });
-        const blob = await buildAccountingReportPdf(t('reports.tax_summary') || 'Tax Summary Report', contentRows, t);
+        const blob = await buildAccountingReportPdf('ملخص التقرير الضريبي', contentRows, t);
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;

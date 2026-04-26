@@ -205,7 +205,7 @@ const DetailedTaxReport = () => {
 
     const handleExportPdf = async () => {
         const contentRows = [];
-        contentRows.push([t('reports.tax_detailed') || 'Tax Detailed Report']);
+        contentRows.push(['التقرير الضريبي التفصيلي']);
         contentRows.push([t('reports.filters.from_date') || 'From Date', filters.fromDate]);
         contentRows.push([t('reports.filters.to_date') || 'To Date', filters.toDate]);
         contentRows.push([]);
@@ -219,7 +219,7 @@ const DetailedTaxReport = () => {
                 fmtNum(item.tax || 0),
             ]);
         });
-        const blob = await buildAccountingReportPdf(t('reports.tax_detailed') || 'Tax Detailed Report', contentRows, t);
+        const blob = await buildAccountingReportPdf('التقرير الضريبي التفصيلي', contentRows, t);
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;

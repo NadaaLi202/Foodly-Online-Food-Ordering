@@ -4,7 +4,9 @@ import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucid
 import reportsService from '../../../services/reportsService';
 import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import * as XLSX from 'xlsx';
-import PrintHeader from '../../../components/common/PrintHeader';
+import PrintHeader, { PrintFooter } from '../../../components/common/PrintHeader';
+import { exportToExcel } from '../../../utils/excelHelpers';
+import { fetchCompanyProfile } from '../../../utils/generatePDF';
 
 const SummarySalesReport = () => {
     const { t, i18n } = useTranslation();
@@ -152,7 +154,8 @@ const SummarySalesReport = () => {
 
     const formatAmount = (n) => (n == null || Number.isNaN(Number(n))) ? '0.00' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-    const handleExportExcel = () => {
+    const handleExportExcel = async () => {
+        const company = await fetchCompanyProfile();
         const exportData = summaryData.map(row => {
             const r = { [t('reports.table.month')]: row.month ?? '—' };
             tableColumns.slice(1).forEach(col => {
@@ -160,10 +163,17 @@ const SummarySalesReport = () => {
             });
             return r;
         });
-        const worksheet = XLSX.utils.json_to_sheet(exportData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Summary Sales");
-        XLSX.writeFile(workbook, `Summary_Sales_Report_${filters.fromDate}_to_${filters.toDate}.xlsx`);
+        
+        exportToExcel({
+            data: exportData,
+            filename: `Summary_Sales_Report_${filters.fromDate}_to_${filters.toDate}.xlsx`,
+            title: t('reports.summary_sales_report') || 'Summary Sales Report',
+            company,
+            startDate: filters.fromDate,
+            endDate: filters.toDate,
+            branch: filters.branch,
+            t
+        });
     };
 
     const handleExportPdf = async () => {
@@ -179,6 +189,9 @@ const SummarySalesReport = () => {
             rows,
             filename: `Summary_Sales_Report_${filters.fromDate}_to_${filters.toDate}.pdf`,
             landscape: true,
+            startDate: filters.fromDate,
+            endDate: filters.toDate,
+            branch: filters.branch
         });
     };
 
@@ -187,7 +200,7 @@ const SummarySalesReport = () => {
     };
 
     return (
-        <div className={`p-6 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <div className={`p-6 ${isRTL ? 'text-right' : 'text-left'}`} id="summary-sales-report-root">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                     <div className="hidden print:block mb-6">
                         <PrintHeader title={t('reports.summary_sales_report')} isRTL={isRTL} showLogo={false} />
@@ -375,6 +388,10 @@ const SummarySalesReport = () => {
                             <tbody>{summaryData != null && summaryData.length > 0 ? (summaryData.map((row, idx) => (<tr key={row.month ?? idx} className="border-b border-gray-100">{tableColumns.map((col) => { let val = '—'; if (col.key === 'month') val = row.month ?? '—'; else if (col.key === 'invoices') val = row.invoices ?? 0; else if (col.key === 'clients') val = row.clients ?? 0; else if (col.key === 'products') val = row.products ?? 0; else if (col.key === 'total_invoices') val = formatAmount(row.totalInvoices); else if (col.key === 'total_returns') val = formatAmount(row.totalReturns); else if (col.key === 'total_sales_discounts') val = formatAmount(row.totalSalesDiscounts); else if (col.key === 'total_paid') val = formatAmount(row.totalPaid); else if (col.key === 'total_remaining') val = formatAmount(row.totalRemaining); else if (col.key === 'net_sales_discounts') val = formatAmount(row.netSalesDiscounts); else if (col.key === 'net_sales') val = formatAmount(row.netSales); return <td key={col.key} className="px-4 py-3 text-sm font-medium">{val}</td>; })}</tr>))) : (<tr><td colSpan={tableColumns.length} className="px-4 py-8 text-center text-gray-500">{error || t('reports.no_data')}</td></tr>)}</tbody>
                         </table>
                     </div>
+                </div>
+
+                <div className="hidden print:block mt-20">
+                    <PrintFooter t={t} isRTL={isRTL} />
                 </div>
             </div>
         </div>

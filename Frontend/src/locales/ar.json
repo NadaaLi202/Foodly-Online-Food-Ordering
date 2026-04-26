@@ -419,6 +419,7 @@
         "total": "الإجمالي",
         "summary": "ملخص",
         "detailed": "تفصيلي",
+        "tax_detailed": "التقرير الضريبي التفصيلي",
         "tax_return": "الإقرار الضريبي",
         "print": "طباعة",
         "date": "التاريخ",
@@ -435,6 +436,7 @@
         "show_reports": "عرض التقرير",
         "select_columns": "اختر الأعمدة",
         "no_data": "لا توجد بيانات",
+        "try_adjust_filters": "يرجى محاولة تعديل الفلاتر أو تغيير الفترة الزمنية للحصول على نتائج.",
         "error_load": "خطأ في تحميل التقرير",
         "loading": "جاري التحميل...",
         "restriction_number": "قيد اليومية",
@@ -617,6 +619,9 @@
             "error": "فشل التصدير"
         },
         "detailed_sales_report": "تقرير المبيعات التفصيلي",
+        "summary_sales_report": "تقرير ملخص المبيعات",
+        "detailed_purchases_report": "تقرير المشتريات التفصيلي",
+        "summary_purchases_report": "تقرير ملخص المشتريات",
         "detailed_columns": {
             "code": "رقم الفاتورة",
             "month": "الشهر",

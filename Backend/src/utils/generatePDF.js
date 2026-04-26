@@ -95,8 +95,25 @@ export async function generatePDF(htmlContent, pdfOptions = {}) {
     await page.setExtraHTTPHeaders({
       "Accept-Charset": "utf-8",
     });
-    await page.setContent(injectArabicStyles(htmlContent), {
-      waitUntil: "networkidle0",
+
+    // Block external font requests to prevent navigation timeout
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+      const url = req.url();
+      if (url.includes('fonts.googleapis.com') || url.includes('fonts.gstatic.com')) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
+    // Strip Google Fonts <link> tags from HTML before rendering
+    let cleanedHtml = injectArabicStyles(htmlContent);
+    cleanedHtml = cleanedHtml.replace(/<link[^>]*fonts\.googleapis\.com[^>]*>/gi, '');
+
+    await page.setContent(cleanedHtml, {
+      waitUntil: "domcontentloaded",
+      timeout: 60000,
     });
     await page.emulateMediaType("print");
     await page.evaluate(() => (document.fonts ? document.fonts.ready : Promise.resolve()));

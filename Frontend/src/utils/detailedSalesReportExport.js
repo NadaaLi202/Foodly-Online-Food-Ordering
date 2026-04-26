@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { buildReportHtml, fetchCompanyProfile, generatePDF } from './generatePDF';
+import { exportToExcel } from './excelHelpers';
 
 const fmtNum = (n) => (n == null || n === '') ? '' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString() : '—';
@@ -55,7 +56,7 @@ export function buildExportRows(detailedData, tableColumns, t) {
         const monthWithoutTax = monthRows.reduce((acc, r) => acc + Number(r.totalWithoutTax ?? 0), 0);
         const monthAmount = monthRows.reduce((acc, r) => acc + Number(r.amount ?? 0), 0);
         const subtotalRow = tableColumns.map((col) => {
-            if (col.key === 'code') return `${t('reports.filters.month')}: ${month}`;
+            if (col.key === 'code') return `${t('reports.filters.month') || '\u0627\u0644\u0634\u0647\u0631'}: ${month}`;
             if (col.key === 'paid_amount') return fmtNum(monthPaid);
             if (col.key === 'remaining_amount') return fmtNum(monthRemaining);
             if (col.key === 'discounts') return fmtNum(monthDiscounts);
@@ -67,7 +68,7 @@ export function buildExportRows(detailedData, tableColumns, t) {
     });
 
     const grandTotalRow = tableColumns.map((col) => {
-        if (col.key === 'code') return t('reports.detailed_columns.total');
+        if (col.key === 'code') return t('reports.detailed_columns.total') || '\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a';
         if (col.key === 'paid_amount') return fmtNum(totalPaid);
         if (col.key === 'remaining_amount') return fmtNum(totalRemaining);
         if (col.key === 'discounts') return fmtNum(totalDiscounts);
@@ -81,23 +82,32 @@ export function buildExportRows(detailedData, tableColumns, t) {
 }
 
 /**
- * Export to Excel using current table data. Filename: Sales_Report_<today_date>.xlsx
+ * Export to Excel using current table data.
  */
-export function exportDetailedSalesReportToExcel(detailedData, tableColumns, t) {
+export async function exportDetailedSalesReportToExcel(detailedData, tableColumns, t, filters = {}) {
+    const company = await fetchCompanyProfile();
     const rows = buildExportRows(detailedData, tableColumns, t);
     if (rows.length <= 1) return;
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Sales Report');
+    
     const today = new Date();
     const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
-    XLSX.writeFile(wb, `Sales_Report_${dateStr}.xlsx`);
+    
+    exportToExcel({
+        data: rows,
+        filename: `Sales_Report_${dateStr}.xlsx`,
+        title: t('reports.detailed_sales_report') || 'تقرير المبيعات التفصيلي',
+        company,
+        startDate: filters.startDate || filters.fromDate,
+        endDate: filters.endDate || filters.toDate,
+        branch: filters.branch,
+        t
+    });
 }
 
 /**
- * Build PDF blob from current table data. Landscape, title, date, table, totals. RTL-friendly layout.
+ * Build PDF blob from current table data.
  */
-export async function buildDetailedSalesReportPdf(detailedData, tableColumns, t, reportTitle) {
+export async function buildDetailedSalesReportPdf(detailedData, tableColumns, t, reportTitle, filters = {}) {
     const company = await fetchCompanyProfile();
     const rows = buildExportRows(detailedData, tableColumns, t);
     const html = buildReportHtml({
@@ -106,7 +116,9 @@ export async function buildDetailedSalesReportPdf(detailedData, tableColumns, t,
         headers: tableColumns.map((col) => col.label),
         rows: rows.slice(1),
         landscape: true,
-        subtitle: `${t('reports.filters.from_date')} / ${t('reports.filters.to_date')}: ${new Date().toLocaleDateString()}`,
+        startDate: filters.startDate || filters.fromDate,
+        endDate: filters.endDate || filters.toDate,
+        branch: filters.branch,
     });
     return generatePDF(html, `Sales_Report_${new Date().toISOString().slice(0, 10)}.pdf`, { landscape: true });
 }

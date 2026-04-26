@@ -4,7 +4,9 @@ import { Calendar, DollarSign, FileSpreadsheet, FileText, Printer } from 'lucide
 import reportsService from '../../../services/reportsService';
 import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import * as XLSX from 'xlsx';
-import PrintHeader from '../../../components/common/PrintHeader';
+import PrintHeader, { PrintFooter } from '../../../components/common/PrintHeader';
+import { exportToExcel } from '../../../utils/excelHelpers';
+import { fetchCompanyProfile } from '../../../utils/generatePDF';
 import { useAuth } from '../../../context/AuthContext';
 import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
 
@@ -51,24 +53,31 @@ const SummaryPaymentsReport = () => {
 
     const formatCurrency = (val) => utilFormatCurrency(val, currency);
 
-    const handleExportExcel = () => {
-        const worksheet = XLSX.utils.json_to_sheet([{
+    const handleExportExcel = async () => {
+        const company = await fetchCompanyProfile();
+        const exportData = [{
             [t('reports.filters.from_date')]: filters.startDate,
             [t('reports.filters.to_date')]: filters.endDate,
             [t('reports.payments.total_received')]: summaryData?.totalReceived || 0,
             [t('reports.payments.total_spent')]: summaryData?.totalSpent || 0,
             [t('reports.payments.total_sales_due')]: summaryData?.totalSalesDue || 0,
             [t('reports.payments.total_purchases_due')]: summaryData?.totalPurchasesDue || 0
-        }]);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Summary Payments");
-        XLSX.writeFile(workbook, `Summary_Payments_Report_${filters.startDate}_to_${filters.endDate}.xlsx`);
+        }];
+        
+        exportToExcel({
+            data: exportData,
+            filename: `Summary_Payments_Report_${filters.startDate}_to_${filters.endDate}.xlsx`,
+            title: t('reports.payments.summary_title') || 'Summary Payments Report',
+            company,
+            startDate: filters.startDate,
+            endDate: filters.endDate,
+            t
+        });
     };
 
     const handleExportPdf = async () => {
         await downloadTablePdf({
             title: t('reports.payments.summary_title') || 'Summary Payments Report',
-            subtitle: `${t('reports.filters.from_date')}: ${filters.startDate}  ${t('reports.filters.to_date')}: ${filters.endDate}`,
             headers: [
                 t('reports.label') || 'Label',
                 t('reports.value') || 'Value',
@@ -81,6 +90,8 @@ const SummaryPaymentsReport = () => {
             ],
             filename: `Summary_Payments_Report_${filters.startDate}_to_${filters.endDate}.pdf`,
             landscape: false,
+            startDate: filters.startDate,
+            endDate: filters.endDate
         });
     };
 
@@ -120,21 +131,21 @@ const SummaryPaymentsReport = () => {
     ];
 
     return (
-        <div className={`p-8 bg-gray-50/50 min-h-screen ${isRTL ? 'text-right' : 'text-left'}`}>
+        <div className={`p-8 bg-gray-50/50 min-h-screen ${isRTL ? 'text-right' : 'text-left'}`} id="summary-payments-report-root">
             <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
                     <div>
                         <h1 className="text-2xl font-black text-gray-900 flex items-center gap-3">
-                            <span className="w-2 h-8 bg-purple-600 rounded-full"></span>
+                            <span className="w-2 h-8 bg-purple-600 rounded-full no-print"></span>
                             {t('reports.payments.summary_title')}
                         </h1>
                         <p className="text-gray-500 font-medium mt-1">
                             {t('reports.payments.summary_desc')}
                         </p>
                     </div>
-                    <div className="hidden print:block mb-6">
-                        <PrintHeader title={''} isRTL={isRTL} showLogo={false} />
+                    <div className="hidden print:block mb-6 w-full">
+                        <PrintHeader title={t('reports.payments.summary_title')} isRTL={isRTL} showLogo={false} />
                     </div>
 
 
@@ -217,6 +228,9 @@ const SummaryPaymentsReport = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+                <div className="hidden print:block mt-20">
+                    <PrintFooter t={t} isRTL={isRTL} />
                 </div>
             </div>
         </div>

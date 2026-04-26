@@ -5,7 +5,7 @@ import { useLocation } from 'react-router-dom';
 import { buildAccountingReportPdf, exportGeneralLedgerToExcel } from '../../../utils/accountingReportsExport';
 import api from '../../../services/api';
 import chartOfAccountsService from '../../../services/chartOfAccountsService';
-import PrintHeader from '../../../components/common/PrintHeader';
+import PrintHeader, { PrintFooter } from '../../../components/common/PrintHeader';
 import { useAuth } from '../../../context/AuthContext';
 import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
 
@@ -151,7 +151,11 @@ const GeneralLedgerReport = () => {
     const formatCurrency = (amount, entryCurrency) => utilFormatCurrency(amount, entryCurrency || currency);
 
     const handleExportExcel = () => {
-        exportGeneralLedgerToExcel(reportData.entries, reportData.account, t);
+        exportGeneralLedgerToExcel(reportData.entries, reportData.account, t, {
+            startDate: filters.fromDate,
+            endDate: filters.toDate,
+            branch: filters.branch !== 'all' ? filters.branch : undefined
+        });
     };
 
     const handleExportPdf = async () => {
@@ -179,7 +183,11 @@ const GeneralLedgerReport = () => {
                 formatCurrency(entry.balance || 0, entry.currency),
             ]);
         });
-        const blob = await buildAccountingReportPdf(t('reports.accounting.general_ledger') || 'General Ledger', contentRows, t);
+        const blob = await buildAccountingReportPdf(t('reports.accounting.general_ledger') || 'General Ledger', contentRows, t, {
+            startDate: filters.fromDate,
+            endDate: filters.toDate,
+            branch: filters.branch !== 'all' ? filters.branch : undefined
+        });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -193,13 +201,49 @@ const GeneralLedgerReport = () => {
     };
 
     return (
-        <div className="p-6" dir={isRTL ? 'rtl' : 'ltr'}>
+        <div className="p-6 print:p-0" dir={isRTL ? 'rtl' : 'ltr'}>
+            <style dangerouslySetInnerHTML={{ __html: `
+                @media print {
+                    @page { size: A4 portrait; margin: 8mm; }
+                    .print\\:hidden { display: none !important; }
+                    
+                    /* Reset container spacing */
+                    .p-6, .mb-6, .mb-4, .p-4 { padding: 0 !important; margin: 0 !important; margin-bottom: 2mm !important; }
+                    
+                    /* Fix page breaking - ensure content starts from the top */
+                    div, table { page-break-inside: auto !important; }
+                    tr { page-break-inside: avoid !important; }
+                    
+                    /* Typography and Spacing */
+                    table { font-size: 7.5pt !important; width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; }
+                    th, td { 
+                        padding: 3px 4px !important; 
+                        line-height: 1.2 !important; 
+                        border: 0.5pt solid #666 !important;
+                        word-wrap: break-word !important;
+                    }
+                    
+                    /* General Ledger Column Widths */
+                    th:nth-child(1), td:nth-child(1) { width: 10% !important; } /* Date */
+                    th:nth-child(2), td:nth-child(2) { width: 33% !important; } /* Description */
+                    th:nth-child(3), td:nth-child(3) { width: 21% !important; } /* Account */
+                    th:nth-child(4), td:nth-child(4) { width: 12% !important; } /* Debit */
+                    th:nth-child(5), td:nth-child(5) { width: 12% !important; } /* Credit */
+                    th:nth-child(6), td:nth-child(6) { width: 12% !important; } /* Balance */
+
+                    /* Header styling */
+                    .print-header { margin-bottom: 4mm !important; padding-bottom: 2mm !important; }
+                    .print\\:mt-4 { margin-top: 10mm !important; }
+                    
+                    body { margin: 0 !important; padding: 0 !important; }
+                }
+            `}} />
             <div className="hidden print:block mb-6">
                 <PrintHeader title={t('reports.accounting.general_ledger_title') || 'General Ledger'} isRTL={isRTL} showLogo={false} />
             </div>
 
             {/* Filter Bar */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6 print:hidden">
                 <div className="flex items-center gap-2 mb-4">
                     <Filter className="w-5 h-5 text-gray-500" />
                     <h3 className="text-lg font-semibold text-gray-900">{t('reports.accounting.general_ledger_title') || 'General Ledger'}</h3>
@@ -300,49 +344,54 @@ const GeneralLedgerReport = () => {
                     <div className="animate-spin rounded-full h-10 w-10 border-2 border-indigo-600 border-t-transparent"></div>
                 </div>
             ) : (
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                    {/* Table */}
-                    <div className="overflow-x-auto">
-                        <table className="w-full min-w-[900px]">
-                            <thead>
-                                <tr className="bg-gray-50 border-b border-gray-200">
-                                    {tableColumns.map(col => (
-                                        <th key={col.key} className={`px-4 py-3 text-${isRTL ? 'right' : 'left'} text-sm font-medium text-gray-700`}>{col.label}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {reportData.entries.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={tableColumns.length} className="px-4 py-8 text-center text-gray-500">{t('reports.no_data')}</td>
+                <>
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden print:border-none print:shadow-none print:bg-transparent">
+                        {/* Table */}
+                        <div className="overflow-x-auto print:overflow-visible">
+                            <table className="w-full min-w-[900px] print:min-w-0 border-collapse">
+                                <thead>
+                                    <tr className="bg-gray-50 border-b border-gray-200 print:bg-gray-100">
+                                        {tableColumns.map(col => (
+                                            <th key={col.key} className={`px-4 py-3 text-${isRTL ? 'right' : 'left'} text-sm font-medium text-gray-700 print:text-black print:border-black`}>{col.label}</th>
+                                        ))}
                                     </tr>
-                                ) : (
-                                    reportData.entries.map((entry, index) => (
-                                        <tr
-                                            key={index}
-                                            className={`hover:bg-gray-50 border-b border-gray-100 ${entry.isOpening ? 'bg-gray-50 font-bold' : ''}`}
-                                        >
-                                            <td className="px-4 py-3 text-sm text-gray-900">{entry.date ? fmtDate(entry.date) : ''}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">{entry.description || ''}</td>
-                                            <td className="px-4 py-3 text-sm text-gray-900">
-                                                {entry.accountName || entry.accountCode || ''}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 text-right text-emerald-600">
-                                                {entry.debit > 0 ? formatCurrency(entry.debit, entry.currency) : ''}
-                                            </td>
-                                            <td className="px-4 py-3 text-sm text-gray-900 text-right text-red-600">
-                                                {entry.credit > 0 ? formatCurrency(entry.credit, entry.currency) : ''}
-                                            </td>
-                                            <td className={`px-4 py-3 text-sm text-right font-medium ${entry.balance >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
-                                                {formatCurrency(entry.balance || 0, entry.currency)}
-                                            </td>
+                                </thead>
+                                <tbody>
+                                    {reportData.entries.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={tableColumns.length} className="px-4 py-8 text-center text-gray-500">{t('reports.no_data')}</td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                    ) : (
+                                        reportData.entries.map((entry, index) => (
+                                            <tr
+                                                key={index}
+                                                className={`hover:bg-gray-50 border-b border-gray-100 ${entry.isOpening ? 'bg-gray-50 font-bold print:bg-gray-100' : ''}`}
+                                            >
+                                                <td className="px-4 py-3 text-sm text-gray-900 print:text-black">{entry.date ? fmtDate(entry.date) : ''}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-900 print:text-black">{entry.description || ''}</td>
+                                                <td className="px-4 py-3 text-sm text-gray-900 print:text-black">
+                                                    {entry.accountName || entry.accountCode || ''}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-900 text-right text-emerald-600 print:text-black">
+                                                    {entry.debit > 0 ? formatCurrency(entry.debit, entry.currency) : ''}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-900 text-right text-red-600 print:text-black">
+                                                    {entry.credit > 0 ? formatCurrency(entry.credit, entry.currency) : ''}
+                                                </td>
+                                                <td className={`px-4 py-3 text-sm text-right font-medium ${entry.balance >= 0 ? 'text-emerald-700' : 'text-red-700'} print:text-black`}>
+                                                    {formatCurrency(entry.balance || 0, entry.currency)}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+                    <div className="hidden print:block print:mt-4">
+                        <PrintFooter t={t} isRTL={isRTL} />
+                    </div>
+                </>
             )}
         </div>
     );

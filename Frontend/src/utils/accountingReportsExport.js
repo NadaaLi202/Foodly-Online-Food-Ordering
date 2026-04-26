@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
 import { buildReportHtml, fetchCompanyProfile, generatePDF } from './generatePDF';
+import { exportToExcel } from './excelHelpers';
 
 const fmtNum = (n) => (n == null || n === '' || n === undefined) ? '' : Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString() : '—';
@@ -21,7 +22,8 @@ function flattenAccountTree(nodes, level = 0) {
 /**
  * Export Trial Balance to Excel
  */
-export function exportTrialBalanceToExcel(data, totals, t) {
+export async function exportTrialBalanceToExcel(data, totals, t, filters = {}) {
+    const company = await fetchCompanyProfile();
     const rows = [];
     rows.push([t('reports.columns.account') || 'Account', 
                t('reports.columns.initial_balance') || 'Initial Balance', '', 
@@ -57,21 +59,27 @@ export function exportTrialBalanceToExcel(data, totals, t) {
         ]);
     }
     
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Trial Balance');
     const today = new Date();
     const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
-    XLSX.writeFile(wb, `Trial_Balance_${dateStr}.xlsx`);
+    
+    exportToExcel({
+        data: rows,
+        filename: `Trial_Balance_${dateStr}.xlsx`,
+        title: t('reports.accounting.trial_balance') || 'Trial Balance',
+        company,
+        startDate: filters.startDate || filters.fromDate,
+        endDate: filters.endDate || filters.toDate,
+        branch: filters.branch,
+        t
+    });
 }
 
 /**
  * Export Balance Sheet to Excel
  */
-export function exportBalanceSheetToExcel(reportData, t) {
+export async function exportBalanceSheetToExcel(reportData, t, filters = {}) {
+    const company = await fetchCompanyProfile();
     const rows = [];
-    rows.push([t('reports.accounting.balance_sheet') || 'Balance Sheet']);
-    rows.push([]);
     
     // Assets
     rows.push([t('reports.accounting.assets') || 'Assets']);
@@ -111,21 +119,27 @@ export function exportBalanceSheetToExcel(reportData, t) {
     rows.push([]);
     rows.push(['', t('reports.total') || 'Total Liabilities and Equity', '', fmtNum(reportData.totalLiabilitiesAndEquity || 0)]);
     
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Balance Sheet');
     const today = new Date();
     const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
-    XLSX.writeFile(wb, `Balance_Sheet_${dateStr}.xlsx`);
+    
+    exportToExcel({
+        data: rows,
+        filename: `Balance_Sheet_${dateStr}.xlsx`,
+        title: t('reports.accounting.balance_sheet') || 'Balance Sheet',
+        company,
+        startDate: filters.startDate || filters.fromDate,
+        endDate: filters.endDate || filters.toDate,
+        branch: filters.branch,
+        t
+    });
 }
 
 /**
  * Export Income Statement to Excel
  */
-export function exportIncomeStatementToExcel(reportData, t) {
+export async function exportIncomeStatementToExcel(reportData, t, filters = {}) {
+    const company = await fetchCompanyProfile();
     const rows = [];
-    rows.push([t('reports.accounting.income_statement') || 'Income Statement']);
-    rows.push([]);
     
     rows.push([t('reports.accounting.revenue') || 'Revenue']);
     if (reportData.revenue?.length > 0) {
@@ -146,24 +160,31 @@ export function exportIncomeStatementToExcel(reportData, t) {
     rows.push([]);
     rows.push(['', t('reports.accounting.net_income') || 'Net Income', '', fmtNum(reportData.netIncome || 0)]);
     
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Income Statement');
     const today = new Date();
     const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
-    XLSX.writeFile(wb, `Income_Statement_${dateStr}.xlsx`);
+    
+    exportToExcel({
+        data: rows,
+        filename: `Income_Statement_${dateStr}.xlsx`,
+        title: t('reports.accounting.income_statement') || 'Income Statement',
+        company,
+        startDate: filters.startDate || filters.fromDate,
+        endDate: filters.endDate || filters.toDate,
+        branch: filters.branch,
+        t
+    });
 }
 
 /**
  * Export General Ledger to Excel
  */
-export function exportGeneralLedgerToExcel(entries, account, t) {
+export async function exportGeneralLedgerToExcel(entries, account, t, filters = {}) {
+    const company = await fetchCompanyProfile();
     const rows = [];
-    rows.push([t('reports.accounting.general_ledger') || 'General Ledger']);
     if (account) {
         rows.push([t('reports.columns.account') || 'Account', account.name || '', account.code || '']);
+        rows.push([]);
     }
-    rows.push([]);
     rows.push([t('reports.columns.date') || 'Date', 
                t('reports.columns.description') || 'Description',
                t('reports.columns.debit') || 'Debit',
@@ -182,21 +203,27 @@ export function exportGeneralLedgerToExcel(entries, account, t) {
         });
     }
     
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'General Ledger');
     const today = new Date();
     const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
-    XLSX.writeFile(wb, `General_Ledger_${dateStr}.xlsx`);
+    
+    exportToExcel({
+        data: rows,
+        filename: `General_Ledger_${dateStr}.xlsx`,
+        title: t('reports.accounting.general_ledger') || 'General Ledger',
+        company,
+        startDate: filters.startDate || filters.fromDate,
+        endDate: filters.endDate || filters.toDate,
+        branch: filters.branch,
+        t
+    });
 }
 
 /**
  * Export Tax Reports to Excel
  */
-export function exportTaxReportToExcel(data, t, isDetailed = false) {
+export async function exportTaxReportToExcel(data, t, isDetailed = false, filters = {}) {
+    const company = await fetchCompanyProfile();
     const rows = [];
-    rows.push([isDetailed ? (t('reports.tax_detailed') || 'Tax Detailed Report') : (t('reports.tax_summary') || 'Tax Summary Report')]);
-    rows.push([]);
     
     if (isDetailed && Array.isArray(data)) {
         rows.push([t('reports.columns.date') || 'Date',
@@ -221,18 +248,25 @@ export function exportTaxReportToExcel(data, t, isDetailed = false) {
         rows.push([t('reports.net_tax_payable') || 'Net Tax Payable', fmtNum(data.netTaxPayable || 0)]);
     }
     
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, isDetailed ? 'Tax Detailed' : 'Tax Summary');
     const today = new Date();
     const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
-    XLSX.writeFile(wb, `Tax_Report_${dateStr}.xlsx`);
+    
+    exportToExcel({
+        data: rows,
+        filename: `Tax_Report_${dateStr}.xlsx`,
+        title: isDetailed ? (t('reports.tax_detailed') || 'Tax Detailed Report') : (t('reports.tax_summary') || 'Tax Summary Report'),
+        company,
+        startDate: filters.startDate || filters.fromDate,
+        endDate: filters.endDate || filters.toDate,
+        branch: filters.branch,
+        t
+    });
 }
 
 /**
  * Build PDF for Trial Balance
  */
-export async function buildTrialBalancePdf(data, totals, t, reportTitle, dateRange) {
+export async function buildTrialBalancePdf(data, totals, t, reportTitle, dateRange, filters = {}) {
     const company = await fetchCompanyProfile();
     const headers = [
         t('reports.columns.account') || 'Account',
@@ -270,6 +304,9 @@ export async function buildTrialBalancePdf(data, totals, t, reportTitle, dateRan
         rows,
         landscape: true,
         subtitle: dateRange || '',
+        startDate: filters.startDate || filters.fromDate,
+        endDate: filters.endDate || filters.toDate,
+        branch: filters.branch,
     });
     return generatePDF(html, `Trial_Balance_${new Date().toISOString().slice(0, 10)}.pdf`, { landscape: true });
 }
@@ -286,6 +323,9 @@ export async function buildAccountingReportPdf(title, contentRows, t, options = 
         headers: rows[0] || [],
         rows: rows.slice(1),
         landscape: false,
+        startDate: options.startDate || options.fromDate,
+        endDate: options.endDate || options.toDate,
+        branch: options.branch,
     });
     return generatePDF(html, `${String(title || 'report').replace(/\s+/g, '_')}.pdf`, {});
 }

@@ -6,6 +6,7 @@ import api from '../../../services/api';
 import PrintHeader from '../../../components/common/PrintHeader';
 import { useAuth } from '../../../context/AuthContext';
 import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
+import { PrintFooter } from '../../../components/common/PrintHeader';
 
 const getMonthRange = (date = new Date()) => {
     const start = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -116,6 +117,35 @@ const IncomeStatementReport = () => {
 
     const toggleRow = (id) => setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
 
+    const handleExportExcel = () => {
+        exportIncomeStatementToExcel(reportData, t, {
+            startDate: filters.fromDate,
+            endDate: filters.toDate,
+            branch: filters.branch !== 'all' ? filters.branch : undefined
+        });
+    };
+
+    const handleExportPdf = async () => {
+        const rows = [];
+        rows.push([t('reports.accounting.revenue') || 'Revenue', reportData.revenue.total]);
+        reportData.revenue.items.forEach(item => rows.push([item.name, item.netBalance]));
+        rows.push([t('reports.accounting.expenses') || 'Expenses', reportData.expenses.total]);
+        reportData.expenses.items.forEach(item => rows.push([item.name, item.netBalance]));
+        rows.push([t('reports.accounting.net_income') || 'Net Income', reportData.netIncome]);
+
+        const blob = await buildAccountingReportPdf(t('reports.accounting.income_statement') || 'Income Statement', rows, t, {
+            startDate: filters.fromDate,
+            endDate: filters.toDate,
+            branch: filters.branch !== 'all' ? filters.branch : undefined
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Income_Statement_${new Date().toISOString().slice(0, 10)}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     const handlePrint = () => window.print();
 
     const renderRows = (nodes, depth = 0) => {
@@ -222,8 +252,10 @@ const IncomeStatementReport = () => {
                 </div>
             ) : (
                 <div className="bg-white rounded-lg border border-gray-300 overflow-hidden shadow-sm">
-                    <div className="flex px-4 py-2 border-b border-gray-200 print:hidden bg-gray-50">
-                        <button onClick={handlePrint} className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-100"><Printer className="w-3" /> طباعة</button>
+                    <div className="flex px-4 py-2 border-b border-gray-200 print:hidden bg-gray-50 gap-2">
+                        <button onClick={handlePrint} className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-100"><Printer className="w-3" /> {t('reports.print')}</button>
+                        <button onClick={handleExportExcel} className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-green-700 bg-white border border-green-300 rounded hover:bg-green-100"><FileSpreadsheet className="w-3" /> Excel</button>
+                        <button onClick={handleExportPdf} className="flex items-center gap-1 px-3 py-1 text-xs font-medium text-red-700 bg-white border border-red-300 rounded hover:bg-red-100"><FileText className="w-3" /> PDF</button>
                     </div>
 
                     <div className="px-4 py-2 text-center font-bold border-b border-gray-200 text-gray-800">
@@ -251,6 +283,9 @@ const IncomeStatementReport = () => {
                             </tr>
                         </tfoot>
                     </table>
+                    <div className="hidden print:block mt-20">
+                        <PrintFooter t={t} isRTL={true} />
+                    </div>
                 </div>
             )}
         </div>

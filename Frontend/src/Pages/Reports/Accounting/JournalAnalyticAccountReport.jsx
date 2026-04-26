@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import api from '../../../services/api';
 import { useTranslation } from 'react-i18next';
 import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer, Filter } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
-import { buildAccountingReportPdf, exportGeneralLedgerToExcel } from '../../../utils/accountingReportsExport';
-import api from '../../../services/api';
-import { getCostCenters } from '../../../services/reportsService';
-import PrintHeader from '../../../components/common/PrintHeader';
+import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
+import { exportToExcel } from '../../../utils/excelHelpers';
+import { fetchCompanyProfile } from '../../../utils/generatePDF';
+import PrintHeader, { PrintFooter } from '../../../components/common/PrintHeader';
 import toast from 'react-hot-toast';
 
 const getMonthRange = (date = new Date()) => {
@@ -158,51 +159,39 @@ const JournalAnalyticAccountReport = () => {
         }
     };
 
-    const exportToExcel = () => {
+    const handleExportExcel = async () => {
         try {
-            const headers = [
-                [t('reports.accounting.cost_centers') || 'Cost Centers Report'],
-                [`${t('reports.filters.from_date')}: ${filters.fromDate} - ${t('reports.filters.to_date')}: ${filters.toDate}`],
-                [],
-                [
-                    t('reports.restriction_number') || 'Restriction #',
-                    t('reports.account') || 'Account',
-                    t('reports.date') || 'Date',
-                    t('reports.source') || 'Source',
-                    t('reports.description') || 'Description',
-                    t('reports.percentage') || 'Percentage',
-                    t('reports.debit') || 'Debit',
-                    t('reports.credit') || 'Credit',
-                    t('reports.balance') || 'Balance',
-                ]
-            ];
+            const company = await fetchCompanyProfile();
+            const rows = reportData.entries.map(entry => ({
+                [t('reports.restriction_number') || 'Restriction #']: entry.restrictionNumber || '',
+                [t('reports.account') || 'Account']: entry.accountCode || '',
+                [t('reports.date') || 'Date']: formatDate(entry.date),
+                [t('reports.source') || 'Source']: entry.source || '',
+                [t('reports.description') || 'Description']: entry.description || '',
+                [t('reports.percentage') || 'Percentage']: (entry.percentage || 0) + '%',
+                [t('reports.debit') || 'Debit']: entry.debit || 0,
+                [t('reports.credit') || 'Credit']: entry.credit || 0,
+                [t('reports.balance') || 'Balance']: entry.balance || 0,
+            }));
 
-            const rows = reportData.entries.map(entry => [
-                entry.restrictionNumber || '',
-                entry.accountCode || '',
-                formatDate(entry.date),
-                entry.source || '',
-                entry.description || '',
-                entry.percentage || 0,
-                formatNum(entry.debit || 0),
-                formatNum(entry.credit || 0),
-                formatNum(entry.balance || 0),
-            ]);
+            // Totals row handled by AOAs or data. For now, we'll just add it to the data
+            rows.push({
+                [t('reports.restriction_number') || 'Restriction #']: t('reports.total') || 'Total',
+                [t('reports.debit') || 'Debit']: reportData.totalDebit,
+                [t('reports.credit') || 'Credit']: reportData.totalCredit,
+                [t('reports.balance') || 'Balance']: reportData.finalBalance,
+            });
 
-            const totals = [
-                [],
-                [t('reports.total') || 'Total', '', '', '', '', '', formatNum(reportData.totalDebit), formatNum(reportData.totalCredit), formatNum(reportData.finalBalance)]
-            ];
-
-            const data = [...headers, ...rows, ...totals];
-            const csvContent = data.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-            // Add UTF-8 BOM to ensure Excel correctly recognizes UTF-8 encoding
-            const bom = '\uFEFF';
-            const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `Cost_Centers_Report_${new Date().toISOString().slice(0, 10)}.csv`;
-            link.click();
+            exportToExcel({
+                data: rows,
+                filename: `Cost_Centers_Report_${new Date().toISOString().slice(0, 10)}.xlsx`,
+                title: t('reports.accounting.cost_centers') || 'Cost Centers Report',
+                company,
+                startDate: filters.fromDate,
+                endDate: filters.toDate,
+                branch: filters.branch !== 'all' ? branches.find(b => b._id === filters.branch)?.name : '',
+                t
+            });
             toast.success(t('reports.export.success') || 'Exported successfully');
         } catch (error) {
             console.error('Error exporting to Excel:', error);
@@ -210,13 +199,9 @@ const JournalAnalyticAccountReport = () => {
         }
     };
 
-    const exportToPdf = async () => {
+    const handleExportPdf = async () => {
         try {
-            const contentRows = [[t('reports.accounting.cost_centers') || 'Cost Centers Report']];
-            contentRows.push([`${t('reports.filters.from_date')}: ${filters.fromDate}`]);
-            contentRows.push([`${t('reports.filters.to_date')}: ${filters.toDate}`]);
-            contentRows.push([]);
-            contentRows.push([
+            const headers = [
                 t('reports.restriction_number') || 'Restriction #',
                 t('reports.account') || 'Account',
                 t('reports.date') || 'Date',
@@ -226,32 +211,37 @@ const JournalAnalyticAccountReport = () => {
                 t('reports.debit') || 'Debit',
                 t('reports.credit') || 'Credit',
                 t('reports.balance') || 'Balance',
+            ];
+
+            const rows = reportData.entries.map(entry => [
+                entry.restrictionNumber || '',
+                entry.accountCode || '',
+                formatDate(entry.date),
+                entry.source || '',
+                entry.description || '',
+                (entry.percentage || 0) + '%',
+                formatNum(entry.debit || 0),
+                formatNum(entry.credit || 0),
+                formatNum(entry.balance || 0),
             ]);
 
-            reportData.entries.forEach(entry => {
-                contentRows.push([
-                    entry.restrictionNumber || '',
-                    entry.accountCode || '',
-                    formatDate(entry.date),
-                    entry.source || '',
-                    entry.description || '',
-                    entry.percentage || '',
-                    formatNum(entry.debit || 0),
-                    formatNum(entry.credit || 0),
-                    formatNum(entry.balance || 0),
-                ]);
+            rows.push([
+                { content: t('reports.total') || 'Total', colSpan: 6, styles: { fontWeight: 'bold' } },
+                formatNum(reportData.totalDebit),
+                formatNum(reportData.totalCredit),
+                formatNum(reportData.finalBalance)
+            ]);
+
+            await downloadTablePdf({
+                title: t('reports.accounting.cost_centers') || 'Cost Centers Report',
+                headers,
+                rows,
+                filename: `Cost_Centers_Report_${new Date().toISOString().slice(0, 10)}.pdf`,
+                landscape: true,
+                startDate: filters.fromDate,
+                endDate: filters.toDate,
+                branch: filters.branch !== 'all' ? branches.find(b => b._id === filters.branch)?.name : '',
             });
-
-            contentRows.push([]);
-            contentRows.push([t('reports.total') || 'Total', '', '', '', '', '', formatNum(reportData.totalDebit), formatNum(reportData.totalCredit), formatNum(reportData.finalBalance)]);
-
-            const blob = await buildAccountingReportPdf(t('reports.accounting.cost_centers') || 'Cost Centers Report', contentRows, t, { locale: i18n.language });
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `Cost_Centers_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
-            link.click();
-            URL.revokeObjectURL(url);
             toast.success(t('reports.export.success') || 'Exported successfully');
         } catch (error) {
             console.error('Error exporting to PDF:', error);
@@ -288,8 +278,8 @@ const JournalAnalyticAccountReport = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('reports.filters.period')}</label>
                         <div className="relative">
-                            <select 
-                                value={filters.period} 
+                            <select
+                                value={filters.period}
                                 onChange={(e) => handlePeriodChange(e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             >
@@ -303,11 +293,11 @@ const JournalAnalyticAccountReport = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('reports.filters.from_date')}</label>
                         <div className="relative">
-                            <input 
-                                type="text" 
-                                value={filters.fromDate} 
-                                onChange={(e) => handleFilterChange('fromDate', e.target.value)} 
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
+                            <input
+                                type="text"
+                                value={filters.fromDate}
+                                onChange={(e) => handleFilterChange('fromDate', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                             <Calendar className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none`} />
                         </div>
@@ -317,11 +307,11 @@ const JournalAnalyticAccountReport = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('reports.filters.to_date')}</label>
                         <div className="relative">
-                            <input 
-                                type="text" 
-                                value={filters.toDate} 
-                                onChange={(e) => handleFilterChange('toDate', e.target.value)} 
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" 
+                            <input
+                                type="text"
+                                value={filters.toDate}
+                                onChange={(e) => handleFilterChange('toDate', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             />
                             <Calendar className={`absolute ${isRTL ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none`} />
                         </div>
@@ -331,8 +321,8 @@ const JournalAnalyticAccountReport = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('reports.filters.branch')}</label>
                         <div className="relative">
-                            <select 
-                                value={filters.branch} 
+                            <select
+                                value={filters.branch}
                                 onChange={(e) => handleFilterChange('branch', e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             >
@@ -349,8 +339,8 @@ const JournalAnalyticAccountReport = () => {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">{t('reports.filters.all_cost_centers')}</label>
                         <div className="relative">
-                            <select 
-                                value={filters.costCenter} 
+                            <select
+                                value={filters.costCenter}
                                 onChange={(e) => handleFilterChange('costCenter', e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm appearance-none bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                             >
@@ -366,27 +356,27 @@ const JournalAnalyticAccountReport = () => {
 
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-3">
-                    <button 
+                    <button
                         onClick={fetchReport}
                         className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
                     >
                         {t('reports.filters.show_reports') || 'Show Reports'}
                     </button>
-                    <button 
-                        onClick={exportToExcel}
+                    <button
+                        onClick={handleExportExcel}
                         className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors border border-green-200"
                     >
                         <FileSpreadsheet className="w-4 h-4" />
                         {t('reports.export.excel')}
                     </button>
-                    <button 
-                        onClick={exportToPdf}
+                    <button
+                        onClick={handleExportPdf}
                         className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-100 transition-colors border border-purple-200"
                     >
                         <FileText className="w-4 h-4" />
                         {t('reports.export.pdf')}
                     </button>
-                    <button 
+                    <button
                         onClick={printReport}
                         className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors border border-blue-200"
                     >
@@ -457,6 +447,9 @@ const JournalAnalyticAccountReport = () => {
                         </table>
                     </div>
                 )}
+            </div>
+            <div className="hidden print:block mt-20">
+                <PrintFooter t={t} isRTL={isRTL} />
             </div>
         </div>
     );

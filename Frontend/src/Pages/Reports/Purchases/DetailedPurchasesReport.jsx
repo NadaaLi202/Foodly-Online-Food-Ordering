@@ -5,7 +5,9 @@ import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer, BarChart3, L
 import reportsService from '../../../services/reportsService';
 import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import * as XLSX from 'xlsx';
-import PrintHeader from '../../../components/common/PrintHeader';
+import PrintHeader, { PrintFooter } from '../../../components/common/PrintHeader';
+import { exportToExcel } from '../../../utils/excelHelpers';
+import { fetchCompanyProfile } from '../../../utils/generatePDF';
 
 const PurchasesReport = () => {
     const { t, i18n } = useTranslation();
@@ -118,44 +120,55 @@ const PurchasesReport = () => {
     }, [activeTab, fetchDetailedReport, fetchSummaryReport]);
 
     // Export logic
-    const handleExportExcel = () => {
+    const handleExportExcel = async () => {
+        const company = await fetchCompanyProfile();
         if (activeTab === 'detailed') {
             if (!detailedData.length) return;
             const detailedTableCols = availableDetailedColumns.filter(col => selectedDetailedColumns.includes(col.key));
-            const exportData = detailedData.map(row => {
-                const r = {};
-                detailedTableCols.forEach(col => {
-                    let val = 'â€”';
-                    if (col.key === 'code') val = row.invoiceNumber ?? 'â€”';
-                    else if (col.key === 'type') val = row.documentType || row.type;
-                    else if (col.key === 'issue_date') val = row.date ? new Date(row.date).toLocaleDateString() : 'â€”';
-                    else if (col.key === 'supplier') val = row.supplier ?? row.client ?? 'â€”';
-                    else if (['discounts', 'total_without_taxes', 'total'].includes(col.key)) {
+            const exportRows = [
+                detailedTableCols.map(col => col.label),
+                ...detailedData.map(row => detailedTableCols.map(col => {
+                    if (col.key === 'code') return row.invoiceNumber ?? '—';
+                    if (col.key === 'type') return row.documentType || row.type;
+                    if (col.key === 'issue_date') return row.date ? new Date(row.date).toLocaleDateString() : '—';
+                    if (col.key === 'supplier') return row.supplier ?? row.client ?? '—';
+                    if (['discounts', 'total_without_taxes', 'total'].includes(col.key)) {
                         const keys = { 'discounts': 'discounts', 'total_without_taxes': 'totalWithoutTax', 'total': 'amount' };
-                        val = row[keys[col.key]] ?? 0;
+                        return Number(row[keys[col.key]] ?? 0);
                     }
-                    r[col.label] = val;
-                });
-                return r;
+                    return '—';
+                }))
+            ];
+            exportToExcel({
+                data: exportRows,
+                filename: `Detailed_Purchases_Report_${filters.fromDate}_to_${filters.toDate}.xlsx`,
+                title: t('reports.detailed_purchases_report'),
+                company,
+                startDate: filters.fromDate,
+                endDate: filters.toDate,
+                branch: filters.branch,
+                t
             });
-            const worksheet = XLSX.utils.json_to_sheet(exportData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Detailed Purchases");
-            XLSX.writeFile(workbook, `Detailed_Purchases_Report_${filters.fromDate}_to_${filters.toDate}.xlsx`);
         } else {
             if (!summaryData.length) return;
             const summaryTableCols = availableSummaryColumns.filter(col => selectedSummaryColumns.includes(col.key));
-            const exportData = summaryData.map(row => {
-                const r = { [t('reports.table.month')]: row.month ?? 'â€”' };
-                summaryTableCols.forEach(col => {
-                    r[col.label] = row[col.key];
-                });
-                return r;
+            const exportRows = [
+                [t('reports.table.month'), ...summaryTableCols.map(col => col.label)],
+                ...summaryData.map(row => [
+                    row.month ?? '—',
+                    ...summaryTableCols.map(col => row[col.key])
+                ])
+            ];
+            exportToExcel({
+                data: exportRows,
+                filename: `Summary_Purchases_Report_${filters.fromDate}_to_${filters.toDate}.xlsx`,
+                title: t('reports.summary_purchases_report'),
+                company,
+                startDate: filters.fromDate,
+                endDate: filters.toDate,
+                branch: filters.branch,
+                t
             });
-            const worksheet = XLSX.utils.json_to_sheet(exportData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Summary Purchases");
-            XLSX.writeFile(workbook, `Summary_Purchases_Report_${filters.fromDate}_to_${filters.toDate}.xlsx`);
         }
     };
 
@@ -193,6 +206,9 @@ const PurchasesReport = () => {
             rows,
             filename: `Purchases_Report_${new Date().toISOString().slice(0, 10)}.pdf`,
             landscape: true,
+            startDate: filters.fromDate,
+            endDate: filters.toDate,
+            branch: filters.branch,
         });
     };
 
@@ -254,10 +270,12 @@ const PurchasesReport = () => {
     return (
         <>
             <div className={`p-6 ${isRTL ? 'text-right' : 'text-left'}`} id="purchases-report-root">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6" ref={printRef}>
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 no-print">
                         <h1 className="text-2xl font-black text-gray-900">{t('reports.purchase_reports') || 'Purchase Reports'}</h1>
                     </div>
+
+                    {/* Shared Filters */}
 
                     {/* Shared Filters */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 no-print">
@@ -337,11 +355,21 @@ const PurchasesReport = () => {
                         </div>
                     </div>
 
-                                        <div className="hidden print:block mb-6">
-                        <PrintHeader title={t('reports.purchase_reports') || 'Purchase Reports'} isRTL={isRTL} showLogo={false} />
+                    <div className="hidden print:block mb-6">
+                        <PrintHeader 
+                            title={activeTab === 'detailed' ? t('reports.detailed_purchases_report') : t('reports.summary_purchases_report')} 
+                            isRTL={isRTL} 
+                            showLogo={false} 
+                            rightContent={
+                                <div className="text-xs space-y-1">
+                                    <p>من تاريخ {filters.fromDate} إلى تاريخ {filters.toDate}</p>
+                                    {filters.branch && <p>الفرع: {filters.branch}</p>}
+                                </div>
+                            }
+                        />
                     </div>
                     {/* Table Section */}
-                    <div className="border border-gray-200 rounded-lg overflow-hidden bg-white" ref={printRef}>
+                    <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
                         <div className="overflow-x-auto">
                             <table className="w-full">
                                 <thead>
@@ -376,7 +404,7 @@ const PurchasesReport = () => {
                                                                 let url = `/dashboard/purchases/invoices?openId=${row._id}`;
                                                                 if (row.documentType === 'return') url = `/dashboard/purchases/returns?openId=${row._id}`;
                                                                 if (row.documentType === 'purchaseOrder') url = `/dashboard/purchases/purchase-orders?openId=${row._id}`;
-                                                                return <td key={col.key} className="px-4 py-3 text-sm font-medium"><Link to={url} className="text-indigo-600 hover:underline">{val}</Link></td>;
+                                                                return <td key={col.key} className="px-4 py-3 text-sm font-medium no-print"><Link to={url} className="text-indigo-600 hover:underline">{val}</Link></td>;
                                                             }
                                                             return <td key={col.key} className="px-4 py-3 text-sm text-gray-600">{val}</td>;
                                                         })}
@@ -405,7 +433,7 @@ const PurchasesReport = () => {
                                                 <tr key={idx} className="hover:bg-gray-50 transition-colors">
                                                     <td className="px-4 py-3 text-sm font-bold text-gray-900">{row.month}</td>
                                                     {availableSummaryColumns.filter(c => selectedSummaryColumns.includes(c.key)).map(col => {
-                                                        let val = 'â€”';
+                                                        let val = '—';
                                                         if (['invoices', 'returns', 'orders', 'suppliers', 'products'].includes(col.key)) val = row[col.key] ?? 0;
                                                         else {
                                                             const keys = { 'total_invoices': 'totalInvoices', 'total_returns': 'totalReturns', 'total_orders': 'totalOrders', 'total_purchases_discounts': 'totalPurchasesDiscounts', 'net_purchases_discounts': 'netPurchasesDiscounts', 'net_purchases': 'netPurchases' };
@@ -423,6 +451,7 @@ const PurchasesReport = () => {
                             </table>
                         </div>
                     </div>
+                    <PrintFooter isRTL={isRTL} />
                 </div>
             </div>
         </>

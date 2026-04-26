@@ -156,7 +156,7 @@ const SupplierGeneralLedger = () => {
         const fromDate = new Date(filters.fromDate);
         const toDate = new Date(filters.toDate);
         const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-        return `تقرير حساب الأستاذ لحسابات الموردين من تاريخ ${fromDate.toLocaleDateString('ar-EG', options)} إلى تاريخ ${toDate.toLocaleDateString('ar-EG', options)}`;
+        return `تقرير حسابات الموردين من تاريخ ${fromDate.toLocaleDateString('ar-EG', options)} إلى تاريخ ${toDate.toLocaleDateString('ar-EG', options)}`;
     };
 
     return (

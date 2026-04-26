@@ -4,7 +4,9 @@ import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer } from 'lucid
 import reportsService from '../../../services/reportsService';
 import { downloadTablePdf } from '../../../utils/reportPdfBuilder';
 import * as XLSX from 'xlsx';
-import PrintHeader from '../../../components/common/PrintHeader';
+import PrintHeader, { PrintFooter } from '../../../components/common/PrintHeader';
+import { exportToExcel } from '../../../utils/excelHelpers';
+import { fetchCompanyProfile } from '../../../utils/generatePDF';
 import { useAuth } from '../../../context/AuthContext';
 import { formatCurrency as utilFormatCurrency } from '../../../utils/currencyFormatter';
 
@@ -74,24 +76,31 @@ const DetailedPaymentsReport = () => {
         }));
     };
 
-    const handleExportExcel = () => {
-        const worksheet = XLSX.utils.json_to_sheet(reportData.map(row => ({
+    const handleExportExcel = async () => {
+        const company = await fetchCompanyProfile();
+        const exportData = reportData.map(row => ({
             [t('reports.detailed_columns.code')]: row.invoiceNumber ?? '—',
             [t('reports.detailed_columns.client')]: row.client ?? '—',
             [t('reports.payments.type')]: row.type === 'receive' ? t('reports.payments.receive') : t('reports.payments.spend'),
             [t('reports.payments.payment_method')]: row.paymentMethod ?? '—',
             [t('reports.payments.amount')]: formatCurrency(row.amount, row.currency),
             [t('reports.detailed_columns.issue_date')]: row.date ? new Date(row.date).toLocaleDateString() : '—'
-        })));
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Detailed Payments");
-        XLSX.writeFile(workbook, `Detailed_Payments_Report_${filters.startDate}_to_${filters.endDate}.xlsx`);
+        }));
+        
+        exportToExcel({
+            data: exportData,
+            filename: `Detailed_Payments_Report_${filters.startDate}_to_${filters.endDate}.xlsx`,
+            title: t('reports.payments.detailed_title') || 'Detailed Payments Report',
+            company,
+            startDate: filters.startDate,
+            endDate: filters.endDate,
+            t
+        });
     };
 
     const handleExportPdf = async () => {
         await downloadTablePdf({
             title: t('reports.payments.detailed_title') || 'Detailed Payments Report',
-            subtitle: `${t('reports.filters.from_date')}: ${filters.startDate}  ${t('reports.filters.to_date')}: ${filters.endDate}`,
             headers: [
                 t('reports.detailed_columns.code'),
                 t('reports.detailed_columns.client'),
@@ -110,6 +119,8 @@ const DetailedPaymentsReport = () => {
             ])),
             filename: `Detailed_Payments_Report_${filters.startDate}_to_${filters.endDate}.pdf`,
             landscape: true,
+            startDate: filters.startDate,
+            endDate: filters.endDate
         });
     };
 
@@ -120,21 +131,21 @@ const DetailedPaymentsReport = () => {
     const formatCurrency = (val, rowCurrency) => utilFormatCurrency(val, rowCurrency || currency);
 
     return (
-        <div className={`p-8 bg-gray-50/50 min-h-screen ${isRTL ? 'text-right' : 'text-left'}`}>
+        <div className={`p-8 bg-gray-50/50 min-h-screen ${isRTL ? 'text-right' : 'text-left'}`} id="detailed-payments-report-root">
             <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
                     <div>
                         <h1 className="text-2xl font-black text-gray-900 flex items-center gap-3">
-                            <span className="w-2 h-8 bg-indigo-600 rounded-full"></span>
+                            <span className="w-2 h-8 bg-indigo-600 rounded-full no-print"></span>
                             {t('reports.payments.detailed_title')}
                         </h1>
                         <p className="text-gray-500 font-medium mt-1">
                             {t('reports.payments.detailed_desc')}
                         </p>
                     </div>
-                    <div className="hidden print:block mb-6">
-                        <PrintHeader title={''} isRTL={isRTL} />
+                    <div className="hidden print:block mb-6 w-full">
+                        <PrintHeader title={t('reports.payments.detailed_title')} isRTL={isRTL} />
                     </div>
 
 
@@ -296,9 +307,12 @@ const DetailedPaymentsReport = () => {
                             </tbody>
                         </table>
                     </div>
+                <div className="hidden print:block mt-20">
+                    <PrintFooter t={t} isRTL={isRTL} />
                 </div>
             </div>
         </div>
+    </div>
     );
 };
 

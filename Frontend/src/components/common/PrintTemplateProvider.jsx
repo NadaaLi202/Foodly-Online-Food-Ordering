@@ -447,8 +447,7 @@ const PrintTemplateProvider = ({ children }) => {
 
         originalPrintRef.current = window.print.bind(window);
         window.print = async (...args) => {
-            // Bypass template selection modal if we are already in the QA tool
-            if (window.location.pathname.includes('/templates/invoice-qa')) {
+            if (window.location.pathname.includes('/templates/invoice-qa') || window.location.pathname.includes('/reports')) {
                 return originalPrintRef.current(...args);
             }
 

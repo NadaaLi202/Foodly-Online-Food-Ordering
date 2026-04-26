@@ -156,13 +156,13 @@ const InventoryValueDetailedReport = () => {
     const handleExportPdf = async () => {
         if (reportData.length === 0) return;
         const headers = [
-            t('reports.inventory.inventory_value_detailed_report.stock_transaction'),
-            t('reports.inventory.inventory_value_detailed_report.source'),
-            t('reports.inventory.inventory_value_detailed_report.date'),
-            t('reports.inventory.inventory_value_detailed_report.quantity'),
-            t('reports.inventory.inventory_value_detailed_report.quantity_after'),
-            t('reports.inventory.inventory_value_detailed_report.value'),
-            t('reports.inventory.inventory_value_detailed_report.value_correction'),
+            'حركة المخزون',
+            'المصدر',
+            'التاريخ',
+            'الكمية',
+            'الكمية بعد',
+            'القيمة (ج.م)',
+            'تسوية القيمة (ج.م)',
         ];
         const rows = [];
         reportData.forEach((pData) => {
@@ -180,7 +180,7 @@ const InventoryValueDetailedReport = () => {
             });
         });
         await downloadTablePdf({
-            title: t('reports.inventory.inventory_value_detailed_report.report_title') || '',
+            title: 'تقرير قيمة المخزون المفصل',
             headers,
             rows,
             filename: `Inventory_Movements_${filters.fromDate}_${filters.toDate}.pdf`,
@@ -200,7 +200,7 @@ const InventoryValueDetailedReport = () => {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <div className="hidden print:block mb-6">
                         <PrintHeader
-                            title={t('reports.inventory.inventory_value_detailed_report.report_title') || ''}
+                            title="تقرير قيمة المخزون المفصل"
                             isRTL={true}
                             showLogo={false}
                             companyInfo={companySettings}
@@ -285,7 +285,7 @@ const InventoryValueDetailedReport = () => {
 
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-4 p-4 bg-gray-50 rounded-lg border border-gray-100 no-print">
                     <div className="text-sm text-gray-700 font-medium">
-                        {t('reports.inventory.inventory_value_detailed_report.report_title_dynamic', { fromDate: filters.fromDate, toDate: filters.toDate })}
+                        {`تقرير قيمة المخزون من تاريخ ${filters.fromDate} إلى تاريخ ${filters.toDate}`}
                     </div>
                     <div className="flex items-center gap-2">
                         <button onClick={handleExportExcel} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded text-xs font-medium hover:bg-green-100 transition-colors border border-green-200">
