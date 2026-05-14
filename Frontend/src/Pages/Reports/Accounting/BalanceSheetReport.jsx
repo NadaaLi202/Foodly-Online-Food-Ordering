@@ -14,6 +14,18 @@ const fmt = (n) => {
     return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+const BLOCKED_CODES = ['12610002', '21110002'];
+
+const filterBlocked = (items) => {
+    if (!items || !Array.isArray(items)) return [];
+    return items
+        .filter(item => !BLOCKED_CODES.includes(item.code))
+        .map(item => ({
+            ...item,
+            children: filterBlocked(item.children)
+        }));
+};
+
 const BalanceSheetReport = () => {
     const { t, i18n } = useTranslation();
     const { companySettings } = useAuth();
@@ -33,7 +45,7 @@ const BalanceSheetReport = () => {
         equity: { items: [], total: 0 },
         totalLiabilitiesAndEquity: 0
     });
-    
+
     // expanded state keyed by account id
     const [expanded, setExpanded] = useState({
         'root-assets': true,
@@ -63,8 +75,24 @@ const BalanceSheetReport = () => {
                     branch: filters.branch !== 'all' ? filters.branch : undefined,
                 }
             });
-            setReportData(response.data);
-            
+            const data = response.data;
+            const filteredData = {
+                ...data,
+                assets: {
+                    ...data.assets,
+                    items: filterBlocked(data.assets?.items || [])
+                },
+                liabilities: {
+                    ...data.liabilities,
+                    items: filterBlocked(data.liabilities?.items || [])
+                },
+                equity: {
+                    ...data.equity,
+                    items: filterBlocked(data.equity?.items || [])
+                }
+            };
+            setReportData(filteredData);
+
             // Auto expand roots
             const newExpanded = { 'root-assets': true, 'root-liabilities': true, 'root-equity': true };
             const walk = (items) => {
@@ -129,7 +157,7 @@ const BalanceSheetReport = () => {
         for (const item of nodes) {
             const hasChildren = item.children && item.children.length > 0;
             const isOpen = !!expanded[item.id];
-            
+
             rows.push(
                 <tr key={item.id} className={`border-b border-gray-200 hover:bg-gray-50 transition-colors ${item.level === 0 ? 'bg-gray-50 font-bold' : ''}`}>
                     <td className="px-4 py-2 text-sm text-gray-900 border-l border-gray-300">
@@ -173,7 +201,8 @@ const BalanceSheetReport = () => {
 
     return (
         <div className="p-4" dir="rtl">
-            <style dangerouslySetInnerHTML={{ __html: `
+            <style dangerouslySetInnerHTML={{
+                __html: `
                 @media print {
                     @page { size: A4 portrait; margin: 5mm; }
                     .print\\:hidden { display: none !important; }

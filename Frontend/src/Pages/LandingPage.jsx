@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AnimatedDemo from '../components/AnimatedDemo';
+import logo from '../assets/SidebarLogo.jpg';
 
 
 const LandingPage = () => {
@@ -157,15 +158,8 @@ const LandingPage = () => {
                 <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center w-full">
                         {/* Logo - Right side in RTL */}
-                        <Link to="/" className="flex items-center gap-2 group">
-                            <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white">
-                                <div className="w-4 h-4 rounded-full bg-white relative">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
-                                </div>
-                            </div>
-                            <span className="text-2xl font-black text-gray-800 tracking-tight">
-                                دفاتر المحاسب
-                            </span>
+                        <Link to="/" className="flex items-center group">
+                            <img src={logo} alt="Logo" style={{ height: '40px' }} />
                         </Link>
 
                         {/* Navigation links - Middle */}
@@ -684,13 +678,8 @@ const LandingPage = () => {
             {/* Footer */}
             <footer className="py-12 bg-white border-t border-gray-200">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white">
-                                <span className="font-bold text-sm">A</span>
-                            </div>
-                            <span className="text-lg font-black text-gray-800">دفاتر المحاسب</span>
-                        </div>
+                    <div className="flex flex-col items-center gap-6">
+                        <img src={logo} alt="Logo" style={{ height: '50px' }} />
                         <p className="text-gray-500 text-sm font-medium">
                             © {new Date().getFullYear()} دفاتر المحاسب. جميع الحقوق محفوظة.
                         </p>

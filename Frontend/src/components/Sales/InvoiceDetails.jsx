@@ -54,7 +54,9 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, onRefreshI
         }
     };
 
-    const handlePrint = async () => {
+    const handlePrint = async (event) => {
+        const shiftHeld = event?.shiftKey === true;
+        console.log('Shift held:', shiftHeld);
         const id = invoice?._id;
         if (!id) {
             toast.error(t('sales.invoices.pdf_capture_failed'));
@@ -62,7 +64,7 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, onRefreshI
         }
         setPrintLoading(true);
         try {
-            const { blob } = await fetchPdfBlob(api, String(id), { previewInvoice: invoice });
+            const { blob } = await fetchPdfBlob(api, String(id), { previewInvoice: invoice, forceModal: shiftHeld });
             openBlobInNewTab(blob);
             toast.success(t('sales.invoices.print_pdf') + ' — OK');
         } catch (err) {
@@ -133,7 +135,7 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, onRefreshI
     });
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:p-0 print:bg-white print:static">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 print:p-0 print:bg-white print:static backdrop-blur-md">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col print:shadow-none print:w-full print:max-w-none print:max-h-none" dir={isRTL ? 'rtl' : 'ltr'}>
                 {/* Header with title and actions */}
                 <div className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-10 print:hidden">

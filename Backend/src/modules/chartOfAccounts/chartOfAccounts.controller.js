@@ -3,6 +3,14 @@ import { AppError } from "../../utils/AppError.js";
 import { catchAsyncError } from "../../middleware/catchAsyncError.js";
 import { seedDefaultChartOfAccounts } from "./chartOfAccounts.service.js";
 
+// Accounts to be excluded from all API responses
+const BLOCKED_ACCOUNT_CODES = ['12610002', '21110002'];
+const BLOCKED_ACCOUNT_NAMES = ['سميرة سعيد للمقاولات', 'دلال محمد للدعية'];
+const blockedFilter = {
+    code: { $nin: BLOCKED_ACCOUNT_CODES },
+    name: { $nin: BLOCKED_ACCOUNT_NAMES },
+};
+
 const addAccount = catchAsyncError(async (req, res, next) => {
     const { code } = req.body;
     const { companyFilter } = req;
@@ -22,7 +30,7 @@ const getAllAccounts = catchAsyncError(async (req, res, next) => {
     const { type, parentAccount } = req.query;
     const { companyFilter } = req;
 
-    let query = { ...companyFilter };
+    let query = { ...companyFilter, ...blockedFilter };
     if (type) query.type = type;
     if (parentAccount) query.parentAccount = parentAccount;
 

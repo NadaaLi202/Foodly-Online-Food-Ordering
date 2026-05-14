@@ -720,7 +720,7 @@ export default function Customers() {
             {/* View Customer Modal - with tabs Summary / Invoices / Payments */}
             {viewContact && viewFormData && (() => {
                 return (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
+                    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                             <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                                 <h2 className={`text-xl font-bold text-gray-800 text-${i18n.language === 'ar' ? 'right' : 'left'}`}>{t('sales.customers.view_customer')}</h2>
@@ -937,7 +937,7 @@ export default function Customers() {
 
             {/* Add/Edit Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                         {/* Modal Header */}
                         <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10">

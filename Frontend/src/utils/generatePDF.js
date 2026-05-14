@@ -261,6 +261,7 @@ export async function generatePDF(htmlContent, filename = 'report.pdf', pdfOptio
         actionType: 'pdf',
         source: 'generatePDF',
         filename,
+        previewInvoice: pdfOptions?.previewInvoice || null,
       });
     }
     const response = await api.post('/reports/pdf/generate', {

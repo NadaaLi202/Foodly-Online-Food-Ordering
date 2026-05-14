@@ -21,6 +21,18 @@ const fmt = (n) => {
     return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+const BLOCKED_CODES = ['12610002', '21110002'];
+
+const filterBlocked = (items) => {
+    if (!items || !Array.isArray(items)) return [];
+    return items
+        .filter(item => !BLOCKED_CODES.includes(item.code))
+        .map(item => ({
+            ...item,
+            children: filterBlocked(item.children)
+        }));
+};
+
 const IncomeStatementReport = () => {
     const { t, i18n } = useTranslation();
     const { companySettings } = useAuth();
@@ -90,7 +102,19 @@ const IncomeStatementReport = () => {
                     branch: filters.branch !== 'all' ? filters.branch : undefined,
                 }
             });
-            setReportData(response.data);
+            const data = response.data;
+            const filteredData = {
+                ...data,
+                revenue: {
+                    ...data.revenue,
+                    items: filterBlocked(data.revenue?.items || [])
+                },
+                expenses: {
+                    ...data.expenses,
+                    items: filterBlocked(data.expenses?.items || [])
+                }
+            };
+            setReportData(filteredData);
 
             const newExp = { 'root-rev': true, 'root-exp': true };
             const walk = (items) => items.forEach(n => {
@@ -99,7 +123,7 @@ const IncomeStatementReport = () => {
                     walk(n.children);
                 }
             });
-            walk([...(response.data.revenue?.items || []), ...(response.data.expenses?.items || [])]);
+            walk([...(filteredData.revenue?.items || []), ...(filteredData.expenses?.items || [])]);
             setExpanded(newExp);
         } catch {
             setReportData({ revenue: { items: [], total: 0 }, expenses: { items: [], total: 0 }, netIncome: 0 });

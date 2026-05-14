@@ -16,6 +16,8 @@ const getMonthRange = (date = new Date()) => {
     return { startDate: toISO(start), endDate: toISO(end) };
 };
 
+const BLOCKED_CODES = ['12610002', '21110002'];
+
 const GeneralLedgerReport = () => {
     const { t, i18n } = useTranslation();
     const { companySettings } = useAuth();
@@ -86,7 +88,8 @@ const GeneralLedgerReport = () => {
         try {
             const res = await chartOfAccountsService.getAllAccounts();
             const list = res?.accounts || res?.data || res || [];
-            setAccounts(Array.isArray(list) ? list : []);
+            const filtered = (Array.isArray(list) ? list : []).filter(a => !BLOCKED_CODES.includes(a.code));
+            setAccounts(filtered);
         } catch (error) {
             setAccounts([]);
         }
@@ -113,9 +116,11 @@ const GeneralLedgerReport = () => {
                     accountCode: filters.accountCode || undefined,
                 }
             });
+            const entries = response.data?.entries || [];
+            const filteredEntries = entries.filter(e => !BLOCKED_CODES.includes(e.accountCode));
             setReportData({
                 account: response.data?.account || null,
-                entries: response.data?.entries || [],
+                entries: filteredEntries,
                 totalEntries: response.data?.totalEntries || 0,
             });
         } catch (error) {

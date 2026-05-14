@@ -197,14 +197,15 @@ const InventoryValueDetailedReport = () => {
 
     return (
         <div className="p-6 text-start">
+            <style>{`@media print { table { margin-top: 150px !important; } }`}</style>
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <div className="hidden print:block mb-6">
-                        <PrintHeader
-                            title="تقرير قيمة المخزون المفصل"
-                            isRTL={true}
-                            showLogo={false}
-                            companyInfo={companySettings}
-                        />
+                <div className="hidden print:block mb-32">
+                    <PrintHeader
+                        title="تقرير قيمة المخزون المفصل"
+                        isRTL={true}
+                        showLogo={false}
+                        companyInfo={companySettings}
+                    />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 no-print">
                     <div className={textStart}>

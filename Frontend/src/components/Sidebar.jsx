@@ -201,6 +201,7 @@ const Sidebar = ({ isMobile, isOpen }) => {
                 { key: 'general_templates', path: '/dashboard/templates/general' },
                 { key: 'invoice_templates', path: '/dashboard/templates/invoices' },
                 { key: 'product_labels', path: '/dashboard/templates/product-labels' },
+                { key: 'invoice_qa', label: 'أداة اختيار الفواتير', path: '/dashboard/templates/invoice-qa' },
             ]
         },
     ];

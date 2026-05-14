@@ -55,7 +55,25 @@ const buildJournalHtml = async (entry, options = {}) => {
 
 export async function buildJournalEntryPdf(entry, options = {}) {
     const { html } = await buildJournalHtml(entry, options);
-    return generatePDF(html, `journal-entry-${entry?.number || entry?._id || 'entry'}.pdf`, { landscape: false });
+    // Normalize entry for print template preview compatibility
+    const previewInvoice = {
+        ...entry,
+        transactionNumber: entry.number,
+        issueDate: entry.date,
+        items: (entry.entries || []).map(e => ({
+            productName: typeof e.account === 'object' ? e.account?.name : (e.account || ''),
+            quantity: 1,
+            unitPrice: e.debit || e.credit || 0,
+            taxPercent: 0
+        })),
+        subtotal: entry.totalDebit || 0,
+        totalTax: 0,
+        totalAmount: entry.totalDebit || 0,
+    };
+    return generatePDF(html, `journal-entry-${entry?.number || entry?._id || 'entry'}.pdf`, { 
+        landscape: false,
+        previewInvoice
+    });
 }
 
 export async function downloadJournalEntryPdf(entry, filename, options = {}) {

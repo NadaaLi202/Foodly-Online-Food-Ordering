@@ -149,6 +149,7 @@ const InventoryValueReport = () => {
                         margin: 10mm 15mm 0mm 15mm;
                         size: landscape;
                     }
+                    nav, aside, header, .sidebar, .topbar, [role="navigation"], [role="complementary"],
                     .no-print { display: none !important; }
                     .print-only { display: flex !important; }
                     .print-only-block { display: block !important; }
@@ -158,6 +159,7 @@ const InventoryValueReport = () => {
                         width: 100% !important; 
                         table-layout: fixed !important; 
                         min-width: 0 !important;
+                        margin-top: 100px !important;
                     }
                     .overflow-x-auto { overflow: visible !important; }
                     
@@ -175,7 +177,7 @@ const InventoryValueReport = () => {
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 print:border-none print:shadow-none print:p-0">
 
-                <div className="hidden print:block mb-6">
+                <div className="hidden print:block mb-32">
                     <PrintHeader
                         title={`تقرير قيمة المخزون - تاریخ ${arabicDate}`}
                         isRTL={true}

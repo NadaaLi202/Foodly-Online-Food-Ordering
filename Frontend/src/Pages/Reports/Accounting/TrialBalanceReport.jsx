@@ -19,6 +19,18 @@ const fmt = (n) => {
     return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
+const BLOCKED_CODES = ['12610002', '21110002'];
+
+const filterBlocked = (items) => {
+    if (!items || !Array.isArray(items)) return [];
+    return items
+        .filter(item => !BLOCKED_CODES.includes(item.code))
+        .map(item => ({
+            ...item,
+            children: filterBlocked(item.children)
+        }));
+};
+
 const collectParentIds = (nodes) => {
     const ids = {};
     const walk = (items) => {
@@ -92,8 +104,9 @@ const TrialBalanceReport = () => {
                 }
             });
             const data = response.data?.data || [];
+            const filteredData = filterBlocked(data);
             const apiTotals = response.data?.totals || {};
-            setReportData(data);
+            setReportData(filteredData);
             setTotals({
                 initialDebit: apiTotals.initialDebit || 0,
                 initialCredit: apiTotals.initialCredit || 0,

@@ -368,7 +368,7 @@ const Permissions = () => {
 
             {/* Filter Modal */}
             {isFilterModalOpen && (
-                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-xl overflow-hidden">
                         <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
                             <div className="flex items-center gap-3">
@@ -399,7 +399,7 @@ const Permissions = () => {
 
             {/* Add Permission Modal */}
             {isAddModalOpen && (
-                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto">
                     <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden my-8">
                         <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
                             <div className="flex items-center gap-3">

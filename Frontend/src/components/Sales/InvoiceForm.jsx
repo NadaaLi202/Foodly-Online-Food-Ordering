@@ -417,7 +417,7 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
     };
 
     return (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 font-sans backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 font-sans backdrop-blur-md">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
                 {/* Modal Header */}
                 <div className="bg-white px-8 py-5 flex items-center justify-between border-b border-gray-100 flex-shrink-0">

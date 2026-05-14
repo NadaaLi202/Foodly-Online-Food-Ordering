@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { QRCodeCanvas } from 'qrcode.react';
 import './InvoiceQATool.css';
 import api, { BASE_URL } from '../../services/api';
 
@@ -77,14 +78,14 @@ function InvoiceQATool() {
         const txn = res.data?.data || res.data?.transaction || res.data || {};
         const contact = txn.contactSnapshot || txn.contact || {};
         const company = txn.companySnapshot || {};
-        
+
         const items = Array.isArray(txn.items) ? txn.items : [];
-        const desc = items.length > 0 
+        const desc = items.length > 0
           ? items.map(i => i.productName || i.description || 'بند غير معروف').join(' + ')
           : 'بدون أصناف';
 
         setInvoiceNumber(txn.transactionNumber || txn.invoiceNumber || invoiceNumber);
-        
+
         setForm({
           sellerName: company.name || '',
           sellerCR: company.commercialRegister || '',
@@ -139,6 +140,13 @@ function InvoiceQATool() {
   const subtotal = quantity * unitPrice;
   const taxAmount = subtotal * (taxRate / 100);
   const grandTotal = subtotal + taxAmount;
+
+  const qrValue = useMemo(() => JSON.stringify({
+    invoiceNumber,
+    total: grandTotal,
+    company: form.sellerName,
+    date: form.invoiceDate,
+  }), [invoiceNumber, grandTotal, form.sellerName, form.invoiceDate]);
 
   const completedChecks = useMemo(
     () => Object.values(checkStates).filter((v) => v !== null).length,
@@ -204,32 +212,32 @@ function InvoiceQATool() {
 
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const pdf = new jsPDF('p', 'mm', 'a4');
-      
+
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      
+
       const canvasWidth = canvas.width;
       const canvasHeight = canvas.height;
-      
+
       const ratio = canvasWidth / canvasHeight;
       let imgWidth = pdfWidth;
       let imgHeight = pdfWidth / ratio;
-      
+
       // If height is too much, scale down more
       if (imgHeight > pdfHeight) {
         imgHeight = pdfHeight;
         imgWidth = pdfHeight * ratio;
       }
-      
+
       // Center horizontally
       const xOffset = (pdfWidth - imgWidth) / 2;
-      
+
       pdf.addImage(imgData, 'JPEG', xOffset, 0, imgWidth, imgHeight);
-      
+
       const blob = pdf.output('blob');
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
-      
+
       // Revoke after some time
       setTimeout(() => URL.revokeObjectURL(url), 10000);
     } catch (err) {
@@ -300,26 +308,13 @@ function InvoiceQATool() {
             )}
 
             <div className="invoice-content">
-              {/* Adjusted Header: Logo | Text | QR */}
-              <header className="invoice-meta-header">
-                <div className="side-box">
-                  {form.sellerStamp && (
-                    <img
-                      src={form.sellerStamp}
-                      alt="Logo"
-                      className="header-logo"
-                      style={{ maxHeight: '150px', objectFit: 'contain' }}
-                    />
-                  )}
-                </div>
-
+              {/* Adjusted Header: Text only (Logo and QR moved/removed) */}
+              <header className="invoice-meta-header" style={{ justifyContent: 'center' }}>
                 <div className="meta-text-center">
                   <h3>فاتورة ضريبية</h3>
                   <p>رقم الفاتورة: {invoiceNumber}</p>
                   <p>التاريخ: {form.invoiceDate}</p>
                 </div>
-
-                <div className="side-box qr-placeholder">QR</div>
               </header>
 
               {/* Seller & Buyer */}
@@ -393,7 +388,10 @@ function InvoiceQATool() {
                           maxHeight: '150px',
                           maxWidth: '150px',
                           objectFit: 'contain',
-                          opacity: 0.8
+                          opacity: 0.8,
+                          border: 'none',
+                          outline: 'none',
+                          boxShadow: 'none'
                         }}
                       />
                     )}
@@ -404,6 +402,13 @@ function InvoiceQATool() {
                   <div className="signature-line" style={{ minHeight: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem' }}>
                     {form.signatureText}
                   </div>
+                </div>
+              </div>
+
+              {/* QR Code at bottom left corner, just above the background footer section */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'auto', paddingBottom: '1.4cm' }}>
+                <div style={{ border: 'none', background: 'transparent', paddingLeft: '15px' }}>
+                  <QRCodeCanvas value={qrValue} size={85} level="M" includeMargin={false} />
                 </div>
               </div>
             </div>

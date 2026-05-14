@@ -287,9 +287,23 @@ const Expenses = () => {
 
     const handlePrint = async () => {
         try {
+            const previewInvoice = {
+                transactionNumber: formData.code,
+                issueDate: formData.date,
+                items: [{
+                    productName: formData.account || (i18n.language === 'ar' ? 'مصروف' : 'Expense'),
+                    quantity: 1,
+                    unitPrice: formData.amount || 0,
+                    taxPercent: 0
+                }],
+                subtotal: formData.amount || 0,
+                totalTax: formData.taxes || 0,
+                totalAmount: calculateTotal(),
+            };
             await requestPrintTemplateSelection({
                 actionType: 'print',
                 source: 'expenses-print',
+                previewInvoice
             });
         } catch {
             return;
@@ -416,8 +430,24 @@ const Expenses = () => {
     const handleExportPDF = async () => {
         const filename = `Expense_${formData.code || 'Details'}.pdf`;
         try {
+            const previewInvoice = {
+                transactionNumber: formData.code,
+                issueDate: formData.date,
+                items: [{
+                    productName: formData.account || (i18n.language === 'ar' ? 'مصروف' : 'Expense'),
+                    quantity: 1,
+                    unitPrice: formData.amount || 0,
+                    taxPercent: 0
+                }],
+                subtotal: formData.amount || 0,
+                totalTax: formData.taxes || 0,
+                totalAmount: calculateTotal(),
+            };
             const html = getExpensePdfHtml();
-            const blob = await generatePDF(html, filename, { landscape: false });
+            const blob = await generatePDF(html, filename, { 
+                landscape: false,
+                previewInvoice
+            });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -645,7 +675,7 @@ const Expenses = () => {
 
             {/* Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4" onClick={() => {
+                <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-md" onClick={() => {
                     if (modalMode === 'view') {
                         setIsModalOpen(false);
                         setEditingExpense(null);

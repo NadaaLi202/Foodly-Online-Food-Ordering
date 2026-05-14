@@ -12,8 +12,8 @@ const ConfirmDeleteModal = ({ isOpen, onClose, onConfirm, title, message, loadin
     };
 
     return (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/35" onClick={onClose} aria-hidden="true" />
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 backdrop-blur-md">
+            <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden="true" />
             <div className="relative w-full max-w-[410px] overflow-hidden rounded-lg bg-white shadow-2xl">
                 <button
                     type="button"

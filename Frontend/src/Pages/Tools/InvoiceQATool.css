@@ -55,7 +55,6 @@
   height: 1.5cm;
   /* Much smaller than the old 6 cm */
   background: transparent;
-  border-bottom: 1px dashed #9ca3af;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -83,6 +82,12 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.invoice-content img {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* ─── Meta header (invoice # / date / QR) ─────────────────── */

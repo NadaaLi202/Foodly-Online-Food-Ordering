@@ -636,7 +636,18 @@
                 "purchase_invoices": "Purchase Invoices",
                 "purchase_credit_notes": "Purchase Credit Notes",
                 "journal_entries": "Journal Entries",
-                "total": "Total"
+                "total": "Total",
+                "vat_on_sales": "VAT on Sales (Output Tax)",
+                "standard_rated_sales": "Standard Rated Sales",
+                "sales_returns_adjustments": "Sales Returns & Adjustments",
+                "total_sales_output_tax": "Total Sales & Output Tax",
+                "vat_on_purchases": "VAT on Purchases (Input Tax)",
+                "standard_rated_purchases": "Standard Rated Purchases",
+                "purchase_returns_adjustments": "Purchase Returns & Adjustments",
+                "total_purchases_input_tax": "Total Purchases & Input Tax",
+                "net_tax_payable": "Net VAT Payable / (Refundable)",
+                "calculated_for_period": "Calculated for the specified period",
+                "official_return_disclaimer": "This is an internal calculation report for tax return preparation. Please verify against official records."
             }
         },
         "clients": {

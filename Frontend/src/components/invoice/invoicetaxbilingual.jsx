@@ -2,11 +2,13 @@ import React from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { formatCurrency } from '../../utils/currencyFormatter';
 
-const InvoiceTaxBilingual = ({ invoice, company, isRTL, t, isPreview = false }) => {
+const InvoiceTaxBilingual = ({ invoice, company, isRTL, t, isPreview = false, isQuotation, isPurchaseRequest }) => {
+    const isActuallyQuotation = isQuotation || invoice?.type === 'quotation';
+    const isActuallyRequest = isPurchaseRequest || invoice?.type === 'purchase_request';
     const currency = invoice?.currency || company?.currency || 'SAR';
     const logoUrl = company?.logoPath ? (company.logoPath.startsWith('http') ? company.logoPath : `http://localhost:3000${company.logoPath}`) : '';
     const contact = invoice?.contactSnapshot || invoice?.contact || {};
-    
+
     const toNumber = (v) => {
         const n = Number(v);
         return isFinite(n) ? n : 0;
@@ -48,26 +50,31 @@ const InvoiceTaxBilingual = ({ invoice, company, isRTL, t, isPreview = false }) 
     const companyAddress = formatAddress(company?.address);
 
     return (
-        <div 
-            className={`w-full bg-[#FFFFEE] p-6 font-sans ${isPreview ? 'text-[11px]' : 'text-[12px]'}`}
-            style={{ direction: 'rtl', color: '#000', border: '1px solid #000' }}
+        <div
+            className={`w-full p-6 font-sans ${isPreview ? 'text-[11px]' : 'text-[12px]'}`}
+            style={{ direction: 'rtl', color: '#000', border: '1px solid #000', backgroundColor: '#FFFFFF' }}
         >
-            {/* HEADER SECTION: Logo (Right) | Title Info (Left) */}
-            <div className="flex justify-between items-start mb-6 border-b border-black pb-4">
-                <div className="w-1/2 flex justify-start">
+            {/* HEADER SECTION: Logo (Right) | Title Info (Center) | Spacer (Left) */}
+            <div className="flex justify-between items-center mb-6 border-b border-black pb-4">
+                <div className="w-1/3 flex justify-start">
                     {logoUrl && (
-                        <img 
-                            src={logoUrl} 
-                            alt={company?.name} 
-                            className="max-h-[80px] object-contain" 
+                        <img
+                            src={logoUrl}
+                            alt={company?.name}
+                            className="max-h-[80px] object-contain"
                         />
                     )}
                 </div>
-                <div className="w-1/2 text-left space-y-1">
-                    <h1 className="text-xl font-bold" style={{ fontSize: '18px' }}>فاتورة ضريبية</h1>
-                    <p><span className="font-bold">رقم:</span> {invoice?.transactionNumber || '—'}</p>
-                    <p><span className="font-bold">التاريخ:</span> {invoice?.issueDate ? new Date(invoice.issueDate).toLocaleDateString('ar-SA') : '—'}</p>
+                <div className="w-1/3 text-center space-y-1">
+                    <h1 className="text-xl font-bold" style={{ fontSize: '18px' }}>
+                        {isActuallyQuotation ? t('sales.quotations.title', 'عرض سعر') : 
+                         isActuallyRequest ? t('purchases.requests.title', 'طلب شراء') :
+                         'فاتورة ضريبية'}
+                    </h1>
+                    <p><span className="font-bold">{isActuallyRequest ? 'رقم طلب الشراء' : 'رقم'}:</span> {invoice?.transactionNumber || '—'}</p>
+                    <p><span className="font-bold">التاريخ:</span> {invoice?.issueDate ? new Date(invoice.issueDate).toLocaleDateString('en-GB') : '—'}</p>
                 </div>
+                <div className="w-1/3"></div>
             </div>
 
             {/* INFO SECTION: Company (Right) | Client (Left) */}
@@ -81,8 +88,8 @@ const InvoiceTaxBilingual = ({ invoice, company, isRTL, t, isPreview = false }) 
                     <p><span className="font-bold">العنوان:</span> {companyAddress}</p>
                 </div>
                 {/* CLIENT INFO (Left in RTL) */}
-                <div className="p-2 border-b border-black space-y-1 text-left">
-                    <p className="font-bold text-right" style={{ fontSize: '14px' }}>بيانات العميل</p>
+                <div className="p-2 border-b border-black space-y-1">
+                    <p className="font-bold" style={{ fontSize: '14px' }}>بيانات العميل</p>
                     <p className="font-bold">{contact?.name || '—'}</p>
                     <p><span className="font-bold">العنوان:</span> {contactAddress}</p>
                     <p><span className="font-bold">الرقم الضريبي:</span> {contact?.taxNumber || '—'}</p>

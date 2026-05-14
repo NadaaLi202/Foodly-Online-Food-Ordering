@@ -55,7 +55,7 @@ const DocumentActions = ({
             </button>
             <button
                 type="button"
-                onClick={onPrint}
+                onClick={(e) => onPrint && onPrint(e)}
                 disabled={printLoading}
                 className={`${buttonBase} ${styles.print}`}
                 title={printLabel}

@@ -59,17 +59,14 @@ const SAMPLE_DATA = {
     dueDate: new Date(Date.now() + 86400000 * 7).toISOString(),
     currency: 'SAR',
     contact: {
-        name: 'عميل افتراضي / Sample Customer',
-        phone: '05XXXXXXXX',
-        address: { city: 'الرياض / Riyadh' }
+        name: 'عميل / Customer',
+        phone: '—',
+        address: { city: '—' }
     },
-    items: [
-        { productName: 'منتج تجريبي أ / Sample Item A', quantity: 2, unitPrice: 50, taxPercent: 15 },
-        { productName: 'منتج تجريبي ب / Sample Item B', quantity: 1, unitPrice: 100, taxPercent: 15 },
-    ],
-    subtotal: 200,
-    totalTax: 30,
-    totalAmount: 230,
+    items: [],
+    subtotal: 0,
+    totalTax: 0,
+    totalAmount: 0,
 };
 
 const resolveCompanyInfo = ({ companySettings, user, requestMeta }) => {
@@ -135,7 +132,7 @@ const buildLines = (invoice) => {
     });
 };
 
-const ModalPreview = ({ template, invoice, company, loading, isRTL, t }) => {
+const ModalPreview = ({ template, invoice, company, loading, isRTL, t, isQuotation, isPurchaseRequest }) => {
     if (loading) {
         return (
             <div className="h-full min-h-[360px] flex items-center justify-center bg-white rounded-lg border border-gray-200">
@@ -169,9 +166,17 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t }) => {
                     <div className="text-center border-b border-dashed border-gray-300 pb-2">
                         {logoUrl ? <img src={logoUrl} alt={company?.name || 'Company'} className="h-10 mx-auto mb-1 object-contain" /> : null}
                         <p className="font-bold text-[12px]">{company?.name}</p>
-                        <p>{t('sales.invoices.invoice_number', 'رقم الفاتورة')}: {activeInvoice?.transactionNumber || '—'}</p>
+                        <p>
+                            {isQuotation ? t('sales.quotations.quotation_number', 'رقم عرض السعر') :
+                                isPurchaseRequest ? t('purchases.requests.request_number', 'رقم طلب الشراء') :
+                                    t('sales.invoices.invoice_number', 'رقم الفاتورة')}: {activeInvoice?.transactionNumber || '—'}
+                        </p>
                         <p>{t('sales.invoices.issue_date', 'تاريخ الفاتورة')}: {formatDate(activeInvoice?.issueDate, isRTL)}</p>
-                        <p className="font-semibold mt-1">{t('sales_settings.template_arabic_thermal', 'قالب فاتورة طابعة حرارية عربي')}</p>
+                        <p className="font-semibold mt-1">
+                            {isQuotation ? t('sales.quotations.title', 'عرض سعر') :
+                                isPurchaseRequest ? t('purchases.requests.title', 'طلب شراء') :
+                                    t('sales_settings.template_arabic_thermal', 'فاتورة طابعة حرارية')}
+                        </p>
                     </div>
 
                     <div className="py-2 border-b border-dashed border-gray-300">
@@ -222,6 +227,8 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t }) => {
                     isRTL={isRTL}
                     t={t}
                     isPreview={true}
+                    isQuotation={isQuotation}
+                    isPurchaseRequest={isPurchaseRequest}
                 />
             </div>
         );
@@ -240,8 +247,16 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t }) => {
                             {logoUrl && <img src={logoUrl} alt="Logo" className="max-h-12 w-auto object-contain" />}
                         </div>
                         <div className="text-center flex-1">
-                            <p className="font-bold text-sm">فاتورة ضريبية</p>
-                            <p className="text-gray-500">رقم الفاتورة: {activeInvoice?.transactionNumber || '—'}</p>
+                            <p className="font-bold text-sm">
+                                {isQuotation ? t('sales.quotations.title', 'عرض سعر') :
+                                    isPurchaseRequest ? t('purchases.requests.title', 'طلب شراء') :
+                                        'فاتورة ضريبية'}
+                            </p>
+                            <p className="text-gray-500">
+                                {isQuotation ? 'رقم عرض السعر' :
+                                    isPurchaseRequest ? 'رقم طلب الشراء' :
+                                        'رقم الفاتورة'}: {activeInvoice?.transactionNumber || '—'}
+                            </p>
                             <p className="text-gray-500">التاريخ: {formatDate(activeInvoice?.issueDate, isRTL)}</p>
                         </div>
                         <div className="w-[70px] flex items-center justify-center">
@@ -321,11 +336,19 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t }) => {
                 <div className="flex items-start justify-between border-b border-gray-200 pb-3 mb-4 gap-4">
                     <div className="text-left min-w-[180px]">
                         <p className="font-bold text-sm">
-                            {template === 'tax'
-                                ? t('sales_settings.template_arabic_tax', 'قالب فاتورة ضريبية عربي')
-                                : t('sales_settings.template_arabic_normal', 'قالب فاتورة عادية عربي')}
+                            {isQuotation
+                                ? t('sales.quotations.title', 'عرض سعر')
+                                : isPurchaseRequest
+                                    ? t('purchases.requests.title', 'طلب شراء')
+                                    : (template === 'tax'
+                                        ? t('sales_settings.template_arabic_tax', 'فاتورة ضريبية')
+                                        : t('sales_settings.template_arabic_normal', 'فاتورة عادية'))}
                         </p>
-                        <p className="text-xs text-gray-600 mt-1">{t('sales.invoices.invoice_number', 'رقم الفاتورة')}: {activeInvoice?.transactionNumber || '—'}</p>
+                        <p className="text-xs text-gray-600 mt-1">
+                            {isQuotation ? t('sales.quotations.quotation_number', 'رقم عرض السعر') :
+                                isPurchaseRequest ? t('purchases.requests.request_number', 'رقم طلب الشراء') :
+                                    t('sales.invoices.invoice_number', 'رقم الفاتورة')}: {activeInvoice?.transactionNumber || '—'}
+                        </p>
                         <p className="text-xs text-gray-600">{t('sales.invoices.issue_date', 'تاريخ الفاتورة')}: {formatDate(activeInvoice?.issueDate, isRTL)}</p>
                     </div>
 
@@ -408,6 +431,8 @@ const PrintTemplateProvider = ({ children }) => {
     const selectedTemplateRef = useRef(defaultTemplate);
 
     const [selectedTemplate, setSelectedTemplate] = useState(defaultTemplate);
+    const [saveAsDefault, setSaveAsDefault] = useState(false);
+    const [currentDefault, setCurrentDefault] = useState(() => localStorage.getItem('defaultInvoiceTemplate'));
 
     useEffect(() => {
         selectedTemplateRef.current = selectedTemplate;
@@ -415,6 +440,14 @@ const PrintTemplateProvider = ({ children }) => {
 
     useEffect(() => {
         setPrintTemplateRequestHandler((meta = {}) => {
+            const isReportPage = window.location.pathname.includes('/reports');
+            const savedDefault = localStorage.getItem('defaultInvoiceTemplate');
+            const forceModal = meta.forceModal === true;
+
+            if (savedDefault && !isReportPage && !forceModal) {
+                return normalizePrintTemplate(savedDefault);
+            }
+
             if (requestRef.current?.promise) {
                 return requestRef.current.promise;
             }
@@ -429,6 +462,8 @@ const PrintTemplateProvider = ({ children }) => {
             const initial = normalizePrintTemplate(meta.template || getSavedPrintTemplate());
             requestRef.current = { meta, resolve: resolveFn, reject: rejectFn, promise };
             setSelectedTemplate(initial);
+            setSaveAsDefault(false); // Reset checkbox on each new modal open
+            setCurrentDefault(localStorage.getItem('defaultInvoiceTemplate')); // Re-read current default
             setRequest({ meta, template: initial });
             return promise;
         });
@@ -446,13 +481,19 @@ const PrintTemplateProvider = ({ children }) => {
         }
 
         originalPrintRef.current = window.print.bind(window);
+        let shiftHeld = false;
+        const onKeyDown = (e) => { if (e.key === 'Shift') shiftHeld = true; };
+        const onKeyUp = (e) => { if (e.key === 'Shift') shiftHeld = false; };
+        window.addEventListener('keydown', onKeyDown);
+        window.addEventListener('keyup', onKeyUp);
+
         window.print = async (...args) => {
             if (window.location.pathname.includes('/templates/invoice-qa') || window.location.pathname.includes('/reports')) {
                 return originalPrintRef.current(...args);
             }
 
             try {
-                const resolved = await requestPrintTemplateSelection({ actionType: 'print', source: 'window.print' });
+                const resolved = await requestPrintTemplateSelection({ actionType: 'print', source: 'window.print', forceModal: shiftHeld });
                 const finalTemplate = selectedTemplateRef.current || resolved || getSavedPrintTemplate();
                 setSavedPrintTemplate(finalTemplate);
                 document.documentElement.dataset.printTemplate = finalTemplate;
@@ -462,6 +503,12 @@ const PrintTemplateProvider = ({ children }) => {
             }
         };
 
+        // Expose helper: clears default then forces modal open for any print button
+        window.openPrintTemplateModal = () => {
+            localStorage.removeItem('defaultInvoiceTemplate');
+            requestPrintTemplateSelection({ actionType: 'manual', source: 'openPrintTemplateModal', forceModal: true });
+        };
+
         // Expose original print for specialized direct calls
         window._originalPrint = originalPrintRef.current;
 
@@ -469,6 +516,9 @@ const PrintTemplateProvider = ({ children }) => {
             if (originalPrintRef.current) {
                 window.print = originalPrintRef.current;
             }
+            window.removeEventListener('keydown', onKeyDown);
+            window.removeEventListener('keyup', onKeyUp);
+            delete window.openPrintTemplateModal;
             delete document.documentElement.dataset.printTemplate;
         };
     }, []);
@@ -541,6 +591,12 @@ const PrintTemplateProvider = ({ children }) => {
             }
         }
 
+        if (saveAsDefault) {
+            console.log('Saved default template:', selectedTemplate);
+            localStorage.setItem('defaultInvoiceTemplate', selectedTemplate);
+            setCurrentDefault(selectedTemplate);
+        }
+
         const normalized = setSavedPrintTemplate(selectedTemplate);
         document.documentElement.dataset.printTemplate = normalized;
         current.resolve(normalized);
@@ -548,6 +604,13 @@ const PrintTemplateProvider = ({ children }) => {
         setRequest(null);
     };
 
+    const handleClearDefault = () => {
+        localStorage.removeItem('defaultInvoiceTemplate');
+        setCurrentDefault(null);
+    };
+
+    const isQuotation = previewInvoice?.type === 'quotation' || window.location.pathname.includes('/quotations');
+    const isPurchaseRequest = window.location.pathname.includes('/purchases/requests');
     const optionLabel = (opt) => t(opt.labelKey, opt.fallbackLabel);
     const previewTemplate = selectedTemplate || getSavedPrintTemplate();
     const isRTL = i18n.language === 'ar';
@@ -560,10 +623,29 @@ const PrintTemplateProvider = ({ children }) => {
         <>
             {children}
             {isReady && request && typeof document !== 'undefined' && createPortal(
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/45 px-4 py-6" dir={isRTL ? 'rtl' : 'ltr'}>
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md px-4 py-6" dir={isRTL ? 'rtl' : 'ltr'}>
                     <div className="w-full max-w-[920px] overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5">
                         <div className="border-b border-gray-100 px-5 py-4">
-                            <h2 className="text-lg font-bold text-gray-800">{t('اختر قالب المستند', 'اختر قالب المستند')}</h2>
+                            <div className="flex items-center justify-between gap-3 flex-wrap">
+                                <h2 className="text-lg font-bold text-gray-800">{t('اختر قالب المستند', 'اختر قالب المستند')}</h2>
+                                {currentDefault && (
+                                    <div className="flex items-center gap-2 rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-1.5 text-xs">
+                                        <span className="font-semibold text-indigo-700">
+                                            {t('القالب الافتراضي الحالي', 'القالب الافتراضي الحالي')}: <strong>{currentDefault}</strong>
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={handleClearDefault}
+                                            className="font-bold text-red-500 hover:text-red-700 underline"
+                                        >
+                                            {t('إزالة القالب الافتراضي', 'إزالة القالب الافتراضي')}
+                                        </button>
+                                    </div>
+                                )}
+                                {!currentDefault && (
+                                    <span className="text-xs text-gray-400 italic">{t('لا يوجد قالب افتراضي محفوظ', 'لا يوجد قالب افتراضي محفوظ')}</span>
+                                )}
+                            </div>
                         </div>
 
                         <div className="grid gap-0 md:grid-cols-[1.2fr_0.8fr]">
@@ -575,6 +657,8 @@ const PrintTemplateProvider = ({ children }) => {
                                     loading={previewLoading}
                                     isRTL={isRTL}
                                     t={t}
+                                    isQuotation={isQuotation}
+                                    isPurchaseRequest={isPurchaseRequest}
                                 />
                             </div>
 
@@ -606,8 +690,34 @@ const PrintTemplateProvider = ({ children }) => {
                                     })}
                                 </div>
 
-                                <div className="mt-4 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-800 border border-blue-100">
-                                    {t('print_template.remember_default', 'سيتم حفظ هذا الاختيار كخيار افتراضي للطباعة القادمة.')}
+                                <div className="mt-4 space-y-3">
+                                    <label className="flex items-center gap-3 px-1 cursor-pointer group">
+                                        <input
+                                            type="checkbox"
+                                            checked={saveAsDefault}
+                                            onChange={(e) => setSaveAsDefault(e.target.checked)}
+                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+                                            {t('حفظ كقالب افتراضي للطباعة القادمة', 'حفظ كقالب افتراضي للطباعة القادمة')}
+                                        </span>
+                                    </label>
+
+                                    {currentDefault && (
+                                        <div className="rounded-xl bg-indigo-50/50 border border-indigo-100 p-3">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-xs font-semibold text-indigo-700">
+                                                    {t('سيُحفظ القالب المختار كافتراضي عند التأكيد', 'سيُحفظ القالب المختار كافتراضي عند التأكيد')}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {!currentDefault && (
+                                        <div className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-800 border border-blue-100">
+                                            {t('print_template.remember_default', 'سيتم حفظ هذا الاختيار كخيار افتراضي للطباعة القادمة.')}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

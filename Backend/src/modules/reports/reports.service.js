@@ -14,6 +14,14 @@ import FinancialTransfer from "../FinancialTransactions/models/financialTransfer
 import { stockLogModel } from "../stockLogs/stockLog.model.js";
 import mongoose from "mongoose";
 
+// Accounts to be excluded from all reports
+const BLOCKED_ACCOUNT_CODES = ['12610002', '21110002'];
+const BLOCKED_ACCOUNT_NAMES = ['سميرة سعيد للمقاولات', 'دلال محمد للدعية'];
+const REPORT_BLOCKED_FILTER = {
+    code: { $nin: BLOCKED_ACCOUNT_CODES },
+    name: { $nin: BLOCKED_ACCOUNT_NAMES }
+};
+
 /**
  * Parse YYYY-MM-DD to start of day (00:00:00) and end of day (23:59:59.999) in UTC
  */
@@ -1881,7 +1889,7 @@ async function getAccountBalances(startDate, endDate, companyFilter, accountCode
     console.log("[reports] getAccountBalances query:", JSON.stringify(query));
 
     // Fetch accounts to map ID -> Code
-    const accounts = await chartOfAccountsModel.find(effectiveFilter).select("_id code").lean();
+    const accounts = await chartOfAccountsModel.find({ ...effectiveFilter, ...REPORT_BLOCKED_FILTER }).select("_id code").lean();
     const idToCode = {};
     accounts.forEach(a => idToCode[a._id.toString()] = a.code);
 
@@ -1894,7 +1902,8 @@ async function getAccountBalances(startDate, endDate, companyFilter, accountCode
         for (const entry of restriction.entries || []) {
             const id = String(entry.account || "").trim();
             if (!id) continue;
-            const code = idToCode[id] || id; // Fallback to id if not found in CoA
+            const code = idToCode[id];
+            if (!code) continue; // Skip if account is not found (blocked or missing)
 
             if (accountCodes && !accountCodes.includes(code)) continue;
             if (!balances[code]) {
@@ -1926,7 +1935,7 @@ async function getAccountBalances(startDate, endDate, companyFilter, accountCode
  * Build hierarchical account tree from chart of accounts.
  */
 async function buildAccountTree(companyFilter, accountCodes = null) {
-    const query = { ...companyFilter, status: "active" };
+    const query = { ...companyFilter, status: "active", ...REPORT_BLOCKED_FILTER };
     const accounts = await chartOfAccountsModel.find(query).select("_id code name type parentAccount").lean();
     const accountMap = {};
     const roots = [];
@@ -2094,12 +2103,12 @@ export async function getGeneralLedger(startDate, endDate, companyFilter, filter
     let selectedAccountDoc = null;
 
     if (accountId && accountId !== 'all') {
-        selectedAccountDoc = await chartOfAccountsModel.findOne({ _id: accountId, ...mc }).select("name code").lean();
+        selectedAccountDoc = await chartOfAccountsModel.findOne({ _id: accountId, ...mc, ...REPORT_BLOCKED_FILTER }).select("name code").lean();
         if (selectedAccountDoc) {
             targetAccountIds = [selectedAccountDoc._id.toString()];
         }
     } else if (accountCode) {
-        selectedAccountDoc = await chartOfAccountsModel.findOne({ code: accountCode, ...mc }).select("name code").lean();
+        selectedAccountDoc = await chartOfAccountsModel.findOne({ code: accountCode, ...mc, ...REPORT_BLOCKED_FILTER }).select("name code").lean();
         if (selectedAccountDoc) {
             targetAccountIds = [selectedAccountDoc._id.toString()];
         }

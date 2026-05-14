@@ -3,10 +3,10 @@ const STORAGE_KEY = 'dafater.printTemplatePreference';
 let requestHandler = null;
 
 export const PRINT_TEMPLATE_OPTIONS = [
-    { value: 'tax', labelKey: 'sales_settings.template_arabic_tax', fallbackLabel: 'قالب فاتورة ضريبية عربي' },
+    { value: 'tax', labelKey: 'sales_settings.template_arabic_tax', fallbackLabel: 'فاتورة ضريبية' },
     { value: 'tax-bilingual', labelKey: 'sales_settings.template_bilingual_tax', fallbackLabel: 'فاتورة ضريبية ثنائية اللغة' },
-    { value: 'normal', labelKey: 'sales_settings.template_arabic_normal', fallbackLabel: 'قالب فاتورة عادية عربي' },
-    { value: 'thermal', labelKey: 'sales_settings.template_arabic_thermal', fallbackLabel: 'قالب فاتورة طابعة حرارية عربي' },
+    { value: 'normal', labelKey: 'sales_settings.template_arabic_normal', fallbackLabel: 'فاتورة عادية' },
+    { value: 'thermal', labelKey: 'sales_settings.template_arabic_thermal', fallbackLabel: 'فاتورة طابعة حرارية' },
     { value: 'invoice-qa', labelKey: 'sales_settings.template_invoice_qa', fallbackLabel: 'أداة اختيار الفواتير' },
 ];
 
