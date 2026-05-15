@@ -16,6 +16,10 @@ const transactionLineSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    description: {
+        type: String,
+        default: ''
+    },
     quantity: {
         type: Number,
         required: true,

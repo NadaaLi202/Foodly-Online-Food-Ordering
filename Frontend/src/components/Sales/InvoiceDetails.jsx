@@ -10,6 +10,7 @@ import InvoiceLayout from '../invoice/InvoiceLayout';
 import InvoicePaymentsTab from './InvoicePaymentsTab';
 import { fetchPdfBlob, downloadBlob, openBlobInNewTab, getErrorMessage } from '../../utils/invoicePdf';
 import { handleUniversalShare } from '../../utils/shareUtils';
+import { generateZatcaQR } from '../../utils/zatca';
 
 const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, onRefreshInvoice, loading, i18n, viewTitleKey, filenamePrefix, paymentsModule = 'sales', canEdit = true, canDelete = true }) => {
     const { t } = useTranslation();
@@ -127,12 +128,13 @@ const InvoiceDetails = ({ invoice, onClose, onEdit, onDelete, onSave, onRefreshI
 
     if (!invoice) return null;
 
-    const qrValue = JSON.stringify({
-        invoiceNumber: invoice.transactionNumber,
-        total: invoice.totalAmount,
-        company: 'Dafater',
-        date: invoice.issueDate
-    });
+    const qrValue = generateZatcaQR(
+        invoice?.companySnapshot?.name || 'Dafater',
+        invoice?.companySnapshot?.taxNumber || '',
+        invoice?.issueDate ? new Date(invoice.issueDate).toISOString() : new Date().toISOString(),
+        (invoice?.totalAmount || 0).toFixed(2),
+        (invoice?.totalTax || 0).toFixed(2)
+    );
 
     return (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 print:p-0 print:bg-white print:static backdrop-blur-md">

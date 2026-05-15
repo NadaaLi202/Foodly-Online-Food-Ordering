@@ -56,7 +56,7 @@ const PlaceholderModal = ({ onClose }) => {
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
-            <div className="absolute inset-0 bg-black/20" onClick={onClose} />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose} />
             <div className="relative bg-white rounded-lg shadow-2xl w-[600px] max-h-[80vh] flex flex-col" dir="rtl">
                 {/* Close button */}
                 <button

@@ -444,7 +444,7 @@ const CostCenters = () => {
 
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsModalOpen(false)} />
                     <div className="relative w-full max-w-md bg-white rounded-lg shadow-2xl overflow-hidden">
                         <div className="h-10 px-4 border-b border-gray-100 flex items-center justify-between">
                             <button type="button" onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">

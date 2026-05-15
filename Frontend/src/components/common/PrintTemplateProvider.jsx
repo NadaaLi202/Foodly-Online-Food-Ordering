@@ -6,6 +6,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import api, { BASE_URL } from '../../services/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
 import { useAuth } from '../../context/AuthContext';
+import { generateZatcaQR } from '../../utils/zatca';
 import {
     setPrintTemplateRequestHandler,
     getSavedPrintTemplate,
@@ -123,7 +124,8 @@ const buildLines = (invoice) => {
         const taxAmount = item?.taxAmount != null ? toNumber(item.taxAmount) : (taxable * toNumber(item?.taxRate ?? item?.taxPercent) / 100);
         const total = item?.total != null ? toNumber(item.total) : taxable + taxAmount;
         return {
-            description: item?.productName || item?.product?.name || item?.description || '—',
+            name: item?.productName || item?.product?.name || '—',
+            description: item?.description || '',
             qty,
             unitPrice,
             taxAmount,
@@ -152,12 +154,13 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t, isQuotati
     const subtotal = activeInvoice?.subtotal != null ? toNumber(activeInvoice.subtotal) : subtotalFromLines;
     const taxAmount = activeInvoice?.totalTax != null ? toNumber(activeInvoice.totalTax) : taxFromLines;
     const grandTotal = activeInvoice?.totalAmount != null ? toNumber(activeInvoice.totalAmount) : subtotal + taxAmount;
-    const qrValue = JSON.stringify({
-        invoiceNumber: activeInvoice?.transactionNumber || activeInvoice?._id || 'SAMPLE',
-        total: grandTotal,
-        company: company?.name,
-        date: activeInvoice?.issueDate,
-    });
+    const qrValue = generateZatcaQR(
+        company?.name,
+        company?.taxNumber,
+        activeInvoice?.issueDate ? new Date(activeInvoice.issueDate).toISOString() : new Date().toISOString(),
+        grandTotal.toFixed(2),
+        taxAmount.toFixed(2)
+    );
 
     if (template === 'thermal') {
         return (
@@ -192,10 +195,10 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t, isQuotati
                             <span>{t('sales.common.total', 'إج')}</span>
                         </div>
                         {lines.map((line, idx) => (
-                            <div key={`${line.description}-${idx}`} className="grid grid-cols-[1fr_auto_auto_auto] gap-1">
+                            <div key={`thermal-item-${idx}`} className="grid grid-cols-[1fr_auto_auto_auto] gap-1">
                                 <div>
-                                    <p className="font-medium">{line.description}</p>
-                                    <p className="text-[10px] text-gray-500">{formatCurrency(line.unitPrice, currency)}</p>
+                                    <p className="font-medium">{line.name}</p>
+                                    {line.description && <p className="text-[9px] text-gray-500 leading-tight">{line.description}</p>}
                                 </div>
                                 <p className="font-medium whitespace-nowrap">{line.qty}</p>
                                 <p className="font-medium whitespace-nowrap">{formatCurrency(line.taxAmount, currency)}</p>
@@ -235,22 +238,58 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t, isQuotati
     }
 
     if (template === 'invoice-qa') {
+        let qaData = null;
+        try {
+            const saved = localStorage.getItem('invoice_qa_template_data');
+            if (saved) qaData = JSON.parse(saved);
+        } catch (e) {
+            console.error('Failed to load QA data', e);
+        }
+
+        const qForm = qaData?.form || {};
+        const qBg = qaData?.backgroundPreview || '';
+
+        // Override info with QA data if available
+        const dispSellerName = qForm.sellerName || company?.name || '—';
+        const dispSellerCR = qForm.sellerCR || company?.commercialRegister || '—';
+        const dispSellerTaxID = qForm.sellerTaxID || company?.taxNumber || '—';
+        const dispSellerAddress = qForm.sellerAddress || company?.address || '—';
+        const dispStamp = qForm.sellerStamp || logoUrl;
+
+        const dispBuyerName = qForm.buyerName || contact?.name || '—';
+        const dispBuyerCR = qForm.buyerCR || contact?.commercialRegNumber || contact?.commercialRegister || '—';
+        const dispBuyerTaxID = qForm.buyerTaxID || contact?.taxNumber || '—';
+        const dispBuyerAddress = qForm.buyerAddress || resolveEntityAddress(contact);
+
+        const finalQR = generateZatcaQR(
+            dispSellerName,
+            dispSellerTaxID,
+            activeInvoice?.issueDate ? new Date(activeInvoice.issueDate).toISOString() : new Date().toISOString(),
+            grandTotal.toFixed(2),
+            taxAmount.toFixed(2)
+        );
+
         return (
             <div className="h-full max-h-[68vh] overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-4" dir="rtl">
                 <div
-                    className="mx-auto bg-white border border-gray-300 shadow-sm p-4 text-xs min-h-[520px] flex flex-col gap-3"
-                    style={{ marginTop: '2cm' }}
+                    className="mx-auto bg-white border border-gray-300 shadow-sm p-4 text-xs min-h-[520px] flex flex-col gap-3 relative"
+                    style={{ 
+                        marginTop: '2cm',
+                        backgroundImage: qBg ? `url(${qBg})` : 'none',
+                        backgroundSize: '100% 100%',
+                        backgroundRepeat: 'no-repeat'
+                    }}
                 >
                     {/* Adjusted Header: Logo | Text | QR */}
-                    <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+                    <div className="flex items-center justify-between border-b border-gray-200 pb-3 z-10">
                         <div className="w-[70px] flex items-center justify-center">
-                            {logoUrl && <img src={logoUrl} alt="Logo" className="max-h-12 w-auto object-contain" />}
+                            {/* Top stamp removed as requested */}
                         </div>
                         <div className="text-center flex-1">
                             <p className="font-bold text-sm">
                                 {isQuotation ? t('sales.quotations.title', 'عرض سعر') :
                                     isPurchaseRequest ? t('purchases.requests.title', 'طلب شراء') :
-                                        'فاتورة ضريبية'}
+                                        ''}
                             </p>
                             <p className="text-gray-500">
                                 {isQuotation ? 'رقم عرض السعر' :
@@ -260,69 +299,98 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t, isQuotati
                             <p className="text-gray-500">التاريخ: {formatDate(activeInvoice?.issueDate, isRTL)}</p>
                         </div>
                         <div className="w-[70px] flex items-center justify-center">
-                            <QRCodeCanvas value={qrValue} size={60} level="M" includeMargin />
+                            {/* QR Code removed as requested */}
                         </div>
                     </div>
 
                     {/* Seller & Buyer */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="border border-gray-200 rounded p-2">
+                    <div className="grid grid-cols-2 gap-3 z-10">
+                        <div className="border border-gray-200 rounded p-2 bg-white/80 backdrop-blur-[1px]">
                             <p className="font-bold mb-1 text-gray-700">بيانات البائع</p>
-                            <p>{company?.name || '—'}</p>
-                            <p className="text-gray-500">السجل التجاري: {company?.commercialRegister || '—'}</p>
-                            <p className="text-gray-500">الرقم الضريبي: {company?.taxNumber || '—'}</p>
-                            <p className="text-gray-500">العنوان: {company?.address || '—'}</p>
+                            <p>{dispSellerName}</p>
+                            <p className="text-gray-500 text-[10px]">السجل التجاري: {dispSellerCR}</p>
+                            <p className="text-gray-500 text-[10px]">الرقم الضريبي: {dispSellerTaxID}</p>
+                            <p className="text-gray-500 text-[10px]">العنوان: {dispSellerAddress}</p>
                         </div>
-                        <div className="border border-gray-200 rounded p-2">
+                        <div className="border border-gray-200 rounded p-2 bg-white/80 backdrop-blur-[1px]">
                             <p className="font-bold mb-1 text-gray-700">بيانات المشتري</p>
-                            <p>{contact?.name || '—'}</p>
-                            <p className="text-gray-500">السجل التجاري: {contact?.commercialRegNumber || contact?.commercialRegister || '—'}</p>
-                            <p className="text-gray-500">الرقم الضريبي: {contact?.taxNumber || '—'}</p>
-                            <p className="text-gray-500">العنوان: {resolveEntityAddress(contact)}</p>
+                            <p>{dispBuyerName}</p>
+                            <p className="text-gray-500 text-[10px]">السجل التجاري: {dispBuyerCR}</p>
+                            <p className="text-gray-500 text-[10px]">الرقم الضريبي: {dispBuyerTaxID}</p>
+                            <p className="text-gray-500 text-[10px]">العنوان: {dispBuyerAddress}</p>
                         </div>
                     </div>
 
                     {/* Items table */}
-                    <table className="w-full border border-gray-200 border-collapse">
-                        <thead className="bg-gray-50">
-                            <tr>
-                                <th className="p-2 border border-gray-200 text-right">{t('sales.common.description', 'الوصف')}</th>
-                                <th className="p-2 border border-gray-200 text-center">{t('sales.common.qty', 'الكمية')}</th>
-                                <th className="p-2 border border-gray-200 text-center">{t('sales.invoices.price', 'السعر')}</th>
-                                <th className="p-2 border border-gray-200 text-center">{t('sales.common.total', 'الإجمالي')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {lines.map((line, idx) => (
-                                <tr key={`qa-${idx}`} className="border-b border-gray-100">
-                                    <td className="p-2 text-right">{line.description}</td>
-                                    <td className="p-2 text-center">{line.qty}</td>
-                                    <td className="p-2 text-center">{formatCurrency(line.unitPrice, currency)}</td>
-                                    <td className="p-2 text-center font-semibold">{formatCurrency(line.total, currency)}</td>
+                    <div className="z-10 overflow-hidden rounded border border-gray-200">
+                        <table className="w-full border-collapse bg-white/80 backdrop-blur-[1px]">
+                            <thead className="bg-gray-50/90">
+                                <tr>
+                                    <th className="p-2 border border-gray-200 text-right">{t('sales.common.description', 'الوصف')}</th>
+                                    <th className="p-2 border border-gray-200 text-center">{t('sales.common.qty', 'الكمية')}</th>
+                                    <th className="p-2 border border-gray-200 text-center">{t('sales.invoices.price', 'السعر')}</th>
+                                    <th className="p-2 border border-gray-200 text-center">{t('sales.common.total', 'الإجمالي')}</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-
-                    {/* Totals — directly below table */}
-                    <div className="self-end w-full max-w-[240px] border border-gray-200 rounded p-2 space-y-1">
-                        <div className="flex justify-between"><span>الإجمالي قبل الضريبة</span><span>{formatCurrency(subtotal, currency)}</span></div>
-                        <div className="flex justify-between"><span>الضريبة (15%)</span><span>{formatCurrency(taxAmount, currency)}</span></div>
-                        <div className="flex justify-between font-bold border-t border-gray-300 pt-1"><span>الإجمالي شامل الضريبة</span><span>{formatCurrency(grandTotal, currency)}</span></div>
+                            </thead>
+                            <tbody>
+                                {lines.length > 0 ? (
+                                    lines.map((line, idx) => (
+                                        <tr key={`qa-${idx}`} className="border-b border-gray-100">
+                                            <td className="p-2 text-right">
+                                                <p className="font-bold">{line.name}</p>
+                                                {line.description && <p className="text-[9px] text-gray-500">{line.description}</p>}
+                                            </td>
+                                            <td className="p-2 text-center">{line.qty}</td>
+                                            <td className="p-2 text-center">{formatCurrency(line.unitPrice, currency)}</td>
+                                            <td className="p-2 text-center font-semibold">{formatCurrency(line.total, currency)}</td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr className="border-b border-gray-100">
+                                        <td className="p-2 text-right font-bold">{qForm.itemDescription || '—'}</td>
+                                        <td className="p-2 text-center">{qForm.quantity || 0}</td>
+                                        <td className="p-2 text-center">{formatCurrency(qForm.unitPrice || 0, currency)}</td>
+                                        <td className="p-2 text-center font-semibold">{formatCurrency((qForm.quantity || 0) * (qForm.unitPrice || 0), currency)}</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
                     </div>
 
-                    {/* Signature */}
-                    <div className="grid grid-cols-2 gap-4 mt-2 pt-2 border-t border-dashed border-gray-300">
-                        <div className="text-center">
-                            <p className="text-gray-500 mb-2 italic">ختم البائع</p>
-                            <div className="min-h-[60px] flex items-center justify-center">
-                                {company?.logoPath && <img src={getCompanyLogoUrl(company.logoPath)} alt="Seal" className="max-h-12 opacity-70" />}
-                            </div>
-                            <div className="border-t border-gray-300 mx-4" />
+                    {/* Totals — directly below table */}
+                    {/* Totals & QR Section */}
+                    <div className="flex justify-between items-center z-10 px-2" style={{ marginTop: '1rem' }}>
+                        {/* QR Code on the left side of the totals box */}
+                        <div className="bg-white p-1">
+                            <QRCodeCanvas value={finalQR} size={75} level="M" includeMargin={false} />
                         </div>
+
+                        <div className="w-full max-w-[240px] border border-gray-200 rounded p-2 space-y-1 bg-white/90 backdrop-blur-[1px]">
+                            <div className="flex justify-between"><span>الإجمالي قبل الضريبة</span><span>{formatCurrency(subtotal, currency)}</span></div>
+                            <div className="flex justify-between"><span>الضريبة (15%)</span><span>{formatCurrency(taxAmount, currency)}</span></div>
+                            <div className="flex justify-between font-bold border-t border-gray-300 pt-1"><span>الإجمالي شامل الضريبة</span><span>{formatCurrency(grandTotal, currency)}</span></div>
+                        </div>
+                    </div>
+
+                    {/* Signature Section — 2-column layout, moved up */}
+                    <div className="grid grid-cols-2 gap-6 pt-6 z-10" style={{ marginTop: '1rem' }}>
+                        {/* Seller signature — right column */}
                         <div className="text-center">
-                            <p className="text-gray-500 mb-6">توقيع المشتري</p>
-                            <div className="border-t border-gray-300 mx-4" />
+                            <p className="text-[10px] font-bold mb-1">الختم</p>
+                            <div className="min-h-[60px] flex items-center justify-center relative">
+                                {dispStamp && <img src={dispStamp} alt="Seal" className="max-h-16 opacity-80 object-contain" />}
+                            </div>
+                            <div className="border-t border-gray-400 mx-4 mt-2" />
+                            <p className="text-gray-500 text-[10px] mt-1">توقيع البائع</p>
+                        </div>
+                        {/* Buyer signature — left column */}
+                        <div className="text-center">
+                            <p className="text-[10px] font-bold mb-1">التوقيع</p>
+                            <div className="min-h-[60px] flex items-center justify-center font-bold text-xs">
+                                {qForm.signatureText}
+                            </div>
+                            <div className="border-t border-gray-400 mx-4 mt-2" />
+                            <p className="text-gray-500 text-[10px] mt-1">توقيع المشتري</p>
                         </div>
                     </div>
                 </div>

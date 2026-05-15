@@ -378,7 +378,6 @@ export async function getPurchasesPaymentsDetailed(startDate, endDate, companyFi
     const { start, end } = getDateRange(startDate, endDate);
     const list = await Payment.find({
         ...companyFilter,
-        module: "purchases",
         date: { $gte: start, $lte: end },
         status: { $ne: "cancelled" },
     })
@@ -386,6 +385,7 @@ export async function getPurchasesPaymentsDetailed(startDate, endDate, companyFi
         .populate("invoice", "transactionNumber currency")
         .populate("contact", "name")
         .lean();
+
     return list.map((doc) => ({
         invoiceNumber: doc.invoice?.transactionNumber ?? doc.referenceNumber ?? "—",
         supplier: doc.contact?.name ?? "—",
@@ -393,7 +393,7 @@ export async function getPurchasesPaymentsDetailed(startDate, endDate, companyFi
         paymentMethod: doc.treasury === "bank" ? "bank" : "cash",
         amount: doc.amount,
         date: doc.date,
-        type: doc.operationType, // 'receive' or 'spend'
+        type: doc.operationType,
         currency: doc.invoice?.currency || doc.currency || null
     }));
 }
@@ -606,7 +606,6 @@ export async function getPaymentsDetailed(startDate, endDate, companyFilter) {
         ...companyFilter,
         date: { $gte: start, $lte: end },
         status: { $ne: "cancelled" },
-        operationType: "receive",
     })
         .sort({ date: -1 })
         .populate("invoice", "transactionNumber currency")
@@ -615,6 +614,7 @@ export async function getPaymentsDetailed(startDate, endDate, companyFilter) {
 
     return list.map((doc) => ({
         invoiceNumber: doc.invoice?.transactionNumber ?? doc.referenceNumber ?? "—",
+        supplier: doc.contact?.name ?? "—",
         client: doc.contact?.name ?? "—",
         paymentMethod: doc.treasury === "bank" ? "bank" : "cash",
         amount: doc.amount,
@@ -2310,9 +2310,53 @@ export async function getTaxSummary(startDate, endDate, companyFilter, filters =
         }
     }
 
-    const totalSalesTax = breakdown.salesInvoices.taxAmount + breakdown.salesReturns.taxAmount;
+    // --- 3. Manual Journal Entries (Adjustments) ---
+    const allTaxes = await taxesModel.find({ ...effectiveFilter, status: 'active' }).select('paidTaxAccountId collectedTaxAccountId percentage').lean();
+    const paidTaxAccs = allTaxes.map(t => t.paidTaxAccountId).filter(Boolean);
+    const collectedTaxAccs = allTaxes.map(t => t.collectedTaxAccountId).filter(Boolean);
+    const taxAccIds = [...new Set([...paidTaxAccs, ...collectedTaxAccs])];
+
+    if (taxAccIds.length > 0) {
+        const manualJournalMatch = {
+            ...effectiveFilter,
+            date: { $gte: start, $lte: end },
+            sourceType: 'manual',
+            "entries.account": { $in: taxAccIds }
+        };
+
+        const manualRestrictions = await dailyRestrictionModel.find(manualJournalMatch).select('entries').lean();
+
+        for (const res of manualRestrictions) {
+            for (const entry of res.entries || []) {
+                const accId = entry.account?.toString();
+                if (taxAccIds.some(tid => tid.toString() === accId)) {
+                    const taxVal = Number(entry.debit || 0) - Number(entry.credit || 0);
+                    const isCollected = collectedTaxAccs.some(tid => tid.toString() === accId);
+
+                    if (isCollected) {
+                        breakdown.journalEntries.taxAmount += taxVal;
+                    } else {
+                        // For paid tax, a debit increases the refundable amount, which reduces net payable.
+                        // Since netPayable = SalesTax - PurchaseTax, we add it to SalesTax here or subtract from net later.
+                        // Let's add it to journalEntries.taxAmount so it reflects in totalSalesTax for now.
+                        breakdown.journalEntries.taxAmount += taxVal;
+                    }
+
+                    const taxDef = allTaxes.find(t =>
+                        (t.collectedTaxAccountId && t.collectedTaxAccountId.toString() === accId) ||
+                        (t.paidTaxAccountId && t.paidTaxAccountId.toString() === accId)
+                    );
+                    if (taxDef && taxDef.percentage > 0) {
+                        breakdown.journalEntries.taxableAmount += (Math.abs(taxVal) / (taxDef.percentage / 100));
+                    }
+                }
+            }
+        }
+    }
+
+    const totalSalesTax = breakdown.salesInvoices.taxAmount + breakdown.salesReturns.taxAmount + breakdown.journalEntries.taxAmount;
     const totalPurchaseTax = breakdown.purchaseInvoices.taxAmount + breakdown.purchaseReturns.taxAmount;
-    const totalSalesAmount = breakdown.salesInvoices.taxableAmount + breakdown.salesReturns.taxableAmount;
+    const totalSalesAmount = breakdown.salesInvoices.taxableAmount + breakdown.salesReturns.taxableAmount + breakdown.journalEntries.taxableAmount;
     const totalPurchaseAmount = breakdown.purchaseInvoices.taxableAmount + breakdown.purchaseReturns.taxableAmount;
     const netTaxPayable = totalSalesTax - totalPurchaseTax;
 

@@ -957,7 +957,7 @@ const JournalEntries = () => {
 
             {/* Description Sub-Modal */}
             {isDescModalOpen && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/20 backdrop-blur-[1px]">
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
                         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/50">
                             <span className="font-bold text-gray-700">{t('accounting.journal_entries.description')}</span>
@@ -994,7 +994,7 @@ const JournalEntries = () => {
 
             {/* View Journal Entry Details Modal - matches reference screen, fully editable */}
             {viewingEntry && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[1px]" dir={isRTL ? 'rtl' : 'ltr'}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md" dir={isRTL ? 'rtl' : 'ltr'}>
                     <div className="bg-white rounded-xl shadow-2xl w-full max-w-[1100px] overflow-hidden flex flex-col max-h-[95vh]">
                         {/* Header: Close (top-left) | Title centered | Share (orange), PDF, Print | User, Document, Source (gray / light blue) */}
                         <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-b border-gray-100">

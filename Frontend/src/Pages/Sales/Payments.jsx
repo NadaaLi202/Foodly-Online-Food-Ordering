@@ -4,6 +4,7 @@ import { Plus, RefreshCw, X, MoreVertical, Eye, FileDown, Copy, Trash2, Edit2 } 
 import { useTranslation } from 'react-i18next';
 import { QRCodeCanvas } from 'qrcode.react';
 import toast from 'react-hot-toast';
+import { generateZatcaQR } from '../../utils/zatca';
 import api from '../../services/api';
 import { formatCurrency } from '../../utils/currencyFormatter';
 import ClientLink from '../../components/navigation/ClientLink';
@@ -466,12 +467,13 @@ export default function Payments() {
                                         <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col items-center gap-2">
                                             <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('sales.invoices.qr_code')}</span>
                                             <QRCodeCanvas
-                                                value={JSON.stringify({
-                                                    ref: paymentId(viewingPayment),
-                                                    amount: viewingPayment.amount,
-                                                    customer: contactName(viewingPayment),
-                                                    date: viewingPayment.date
-                                                })}
+                                                value={generateZatcaQR(
+                                                    'Dafater',
+                                                    '', // No VAT number in payment object usually, using empty
+                                                    viewingPayment.date ? new Date(viewingPayment.date).toISOString() : new Date().toISOString(),
+                                                    (viewingPayment.amount ?? 0).toFixed(2),
+                                                    '0.00'
+                                                )}
                                                 size={120}
                                                 level="M"
                                                 includeMargin

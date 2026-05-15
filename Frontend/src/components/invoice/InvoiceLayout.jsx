@@ -3,6 +3,7 @@ import { Building2, MapPin, Phone, Mail } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '../../utils/currencyFormatter';
+import { generateZatcaQR } from '../../utils/zatca';
 import PrintHeader from '../common/PrintHeader';
 
 /**
@@ -36,12 +37,13 @@ const InvoiceLayout = ({
         ? (contact.address.address1 || contact.address.city || '')
         : 'N/A';
 
-    const qrValue = JSON.stringify({
-        invoiceNumber: invoice?.transactionNumber,
-        total: invoice?.totalAmount,
-        company: companyDisplayName,
-        date: invoice?.issueDate
-    });
+    const qrValue = generateZatcaQR(
+        companyDisplayName,
+        compSnapshot.taxNumber || compSnapshot.tax_number || '',
+        invoice?.issueDate ? new Date(invoice.issueDate).toISOString() : new Date().toISOString(),
+        (invoice?.totalAmount || 0).toFixed(2),
+        (invoice?.totalTax || 0).toFixed(2)
+    );
     const fmt2 = (v) => Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
     return (
@@ -112,10 +114,21 @@ const InvoiceLayout = ({
                         <th className={`py-4 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest ${isRTL ? 'text-right rounded-r-lg' : 'text-left rounded-l-lg'}`}>
                             {t('sales.invoices.product')}
                         </th>
-                        <th className="py-4 px-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Qty</th>
-                        <th className="py-4 px-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">{t('sales.invoices.price')}</th>
-                        <th className="py-4 px-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Disc.</th>
-                        <th className={`py-4 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest ${isRTL ? 'text-left rounded-l-lg' : 'text-right rounded-r-lg'}`}>Total</th>
+                        <th className={`py-4 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest ${isRTL ? 'text-right' : 'text-left'}`}>
+                            {t('sales.common.description', 'Description')}
+                        </th>
+                        <th className="py-4 px-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                            {t('sales.common.qty')}
+                        </th>
+                        <th className="py-4 px-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                            {t('sales.invoices.price')}
+                        </th>
+                        <th className="py-4 px-4 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                            {t('sales.common.disc')}
+                        </th>
+                        <th className={`py-4 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest ${isRTL ? 'text-left rounded-l-lg' : 'text-right rounded-r-lg'}`}>
+                            {t('sales.common.total')}
+                        </th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -128,6 +141,11 @@ const InvoiceLayout = ({
                                 <td className="py-4 px-4">
                                     <p className={`text-sm font-bold text-gray-800 ${isRTL ? 'text-right' : ''}`}>
                                         {item.productName || item.product?.name || '—'}
+                                    </p>
+                                </td>
+                                <td className="py-4 px-4">
+                                    <p className={`text-xs text-gray-500 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}>
+                                        {item.description || '—'}
                                     </p>
                                 </td>
                                 <td className="py-4 px-4 text-center text-sm font-medium text-gray-600">{fmt2(item.quantity)}</td>

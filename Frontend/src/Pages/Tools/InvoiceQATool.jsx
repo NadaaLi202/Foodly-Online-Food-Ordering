@@ -5,6 +5,7 @@ import { jsPDF } from 'jspdf';
 import { QRCodeCanvas } from 'qrcode.react';
 import './InvoiceQATool.css';
 import api, { BASE_URL } from '../../services/api';
+import { generateZatcaQR } from '../../utils/zatca';
 
 const checklistItems = [
   { id: 'bg_full', label: 'Background covers full page' },
@@ -141,12 +142,13 @@ function InvoiceQATool() {
   const taxAmount = subtotal * (taxRate / 100);
   const grandTotal = subtotal + taxAmount;
 
-  const qrValue = useMemo(() => JSON.stringify({
-    invoiceNumber,
-    total: grandTotal,
-    company: form.sellerName,
-    date: form.invoiceDate,
-  }), [invoiceNumber, grandTotal, form.sellerName, form.invoiceDate]);
+  const qrValue = useMemo(() => generateZatcaQR(
+    form.sellerName,
+    form.sellerTaxID,
+    form.invoiceDate ? new Date(form.invoiceDate).toISOString() : new Date().toISOString(),
+    grandTotal.toFixed(2),
+    taxAmount.toFixed(2)
+  ), [form.sellerName, form.sellerTaxID, form.invoiceDate, grandTotal, taxAmount]);
 
   const completedChecks = useMemo(
     () => Object.values(checkStates).filter((v) => v !== null).length,
@@ -181,15 +183,15 @@ function InvoiceQATool() {
   const handleBackgroundUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setBackgroundPreview(url);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setBackgroundPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
   };
 
-  useEffect(() => {
-    return () => {
-      if (backgroundPreview.startsWith('blob:')) URL.revokeObjectURL(backgroundPreview);
-    };
-  }, [backgroundPreview]);
+  // No longer need revokeObjectURL since we're using Data URLs
 
   const setCheck = (id, value) =>
     setCheckStates((prev) => ({ ...prev, [id]: value }));
@@ -278,6 +280,12 @@ function InvoiceQATool() {
       };
       localStorage.setItem('invoice_qa_last_result', JSON.stringify(result));
 
+      // 3. Save full template data for use in PrintTemplateProvider
+      localStorage.setItem('invoice_qa_template_data', JSON.stringify({
+        form,
+        backgroundPreview
+      }));
+
       alert('✅ تم حفظ البيانات والنتيجة بنجاح');
     } catch (err) {
       console.error('Save failed:', err);
@@ -300,18 +308,11 @@ function InvoiceQATool() {
               backgroundImage: backgroundPreview ? `url(${backgroundPreview})` : 'none',
             }}
           >
-            {/* Background label – no 6cm forced whitespace */}
-            {backgroundPreview && (
-              <div className="invoice-bg-label">
-                <span>خلفية مخصصة</span>
-              </div>
-            )}
 
             <div className="invoice-content">
               {/* Adjusted Header: Text only (Logo and QR moved/removed) */}
               <header className="invoice-meta-header" style={{ justifyContent: 'center' }}>
                 <div className="meta-text-center">
-                  <h3>فاتورة ضريبية</h3>
                   <p>رقم الفاتورة: {invoiceNumber}</p>
                   <p>التاريخ: {form.invoiceDate}</p>
                 </div>
@@ -356,59 +357,61 @@ function InvoiceQATool() {
               </table>
 
               {/* Totals — directly below table */}
-              <div className="totals-box">
-                <p>
-                  <span>الإجمالي قبل الضريبة</span>
-                  <strong>{formatMoney(subtotal)} ر.س</strong>
-                </p>
-                <p>
-                  <span>الضريبة ({taxRate}%)</span>
-                  <strong>{formatMoney(taxAmount)} ر.س</strong>
-                </p>
-                <p className="grand-total">
-                  <span>الإجمالي شامل الضريبة</span>
-                  <strong>{formatMoney(grandTotal)} ر.س</strong>
-                </p>
+              {/* Totals & QR Section */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', padding: '0 10px' }}>
+                {/* QR Code on the left side of the totals box */}
+                <div style={{ padding: '5px', background: 'white' }}>
+                  <QRCodeCanvas value={qrValue} size={85} level="M" includeMargin={false} />
+                </div>
+
+                <div className="totals-box" style={{ margin: 0, minWidth: '240px' }}>
+                  <p>
+                    <span>الإجمالي قبل الضريبة</span>
+                    <strong>{formatMoney(subtotal)} ر.س</strong>
+                  </p>
+                  <p>
+                    <span>الضريبة ({taxRate}%)</span>
+                    <strong>{formatMoney(taxAmount)} ر.س</strong>
+                  </p>
+                  <p className="grand-total">
+                    <span>الإجمالي شامل الضريبة</span>
+                    <strong>{formatMoney(grandTotal)} ر.س</strong>
+                  </p>
+                </div>
               </div>
 
-              {/* Signature section */}
-              <div className="signature-grid">
-                <div className="signature-box">
-                  <p>ختم البائع</p>
-                  <div className="signature-line" style={{ position: 'relative', minHeight: '60px' }}>
+              {/* Signature Section — 2-column layout, moved up */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '1.5rem',
+                marginTop: '1rem',
+                padding: '0 10px'
+              }}>
+                {/* Right column: Seller */}
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>الختم</p>
+                  <div style={{ minHeight: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                     {form.sellerStamp && (
                       <img
                         src={form.sellerStamp}
                         alt="Seal"
-                        style={{
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          maxHeight: '150px',
-                          maxWidth: '150px',
-                          objectFit: 'contain',
-                          opacity: 0.8,
-                          border: 'none',
-                          outline: 'none',
-                          boxShadow: 'none'
-                        }}
+                        style={{ maxHeight: '80px', maxWidth: '120px', objectFit: 'contain', opacity: 0.8 }}
                       />
                     )}
                   </div>
+                  <div style={{ borderTop: '1px solid #999', margin: '0.25rem 1rem 0' }} />
+                  <p style={{ fontSize: '0.65rem', color: '#6b7280', marginTop: '0.25rem' }}>توقيع البائع</p>
                 </div>
-                <div className="signature-box">
-                  <p>توقيع المشتري</p>
-                  <div className="signature-line" style={{ minHeight: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1.1rem' }}>
+
+                {/* Left column: Buyer */}
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>التوقيع</p>
+                  <div style={{ minHeight: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.9rem' }}>
                     {form.signatureText}
                   </div>
-                </div>
-              </div>
-
-              {/* QR Code at bottom left corner, just above the background footer section */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 'auto', paddingBottom: '1.4cm' }}>
-                <div style={{ border: 'none', background: 'transparent', paddingLeft: '15px' }}>
-                  <QRCodeCanvas value={qrValue} size={85} level="M" includeMargin={false} />
+                  <div style={{ borderTop: '1px solid #999', margin: '0.25rem 1rem 0' }} />
+                  <p style={{ fontSize: '0.65rem', color: '#6b7280', marginTop: '0.25rem' }}>توقيع المشتري</p>
                 </div>
               </div>
             </div>

@@ -636,7 +636,10 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
             const total = item.total ?? (preTax + (item.taxAmount || 0));
             return `
                         <tr>
-                            <td class="td-right">${esc(item.productName || item.product?.name || item.description || '—')}</td>
+                            <td class="td-right">
+                                <div class="bold">${esc(item.productName || item.product?.name || '—')}</div>
+                                ${item.description ? `<div style="font-size: 9px; color: #666; margin-top: 2px;">${esc(item.description)}</div>` : ''}
+                            </td>
                             <td>${item.quantity}</td>
                             <td dir="ltr">${fmt(item.unitPrice)} ${esc(currencySymbol)}</td>
                             <td dir="ltr">${fmt(item.taxAmount || 0)} ${esc(currencySymbol)}</td>
@@ -817,7 +820,10 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
             const total = item.total ?? (item.quantity * item.unitPrice - (item.discountAmount || 0) + (item.taxAmount || 0));
             return `
                     <tr>
-                        <td>${esc(name)}</td>
+                        <td>
+                            <div style="font-weight: bold;">${esc(name)}</div>
+                            ${item.description ? `<div style="font-size: 9px; color: #6b7280; margin-top: 2px;">${esc(item.description)}</div>` : ''}
+                        </td>
                         <td style="text-align: center;" class="number">${fmt(item.quantity)}</td>
                         <td style="text-align: center;" class="number">${fmt(item.unitPrice)}</td>
                         <td style="text-align: left;" class="number">${fmt(total)} ${esc(currencySymbol)}</td>

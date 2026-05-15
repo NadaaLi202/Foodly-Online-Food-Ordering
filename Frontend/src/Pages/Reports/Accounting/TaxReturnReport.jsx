@@ -4,6 +4,7 @@ import { Calendar, ChevronDown, FileSpreadsheet, FileText, Printer, ShieldCheck 
 import { exportTaxReportToExcel, buildAccountingReportPdf } from '../../../utils/accountingReportsExport';
 import api from '../../../services/api';
 import PrintHeader from '../../../components/common/PrintHeader';
+import { useAuth } from '../../../context/AuthContext';
 
 const getMonthRange = (date = new Date()) => {
     const start = new Date(date.getFullYear(), date.getMonth(), 1);
@@ -14,6 +15,8 @@ const getMonthRange = (date = new Date()) => {
 
 const TaxReturnReport = () => {
     const { t } = useTranslation();
+    const { companySettings } = useAuth();
+    const currencySymbol = companySettings?.currency || 'ر.س';
     const { startDate: defaultFrom, endDate: defaultTo } = getMonthRange();
 
     const [filters, setFilters] = useState({
@@ -207,10 +210,15 @@ const TaxReturnReport = () => {
                                         taxable={reportData.breakdown.salesReturns.taxableAmount} 
                                         tax={reportData.breakdown.salesReturns.taxAmount} 
                                     />
-                                    <tr className="bg-gray-50/50 font-bold">
+                                    <TaxRow 
+                                        label={t('reports.accounting.tax.journal_adjustments') || 'Journal Adjustments'} 
+                                        taxable={reportData.breakdown.journalEntries.taxableAmount} 
+                                        tax={reportData.breakdown.journalEntries.taxAmount} 
+                                    />
+                                    <tr className="bg-gray-50/80 font-bold border-t-2 border-gray-200">
                                         <td className="px-6 py-5 text-sm text-gray-900">{t('reports.accounting.tax.total_sales_output_tax') || 'Total Sales & Output Tax'}</td>
                                         <td className="px-6 py-5 text-sm text-gray-900 text-end font-mono" dir="ltr">{fmtNum(reportData.totalSalesAmount)}</td>
-                                        <td className="px-6 py-5 text-sm text-indigo-600 text-end font-mono" dir="ltr">{fmtNum(reportData.totalSalesTax)}</td>
+                                        <td className="px-6 py-5 text-sm text-indigo-700 text-end font-mono" dir="ltr">{fmtNum(reportData.totalSalesTax)}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -247,10 +255,10 @@ const TaxReturnReport = () => {
                                         taxable={reportData.breakdown.purchaseReturns.taxableAmount} 
                                         tax={reportData.breakdown.purchaseReturns.taxAmount} 
                                     />
-                                    <tr className="bg-gray-50/50 font-bold">
+                                    <tr className="bg-gray-50/80 font-bold border-t-2 border-gray-200">
                                         <td className="px-6 py-5 text-sm text-gray-900">{t('reports.accounting.tax.total_purchases_input_tax') || 'Total Purchases & Input Tax'}</td>
                                         <td className="px-6 py-5 text-sm text-gray-900 text-end font-mono" dir="ltr">{fmtNum(reportData.totalPurchaseAmount)}</td>
-                                        <td className="px-6 py-5 text-sm text-indigo-600 text-end font-mono" dir="ltr">{fmtNum(reportData.totalPurchaseTax)}</td>
+                                        <td className="px-6 py-5 text-sm text-indigo-700 text-end font-mono" dir="ltr">{fmtNum(reportData.totalPurchaseTax)}</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -285,7 +293,7 @@ const TaxReturnReport = () => {
                                         {fmtNum(reportData.netTaxPayable)}
                                     </span>
                                     <span className="text-indigo-400 font-bold text-lg">
-                                        {t('currency_label') || 'ر.س'}
+                                        {currencySymbol}
                                     </span>
                                 </div>
                             </div>

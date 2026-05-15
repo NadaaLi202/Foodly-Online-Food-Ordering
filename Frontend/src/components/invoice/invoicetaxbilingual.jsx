@@ -1,6 +1,7 @@
 import React from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { formatCurrency } from '../../utils/currencyFormatter';
+import { generateZatcaQR } from '../../utils/zatca';
 
 const InvoiceTaxBilingual = ({ invoice, company, isRTL, t, isPreview = false, isQuotation, isPurchaseRequest }) => {
     const isActuallyQuotation = isQuotation || invoice?.type === 'quotation';
@@ -20,7 +21,8 @@ const InvoiceTaxBilingual = ({ invoice, company, isRTL, t, isPreview = false, is
         const tax = toNumber(item.taxAmount);
         const total = item.total != null ? toNumber(item.total) : (qty * price) + tax;
         return {
-            description: item.productName || item.product?.name || item.description || '—',
+            name: item.productName || item.product?.name || '—',
+            description: item.description || '',
             qty,
             price,
             tax,
@@ -32,12 +34,13 @@ const InvoiceTaxBilingual = ({ invoice, company, isRTL, t, isPreview = false, is
     const taxAmount = toNumber(invoice?.totalTax);
     const grandTotal = toNumber(invoice?.totalAmount);
 
-    const qrValue = JSON.stringify({
-        invoiceNumber: invoice?.transactionNumber || invoice?._id || 'SAMPLE',
-        total: grandTotal,
-        company: company?.name,
-        date: invoice?.issueDate,
-    });
+    const qrValue = generateZatcaQR(
+        company?.name,
+        company?.taxNumber,
+        invoice?.issueDate ? new Date(invoice.issueDate).toISOString() : new Date().toISOString(),
+        grandTotal.toFixed(2),
+        taxAmount.toFixed(2)
+    );
 
     const formatAddress = (addr) => {
         if (!addr) return '—';
@@ -110,7 +113,10 @@ const InvoiceTaxBilingual = ({ invoice, company, isRTL, t, isPreview = false, is
                 <tbody>
                     {lines.map((line, idx) => (
                         <tr key={idx}>
-                            <td className="border border-black p-2 text-right">{line.description}</td>
+                            <td className="border border-black p-2 text-right">
+                                <p className="font-bold">{line.name}</p>
+                                {line.description && <p className="text-[10px] mt-1 text-gray-600">{line.description}</p>}
+                            </td>
                             <td className="border border-black p-2 text-center">{line.qty}</td>
                             <td className="border border-black p-2 text-center">{formatCurrency(line.price, currency)}</td>
                             <td className="border border-black p-2 text-center">{formatCurrency(line.tax, currency)}</td>

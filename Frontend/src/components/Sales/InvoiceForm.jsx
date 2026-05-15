@@ -391,6 +391,7 @@ const InvoiceForm = ({ invoice, mode, onClose, onSave, onDeleteAttachment, i18n,
         const mappedItems = formData.items.map(item => ({
             product: item.productId,
             productName: item.productName,
+            description: item.description || '',
             quantity: parseFloat(item.quantity) || 0,
             unitPrice: parseFloat(item.price) || 0,
             discountPercent: item.discountType === '%' ? (parseFloat(item.discount) || 0) : 0,

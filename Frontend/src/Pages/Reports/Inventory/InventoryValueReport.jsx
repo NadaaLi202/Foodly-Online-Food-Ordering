@@ -159,7 +159,6 @@ const InventoryValueReport = () => {
                         width: 100% !important; 
                         table-layout: fixed !important; 
                         min-width: 0 !important;
-                        margin-top: 100px !important;
                     }
                     .overflow-x-auto { overflow: visible !important; }
                     
@@ -177,7 +176,7 @@ const InventoryValueReport = () => {
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 print:border-none print:shadow-none print:p-0">
 
-                <div className="hidden print:block mb-32">
+                <div className="hidden print:block mb-8">
                     <PrintHeader
                         title={`تقرير قيمة المخزون - تاریخ ${arabicDate}`}
                         isRTL={true}
