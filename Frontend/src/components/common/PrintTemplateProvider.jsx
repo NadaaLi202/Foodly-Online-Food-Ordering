@@ -184,7 +184,9 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t, isQuotati
 
                     <div className="py-2 border-b border-dashed border-gray-300">
                         <p><span className="font-semibold">{t('sales.common.seller', 'البائع')}:</span> {company?.name}</p>
+                        <p><span className="font-semibold">{t('sales.common.tax_number', 'الرقم الضريبي')}:</span> {company?.taxNumber || '—'}</p>
                         <p><span className="font-semibold">{t('sales.common.buyer', 'المشتري')}:</span> {contact?.name || '—'}</p>
+                        <p><span className="font-semibold">{t('sales.common.tax_number', 'الرقم الضريبي')}:</span> {contact?.taxNumber || contact?.tax_number || '—'}</p>
                     </div>
 
                     <div className="py-2 space-y-1 border-b border-dashed border-gray-300">
@@ -223,7 +225,7 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t, isQuotati
 
     if (template === 'tax-bilingual') {
         return (
-            <div className="h-full max-h-[68vh] overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div className="h-full max-h-[68vh] overflow-auto rounded-lg border border-gray-200 bg-white p-4">
                 <InvoiceTaxBilingual
                     invoice={activeInvoice}
                     company={company}
@@ -273,7 +275,7 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t, isQuotati
             <div className="h-full max-h-[68vh] overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-4" dir="rtl">
                 <div
                     className="mx-auto bg-white border border-gray-300 shadow-sm p-4 text-xs min-h-[520px] flex flex-col gap-3 relative"
-                    style={{ 
+                    style={{
                         marginTop: '2cm',
                         backgroundImage: qBg ? `url(${qBg})` : 'none',
                         backgroundSize: '100% 100%',
@@ -299,7 +301,7 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t, isQuotati
                             <p className="text-gray-500">التاريخ: {formatDate(activeInvoice?.issueDate, isRTL)}</p>
                         </div>
                         <div className="w-[70px] flex items-center justify-center">
-                            {/* QR Code removed as requested */}
+                            <QRCodeCanvas value={finalQR} size={60} level="M" includeMargin />
                         </div>
                     </div>
 
@@ -359,7 +361,7 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t, isQuotati
 
                     {/* Totals — directly below table */}
                     {/* Totals & QR Section */}
-                    <div className="flex justify-between items-center z-10 px-2" style={{ marginTop: '1rem' }}>
+                    <div className="flex justify-between items-end z-10 px-2" style={{ marginTop: '1rem' }}>
                         {/* QR Code on the left side of the totals box */}
                         <div className="bg-white p-1">
                             <QRCodeCanvas value={finalQR} size={75} level="M" includeMargin={false} />
@@ -373,7 +375,7 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t, isQuotati
                     </div>
 
                     {/* Signature Section — 2-column layout, moved up */}
-                    <div className="grid grid-cols-2 gap-6 pt-6 z-10" style={{ marginTop: '1rem' }}>
+                    <div className="grid grid-cols-2 gap-6 pt-6 z-10" style={{ marginTop: '1.5rem' }}>
                         {/* Seller signature — right column */}
                         <div className="text-center">
                             <p className="text-[10px] font-bold mb-1">الختم</p>
@@ -429,16 +431,18 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t, isQuotati
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
-                    <div className="rounded-lg border border-gray-200 p-3 bg-white">
-                        <p className="font-semibold mb-1">{t('sales.common.seller', 'البائع')}</p>
-                        <p>{company?.name}</p>
-                        <p>{company?.address}</p>
+                    <div className="rounded-lg border border-gray-200 p-3 bg-white space-y-1">
+                        <p className="font-semibold mb-1" style={{ fontSize: '13px' }}>{t('sales.common.seller', 'بيانات الشركة')}</p>
+                        <p className="font-bold">{company?.name || '—'}</p>
+                        <p><span>{t('sales.common.commercial_register', 'السجل التجاري')}:</span> {company?.commercialRegister || '—'}</p>
+                        <p><span>{t('sales.common.tax_number', 'الرقم الضريبي')}:</span> {company?.taxNumber || '—'}</p>
+                        <p><span>{t('sales.common.address', 'العنوان')}:</span> {company?.address}</p>
                     </div>
-                    <div className="rounded-lg border border-gray-200 p-3 bg-white">
-                        <p className="font-semibold mb-1">{t('sales.common.buyer', 'المشتري')}</p>
-                        <p>{contact?.name || '—'}</p>
-                        <p>{contact?.phone || '—'}</p>
-                        <p>{resolveEntityAddress(contact)}</p>
+                    <div className="rounded-lg border border-gray-200 p-3 bg-white space-y-1">
+                        <p className="font-semibold mb-1" style={{ fontSize: '13px' }}>{t('sales.common.buyer', 'بيانات العميل')}</p>
+                        <p className="font-bold">{contact?.name || '—'}</p>
+                        <p><span>{t('sales.common.address', 'العنوان')}:</span> {resolveEntityAddress(contact)}</p>
+                        <p><span>{t('sales.common.tax_number', 'الرقم الضريبي')}:</span> {contact?.taxNumber || contact?.tax_number || '—'}</p>
                     </div>
                 </div>
 

@@ -500,14 +500,14 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
 
     if (!transaction) return next(new AppError("Document not found", 404));
 
-    const company = await companyModel.findById(transaction.companyId).select("name logo defaultCurrency commercial_register tax_number address").lean();
+    const company = await companyModel.findById(transaction.companyId).select("name logo defaultCurrency commercialRegister taxNumber address").lean();
 
     // Resolve Company Data (Priority: Snapshot > Database Model)
     const companySnap = transaction.companySnapshot || {};
     const companyName = companySnap.name || company?.name || "Company";
     const companyLogoUrl = companySnap.logo || company?.logo?.url;
-    const companyTax = companySnap.taxNumber || company?.tax_number || '—';
-    const companyCR = companySnap.commercialRegister || company?.commercial_register || '—';
+    const companyTax = companySnap.taxNumber || company?.taxNumber || '—';
+    const companyCR = companySnap.commercialRegister || company?.commercialRegister || '—';
     const companyAddress = companySnap.address || company?.address || '—';
 
     const currency = transaction.currency || company?.defaultCurrency || "EGP";
@@ -532,10 +532,26 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
         .replace(/'/g, "&#39;");
 
     const fmt = (n) => Number(n ?? 0).toFixed(2);
-    const contact = transaction.contactSnapshot || transaction.contact;
-    const contactName = (contact?.name || transaction.contact?.name) || "—";
-    const contactTax = contact?.taxNumber || contact?.tax_number || '—';
-    const contactAddress = contact?.address?.address1 || contact?.address?.city || '—';
+    const contactSnap = transaction.contactSnapshot || {};
+    const contactDoc = transaction.contact || {};
+    const contact = contactSnap.name ? contactSnap : contactDoc;
+    const contactName = contactSnap.name || contactDoc.name || "—";
+    const contactTax = contactSnap.taxNumber || contactDoc.taxNumber || '—';
+    const contactCR = contactSnap.commercialRegister || contactDoc.commercialRegister || '—';
+    const contactAddress = contactSnap.address?.address1 || contactSnap.address?.city || contactDoc.address?.address1 || contactDoc.address?.city || '—';
+
+    console.log("DEBUG TRANSACTION OBJECT FOR PDF:", {
+        sellerName: companyName,
+        sellerTaxNumber: companyTax,
+        sellerCR: companyCR,
+        buyerName: contactName,
+        buyerTaxNumber: contactTax,
+        buyerCR: contactCR,
+        companySnap,
+        company,
+        contactSnapshot: transaction.contactSnapshot,
+        contact: transaction.contact
+    });
 
     const templateStyle = req.query.templateStyle || 'normal';
 
@@ -557,7 +573,7 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
             margin: 0; 
             padding: 40px; 
             color: #000; 
-            background-color: #FFFFEE;
+            background-color: #FFFFFF;
             line-height: 1.4; 
             direction: rtl; 
             font-size: 11px;
@@ -600,7 +616,7 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
             <div class="header-info">
                 <div class="header-title">فاتورة ضريبية</div>
                 <p><span class="bold">رقم:</span> ${esc(transaction.transactionNumber || '—')}</p>
-                <p><span class="bold">التاريخ:</span> ${new Date(transaction.issueDate).toLocaleDateString('ar-SA')}</p>
+                <p><span class="bold">التاريخ:</span> <span dir="ltr">${new Date(transaction.issueDate).toLocaleDateString('en-CA')}</span></p>
             </div>
         </div>
 
@@ -617,6 +633,7 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
                 <p class="bold" style="font-size: 12px;">${esc(contactName)}</p>
                 <p><span class="bold">العنوان:</span> ${esc(contactAddress)}</p>
                 <p><span class="bold">الرقم الضريبي:</span> ${esc(contactTax)}</p>
+                <p><span class="bold">السجل التجاري:</span> ${esc(contactCR)}</p>
             </div>
         </div>
 
@@ -671,6 +688,209 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
             <div class="qr-box">
                 <img src="${qrDataURL}" class="qr-img" />
             </div>
+        </div>
+    </div>
+</body>
+</html>
+        `;
+    } else if (templateStyle === 'tax') {
+        const issueDateStr = new Date(transaction.issueDate).toLocaleDateString('en-CA');
+        htmlContent = `
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>${esc(transaction.transactionNumber)}</title>
+    <style>
+        @page { size: A4; margin: 0; }
+        body {
+            font-family: 'Cairo', sans-serif;
+            margin: 0;
+            padding: 40px;
+            color: #1f2937;
+            line-height: 1.5;
+            direction: rtl;
+            font-size: 12px;
+            background-color: #f9fafb;
+        }
+        .wrapper {
+            background-color: #ffffff;
+            border: 1px solid #c7d2fe;
+            padding: 20px;
+            min-height: 520px;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+        }
+        .header-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin: 0;
+        }
+        .header-text {
+            font-size: 12px;
+            color: #4b5563;
+            margin: 4px 0 0;
+        }
+        .info-grid {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            font-size: 12px;
+        }
+        .info-box {
+            flex: 1;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            background-color: #ffffff;
+        }
+        .info-box p { margin: 0; }
+        .info-title {
+            font-weight: 600;
+            margin-bottom: 4px !important;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            border: 1px solid #e5e7eb;
+        }
+        thead {
+            background-color: #eef2ff;
+        }
+        th, td {
+            padding: 8px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th { text-align: center; }
+        th.text-right { text-align: right; }
+        td.text-center { text-align: center; }
+        td.text-right { text-align: right; }
+        .footer-section {
+            margin-top: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 20px;
+        }
+        .qr-wrapper {
+            flex-shrink: 0;
+        }
+        .totals-box {
+            width: 100%;
+            max-width: 260px;
+            font-size: 12px;
+        }
+        .totals-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .totals-grand {
+            display: flex;
+            justify-content: space-between;
+            padding-top: 4px;
+            border-top: 1px solid #c7d2fe;
+            font-weight: bold;
+            color: #4338ca;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="header">
+            <div style="text-align: left; min-width: 180px;">
+                <p class="header-title" style="text-align: center;">فاتورة ضريبية</p>
+                <p class="header-text">رقم الفاتورة: ${esc(transaction.transactionNumber || '—')}</p>
+                <p class="header-text">تاريخ الفاتورة: <span dir="ltr">${issueDateStr}</span></p>
+            </div>
+            <div style="text-align: right;">
+                ${companyLogoUrl ? `<img src="${companyLogoUrl}" style="height: 56px; width: auto; object-fit: contain; margin-bottom: 4px; display: block; margin-right: auto; margin-left: 0;" />` : ''}
+                <p class="header-title">${esc(companyName)}</p>
+                <p class="header-text">الرقم الضريبي: ${esc(companyTax)}</p>
+                <p class="header-text">السجل التجاري: ${esc(companyCR)}</p>
+            </div>
+        </div>
+
+        <div class="info-grid">
+            <div class="info-box">
+                <p class="info-title">البائع</p>
+                <p>${esc(companyName)}</p>
+                ${companyTax !== '—' ? `<p>الرقم الضريبي: ${esc(companyTax)}</p>` : ''}
+                ${companyCR !== '—' ? `<p>السجل التجاري: ${esc(companyCR)}</p>` : ''}
+                <p>${esc(companyAddress)}</p>
+            </div>
+            <div class="info-box">
+                <p class="info-title">المشتري</p>
+                <p>${esc(contactName)}</p>
+                ${contactTax !== '—' ? `<p>الرقم الضريبي: ${esc(contactTax)}</p>` : ''}
+                ${contactCR !== '—' ? `<p>السجل التجاري: ${esc(contactCR)}</p>` : ''}
+                <p>${esc(contact?.phone || '—')}</p>
+                <p>${esc(contactAddress)}</p>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th class="text-right">الوصف</th>
+                    <th>الكمية</th>
+                    <th>السعر</th>
+                    <th>الضريبة</th>
+                    <th>الإجمالي</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${(transaction.items || []).map((item) => {
+            const preTax = item.quantity * item.unitPrice - (item.discountAmount || 0);
+            const taxAmount = item.taxAmount || 0;
+            const total = item.total ?? (preTax + taxAmount);
+            return `
+                    <tr>
+                        <td class="text-right">
+                            ${esc(item.productName || item.product?.name || '—')}
+                            ${item.description ? `<br><span style="font-size: 10px; color: #6b7280;">${esc(item.description)}</span>` : ''}
+                        </td>
+                        <td class="text-center">${item.quantity}</td>
+                        <td class="text-center"><span dir="ltr">${fmt(item.unitPrice)} ${esc(currencySymbol)}</span></td>
+                        <td class="text-center"><span dir="ltr">${fmt(taxAmount)} ${esc(currencySymbol)}</span></td>
+                        <td class="text-center" style="font-weight: 600;"><span dir="ltr">${fmt(total)} ${esc(currencySymbol)}</span></td>
+                    </tr>
+                    `;
+        }).join('')}
+            </tbody>
+        </table>
+
+        <div class="footer-section">
+            <div class="qr-wrapper">
+                <img src="${qrDataURL}" style="width: 90px; height: 90px;" />
+            </div>
+            <div class="totals-box">
+                <div class="totals-row">
+                    <span>الإجمالي قبل الضريبة</span>
+                    <span dir="ltr">${fmt(transaction.subtotal)} ${esc(currencySymbol)}</span>
+                </div>
+                <div class="totals-row">
+                    <span>الضريبة</span>
+                    <span dir="ltr">${fmt(transaction.totalTax)} ${esc(currencySymbol)}</span>
+                </div>
+                <div class="totals-grand">
+                    <span>الإجمالي</span>
+                    <span dir="ltr">${fmt(transaction.totalAmount)} ${esc(currencySymbol)}</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 40px; text-align: center; font-size: 9px; color: #9ca3af; border-top: 1px solid #f3f4f6; padding-top: 12px;">
+            <p style="margin:0;">${esc(companyName)} — جميع الحقوق محفوظة</p>
         </div>
     </div>
 </body>
@@ -790,8 +1010,8 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
             <p style="margin:0; font-weight:bold;"># ${esc(transaction.transactionNumber)}</p>
         </div>
         <div style="text-align: left;">
-            <p style="margin:0; font-size:11px;"><span style="color:#6b7280;">\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0625\u0635\u062f\u0627\u0631:</span> ${new Date(transaction.issueDate).toLocaleDateString('ar-SA')}</p>
-            ${transaction.dueDate ? `<p style="margin:2px 0; font-size:11px;"><span style="color:#6b7280;">\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0627\u0633\u062a\u062d\u0642\u0627\u0642:</span> ${new Date(transaction.dueDate).toLocaleDateString('ar-SA')}</p>` : ''}
+            <p style="margin:0; font-size:11px;"><span style="color:#6b7280;">\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0625\u0635\u062f\u0627\u0631:</span> <span dir="ltr">${new Date(transaction.issueDate).toLocaleDateString('en-CA')}</span></p>
+            ${transaction.dueDate ? `<p style="margin:2px 0; font-size:11px;"><span style="color:#6b7280;">\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0627\u0633\u062a\u062d\u0642\u0627\u0642:</span> <span dir="ltr">${new Date(transaction.dueDate).toLocaleDateString('en-CA')}</span></p>` : ''}
         </div>
     </div>
 
@@ -800,6 +1020,7 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
             <div class="label">فاتورة إلى</div>
             <p style="margin:0; font-weight:bold;">${esc(contactName)}</p>
             ${contactTax !== '—' ? `<p style="margin:2px 0; font-size:11px;">الرقم الضريبي: ${esc(contactTax)}</p>` : ''}
+            ${contactCR !== '—' ? `<p style="margin:2px 0; font-size:11px;">السجل التجاري: ${esc(contactCR)}</p>` : ''}
             <p style="margin:2px 0; font-size:11px;">${esc(contactAddress)}</p>
             ${contact?.phone ? `<p style="margin:2px 0; font-size:11px;">${esc(contact.phone)}</p>` : ''}
         </div>
@@ -861,7 +1082,7 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
     </div>
 
     <div class="footer">
-        <p>${esc(companyName)} — \u062c\u0645\u064a\u0631 \u0627\u0644\u062d\u0642\u0648\u0642 \u0645\u062d\u0641\u0648\u0638\u0629</p>
+        <p>${esc(companyName)} — \u062c\u0645\u064a\u0639 \u0627\u0644\u062d\u0642\u0648\u0642 \u0645\u062d\u0641\u0648\u0638\u0629</p>
         <p style="margin-top:5px; color:#e5e7eb;">Generated by Dafater Accounting</p>
     </div>
 </body>

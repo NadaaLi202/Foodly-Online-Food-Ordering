@@ -358,7 +358,7 @@ function InvoiceQATool() {
 
               {/* Totals — directly below table */}
               {/* Totals & QR Section */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', padding: '0 10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '1rem', padding: '0 10px' }}>
                 {/* QR Code on the left side of the totals box */}
                 <div style={{ padding: '5px', background: 'white' }}>
                   <QRCodeCanvas value={qrValue} size={85} level="M" includeMargin={false} />
@@ -385,7 +385,7 @@ function InvoiceQATool() {
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
                 gap: '1.5rem',
-                marginTop: '1rem',
+                marginTop: '1.5rem',
                 padding: '0 10px'
               }}>
                 {/* Right column: Seller */}

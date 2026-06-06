@@ -55,7 +55,7 @@ const InvoiceTaxBilingual = ({ invoice, company, isRTL, t, isPreview = false, is
     return (
         <div
             className={`w-full p-6 font-sans ${isPreview ? 'text-[11px]' : 'text-[12px]'}`}
-            style={{ direction: 'rtl', color: '#000', border: '1px solid #000', backgroundColor: '#FFFFFF' }}
+            style={{ direction: 'rtl', color: '#000', border: '1px solid #000', backgroundColor: '#ffffff' }}
         >
             {/* HEADER SECTION: Logo (Right) | Title Info (Center) | Spacer (Left) */}
             <div className="flex justify-between items-center mb-6 border-b border-black pb-4">
@@ -70,9 +70,9 @@ const InvoiceTaxBilingual = ({ invoice, company, isRTL, t, isPreview = false, is
                 </div>
                 <div className="w-1/3 text-center space-y-1">
                     <h1 className="text-xl font-bold" style={{ fontSize: '18px' }}>
-                        {isActuallyQuotation ? t('sales.quotations.title', 'عرض سعر') : 
-                         isActuallyRequest ? t('purchases.requests.title', 'طلب شراء') :
-                         'فاتورة ضريبية'}
+                        {isActuallyQuotation ? t('sales.quotations.title', 'عرض سعر') :
+                            isActuallyRequest ? t('purchases.requests.title', 'طلب شراء') :
+                                'فاتورة ضريبية'}
                     </h1>
                     <p><span className="font-bold">{isActuallyRequest ? 'رقم طلب الشراء' : 'رقم'}:</span> {invoice?.transactionNumber || '—'}</p>
                     <p><span className="font-bold">التاريخ:</span> {invoice?.issueDate ? new Date(invoice.issueDate).toLocaleDateString('en-GB') : '—'}</p>
