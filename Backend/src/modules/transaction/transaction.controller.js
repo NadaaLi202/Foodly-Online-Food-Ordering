@@ -316,7 +316,7 @@ const getAllTransactions = (module, documentType) =>
         }
 
         const data = await Transaction.find(query)
-            .populate('contact', 'name email phone type')
+            .populate('contact', 'name email phone type address taxNumber tax_number commercialRegister commercialReg commercialRegNumber commercial_register')
             .sort({ createdAt: -1 })
             .lean();
 
@@ -329,7 +329,7 @@ const getOne = catchAsyncError(async (req, res, next) => {
         deletedAt: { $in: [null, undefined] },
         ...req.companyFilter
     })
-        .populate('contact', 'name email phone type address taxNumber commercialRegister')
+        .populate('contact', 'name email phone type address taxNumber tax_number commercialRegister commercialReg commercialRegNumber commercial_register')
         .populate('items.product', 'name sellingPrice');
     if (!doc) return next(new AppError("غير موجود", 404));
     res.json(doc);
