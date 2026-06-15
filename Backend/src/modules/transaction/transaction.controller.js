@@ -503,13 +503,20 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
 
     const company = await companyModel.findById(transaction.companyId).select("name logo defaultCurrency commercialRegister taxNumber address").lean();
 
+    const formatAddress = (addr) => {
+        if (!addr) return null;
+        if (typeof addr === 'string') return addr;
+        const parts = [addr.address1, addr.city, addr.state, addr.country].filter(Boolean);
+        return parts.length > 0 ? parts.join(', ') : null;
+    };
+
     // Resolve Company Data (Priority: Snapshot > Database Model)
     const companySnap = transaction.companySnapshot || {};
     const companyName = companySnap.name || company?.name || "Company";
     const companyLogoUrl = companySnap.logo || company?.logo?.url;
     const companyTax = companySnap.taxNumber || companySnap.tax_number || company?.taxNumber || company?.tax_number || '—';
     const companyCR = companySnap.commercialRegister || companySnap.commercial_register || companySnap.commercialReg || company?.commercialRegister || company?.commercial_register || company?.commercialReg || '—';
-    const companyAddress = companySnap.address || company?.address || company?.location || company?.city || '—';
+    const companyAddress = formatAddress(companySnap.address) || formatAddress(company?.address) || formatAddress(company?.location) || company?.city || '—';
 
     const currency = transaction.currency || company?.defaultCurrency || "EGP";
     const CURRENCY_SYMBOLS = { EGP: "ج.م", USD: "$", EUR: "€", SAR: "﷼", AED: "د.إ", GBP: "£" };
@@ -533,14 +540,14 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
         .replace(/'/g, "&#39;");
 
     const fmt = (n) => Number(n ?? 0).toFixed(2);
+    
     const contactSnap = transaction.contactSnapshot || {};
     const contactDoc = transaction.contact || {};
     const contact = contactSnap.name ? contactSnap : contactDoc;
     const contactName = contactSnap.name || contactDoc.name || "—";
     const contactTax = contactSnap.taxNumber || contactSnap.tax_number || contactDoc.taxNumber || contactDoc.tax_number || '—';
     const contactCR = contactSnap.commercialRegister || contactSnap.commercialRegNumber || contactSnap.commercial_register || contactSnap.commercialReg || contactDoc.commercialRegister || contactDoc.commercialRegNumber || contactDoc.commercial_register || contactDoc.commercialReg || '—';
-    const contactAddress = contactSnap.address?.address1 || contactSnap.address?.city || (typeof contactSnap.address === 'string' ? contactSnap.address : null) || contactDoc.address?.address1 || contactDoc.address?.city || (typeof contactDoc.address === 'string' ? contactDoc.address : null) || '—';
-
+    const contactAddress = formatAddress(contactSnap.address) || formatAddress(contactDoc.address) || '—';
     console.log("DEBUG TRANSACTION OBJECT FOR PDF:", {
         sellerName: companyName,
         sellerTaxNumber: companyTax,
