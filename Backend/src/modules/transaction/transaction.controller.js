@@ -524,14 +524,14 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
         return null;
     };
 
-    // Resolve Company Data (Priority: companySnapshot > company DB — NEVER from contact)
+    // Resolve Company Data (Priority: user's company DB > companySnapshot — matches frontend preview)
     const companySnap = transaction.companySnapshot || {};
-    const companyName = companySnap.name || company?.name || "Company";
-    const companyLogoUrl = companySnap.logo || company?.logo?.url;
-    const companyTax = companySnap.taxNumber || companySnap.tax_number || company?.taxNumber || company?.tax_number || '—';
-    const companyCR = companySnap.commercialRegister || companySnap.commercial_register || companySnap.commercialReg || company?.commercialRegister || company?.commercial_register || company?.commercialReg || '—';
-    // Seller address: snapshot first (string field), then company DB address object/string
-    const companyAddress = formatAddress(companySnap.address) || formatAddress(company?.address) || company?.city || '—';
+    const companyName = company?.name || companySnap.name || "Company";
+    const companyLogoUrl = company?.logo?.url || companySnap.logo;
+    const companyTax = company?.taxNumber || company?.tax_number || companySnap.taxNumber || companySnap.tax_number || '—';
+    const companyCR = company?.commercialRegister || company?.commercial_register || company?.commercialReg || companySnap.commercialRegister || companySnap.commercial_register || companySnap.commercialReg || '—';
+    // Seller address: user's company DB first, then snapshot
+    const companyAddress = formatAddress(company?.address) || formatAddress(companySnap.address) || company?.city || '—';
 
     const currency = transaction.currency || company?.defaultCurrency || "EGP";
     const CURRENCY_SYMBOLS = { EGP: "ج.م", USD: "$", EUR: "€", SAR: "﷼", AED: "د.إ", GBP: "£" };
