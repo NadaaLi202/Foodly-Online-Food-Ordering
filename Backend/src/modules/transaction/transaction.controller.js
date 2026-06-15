@@ -505,18 +505,31 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
 
     const formatAddress = (addr) => {
         if (!addr) return null;
-        if (typeof addr === 'string') return addr;
-        const parts = [addr.address1, addr.city, addr.state, addr.country].filter(Boolean);
-        return parts.length > 0 ? parts.join(', ') : null;
+        if (typeof addr === 'string' && addr.trim()) return addr.trim();
+        if (typeof addr === 'object') {
+            // Deduplicate: collect unique non-empty parts preserving order
+            const seen = new Set();
+            const parts = [addr.address1, addr.address2, addr.city, addr.state, addr.province, addr.country]
+                .filter(v => {
+                    if (!v || !String(v).trim()) return false;
+                    const key = String(v).trim().toLowerCase();
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+            return parts.length > 0 ? parts.join(', ') : null;
+        }
+        return null;
     };
 
-    // Resolve Company Data (Priority: Snapshot > Database Model)
+    // Resolve Company Data (Priority: companySnapshot > company DB — NEVER from contact)
     const companySnap = transaction.companySnapshot || {};
     const companyName = companySnap.name || company?.name || "Company";
     const companyLogoUrl = companySnap.logo || company?.logo?.url;
     const companyTax = companySnap.taxNumber || companySnap.tax_number || company?.taxNumber || company?.tax_number || '—';
     const companyCR = companySnap.commercialRegister || companySnap.commercial_register || companySnap.commercialReg || company?.commercialRegister || company?.commercial_register || company?.commercialReg || '—';
-    const companyAddress = formatAddress(companySnap.address) || formatAddress(company?.address) || formatAddress(company?.location) || company?.city || '—';
+    // Seller address: snapshot first (string field), then company DB address object/string
+    const companyAddress = formatAddress(companySnap.address) || formatAddress(company?.address) || company?.city || '—';
 
     const currency = transaction.currency || company?.defaultCurrency || "EGP";
     const CURRENCY_SYMBOLS = { EGP: "ج.م", USD: "$", EUR: "€", SAR: "﷼", AED: "د.إ", GBP: "£" };
