@@ -8,7 +8,12 @@ const InvoiceTaxBilingual = ({ invoice, company, isRTL, t, isPreview = false, is
     const isActuallyRequest = isPurchaseRequest || invoice?.type === 'purchase_request';
     const currency = invoice?.currency || company?.currency || 'SAR';
     const logoUrl = company?.logoPath ? (company.logoPath.startsWith('http') ? company.logoPath : `http://localhost:3000${company.logoPath}`) : '';
-    const contact = invoice?.contactSnapshot || invoice?.contact || {};
+    const activeContactSnapshot = invoice?.contactSnapshot || {};
+    const activeContactObj = invoice?.contact || {};
+    const contactName = activeContactSnapshot.name || activeContactObj.name || '—';
+    const contactTax = activeContactSnapshot.taxNumber || activeContactSnapshot.tax_number || activeContactObj.taxNumber || activeContactObj.tax_number || '—';
+    const contactCR = activeContactSnapshot.commercialRegister || activeContactSnapshot.commercialRegNumber || activeContactSnapshot.commercial_register || activeContactSnapshot.commercialReg || activeContactObj.commercialRegister || activeContactObj.commercialRegNumber || activeContactObj.commercial_register || activeContactObj.commercialReg || '—';
+    const contact = activeContactSnapshot.name ? activeContactSnapshot : activeContactObj;
 
     const toNumber = (v) => {
         const n = Number(v);
@@ -86,16 +91,17 @@ const InvoiceTaxBilingual = ({ invoice, company, isRTL, t, isPreview = false, is
                 <div className="p-2 border-l border-b border-black space-y-1">
                     <p className="font-bold" style={{ fontSize: '14px' }}>بيانات الشركة</p>
                     <p className="font-bold">{company?.name || '—'}</p>
-                    <p><span className="font-bold">السجل التجاري:</span> {company?.commercialRegister || '—'}</p>
-                    <p><span className="font-bold">الرقم الضريبي:</span> {company?.taxNumber || '—'}</p>
+                    <p><span className="font-bold">السجل التجاري:</span> {company?.commercialRegister || company?.commercial_register || company?.commercialReg || '—'}</p>
+                    <p><span className="font-bold">الرقم الضريبي:</span> {company?.taxNumber || company?.tax_number || '—'}</p>
                     <p><span className="font-bold">العنوان:</span> {companyAddress}</p>
                 </div>
                 {/* CLIENT INFO (Left in RTL) */}
                 <div className="p-2 border-b border-black space-y-1">
                     <p className="font-bold" style={{ fontSize: '14px' }}>بيانات العميل</p>
-                    <p className="font-bold">{contact?.name || '—'}</p>
+                    <p className="font-bold">{contactName}</p>
                     <p><span className="font-bold">العنوان:</span> {contactAddress}</p>
-                    <p><span className="font-bold">الرقم الضريبي:</span> {contact?.taxNumber || '—'}</p>
+                    <p><span className="font-bold">الرقم الضريبي:</span> {contactTax}</p>
+                    <p><span className="font-bold">السجل التجاري:</span> {contactCR}</p>
                 </div>
             </div>
 

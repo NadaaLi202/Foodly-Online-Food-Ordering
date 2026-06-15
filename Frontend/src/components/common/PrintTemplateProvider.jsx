@@ -147,7 +147,13 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t, isQuotati
 
     const currency = activeInvoice?.currency || company?.currency || 'SAR';
     const logoUrl = getCompanyLogoUrl(company?.logoPath);
-    const contact = activeInvoice?.contactSnapshot || activeInvoice?.contact || {};
+    const activeContactSnapshot = activeInvoice?.contactSnapshot || {};
+    const activeContactObj = activeInvoice?.contact || {};
+    const contactName = activeContactSnapshot.name || activeContactObj.name || '—';
+    const contactTax = activeContactSnapshot.taxNumber || activeContactSnapshot.tax_number || activeContactObj.taxNumber || activeContactObj.tax_number || '—';
+    const contactCR = activeContactSnapshot.commercialRegister || activeContactSnapshot.commercialRegNumber || activeContactSnapshot.commercial_register || activeContactSnapshot.commercialReg || activeContactObj.commercialRegister || activeContactObj.commercialRegNumber || activeContactObj.commercial_register || activeContactObj.commercialReg || '—';
+    const contact = activeContactSnapshot.name ? activeContactSnapshot : activeContactObj;
+    
     const lines = buildLines(activeInvoice);
     const subtotalFromLines = lines.reduce((sum, line) => sum + (line.total - line.taxAmount), 0);
     const taxFromLines = lines.reduce((sum, line) => sum + line.taxAmount, 0);
@@ -185,8 +191,10 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t, isQuotati
                     <div className="py-2 border-b border-dashed border-gray-300">
                         <p><span className="font-semibold">{t('sales.common.seller', 'البائع')}:</span> {company?.name}</p>
                         <p><span className="font-semibold">{t('sales.common.tax_number', 'الرقم الضريبي')}:</span> {company?.taxNumber || '—'}</p>
-                        <p><span className="font-semibold">{t('sales.common.buyer', 'المشتري')}:</span> {contact?.name || '—'}</p>
-                        <p><span className="font-semibold">{t('sales.common.tax_number', 'الرقم الضريبي')}:</span> {contact?.taxNumber || contact?.tax_number || '—'}</p>
+                        <p><span className="font-semibold">السجل التجاري:</span> {company?.commercialRegister || '—'}</p>
+                        <p><span className="font-semibold">{t('sales.common.buyer', 'المشتري')}:</span> {contactName}</p>
+                        <p><span className="font-semibold">{t('sales.common.tax_number', 'الرقم الضريبي')}:</span> {contactTax}</p>
+                        <p><span className="font-semibold">السجل التجاري:</span> {contactCR}</p>
                     </div>
 
                     <div className="py-2 space-y-1 border-b border-dashed border-gray-300">

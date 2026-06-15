@@ -27,14 +27,17 @@ const InvoiceLayout = ({
     const companyDisplayName = compSnapshot.name || propCompanyName || 'Dafater';
     const companyDisplayLogo = compSnapshot.logo || propCompanyLogoUrl;
 
-    const contact = invoice?.contactSnapshot || invoice?.contact;
-    const contactName = contact?.name || t('sales.common.unknown_client');
-    const contactEmail = contact?.email || 'N/A';
-    const contactPhone = contact?.phone || 'N/A';
-    const contactTaxNumber = contact?.taxNumber || contact?.tax_number;
+    const activeContactSnapshot = invoice?.contactSnapshot || {};
+    const activeContactObj = invoice?.contact || {};
+    const contactName = activeContactSnapshot.name || activeContactObj.name || t('sales.common.unknown_client');
+    const contactEmail = activeContactSnapshot.email || activeContactObj.email || 'N/A';
+    const contactPhone = activeContactSnapshot.phone || activeContactObj.phone || 'N/A';
+    const contactTaxNumber = activeContactSnapshot.taxNumber || activeContactSnapshot.tax_number || activeContactObj.taxNumber || activeContactObj.tax_number || '';
+    const contactCR = activeContactSnapshot.commercialRegister || activeContactSnapshot.commercialRegNumber || activeContactSnapshot.commercial_register || activeContactSnapshot.commercialReg || activeContactObj.commercialRegister || activeContactObj.commercialRegNumber || activeContactObj.commercial_register || activeContactObj.commercialReg || '';
 
-    const contactAddress = contact?.address
-        ? (contact.address.address1 || contact.address.city || '')
+    const addressObj = activeContactSnapshot.address || activeContactObj.address;
+    const contactAddress = addressObj
+        ? (addressObj.address1 || addressObj.city || (typeof addressObj === 'string' ? addressObj : ''))
         : 'N/A';
 
     const qrValue = generateZatcaQR(
@@ -81,11 +84,18 @@ const InvoiceLayout = ({
                             </div>
                             <div className={isRTL ? 'text-right' : ''}>
                                 <p className="text-sm font-black text-gray-800">{contactName}</p>
-                                {contactTaxNumber && (
-                                    <p className="text-[10px] text-indigo-500 font-black tracking-wider bg-indigo-50 px-1 py-0.5 rounded-sm inline-block">
-                                        VAT: {contactTaxNumber}
-                                    </p>
-                                )}
+                                <div className="flex flex-col gap-1 items-start mt-1 mb-1">
+                                    {contactTaxNumber && (
+                                        <p className="text-[10px] text-indigo-500 font-black tracking-wider bg-indigo-50 px-1 py-0.5 rounded-sm inline-block">
+                                            VAT: {contactTaxNumber}
+                                        </p>
+                                    )}
+                                    {contactCR && (
+                                        <p className="text-[10px] text-indigo-500 font-black tracking-wider bg-indigo-50 px-1 py-0.5 rounded-sm inline-block">
+                                            CR: {contactCR}
+                                        </p>
+                                    )}
+                                </div>
                                 <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block">
                                     ID: {invoice?.contact?._id?.toString().slice(-6) || '---'}
                                 </p>
