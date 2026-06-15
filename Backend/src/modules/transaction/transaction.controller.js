@@ -488,13 +488,13 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
     const baseQuery = { _id: id, deletedAt: { $in: [null, undefined] } };
 
     let transaction = await Transaction.findOne({ ...baseQuery, ...req.companyFilter })
-        .populate("contact", "name email phone type address")
+        .populate("contact", "name email phone type address taxNumber tax_number commercialRegister commercialReg commercialRegNumber commercial_register")
         .populate("items.product", "name sellingPrice")
         .lean();
 
     if (!transaction && req.user?.role === "superAdmin") {
         transaction = await Transaction.findOne(baseQuery)
-            .populate("contact", "name email phone type address")
+            .populate("contact", "name email phone type address taxNumber tax_number commercialRegister commercialReg commercialRegNumber commercial_register")
             .populate("items.product", "name sellingPrice")
             .lean();
     }
