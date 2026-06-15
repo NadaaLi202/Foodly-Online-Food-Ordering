@@ -22,16 +22,12 @@ export const prepareContactPayload = (formData) => {
     // Handle individual type specific logic
     if (payload.type === 'individual') {
         // Individual contacts should not have tax/commercial numbers
-        // We delete them to ensure they are not sent to backend
-        // This prevents unique index violations on null values
         delete payload.taxNumber;
         delete payload.commercialRegister;
     } else {
         // Commercial type: Ensure strings are trimmed
         if (typeof payload.taxNumber === 'string') {
             payload.taxNumber = payload.taxNumber.trim();
-            // If empty string, remove it (let backend validation handle required check if needed, 
-            // or if optional in some contexts, backend handles it)
             if (!payload.taxNumber) delete payload.taxNumber;
         }
 

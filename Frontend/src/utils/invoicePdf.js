@@ -1,4 +1,5 @@
 import { requestPrintTemplateSelection } from '../services/printTemplateService';
+import { generateQAPdfBlob } from './qaPdfGenerator';
 
 /**
  * Invoice PDF fetch and save utilities.
@@ -19,6 +20,12 @@ export async function fetchPdfBlob(api, transactionId, selectionMeta = {}) {
         transactionId,
         ...selectionMeta,
     });
+
+    if (templateStyle === 'invoice-qa') {
+        const blob = await generateQAPdfBlob(selectionMeta.previewInvoice);
+        let filename = `invoice-${String(transactionId).replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
+        return { blob, filename };
+    }
 
     const response = await api.get(`/transactions/${transactionId}/download`, {
         responseType: 'blob',

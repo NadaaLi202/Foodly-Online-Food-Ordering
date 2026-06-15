@@ -248,20 +248,38 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t, isQuotati
             console.error('Failed to load QA data', e);
         }
 
-        const qForm = qaData?.form || {};
-        const qBg = qaData?.backgroundPreview || '';
+        if (!qaData) {
+            return (
+                <div className="flex items-center justify-center h-full text-center text-gray-500 font-bold p-6">
+                    يرجى الذهاب إلى القوالب &gt; أداة اختبار الفواتير لإعداد القالب أولاً
+                </div>
+            );
+        }
 
-        // Override info with QA data if available
-        const dispSellerName = qForm.sellerName || company?.name || '—';
-        const dispSellerCR = qForm.sellerCR || company?.commercialRegister || '—';
-        const dispSellerTaxID = qForm.sellerTaxID || company?.taxNumber || '—';
-        const dispSellerAddress = qForm.sellerAddress || company?.address || '—';
+        const qForm = qaData.form || {};
+        const qBg = qaData.backgroundPreview || '';
+
+        // Override info with QA data if available, but prioritize real invoice data
+        const dispSellerName = (activeInvoice ? company?.name : (qForm.sellerName || company?.name)) || '—';
+        const sellerCR = company?.commercialRegister || company?.commercial_register || company?.commercialReg || '';
+        const dispSellerCR = (activeInvoice ? sellerCR : (qForm.sellerCR || sellerCR)) || '—';
+        const dispSellerTaxID = (activeInvoice ? (company?.taxNumber || company?.tax_number) : (qForm.sellerTaxID || company?.taxNumber || company?.tax_number)) || '—';
+        const sellerAddr = company?.address || company?.location || company?.city || '';
+        const dispSellerAddress = (activeInvoice ? sellerAddr : (qForm.sellerAddress || sellerAddr)) || '—';
         const dispStamp = qForm.sellerStamp || logoUrl;
 
-        const dispBuyerName = qForm.buyerName || contact?.name || '—';
-        const dispBuyerCR = qForm.buyerCR || contact?.commercialRegNumber || contact?.commercialRegister || '—';
-        const dispBuyerTaxID = qForm.buyerTaxID || contact?.taxNumber || '—';
-        const dispBuyerAddress = qForm.buyerAddress || resolveEntityAddress(contact);
+        const activeContactSnapshot = activeInvoice?.contactSnapshot || {};
+        const activeContactObj = activeInvoice?.contact || {};
+        console.log("FULL CONTACT/BUYER OBJECT FROM INVOICE (MODAL):", activeContactSnapshot, activeContactObj);
+        const activeBuyerName = activeContactSnapshot.name || activeContactObj.name;
+        const activeBuyerCR = activeContactSnapshot.commercialRegister || activeContactSnapshot.commercialRegNumber || activeContactSnapshot.commercial_register || activeContactSnapshot.commercialReg || activeContactObj.commercialRegister || activeContactObj.commercialRegNumber || activeContactObj.commercial_register || activeContactObj.commercialReg || '';
+        const activeBuyerTaxID = activeContactSnapshot.taxNumber || activeContactSnapshot.tax_number || activeContactObj.taxNumber || activeContactObj.tax_number || '';
+        const activeBuyerAddress = resolveEntityAddress(activeContactSnapshot.address || activeContactObj.address || contact);
+
+        const dispBuyerName = (activeInvoice ? activeBuyerName : (qForm.buyerName || activeBuyerName)) || '—';
+        const dispBuyerCR = (activeInvoice ? activeBuyerCR : (qForm.buyerCR || activeBuyerCR)) || '—';
+        const dispBuyerTaxID = (activeInvoice ? activeBuyerTaxID : (qForm.buyerTaxID || activeBuyerTaxID)) || '—';
+        const dispBuyerAddress = (activeInvoice ? activeBuyerAddress : (qForm.buyerAddress || activeBuyerAddress)) || '—';
 
         const finalQR = generateZatcaQR(
             dispSellerName,
@@ -301,7 +319,7 @@ const ModalPreview = ({ template, invoice, company, loading, isRTL, t, isQuotati
                             <p className="text-gray-500">التاريخ: {formatDate(activeInvoice?.issueDate, isRTL)}</p>
                         </div>
                         <div className="w-[70px] flex items-center justify-center">
-                            <QRCodeCanvas value={finalQR} size={60} level="M" includeMargin />
+                            {/* Top QR removed as requested */}
                         </div>
                     </div>
 
@@ -653,15 +671,6 @@ const PrintTemplateProvider = ({ children }) => {
     const handleConfirm = () => {
         const current = requestRef.current;
         if (!current?.resolve) return;
-
-        if (selectedTemplate === 'invoice-qa') {
-            const invoiceId = request?.meta?.transactionId || previewInvoice?._id;
-            if (invoiceId) {
-                navigate(`/dashboard/templates/invoice-qa?invoiceId=${invoiceId}`);
-                closeRequest();
-                return;
-            }
-        }
 
         if (saveAsDefault) {
             console.log('Saved default template:', selectedTemplate);

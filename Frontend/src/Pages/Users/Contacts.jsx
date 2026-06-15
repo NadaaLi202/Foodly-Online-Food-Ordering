@@ -25,7 +25,7 @@ const Contacts = () => {
         email: '',
         address: '',
         taxNumber: '',
-        commercialRecord: '',
+        commercialRegister: '',
         creditLimit: '',
         openingBalance: 0,
         notes: ''
@@ -83,8 +83,8 @@ const Contacts = () => {
             if (!formData.taxNumber || !formData.taxNumber.trim()) {
                 newErrors.taxNumber = t('sales.common.required');
             }
-            if (!formData.commercialRecord || !formData.commercialRecord.trim()) {
-                newErrors.commercialRecord = t('sales.common.required');
+            if (!formData.commercialRegister || !formData.commercialRegister.trim()) {
+                newErrors.commercialRegister = t('sales.common.required');
             }
         }
 
@@ -104,7 +104,7 @@ const Contacts = () => {
                 email: contact.email || '',
                 address: contact.address || '',
                 taxNumber: contact.taxNumber || '',
-                commercialRecord: contact.commercialRecord || '',
+                commercialRegister: contact.commercialRegister || '',
                 creditLimit: contact.creditLimit || '',
                 openingBalance: contact.openingBalance || 0,
                 notes: contact.notes || ''
@@ -117,7 +117,7 @@ const Contacts = () => {
                 email: '',
                 address: '',
                 taxNumber: '',
-                commercialRecord: '',
+                commercialRegister: '',
                 creditLimit: '',
                 openingBalance: 0,
                 notes: ''
@@ -318,7 +318,7 @@ const Contacts = () => {
                                 <h3 className="font-bold text-gray-900 text-lg mb-1 truncate">{contact.name}</h3>
                                 <p className="text-sm text-gray-500 mb-4 flex items-center gap-1">
                                     <Building size={14} />
-                                    {contact.commercialRecord || 'No Commercial Record'}
+                                    {contact.commercialRegister || (i18n.language === 'ar' ? 'لا يوجد سجل تجاري' : 'No Commercial Register')}
                                 </p>
 
                                 <div className="space-y-3 pt-4 border-t border-gray-50">
@@ -473,18 +473,18 @@ const Contacts = () => {
 
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                                            {t('sales.customers.commercial_record')}
+                                            {i18n.language === 'ar' ? 'السجل التجاري' : 'Commercial Register'}
                                             {formData.type === 'commercial' && <span className="text-red-500 ml-1">*</span>}
                                         </label>
                                         <input
                                             type="text"
-                                            name="commercialRecord"
-                                            value={formData.commercialRecord}
+                                            name="commercialRegister"
+                                            value={formData.commercialRegister}
                                             onChange={handleInputChange}
-                                            className={`w-full bg-gray-50 border-2 ${errors.commercialRecord ? 'border-red-500' : 'border-gray-100'} rounded-xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all`}
+                                            className={`w-full bg-gray-50 border-2 ${errors.commercialRegister ? 'border-red-500' : 'border-gray-100'} rounded-xl px-4 py-3 font-bold text-gray-900 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all`}
                                             placeholder="1xxxxxxxxx"
                                         />
-                                        {errors.commercialRecord && <p className="text-red-500 text-xs mt-1 font-bold">{errors.commercialRecord}</p>}
+                                        {errors.commercialRegister && <p className="text-red-500 text-xs mt-1 font-bold">{errors.commercialRegister}</p>}
                                     </div>
 
                                     <div className="col-span-2">

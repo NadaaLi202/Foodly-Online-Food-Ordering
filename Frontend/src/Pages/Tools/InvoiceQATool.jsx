@@ -89,13 +89,13 @@ function InvoiceQATool() {
 
         setForm({
           sellerName: company.name || '',
-          sellerCR: company.commercialRegister || '',
-          sellerTaxID: company.taxNumber || '',
-          sellerAddress: company.address || '',
+          sellerCR: company.commercialRegister || company.commercial_register || company.commercialReg || '',
+          sellerTaxID: company.taxNumber || company.tax_number || '',
+          sellerAddress: company.address || company.location || company.city || '',
           sellerStamp: company.logo ? (company.logo.startsWith('http') ? company.logo : `${BASE_URL}${company.logo}`) : '',
           buyerName: contact.name || '',
-          buyerCR: contact.commercialRegister || contact.commercialRegNumber || '',
-          buyerTaxID: contact.taxNumber || '',
+          buyerCR: contact.commercialRegister || contact.commercialRegNumber || contact.commercial_register || contact.commercialReg || '',
+          buyerTaxID: contact.taxNumber || contact.tax_number || '',
           buyerAddress: contact.address ? (typeof contact.address === 'string' ? contact.address : `${contact.address.address1 || ''} ${contact.address.city || ''}`) : '',
           itemDescription: desc,
           quantity: 1,

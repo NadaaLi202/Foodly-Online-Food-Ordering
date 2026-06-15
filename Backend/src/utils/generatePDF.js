@@ -87,6 +87,8 @@ export async function generatePDF(htmlContent, pdfOptions = {}) {
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
       "--disable-gpu",
+      "--no-first-run",
+      "--no-zygote"
     ],
   });
 

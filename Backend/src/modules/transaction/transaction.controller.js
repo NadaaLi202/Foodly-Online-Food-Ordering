@@ -181,6 +181,7 @@ const createTransaction = (module, documentType) =>
                     phone: contactDoc.phone,
                     type: contactDoc.type,
                     taxNumber: contactDoc.taxNumber || contactDoc.tax_number,
+                    commercialRegister: contactDoc.commercialRegister || '',
                     address: {
                         city: contactDoc.address?.city,
                         address1: contactDoc.address?.address1,
@@ -328,7 +329,7 @@ const getOne = catchAsyncError(async (req, res, next) => {
         deletedAt: { $in: [null, undefined] },
         ...req.companyFilter
     })
-        .populate('contact', 'name email phone type address')
+        .populate('contact', 'name email phone type address taxNumber commercialRegister')
         .populate('items.product', 'name sellingPrice');
     if (!doc) return next(new AppError("غير موجود", 404));
     res.json(doc);
@@ -506,9 +507,9 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
     const companySnap = transaction.companySnapshot || {};
     const companyName = companySnap.name || company?.name || "Company";
     const companyLogoUrl = companySnap.logo || company?.logo?.url;
-    const companyTax = companySnap.taxNumber || company?.taxNumber || '—';
-    const companyCR = companySnap.commercialRegister || company?.commercialRegister || '—';
-    const companyAddress = companySnap.address || company?.address || '—';
+    const companyTax = companySnap.taxNumber || companySnap.tax_number || company?.taxNumber || company?.tax_number || '—';
+    const companyCR = companySnap.commercialRegister || companySnap.commercial_register || companySnap.commercialReg || company?.commercialRegister || company?.commercial_register || company?.commercialReg || '—';
+    const companyAddress = companySnap.address || company?.address || company?.location || company?.city || '—';
 
     const currency = transaction.currency || company?.defaultCurrency || "EGP";
     const CURRENCY_SYMBOLS = { EGP: "ج.م", USD: "$", EUR: "€", SAR: "﷼", AED: "د.إ", GBP: "£" };
@@ -536,9 +537,9 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
     const contactDoc = transaction.contact || {};
     const contact = contactSnap.name ? contactSnap : contactDoc;
     const contactName = contactSnap.name || contactDoc.name || "—";
-    const contactTax = contactSnap.taxNumber || contactDoc.taxNumber || '—';
-    const contactCR = contactSnap.commercialRegister || contactDoc.commercialRegister || '—';
-    const contactAddress = contactSnap.address?.address1 || contactSnap.address?.city || contactDoc.address?.address1 || contactDoc.address?.city || '—';
+    const contactTax = contactSnap.taxNumber || contactSnap.tax_number || contactDoc.taxNumber || contactDoc.tax_number || '—';
+    const contactCR = contactSnap.commercialRegister || contactSnap.commercialRegNumber || contactSnap.commercial_register || contactSnap.commercialReg || contactDoc.commercialRegister || contactDoc.commercialRegNumber || contactDoc.commercial_register || contactDoc.commercialReg || '—';
+    const contactAddress = contactSnap.address?.address1 || contactSnap.address?.city || (typeof contactSnap.address === 'string' ? contactSnap.address : null) || contactDoc.address?.address1 || contactDoc.address?.city || (typeof contactDoc.address === 'string' ? contactDoc.address : null) || '—';
 
     console.log("DEBUG TRANSACTION OBJECT FOR PDF:", {
         sellerName: companyName,
