@@ -501,7 +501,9 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
 
     if (!transaction) return next(new AppError("Document not found", 404));
 
-    const company = await companyModel.findById(transaction.companyId).select("name logo defaultCurrency commercialRegister taxNumber address").lean();
+    // Use the logged-in user's company (matching preview), fall back to transaction's companyId
+    const companyId = req.companyFilter?.companyId || req.user?.companyId || transaction.companyId;
+    const company = await companyModel.findById(companyId).select("name logo defaultCurrency commercialRegister taxNumber address").lean();
 
     const formatAddress = (addr) => {
         if (!addr) return null;
