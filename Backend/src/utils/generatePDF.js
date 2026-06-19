@@ -14,6 +14,50 @@ const fontToDataUri = (fileName) => {
 
 const cairoRegular = fontToDataUri("Cairo-Regular.ttf");
 const cairoBold = fontToDataUri("Cairo-Bold.ttf");
+const PDF_RENDER_TIMEOUT_MS = 15000;
+const REMOTE_IMAGE_TIMEOUT_MS = 5000;
+const EMPTY_IMAGE_DATA_URI = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==";
+
+const toRemoteImageDataUri = async (src) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REMOTE_IMAGE_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(src.replace(/&amp;/g, "&"), {
+      signal: controller.signal,
+    });
+
+    if (!response.ok) return null;
+
+    const contentType = response.headers.get("content-type") || "image/png";
+    if (!contentType.startsWith("image/")) return null;
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return `data:${contentType};base64,${buffer.toString("base64")}`;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const inlineRemoteImages = async (htmlContent) => {
+  const remoteImagePattern = /(<img\b[^>]*\bsrc=["'])(https?:\/\/[^"']+)(["'][^>]*>)/gi;
+  const matches = [...String(htmlContent || "").matchAll(remoteImagePattern)];
+  if (matches.length === 0) return htmlContent;
+
+  const replacements = await Promise.all(
+    matches.map(async (match) => ({
+      original: match[0],
+      replacement: `${match[1]}${await toRemoteImageDataUri(match[2]) || EMPTY_IMAGE_DATA_URI}${match[3]}`,
+    }))
+  );
+
+  return replacements.reduce(
+    (content, { original, replacement }) => content.replace(original, replacement),
+    htmlContent
+  );
+};
 
 const injectArabicStyles = (htmlContent) => {
   const isBilingual = htmlContent && htmlContent.includes('bilingual-template');
@@ -94,15 +138,23 @@ export async function generatePDF(htmlContent, pdfOptions = {}) {
 
   try {
     const page = await browser.newPage();
+    page.setDefaultTimeout(PDF_RENDER_TIMEOUT_MS);
+    page.setDefaultNavigationTimeout(PDF_RENDER_TIMEOUT_MS);
+
     await page.setExtraHTTPHeaders({
       "Accept-Charset": "utf-8",
     });
 
-    // Block external font requests to prevent navigation timeout
+    // Block external requests after images are inlined so the browser does not fetch assets.
     await page.setRequestInterception(true);
     page.on('request', (req) => {
       const url = req.url();
-      if (url.includes('fonts.googleapis.com') || url.includes('fonts.gstatic.com')) {
+      if (
+        url.startsWith('http://') ||
+        url.startsWith('https://') ||
+        url.includes('fonts.googleapis.com') ||
+        url.includes('fonts.gstatic.com')
+      ) {
         req.abort();
       } else {
         req.continue();
@@ -112,10 +164,11 @@ export async function generatePDF(htmlContent, pdfOptions = {}) {
     // Strip Google Fonts <link> tags from HTML before rendering
     let cleanedHtml = injectArabicStyles(htmlContent);
     cleanedHtml = cleanedHtml.replace(/<link[^>]*fonts\.googleapis\.com[^>]*>/gi, '');
+    cleanedHtml = await inlineRemoteImages(cleanedHtml);
 
     await page.setContent(cleanedHtml, {
       waitUntil: "domcontentloaded",
-      timeout: 60000,
+      timeout: PDF_RENDER_TIMEOUT_MS,
     });
     await page.emulateMediaType("print");
     await page.evaluate(() => (document.fonts ? document.fonts.ready : Promise.resolve()));

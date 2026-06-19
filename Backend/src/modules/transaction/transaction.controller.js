@@ -29,6 +29,16 @@ const docTypeLabel = (module, type) => {
     return type === 'return' ? 'مرتجع مبيعات' : 'فاتورة ضريبية';
 };
 
+const buildZatcaQrValue = ({ sellerName, vatNumber, timestamp, totalAmount, vatAmount }) => {
+    const fields = [sellerName, vatNumber, timestamp, totalAmount, vatAmount];
+    const buffers = fields.map((value, index) => {
+        const valueBuffer = Buffer.from(String(value || ''), 'utf8');
+        return Buffer.concat([Buffer.from([index + 1, valueBuffer.length]), valueBuffer]);
+    });
+
+    return Buffer.concat(buffers).toString('base64');
+};
+
 /**
  * Automates creation/update of payment records for sales and purchases invoices.
  */
@@ -524,28 +534,27 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
         return null;
     };
 
-    // Resolve Company Data (Priority: user's company DB > companySnapshot — matches frontend preview)
+    // Resolve seller data for PDF
     const companySnap = transaction.companySnapshot || {};
-    const companyName = company?.name || companySnap.name || "Company";
-    const companyLogoUrl = company?.logo?.url || companySnap.logo;
-    const companyTax = company?.taxNumber || company?.tax_number || companySnap.taxNumber || companySnap.tax_number || '—';
-    const companyCR = company?.commercialRegister || company?.commercial_register || company?.commercialReg || companySnap.commercialRegister || companySnap.commercial_register || companySnap.commercialReg || '—';
-    // Seller address: user's company DB first, then snapshot
-    const companyAddress = formatAddress(company?.address) || formatAddress(companySnap.address) || company?.city || '—';
+    const companyName = company?.name || "Company";
+    const companyLogoUrl = companySnap.logo;
+    const companyTax = companySnap.taxNumber || companySnap.tax_number || '—';
+    const companyCR = companySnap.commercialRegister || companySnap.commercial_register || companySnap.commercialReg || '—';
+    const companyAddress = formatAddress(companySnap.address) || '—';
 
     const currency = transaction.currency || company?.defaultCurrency || "EGP";
     const CURRENCY_SYMBOLS = { EGP: "ج.م", USD: "$", EUR: "€", SAR: "﷼", AED: "د.إ", GBP: "£" };
     const currencySymbol = CURRENCY_SYMBOLS[currency] || currency;
 
-    // Build QR Payload
-    const qrPayload = {
-        invoiceNumber: transaction.transactionNumber,
-        companyName: companyName.replace(/\n/g, ' '), // Clean for QR
-        totalAmount: transaction.totalAmount,
-        date: transaction.issueDate,
-        invoiceId: transaction._id.toString()
-    };
-    const qrDataURL = await QRCode.toDataURL(JSON.stringify(qrPayload), { width: 200, margin: 1 });
+    const invoiceDate = new Date(transaction.issueDate);
+    const qrValue = buildZatcaQrValue({
+        sellerName: companyName.replace(/\n/g, ' '),
+        vatNumber: companyTax === '—' ? '' : companyTax,
+        timestamp: Number.isNaN(invoiceDate.getTime()) ? new Date().toISOString() : invoiceDate.toISOString(),
+        totalAmount: Number(transaction.totalAmount || 0).toFixed(2),
+        vatAmount: Number(transaction.totalTax || 0).toFixed(2),
+    });
+    const qrDataURL = await QRCode.toDataURL(qrValue, { width: 200, margin: 1 });
 
     const esc = (value) => String(value ?? "")
         .replace(/&/g, "&amp;")
@@ -919,6 +928,221 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
 </body>
 </html>
         `;
+    } else if (templateStyle === 'thermal') {
+        const issueDateStr = new Date(transaction.issueDate).toLocaleDateString('en-CA');
+        htmlContent = `
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>${esc(transaction.transactionNumber)}</title>
+    <style>
+        @page { size: 80mm 297mm; margin: 0; }
+        body {
+            margin: 0;
+            padding: 0;
+            background: #fff;
+            color: #111827;
+            font-family: 'Cairo', 'Arial', sans-serif;
+            direction: rtl;
+            font-size: 10px;
+            line-height: 1.45;
+            width: 80mm;
+        }
+        .receipt {
+            width: 80mm;
+            margin: 0;
+            padding: 4mm;
+            box-sizing: border-box;
+            background: #fff;
+            border: 0;
+            direction: rtl;
+        }
+        .center { text-align: center !important; }
+        .section {
+            padding: 8px 0;
+            border-bottom: 1px dashed #d1d5db;
+        }
+        .section:last-child { border-bottom: 0; }
+        .logo {
+            max-height: 40px;
+            max-width: 120px;
+            object-fit: contain;
+            display: block;
+            margin: 0 auto 4px;
+        }
+        .company-name {
+            margin: 0 0 3px;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center !important;
+        }
+        p {
+            margin: 2px 0;
+            text-align: center !important;
+        }
+        .info p {
+            text-align: right !important;
+        }
+        .label {
+            font-weight: 700;
+        }
+        .items {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+            font-size: 10px;
+        }
+        .items th,
+        .items td {
+            border: 0 !important;
+            padding: 2px 1px !important;
+            vertical-align: top;
+            font-size: 10px;
+        }
+        .items th {
+            color: #6b7280;
+            font-weight: 700;
+            border-bottom: 1px dashed #d1d5db !important;
+        }
+        .items .desc {
+            width: 42%;
+            text-align: right !important;
+        }
+        .items .num {
+            text-align: left !important;
+            direction: ltr;
+            white-space: nowrap;
+        }
+        .item-name {
+            font-weight: 600;
+            text-align: right !important;
+        }
+        .item-description {
+            color: #6b7280;
+            font-size: 9px;
+            line-height: 1.25;
+            text-align: right !important;
+        }
+        .totals {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+            font-size: 10px;
+        }
+        .totals td {
+            border: 0 !important;
+            padding: 2px 0 !important;
+        }
+        .totals .label-cell {
+            text-align: right !important;
+        }
+        .totals .value-cell {
+            text-align: left !important;
+            direction: ltr;
+            white-space: nowrap;
+        }
+        .grand-total td {
+            border-top: 1px solid #d1d5db !important;
+            padding-top: 4px !important;
+            font-weight: 700;
+        }
+        .qr-code {
+            width: 90px;
+            height: 90px;
+            display: block;
+            margin: 8px auto 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="section center">
+            ${companyLogoUrl ? `<img src="${companyLogoUrl}" class="logo" />` : ''}
+            <p class="company-name">${esc(companyName)}</p>
+            ${companyTax !== '—' ? `<p>الرقم الضريبي: ${esc(companyTax)}</p>` : ''}
+            ${companyCR !== '—' ? `<p>السجل التجاري: ${esc(companyCR)}</p>` : ''}
+            ${companyAddress !== '—' ? `<p>${esc(companyAddress)}</p>` : ''}
+            <p class="label">${esc(docTypeLabel(transaction.module, transaction.documentType))}</p>
+        </div>
+
+        <div class="section center">
+            <p>رقم الفاتورة: ${esc(transaction.transactionNumber || '—')}</p>
+            <p>تاريخ الفاتورة: <span dir="ltr">${issueDateStr}</span></p>
+            ${transaction.dueDate ? `<p>تاريخ الاستحقاق: <span dir="ltr">${new Date(transaction.dueDate).toLocaleDateString('en-CA')}</span></p>` : ''}
+        </div>
+
+        <div class="section info">
+            <p><span class="label">البائع:</span> ${esc(companyName)}</p>
+            ${companyTax !== '—' ? `<p><span class="label">الرقم الضريبي:</span> ${esc(companyTax)}</p>` : ''}
+            ${companyCR !== '—' ? `<p><span class="label">السجل التجاري:</span> ${esc(companyCR)}</p>` : ''}
+            ${companyAddress !== '—' ? `<p><span class="label">العنوان:</span> ${esc(companyAddress)}</p>` : ''}
+            <p><span class="label">المشتري:</span> ${esc(contactName)}</p>
+            ${contactTax !== '—' ? `<p><span class="label">الرقم الضريبي:</span> ${esc(contactTax)}</p>` : ''}
+            ${contactCR !== '—' ? `<p><span class="label">السجل التجاري:</span> ${esc(contactCR)}</p>` : ''}
+            ${contactAddress !== '—' ? `<p><span class="label">العنوان:</span> ${esc(contactAddress)}</p>` : ''}
+        </div>
+
+        <div class="section">
+            <table class="items">
+                <thead>
+                    <tr>
+                        <th class="desc">الوصف</th>
+                        <th class="num">ك</th>
+                        <th class="num">ض</th>
+                        <th class="num">إج</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${(transaction.items || []).map((item) => {
+            const name = item.productName || item.product?.name || '—';
+            const total = item.total ?? (item.quantity * item.unitPrice - (item.discountAmount || 0) + (item.taxAmount || 0));
+            return `
+                    <tr>
+                        <td class="desc">
+                            <div class="item-name">${esc(name)}</div>
+                            ${item.description ? `<div class="item-description">${esc(item.description)}</div>` : ''}
+                        </td>
+                        <td class="num">${fmt(item.quantity)}</td>
+                        <td class="num">${fmt(item.taxAmount || 0)} ${esc(currencySymbol)}</td>
+                        <td class="num">${fmt(total)} ${esc(currencySymbol)}</td>
+                    </tr>
+                    `;
+        }).join('')}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <table class="totals">
+                <tr>
+                    <td class="label-cell">الإجمالي قبل الضريبة</td>
+                    <td class="value-cell">${fmt(transaction.subtotal)} ${esc(currencySymbol)}</td>
+                </tr>
+                ${transaction.totalDiscount > 0 ? `
+                <tr>
+                    <td class="label-cell">الخصم</td>
+                    <td class="value-cell">-${fmt(transaction.totalDiscount)} ${esc(currencySymbol)}</td>
+                </tr>
+                ` : ''}
+                <tr>
+                    <td class="label-cell">الضريبة</td>
+                    <td class="value-cell">${fmt(transaction.totalTax)} ${esc(currencySymbol)}</td>
+                </tr>
+                <tr class="grand-total">
+                    <td class="label-cell">الإجمالي</td>
+                    <td class="value-cell">${fmt(transaction.totalAmount)} ${esc(currencySymbol)}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="section center">
+            <img src="${qrDataURL}" class="qr-code" />
+        </div>
+    </div>
+</body>
+</html>
+        `;
     } else {
         htmlContent = `
 <!DOCTYPE html>
@@ -1113,10 +1337,20 @@ const generateTransactionPDF = catchAsyncError(async (req, res, next) => {
         `;
     }
 
-    const pdfBuffer = await generatePDF(htmlContent, {
-        format: "A4",
-        margin: { top: "0mm", bottom: "0mm", left: "0mm", right: "0mm" }
-    });
+    const pdfOptions = templateStyle === 'thermal'
+        ? {
+            format: undefined,
+            width: "80mm",
+            height: "297mm",
+            preferCSSPageSize: true,
+            margin: { top: "0mm", bottom: "0mm", left: "0mm", right: "0mm" }
+        }
+        : {
+            format: "A4",
+            margin: { top: "0mm", bottom: "0mm", left: "0mm", right: "0mm" }
+        };
+
+    const pdfBuffer = await generatePDF(htmlContent, pdfOptions);
 
     const filename = `invoice-${(transaction.transactionNumber || id).replace(/[^a-zA-Z0-9-_]/g, "_")}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
