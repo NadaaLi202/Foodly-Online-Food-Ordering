@@ -3,11 +3,13 @@ import logError from "../src/utils/logError.js";
 
 export const dbConnection = async () => {
     try {
-        if (!process.env.DB_CONNECTION) {
+        const connectionString = process.env.MONGO_URI || process.env.DB_CONNECTION;
+
+        if (!connectionString) {
             throw new Error("Database connection string is not defined in environment variables.");
         }
 
-        await mongoose.connect(process.env.DB_CONNECTION);
+        await mongoose.connect(connectionString);
         console.log('Database connection successful');
     } catch (err) {
         logError('Database connection failed:', err.message);

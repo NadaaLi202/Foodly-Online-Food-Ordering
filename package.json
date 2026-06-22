@@ -1,11 +1,12 @@
 {
-    "name": "dafater-accounting-root",
+    "name": "foodly-ordering-root",
     "version": "1.0.0",
     "private": true,
     "scripts": {
         "dev": "concurrently \"npm run dev --prefix Backend\" \"npm run dev --prefix Frontend\"",
         "start": "concurrently \"npm start --prefix Backend\" \"npm run dev --prefix Frontend\"",
         "build": "npm run build --prefix Frontend",
+        "seed": "npm run seed --prefix Backend",
         "postinstall": "npm install --prefix Backend && npm install --prefix Frontend"
     },
     "engines": {

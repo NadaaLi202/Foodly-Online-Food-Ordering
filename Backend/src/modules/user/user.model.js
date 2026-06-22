@@ -1,96 +1,67 @@
-import mongoose from "mongoose";
-import bcrypt from "bcrypt"
+import bcrypt from 'bcryptjs';
+import mongoose from 'mongoose';
 
-
-
-const userSchema = new mongoose.Schema({
-
+const userSchema = new mongoose.Schema(
+  {
     name: {
-        type: String,
-        required: true,
-        minLength: [3, 'User name must be at least 3 characters long'],
-        maxLength: [30, 'User name must be at most 30 characters long']
-    },
-
-    type: {
-        type: String,
-        enum: ["user", "employee"],
-        default: "user",
-        required: true
+      type: String,
+      required: [true, 'Full name is required'],
+      trim: true,
+      minlength: 2,
     },
     email: {
-        type: String,
-        required: [
-            function () { return this.type === 'user'; },
-            'Email is required for users'
-        ],
-        trim: true,
-        lowercase: true,
+      type: String,
+      required: [true, 'Email is required'],
+      unique: true,
+      lowercase: true,
+      trim: true,
+      match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email'],
     },
-
     password: {
-        type: String,
-        required: [
-            function () { return this.type === 'user'; },
-            'Password is required for users'
-        ],
-        minLength: [6, 'User password must be at least 6 characters long'],
-        maxLength: [30, 'User password must be at most 30 characters long']
-    },
-    companyId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Company",
-        required: [
-            function () { return this.role !== 'superAdmin' && this.systemRole !== 'superAdmin'; },
-            'Company ID is required for non-superAdmin users'
-        ]
-    },
-    systemRole: {
-        type: String,
-        enum: ["superAdmin", "companyOwner"],
-        default: null
-    },
-    roleId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Role",
-        default: null
+      type: String,
+      required: [true, 'Password is required'],
+      minlength: 6,
+      select: false,
     },
     role: {
-        type: String,
-        enum: ["superAdmin", "admin", "accountant", "employee", "manager", "company"],
-        default: "company",
-        required: false
+      type: String,
+      enum: ['admin', 'customer'],
+      default: 'customer',
     },
-    image: {
-        type: String,
-        trim: true
-    },
-    imagePublicId: {
-        type: String,
-        trim: true
-    },
-    phone: {
-        type: String,
-        trim: true
-    }
-}, { timestamps: true })
+  },
+  { timestamps: true },
+);
 
-userSchema.index({ email: 1, companyId: 1 }, { unique: true });
+userSchema.pre('save', async function hashPassword(next) {
+  if (!this.isModified('password')) {
+    return next();
+  }
 
+  this.password = await bcrypt.hash(this.password, 12);
+  next();
+});
 
+userSchema.pre('findOneAndUpdate', async function hashUpdatedPassword(next) {
+  const update = this.getUpdate();
 
-userSchema.pre('save', function (next) {
-    if (this.isModified('password')) {
+  if (update?.password && !update.password.startsWith('$2')) {
+    update.password = await bcrypt.hash(update.password, 12);
+  }
 
+  next();
+});
 
-        this.password = bcrypt.hashSync(this.password, 10)
-    }
-    next();
-})
+userSchema.methods.comparePassword = function comparePassword(candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
 
-// userSchema.post('init', (doc) => {
-//     doc.image = "http://localhost:4000/user/" + doc.image
-// })
+userSchema.set('toJSON', {
+  transform: (doc, ret) => {
+    delete ret.password;
+    return ret;
+  },
+});
 
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 
-export const userModel = mongoose.model('user', userSchema)
+export default User;

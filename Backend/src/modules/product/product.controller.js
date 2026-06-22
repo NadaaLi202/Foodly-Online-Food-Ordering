@@ -1,176 +1,78 @@
-import { productModel } from "./product.model.js"
-import { AppError } from "../../utils/AppError.js"
-import { catchAsyncError } from "../../middleware/catchAsyncError.js"
-import { uploadToCloudinary, deleteFromCloudinary } from "../../utils/cloudinary.js"
-import { companyModel } from "../companies/company.model.js"
-import mongoose from "mongoose"
-import { resolveCompanyIdForWrite } from "../../middleware/applyCompanyFilter.js"
+import { catchAsyncError } from '../../middleware/catchAsyncError.js';
+import { AppError } from '../../utils/apperror.js';
+import {
+  createProductService,
+  deleteProductService,
+  getProductService,
+  listProductsService,
+  updateProductService,
+} from './product.service.js';
 
-const normalizeExistingCompanyId = async (candidateId) => {
-    if (!candidateId) {
-        return { companyId: null, invalidFormat: false };
-    }
-    if (!mongoose.Types.ObjectId.isValid(candidateId)) {
-        return { companyId: null, invalidFormat: true };
-    }
+const fileUrl = (req) => {
+  if (!req.file) {
+    return null;
+  }
 
-    const company = await companyModel.findById(candidateId).select("_id").lean();
-    return { companyId: company?._id ? String(company._id) : null, invalidFormat: false };
+  return `${req.protocol}://${req.get('host')}/uploads/products/${req.file.filename}`;
 };
 
-const resolveSuperAdminProductCompanyId = async (req) => {
-    const explicitCandidate = resolveCompanyIdForWrite(req);
-    const { companyId: explicitCompanyId, invalidFormat } = await normalizeExistingCompanyId(explicitCandidate);
-    if (invalidFormat) {
-        return { companyId: null, error: "Invalid company ID format" };
-    }
-    if (explicitCandidate && !explicitCompanyId) {
-        return { companyId: null, error: "Company not found" };
-    }
-    if (explicitCompanyId) {
-        return { companyId: explicitCompanyId, error: null };
-    }
+const productPayload = (req) => {
+  const payload = {
+    name: req.body.name,
+    description: req.body.description,
+    image: fileUrl(req) || req.body.image,
+    category: req.body.category,
+    price: Number(req.body.price),
+    isAvailable: req.body.isAvailable === undefined
+      ? true
+      : req.body.isAvailable === true || req.body.isAvailable === 'true',
+  };
 
-    // Backward-compatible fallback: when the system has exactly one company,
-    // use it to avoid forcing frontend changes for superAdmin write endpoints.
-    const companies = await companyModel.find({}, { _id: 1 }).limit(2).lean();
-    if (companies.length === 1) {
-        return { companyId: String(companies[0]._id), error: null };
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined || payload[key] === '' || Number.isNaN(payload[key])) {
+      delete payload[key];
     }
+  });
 
-    return { companyId: null, error: null };
+  return payload;
 };
 
-const addProduct = catchAsyncError(async (req, res, next) => {
-    const productData = { ...req.body };
-    const isSuperAdmin = req.user?.role === 'superAdmin' || req.user?.systemRole === 'superAdmin';
-
-    let companyId;
-    if (isSuperAdmin) {
-        const resolved = await resolveSuperAdminProductCompanyId(req);
-        if (resolved.error) {
-            const statusCode = resolved.error === "Company not found" ? 404 : 400;
-            return next(new AppError(resolved.error, statusCode));
-        }
-        companyId = resolved.companyId;
-        if (!companyId) {
-            return next(new AppError('Company ID is required for superAdmin product creation. Send it in body/query/header, or ensure a single company exists in the system.', 400));
-        }
-    } else {
-        if (!req.user?.companyId) {
-            return next(new AppError('User is not assigned to a company', 403));
-        }
-        companyId = String(req.user.companyId);
-    }
-
-    // Security: never trust tenant assignment from body for non-superAdmin users.
-    productData.companyId = companyId;
-
-    // Clean image field if it's an unexpected object (prevent CastError)
-    if (productData.image && typeof productData.image !== 'string') {
-        delete productData.image;
-    }
-
-    // Add image path if file was uploaded
-    if (req.file) {
-        console.log('[DEBUG] Image file received:', {
-            originalname: req.file.originalname,
-            mimetype: req.file.mimetype,
-            size: req.file.size
-        });
-        const result = await uploadToCloudinary(req.file.buffer, 'products');
-        console.log('[DEBUG] Cloudinary upload result:', result);
-        productData.image = result.secure_url;
-        productData.imagePublicId = result.public_id;
-    } else {
-        console.log('[DEBUG] No image file received (req.file is undefined)');
-    }
-
-    const product = new productModel(productData);
-    await product.save();
-    res.status(201).json({ message: 'تم إضافة المنتج بنجاح', product });
+export const listProducts = catchAsyncError(async (req, res) => {
+  const products = await listProductsService(req.query);
+  res.json({ products });
 });
 
-const getAllProducts = catchAsyncError(async (req, res, next) => {
-    const { search } = req.query;
-    let query = { ...req.companyFilter }; // Apply company filter
+export const getProduct = catchAsyncError(async (req, res, next) => {
+  const product = await getProductService(req.params.id);
 
-    if (search) {
-        query.name = { $regex: search, $options: 'i' };
-    }
-    let products = await productModel.find(query).sort({ createdAt: -1 });
-    res.status(200).json({ message: 'تم جلب المنتجات بنجاح', products });
+  if (!product) {
+    return next(new AppError('Product not found', 404));
+  }
+
+  res.json({ product });
 });
 
-const getProductById = catchAsyncError(async (req, res, next) => {
-    const { id } = req.params;
-    let product = await productModel.findOne({ _id: id, ...req.companyFilter });
-
-    if (!product) {
-        return next(new AppError('المنتج غير موجود', 404));
-    }
-    res.status(200).json({ message: 'تم جلب المنتج بنجاح', product });
+export const createProduct = catchAsyncError(async (req, res) => {
+  const product = await createProductService(productPayload(req));
+  res.status(201).json({ product });
 });
 
-const updateProduct = catchAsyncError(async (req, res, next) => {
-    const { id } = req.params;
+export const updateProduct = catchAsyncError(async (req, res, next) => {
+  const product = await updateProductService(req.params.id, productPayload(req));
 
-    // Find existing product with filter
-    let existingProduct = await productModel.findOne({ _id: id, ...req.companyFilter });
-    if (!existingProduct) {
-        return next(new AppError('المنتج غير موجود', 404));
-    }
+  if (!product) {
+    return next(new AppError('Product not found', 404));
+  }
 
-    const updateData = { ...req.body };
-
-    // Clean image field if it's an unexpected object (prevent CastError)
-    if (updateData.image && typeof updateData.image !== 'string') {
-        delete updateData.image;
-    }
-
-    // Handle image update
-    if (req.file) {
-        console.log('[DEBUG] Image file received for update:', {
-            originalname: req.file.originalname,
-            mimetype: req.file.mimetype,
-            size: req.file.size
-        });
-        // Delete old image if exists
-        if (existingProduct.imagePublicId) {
-            await deleteFromCloudinary(existingProduct.imagePublicId);
-        }
-        const result = await uploadToCloudinary(req.file.buffer, 'products');
-        console.log('[DEBUG] Cloudinary update result:', result);
-        updateData.image = result.secure_url;
-        updateData.imagePublicId = result.public_id;
-    } else {
-        console.log('[DEBUG] No image file received for update');
-    }
-
-    let product = await productModel.findOneAndUpdate(
-        { _id: id, ...req.companyFilter },
-        updateData,
-        { new: true }
-    );
-    res.status(200).json({ message: 'تم تحديث المنتج بنجاح', product });
+  res.json({ product });
 });
 
-const deleteProduct = catchAsyncError(async (req, res, next) => {
-    const { id } = req.params;
-    let product = await productModel.findOne({ _id: id, ...req.companyFilter });
+export const deleteProduct = catchAsyncError(async (req, res, next) => {
+  const product = await deleteProductService(req.params.id);
 
-    if (!product) {
-        return next(new AppError('المنتج غير موجود', 404));
-    }
+  if (!product) {
+    return next(new AppError('Product not found', 404));
+  }
 
-    // Delete product image if exists
-    if (product.imagePublicId) {
-        await deleteFromCloudinary(product.imagePublicId);
-    }
-
-    await productModel.findOneAndDelete({ _id: id, ...req.companyFilter });
-    res.status(200).json({ message: 'تم حذف المنتج بنجاح', product });
+  res.status(204).send();
 });
-
-
-export { addProduct, getAllProducts, getProductById, updateProduct, deleteProduct }

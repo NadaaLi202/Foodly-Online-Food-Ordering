@@ -1,5 +1,5 @@
 {
-  "name": "dafater-accounting",
+  "name": "foodly-ordering-frontend",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -27,9 +27,11 @@
     "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-hook-form": "^7.80.0",
     "react-hot-toast": "^2.6.0",
     "react-i18next": "^16.5.4",
     "react-router-dom": "^7.13.0",
+    "react-toastify": "^11.1.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
