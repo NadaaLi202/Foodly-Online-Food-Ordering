@@ -1,5 +1,5 @@
 import { globalErrorMiddleware } from '../middleware/globalErrorMiddleware.js';
-import { AppError } from '../utils/apperror.js';
+import { AppError } from '../utils/AppError.js';
 import authRouter from './auth/auth.router.js';
 import productRouter from './product/product.router.js';
 import orderRouter from './order/order.router.js';
