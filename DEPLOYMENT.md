@@ -19,7 +19,7 @@ Create a `.env` file in the `Backend` directory with the following variables:
 ### Frontend (.env.production)
 
 The production build uses `Frontend/.env.production`. By default, it is set to:
-`VITE_API_URL=/api/v1`
+`VITE_API_URL=https://foodonlinefoodordering-66nzs4q4.b4a.run/api`
 
 This works when the frontend is served from the same domain as the backend.
 
