@@ -1,6 +1,6 @@
 import User from './user.model.js';
 import { catchAsyncError } from '../../middleware/catchAsyncError.js';
-import { AppError } from '../../utils/apperror.js';
+import { AppError } from '../../utils/AppError.js';
 
 export const getUsers = catchAsyncError(async (req, res) => {
   const users = await User.find().sort({ createdAt: -1 });

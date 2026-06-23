@@ -1,5 +1,5 @@
 import { catchAsyncError } from '../../middleware/catchAsyncError.js';
-import { AppError } from '../../utils/apperror.js';
+import { AppError } from '../../utils/AppError.js';
 import {
   createOrderService,
   getAllOrdersService,

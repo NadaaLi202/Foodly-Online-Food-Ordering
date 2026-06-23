@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../modules/user/user.model.js';
-import { AppError } from '../utils/apperror.js';
+import { AppError } from '../utils/AppError.js';
 
 const jwtSecret = () => process.env.JWT_SECRET || process.env.SECRET_KEY || 'development-secret-change-me';
 

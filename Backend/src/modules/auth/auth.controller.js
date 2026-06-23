@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../user/user.model.js';
 import { catchAsyncError } from '../../middleware/catchAsyncError.js';
-import { AppError } from '../../utils/apperror.js';
+import { AppError } from '../../utils/AppError.js';
 
 const signToken = (user) => jwt.sign(
   { id: user._id, role: user.role },

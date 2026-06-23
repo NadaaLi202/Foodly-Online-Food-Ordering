@@ -1,6 +1,6 @@
 import Product from '../product/product.model.js';
 import Order, { ORDER_STATUSES } from './order.model.js';
-import { AppError } from '../../utils/apperror.js';
+import { AppError } from '../../utils/AppError.js';
 
 export const createOrderService = async (userId, payload) => {
   const { items = [], paymentMethod, shippingAddress } = payload;
