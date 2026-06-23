@@ -182,6 +182,9 @@
     "title": "Order tracking"
   },
   "auth": {
+    "demoAccountsTitle": "Demo Accounts (for testing)",
+    "demoAdminLabel": "Admin account",
+    "demoCustomerLabel": "Customer account",
     "hasAccount": "Already have an account?",
     "loginSubtitle": "Sign in to continue ordering and tracking.",
     "loginTitle": "Welcome back",

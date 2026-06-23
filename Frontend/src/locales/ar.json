@@ -182,6 +182,9 @@
     "title": "تتبع الطلب"
   },
   "auth": {
+    "demoAccountsTitle": "حسابات تجريبية (للاختبار)",
+    "demoAdminLabel": "حساب المدير",
+    "demoCustomerLabel": "حساب العميل",
     "hasAccount": "لديك حساب بالفعل؟",
     "loginSubtitle": "سجل الدخول لمتابعة الطلب والتتبع.",
     "loginTitle": "مرحباً بعودتك",

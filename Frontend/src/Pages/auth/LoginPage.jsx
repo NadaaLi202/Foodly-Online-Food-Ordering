@@ -16,6 +16,18 @@ const LoginPage = () => {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm();
+  const demoAccounts = [
+    {
+      label: t('auth.demoAdminLabel'),
+      email: 'admin2@foodly.com',
+      password: 'Admin123456',
+    },
+    {
+      label: t('auth.demoCustomerLabel'),
+      email: 'nadaaliali676@gmail.com',
+      password: 'nada12345',
+    },
+  ];
 
   const onSubmit = async (values) => {
     try {
@@ -50,6 +62,26 @@ const LoginPage = () => {
             <LogIn className="h-5 w-5" />
             {isSubmitting ? t('states.saving') : t('nav.login')}
           </button>
+        </div>
+        <div className="mt-5 rounded-lg border border-orange-100 bg-orange-50/60 p-4 text-sm text-stone-700">
+          <h2 className="font-bold text-stone-950">{t('auth.demoAccountsTitle')}</h2>
+          <div className="mt-3 grid gap-3">
+            {demoAccounts.map((account) => (
+              <div key={account.email} className="rounded-md border border-stone-200 bg-white/80 p-3">
+                <p className="font-semibold text-stone-900">{account.label}</p>
+                <dl className="mt-2 grid gap-1 text-xs text-stone-600">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <dt className="font-semibold">{t('forms.email')}:</dt>
+                    <dd dir="ltr" className="font-mono text-stone-800">{account.email}</dd>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <dt className="font-semibold">{t('forms.password')}:</dt>
+                    <dd dir="ltr" className="font-mono text-stone-800">{account.password}</dd>
+                  </div>
+                </dl>
+              </div>
+            ))}
+          </div>
         </div>
         <p className="mt-5 text-center text-sm text-stone-500">
           {t('auth.noAccount')}{' '}
