@@ -6,7 +6,7 @@ import EmptyState from '../../components/food/EmptyState';
 import LoadingState from '../../components/food/LoadingState';
 import { useAuth } from '../../contexts/AuthContext';
 import { getErrorMessage } from '../../services/api';
-import { userService } from '../../services/userservice';
+import { userService } from '../../services/userService';
 import { formatDate } from '../../utils/format';
 
 const AdminUsersPage = () => {
