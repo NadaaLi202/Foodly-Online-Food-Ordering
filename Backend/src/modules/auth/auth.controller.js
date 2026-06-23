@@ -25,7 +25,7 @@ const sendAuthResponse = (res, user, statusCode = 200) => {
 };
 
 export const register = catchAsyncError(async (req, res, next) => {
-  const { name, email, password, confirmPassword } = req.body;
+  const { name, email, password, confirmPassword, role } = req.body;
 
   if (!name || !email || !password || !confirmPassword) {
     return next(new AppError('Name, email, password and confirm password are required', 400));
@@ -40,7 +40,8 @@ export const register = catchAsyncError(async (req, res, next) => {
     return next(new AppError('Email is already registered', 409));
   }
 
-  const user = await User.create({ name, email, password, role: 'customer' });
+  const userRole = role === 'admin' ? 'admin' : 'customer';
+  const user = await User.create({ name, email, password, role: userRole });
   sendAuthResponse(res, user, 201);
 });
 

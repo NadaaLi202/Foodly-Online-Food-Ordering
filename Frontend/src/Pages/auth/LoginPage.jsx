@@ -20,8 +20,11 @@ const LoginPage = () => {
   const onSubmit = async (values) => {
     try {
       const user = await login(values);
+      const fromPath = location.state?.from?.pathname;
+      const safeCustomerPath = fromPath?.startsWith('/admin') ? '/menu' : (fromPath || '/menu');
+
       toast.success(t('messages.welcome'));
-      navigate(user.role === 'admin' ? '/admin' : (location.state?.from?.pathname || '/menu'), { replace: true });
+      navigate(user.role === 'admin' ? '/admin/dashboard' : safeCustomerPath, { replace: true });
     } catch (error) {
       toast.error(getErrorMessage(error, t('messages.loginFailed')));
     }

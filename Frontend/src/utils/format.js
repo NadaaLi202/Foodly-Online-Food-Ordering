@@ -10,3 +10,14 @@ export const formatCurrency = (value = 0, language = 'en') => new Intl.NumberFor
     maximumFractionDigits: 0,
   },
 ).format(value);
+
+export const formatDate = (value, language = 'en') => {
+  if (!value) {
+    return '-';
+  }
+
+  return new Intl.DateTimeFormat(language === 'ar' ? 'ar-EG' : 'en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+};

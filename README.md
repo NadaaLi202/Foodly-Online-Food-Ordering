@@ -59,7 +59,7 @@ Demo accounts created by the seed script:
 npm run dev
 ```
 
-Frontend: `http://localhost:5173`
+Frontend: ` http://127.0.0.1:5174/`
 
 Backend: `http://localhost:4000`
 

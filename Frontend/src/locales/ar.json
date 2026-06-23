@@ -24,12 +24,14 @@
     "edit": "تعديل",
     "manage": "إدارة",
     "remove": "إزالة",
+    "retry": "إعادة المحاولة",
     "save": "حفظ",
     "search": "بحث",
     "viewAll": "عرض الكل"
   },
   "states": {
     "empty": "لا يوجد محتوى بعد",
+    "error": "حدث خطأ",
     "loading": "جاري التحميل...",
     "saving": "جاري الحفظ..."
   },
@@ -42,12 +44,23 @@
     "mockPaid": "تم قبول الدفع التجريبي وإنشاء الطلب",
     "orderPlaced": "تم إنشاء الطلب بنجاح",
     "orderUpdated": "تم تحديث حالة الطلب",
+    "orderUpdateFailed": "تعذر تحديث حالة الطلب",
+    "ordersLoadFailed": "تعذر تحميل الطلبات",
+    "productAvailabilityFailed": "تعذر تحديث إتاحة المنتج",
+    "productAvailabilityUpdated": "تم تحديث إتاحة المنتج",
     "productCreated": "تم إنشاء المنتج",
     "productDeleted": "تم حذف المنتج",
+    "productDeleteFailed": "تعذر حذف المنتج",
+    "productSaveFailed": "تعذر حفظ المنتج",
     "productUpdated": "تم تحديث المنتج",
+    "productsLoadFailed": "تعذر تحميل المنتجات",
     "registerFailed": "فشل إنشاء الحساب",
+    "statsLoadFailed": "تعذر تحميل إحصائيات لوحة الإدارة",
     "userDeleted": "تم حذف المستخدم",
+    "userDeleteFailed": "تعذر حذف المستخدم",
     "userUpdated": "تم تحديث المستخدم",
+    "userUpdateFailed": "تعذر تحديث المستخدم",
+    "usersLoadFailed": "تعذر تحميل المستخدمين",
     "welcome": "مرحباً بعودتك"
   },
   "home": {
@@ -174,7 +187,9 @@
     "loginTitle": "مرحباً بعودتك",
     "noAccount": "ليس لديك حساب؟",
     "registerSubtitle": "أنشئ حساب عميل خلال ثوانٍ.",
-    "registerTitle": "إنشاء حساب"
+    "registerTitle": "إنشاء حساب",
+    "unauthorizedText": "ليس لديك صلاحية لعرض هذه المنطقة.",
+    "unauthorizedTitle": "غير مصرح"
   },
   "validation": {
     "password": "يجب ألا تقل كلمة المرور عن 6 أحرف",
@@ -183,14 +198,19 @@
   },
   "admin": {
     "addProduct": "إضافة منتج",
+    "allStatuses": "كل الحالات",
     "dashboard": "لوحة الإدارة",
     "dashboardText": "تابع أداء المتجر وأدر العمليات اليومية.",
+    "navigation": "تنقل الإدارة",
     "noUsers": "لا يوجد مستخدمون",
     "orders": "إدارة الطلبات",
     "ordersText": "عرض كل الطلبات وتحديث حالة التنفيذ.",
+    "overview": "نظرة عامة",
     "products": "إدارة المنتجات",
     "productsText": "إنشاء وتعديل وحذف وبحث منتجات القائمة.",
     "searchProduct": "بحث في المنتجات",
+    "selfAccount": "حسابك الحالي",
+    "statusFilter": "تصفية حسب الحالة",
     "users": "إدارة المستخدمين",
     "usersText": "راجع المستخدمين وغيّر الأدوار واحذف الحسابات.",
     "stats": {

@@ -3,6 +3,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import { useTranslation } from 'react-i18next';
 import 'react-toastify/dist/ReactToastify.css';
+import AdminLayout from './components/food/AdminLayout';
+import AdminRoute from './components/food/AdminRoute';
 import AppLayout from './components/food/AppLayout';
 import ProtectedRoute from './components/food/ProtectedRoute';
 import { AuthProvider } from './contexts/AuthContext';
@@ -20,6 +22,7 @@ import MenuPage from './Pages/customer/MenuPage';
 import OrderTrackingPage from './Pages/customer/OrderTrackingPage';
 import OrdersPage from './Pages/customer/OrdersPage';
 import ProductDetailsPage from './Pages/customer/ProductDetailsPage';
+import UnauthorizedPage from './Pages/UnauthorizedPage';
 
 const AppRoutes = () => {
   const { i18n } = useTranslation();
@@ -42,6 +45,7 @@ const AppRoutes = () => {
           <Route path="cart" element={<CartPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
+          <Route path="unauthorized" element={<UnauthorizedPage />} />
 
           <Route element={<ProtectedRoute />}>
             <Route path="checkout" element={<CheckoutPage />} />
@@ -49,11 +53,14 @@ const AppRoutes = () => {
             <Route path="orders/:id" element={<OrderTrackingPage />} />
           </Route>
 
-          <Route element={<ProtectedRoute roles={['admin']} />}>
-            <Route path="admin" element={<AdminDashboardPage />} />
-            <Route path="admin/products" element={<AdminProductsPage />} />
-            <Route path="admin/orders" element={<AdminOrdersPage />} />
-            <Route path="admin/users" element={<AdminUsersPage />} />
+          <Route element={<AdminRoute />}>
+            <Route path="admin" element={<AdminLayout />}>
+              <Route index element={<Navigate to="dashboard" replace />} />
+              <Route path="dashboard" element={<AdminDashboardPage />} />
+              <Route path="products" element={<AdminProductsPage />} />
+              <Route path="orders" element={<AdminOrdersPage />} />
+              <Route path="users" element={<AdminUsersPage />} />
+            </Route>
           </Route>
         </Route>
 

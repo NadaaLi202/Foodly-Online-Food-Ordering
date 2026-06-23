@@ -24,12 +24,14 @@
     "edit": "Edit",
     "manage": "Manage",
     "remove": "Remove",
+    "retry": "Retry",
     "save": "Save",
     "search": "Search",
     "viewAll": "View all"
   },
   "states": {
     "empty": "Nothing here yet",
+    "error": "Something went wrong",
     "loading": "Loading...",
     "saving": "Saving..."
   },
@@ -42,12 +44,23 @@
     "mockPaid": "Mock online payment approved and order placed",
     "orderPlaced": "Order placed successfully",
     "orderUpdated": "Order status updated",
+    "orderUpdateFailed": "Could not update order status",
+    "ordersLoadFailed": "Could not load orders",
+    "productAvailabilityFailed": "Could not update product availability",
+    "productAvailabilityUpdated": "Product availability updated",
     "productCreated": "Product created",
     "productDeleted": "Product deleted",
+    "productDeleteFailed": "Could not delete product",
+    "productSaveFailed": "Could not save product",
     "productUpdated": "Product updated",
+    "productsLoadFailed": "Could not load products",
     "registerFailed": "Registration failed",
+    "statsLoadFailed": "Could not load dashboard stats",
     "userDeleted": "User deleted",
+    "userDeleteFailed": "Could not delete user",
     "userUpdated": "User updated",
+    "userUpdateFailed": "Could not update user",
+    "usersLoadFailed": "Could not load users",
     "welcome": "Welcome back"
   },
   "home": {
@@ -174,7 +187,9 @@
     "loginTitle": "Welcome back",
     "noAccount": "Do not have an account?",
     "registerSubtitle": "Create a customer account in seconds.",
-    "registerTitle": "Create account"
+    "registerTitle": "Create account",
+    "unauthorizedText": "You do not have permission to view this area.",
+    "unauthorizedTitle": "Unauthorized"
   },
   "validation": {
     "password": "Password must be at least 6 characters",
@@ -183,14 +198,19 @@
   },
   "admin": {
     "addProduct": "Add product",
+    "allStatuses": "All statuses",
     "dashboard": "Admin dashboard",
     "dashboardText": "Track store performance and manage daily operations.",
+    "navigation": "Admin navigation",
     "noUsers": "No users found",
     "orders": "Order management",
     "ordersText": "View all orders and update their fulfillment status.",
+    "overview": "Overview",
     "products": "Product management",
     "productsText": "Create, edit, delete, and search menu products.",
     "searchProduct": "Search products",
+    "selfAccount": "Your account",
+    "statusFilter": "Filter by status",
     "users": "User management",
     "usersText": "Review users, change roles, and remove accounts.",
     "stats": {

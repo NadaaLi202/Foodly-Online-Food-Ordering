@@ -1,7 +1,21 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { authService } from '../services/authService';
 
-const AuthContext = createContext(null);
+const missingProvider = () => {
+  throw new Error('useAuth must be used within an AuthProvider');
+};
+
+const defaultAuthContext = {
+  user: null,
+  loading: false,
+  isAuthenticated: false,
+  isAdmin: false,
+  login: missingProvider,
+  register: missingProvider,
+  logout: () => {},
+};
+
+const AuthContext = createContext(defaultAuthContext);
 
 const getStoredUser = () => {
   try {
@@ -11,14 +25,28 @@ const getStoredUser = () => {
   }
 };
 
+const normalizeUser = (authUser) => {
+  if (!authUser) {
+    return null;
+  }
+
+  return {
+    ...authUser,
+    role: typeof authUser.role === 'string' ? authUser.role.trim().toLowerCase() : authUser.role,
+  };
+};
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(getStoredUser);
+  const [user, setUser] = useState(() => normalizeUser(getStoredUser()));
   const [loading, setLoading] = useState(Boolean(localStorage.getItem('foodly_token')));
 
   const setSession = (session) => {
+    const sessionUser = normalizeUser(session.user);
+
     localStorage.setItem('foodly_token', session.token);
-    localStorage.setItem('foodly_user', JSON.stringify(session.user));
-    setUser(session.user);
+    localStorage.setItem('foodly_user', JSON.stringify(sessionUser));
+    setUser(sessionUser);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -29,17 +57,33 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
+    const profileToken = token;
+
     authService.profile()
       .then(({ data }) => {
-        localStorage.setItem('foodly_user', JSON.stringify(data.user));
-        setUser(data.user);
+        if (localStorage.getItem('foodly_token') !== profileToken) {
+          return;
+        }
+
+        const profileUser = normalizeUser(data.user);
+
+        localStorage.setItem('foodly_user', JSON.stringify(profileUser));
+        setUser(profileUser);
       })
       .catch(() => {
+        if (localStorage.getItem('foodly_token') !== profileToken) {
+          return;
+        }
+
         localStorage.removeItem('foodly_token');
         localStorage.removeItem('foodly_user');
         setUser(null);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (localStorage.getItem('foodly_token') === profileToken) {
+          setLoading(false);
+        }
+      });
   }, []);
 
   const value = useMemo(() => ({
@@ -50,12 +94,12 @@ export const AuthProvider = ({ children }) => {
     login: async (payload) => {
       const { data } = await authService.login(payload);
       setSession(data);
-      return data.user;
+      return normalizeUser(data.user);
     },
     register: async (payload) => {
       const { data } = await authService.register(payload);
       setSession(data);
-      return data.user;
+      return normalizeUser(data.user);
     },
     logout: () => {
       localStorage.removeItem('foodly_token');

@@ -15,6 +15,22 @@ import mongoose from "mongoose";
 
 // Adjust this path to match where your Product model actually lives
 import Product from "../src/modules/product/product.model.js";
+import User from "../src/modules/user/user.model.js";
+
+const demoUsers = [
+  {
+    name: "Admin User",
+    email: "admin@foodly.test",
+    password: "Admin12345",
+    role: "admin",
+  },
+  {
+    name: "Customer User",
+    email: "customer@foodly.test",
+    password: "Customer12345",
+    role: "customer",
+  },
+];
 
 const products = [
   // ---------- PIZZA ----------
@@ -134,6 +150,15 @@ async function seed() {
 
     await Product.insertMany(products);
     console.log(`${products.length} products inserted successfully`);
+
+    for (const user of demoUsers) {
+      await User.findOneAndUpdate(
+        { email: user.email },
+        user,
+        { new: true, runValidators: true, setDefaultsOnInsert: true, upsert: true },
+      );
+    }
+    console.log(`${demoUsers.length} demo users ensured successfully`);
 
     await mongoose.disconnect();
     console.log("Disconnected from MongoDB");
